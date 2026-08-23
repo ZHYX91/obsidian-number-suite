@@ -8,6 +8,17 @@ updates:
       time: "09:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    # These versions are coupled to the pinned host/runtime toolchain and must
+    # be advanced together instead of by an isolated Dependabot pull request.
+    ignore:
+      - dependency-name: "@codemirror/state"
+      - dependency-name: "@codemirror/view"
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     groups:
       non-major:
         patterns:
