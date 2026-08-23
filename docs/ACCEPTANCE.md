@@ -36,6 +36,7 @@ first acceptance.
 - [ ] Verify `Figure:`, `Table:`, `Equation:`, and `Code:` each start at 1 and increment independently; `Listing:` remains unchanged.
 - [ ] Verify captions without IDs are numbered and captions with inline or immediately following user-authored block IDs receive the same behavior.
 - [ ] Confirm Live Preview and Reading View show `Figure 1:`-style labels while the Markdown bytes, mtime, and IDs remain unchanged.
+- [ ] With caption numbering off, confirm Figure and Equation default to centered while Table and Code follow the theme; toggle all four independently in both Live Preview and Reading View.
 - [ ] Verify `@[[#Heading]]`, `@[[#^block-id]]`, and both `|alias` forms retain native link navigation and add a number only when the target has a visible valid number.
 - [ ] Verify ordinary `[[#...]]`, cross-file links, missing targets, duplicate headings/IDs, and unnumbered headings remain unchanged.
 - [ ] Embed a numbered note into another note and confirm each file keeps independent caption counters and reference targets.
@@ -44,10 +45,11 @@ first acceptance.
 ## Footnotes and endnotes
 
 - [ ] Verify `[^id]` and `[^footnote:id]` display as footnotes and `[^endnote:id]` displays as an endnote.
-- [ ] Mix both kinds in one file and confirm each starts at 1 in first-reference order; repeated references must reuse their first number.
+- [ ] Mix both kinds in one file and confirm footnotes display `1`, `2`, `3`, endnotes display `E1`, `E2`, `E3`, and repeated references reuse their first number.
 - [ ] Verify missing definitions, duplicate definitions, and conflicts such as `[^same]` plus `[^footnote:same]` remain unchanged.
 - [ ] Put headings, captions, and `@[[...]]` references in definition continuations indented by two spaces and by a tab; none may enter their document counters.
 - [ ] Confirm Live Preview and Reading View preserve native footnote navigation and definition-list structure while changing only visible labels.
+- [ ] In Live Preview, switch between formatted numbers and original markers; click and keyboard-navigate to each formatted reference and definition, then edit the revealed source marker.
 - [ ] Reload, switch views, and disable the plugin; original visible labels must return and Markdown bytes, mtime, definitions, references, and IDs must remain unchanged.
 - [ ] Use a third-party renderer or deliberately mismatched rendered fixture; source/render count mismatches must fail closed without partial decoration.
 

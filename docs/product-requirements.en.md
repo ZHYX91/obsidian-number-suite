@@ -63,19 +63,24 @@ governed by their own source and settings.
    relevant property.
 9. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
     `Listing:` is not compatible. Each type counts independently from 1 per Markdown file, with or
-    without a block ID, and display must never write a stored caption number.
+    without a block ID, and display must never write a stored caption number. Each fixed type has an
+    independent centering toggle that also works when caption numbering is off; Figure and Equation
+    default on, while Table and Code default off and follow the theme.
 10. Only `@[[#Heading]]` and `@[[#^block-id]]`, with optional Obsidian aliases, request semantic
     same-file enhancement. Ordinary links remain unchanged. Resolution consumes existing anchors
     and fails closed unless the unique target has a visible valid heading or caption number.
 11. The plugin must not create, validate, migrate, repair, or otherwise manage heading or block IDs.
 12. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
-    order, and repeated references reuse the first number.
+    order, and repeated references reuse the first number. Footnotes display plain numbers and
+    endnotes display an `E` prefix.
 13. Footnote/endnote display must not create, rename, or rewrite definitions, references, IDs, or
     other Markdown. Missing definitions, duplicate definitions, canonical ID conflicts between
     default and explicit footnotes, and source/render count mismatches fail closed. Definition
     continuations indented by two spaces or a tab are protected containers and cannot be scanned as
-    headings, captions, or semantic references.
+    headings, captions, or semantic references. Live Preview can show formatted numbers or original
+    markers; clicking or moving the cursor to a formatted number reveals the editable marker, while
+    Reading View preserves native navigation.
 
 <!-- section: safety-requirements -->
 ## Safety requirements

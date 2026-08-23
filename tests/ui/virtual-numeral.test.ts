@@ -30,11 +30,20 @@ describe("virtual numeral element", () => {
     };
     Object.defineProperty(document, "win", { configurable: true, value: window });
     Object.assign(window, { createFragment: () => document.createDocumentFragment() });
-    const reference = createVirtualNoteElement(document, "2", "endnote", "reference");
-    const definition = createVirtualNoteElement(document, "2", "endnote", "definition");
+    const reference = createVirtualNoteElement(
+      document,
+      "E2",
+      "endnote",
+      "reference",
+      "Endnote E2",
+      "Click to edit the source marker",
+    );
+    const definition = createVirtualNoteElement(document, "E2", "endnote", "definition");
     expect(reference.classList.contains("structured-numbering-note-reference")).toBe(true);
     expect(reference.dataset.structuredNumberingNoteKind).toBe("endnote");
-    expect(reference.textContent).toBe("2");
-    expect(definition.textContent).toBe("[2]");
+    expect(reference.textContent).toBe("E2");
+    expect(reference.getAttribute("aria-label")).toBe("Endnote E2");
+    expect(reference.getAttribute("title")).toContain("Click to edit");
+    expect(definition.textContent).toBe("[E2]");
   });
 });

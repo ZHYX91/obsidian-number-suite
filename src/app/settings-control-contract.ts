@@ -6,8 +6,13 @@ export type SettingsControlKey =
   | "general.showVirtualNumbers"
   | "general.concealStoredNumbers"
   | "captions.showCaptionNumbers"
+  | "captions.centerFigure"
+  | "captions.centerTable"
+  | "captions.centerEquation"
+  | "captions.centerCode"
   | "references.showCrossReferences"
   | "notes.showNoteNumbers"
+  | "notes.displayMode"
   | "general.missingLevelStrategy"
   | "cleanup.writeMarkers"
   | "cleanup.cleanupScope"
@@ -34,8 +39,13 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "general.showVirtualNumbers",
   "general.concealStoredNumbers",
   "captions.showCaptionNumbers",
+  "captions.centerFigure",
+  "captions.centerTable",
+  "captions.centerEquation",
+  "captions.centerCode",
   "references.showCrossReferences",
   "notes.showNoteNumbers",
+  "notes.displayMode",
   "general.missingLevelStrategy",
   "cleanup.writeMarkers",
   "cleanup.cleanupScope",
@@ -64,8 +74,13 @@ export function getSettingsControlValue(
     case "general.showVirtualNumbers": return settings.showVirtualNumbers;
     case "general.concealStoredNumbers": return settings.concealStoredNumbers;
     case "captions.showCaptionNumbers": return settings.showCaptionNumbers;
+    case "captions.centerFigure": return settings.centerFigureCaptions;
+    case "captions.centerTable": return settings.centerTableCaptions;
+    case "captions.centerEquation": return settings.centerEquationCaptions;
+    case "captions.centerCode": return settings.centerCodeCaptions;
     case "references.showCrossReferences": return settings.showCrossReferences;
     case "notes.showNoteNumbers": return settings.showNoteNumbers;
+    case "notes.displayMode": return settings.noteDisplayMode;
     case "general.missingLevelStrategy": return settings.missingLevelStrategy;
     case "cleanup.writeMarkers": return settings.writeMarkers;
     case "cleanup.cleanupScope": return settings.cleanupScope;
@@ -109,12 +124,35 @@ export function applySettingsControlValue(
       next.showCaptionNumbers = controlBoolean(key, value);
       impact = "display";
       break;
+    case "captions.centerFigure":
+    case "captions.centerTable":
+    case "captions.centerEquation":
+    case "captions.centerCode": {
+      const property = {
+        "captions.centerFigure": "centerFigureCaptions",
+        "captions.centerTable": "centerTableCaptions",
+        "captions.centerEquation": "centerEquationCaptions",
+        "captions.centerCode": "centerCodeCaptions",
+      }[key] as
+        | "centerFigureCaptions"
+        | "centerTableCaptions"
+        | "centerEquationCaptions"
+        | "centerCodeCaptions";
+      next[property] = controlBoolean(key, value);
+      impact = "display";
+      break;
+    }
     case "references.showCrossReferences":
       next.showCrossReferences = controlBoolean(key, value);
       impact = "display";
       break;
     case "notes.showNoteNumbers":
       next.showNoteNumbers = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "notes.displayMode":
+      if (value !== "formatted" && value !== "source") throw invalidControlValue(key);
+      next.noteDisplayMode = value;
       impact = "display";
       break;
     case "general.missingLevelStrategy":

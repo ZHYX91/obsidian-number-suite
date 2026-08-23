@@ -39,7 +39,8 @@ Core tests cover scanning, template compilation, formats, prefix recognition, ex
 settings sanitization, immutable change plans, caption parsing, independent caption counters,
 footnote/endnote syntax, independent note counters, repeated references, and definition-container
 protection. Application tests cover virtual/conceal plans, fail-closed same-file reference and note
-resolution, Properties parsing, note overrides, and conditional replacement. Adapter tests cover
+resolution, independent caption alignment, selection-based note-source reveal, Properties parsing,
+note overrides, and conditional replacement. Adapter tests cover
 recovery data, Reading View DOM-count validation, semantic-marker cleanup, and settings contracts.
 Broader recognition requires false-positive fixtures first.
 
@@ -70,12 +71,14 @@ work also verifies stale previews, concurrent conflicts, mid-run failure, recove
 
 The 0.7 line additionally verifies all four caption keywords with and without IDs, independent
 per-file counters, explicit heading/block references and aliases, ordinary-link non-interference,
-fail-closed missing/duplicate targets, embedded-file boundaries, and Markdown byte identity.
+fail-closed missing/duplicate targets, independent alignment toggles, embedded-file boundaries, and
+Markdown byte identity.
 
 Footnote/endnote acceptance additionally covers default, explicit, and endnote syntax,
 independent per-kind counters, repeated-reference reuse, fail-closed missing/duplicate/canonical
 conflicts, two-space continuation protection, unchanged render-count mismatches, and Markdown byte
-identity.
+identity. Live Preview checks cover `1` versus `E1`, original-marker mode, click/cursor reveal, and
+Reading View navigation preservation.
 
 IME, mobile, pop-out windows, third-party themes, and long-document latency require real host
 environments; automated DOM tests cannot replace them. Detailed steps remain in the

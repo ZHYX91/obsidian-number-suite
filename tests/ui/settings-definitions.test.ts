@@ -44,7 +44,7 @@ describe("Obsidian 1.13 settings definitions", () => {
       "Heading numbering",
       "Captions",
       "Cross references",
-      "Notes",
+      "Footnotes & endnotes",
       "Write and cleanup",
       "Display and batch",
     ]);
@@ -52,8 +52,13 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(serialized).toContain('"key":"general.showVirtualNumbers"');
     expect(serialized).toContain('"key":"general.concealStoredNumbers"');
     expect(serialized).toContain('"key":"captions.showCaptionNumbers"');
+    expect(serialized).toContain('"key":"captions.centerFigure"');
+    expect(serialized).toContain('"key":"captions.centerTable"');
+    expect(serialized).toContain('"key":"captions.centerEquation"');
+    expect(serialized).toContain('"key":"captions.centerCode"');
     expect(serialized).toContain('"key":"references.showCrossReferences"');
     expect(serialized).toContain('"key":"notes.showNoteNumbers"');
+    expect(serialized).toContain('"key":"notes.displayMode"');
     expect(serialized).not.toContain('"key":"general.displayMode"');
     expect(tab.containerEl.querySelector("[role=tablist]")).toBeNull();
   });
@@ -68,18 +73,28 @@ describe("Obsidian 1.13 settings definitions", () => {
     await tab.setControlValue("general.showVirtualNumbers", true);
     await tab.setControlValue("general.concealStoredNumbers", true);
     await tab.setControlValue("captions.showCaptionNumbers", false);
+    await tab.setControlValue("captions.centerFigure", false);
+    await tab.setControlValue("captions.centerTable", true);
+    await tab.setControlValue("captions.centerEquation", false);
+    await tab.setControlValue("captions.centerCode", true);
     await tab.setControlValue("references.showCrossReferences", false);
     await tab.setControlValue("notes.showNoteNumbers", false);
+    await tab.setControlValue("notes.displayMode", "source");
     await tab.setControlValue("views.excludedFolders", "Private, /Archive/, Private");
 
     expect(host.settings.language).toBe("zh");
     expect(host.settings.showVirtualNumbers).toBe(true);
     expect(host.settings.concealStoredNumbers).toBe(true);
     expect(host.settings.showCaptionNumbers).toBe(false);
+    expect(host.settings.centerFigureCaptions).toBe(false);
+    expect(host.settings.centerTableCaptions).toBe(true);
+    expect(host.settings.centerEquationCaptions).toBe(false);
+    expect(host.settings.centerCodeCaptions).toBe(true);
     expect(host.settings.showCrossReferences).toBe(false);
     expect(host.settings.showNoteNumbers).toBe(false);
+    expect(host.settings.noteDisplayMode).toBe("source");
     expect(host.settings.excludedFolders).toEqual(["Private", "Archive"]);
-    expect(host.saveSettings).toHaveBeenCalledTimes(6);
+    expect(host.saveSettings).toHaveBeenCalledTimes(11);
     expect(host.scheduleSettings).toHaveBeenCalledTimes(1);
   });
 
@@ -91,6 +106,7 @@ describe("Obsidian 1.13 settings definitions", () => {
       "Invalid value",
     );
     await expect(tab.setControlValue("views.virtualOpacity", 2)).rejects.toThrow("Invalid value");
+    await expect(tab.setControlValue("notes.displayMode", "numbers")).rejects.toThrow("Invalid value");
     expect(host.saveSettings).not.toHaveBeenCalled();
     expect(host.scheduleSettings).not.toHaveBeenCalled();
   });

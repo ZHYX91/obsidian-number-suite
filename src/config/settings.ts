@@ -12,14 +12,20 @@ import {
 import { compileTemplate } from "../core/template-compiler";
 import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
+import type { CaptionKind } from "../core/document-semantics";
 
 export interface StructuredNumberingSettings {
   language: "auto" | "en" | "zh";
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
   showCaptionNumbers: boolean;
+  centerFigureCaptions: boolean;
+  centerTableCaptions: boolean;
+  centerEquationCaptions: boolean;
+  centerCodeCaptions: boolean;
   showCrossReferences: boolean;
   showNoteNumbers: boolean;
+  noteDisplayMode: "formatted" | "source";
   selectedSchemeId: string;
   customSchemes: CustomNumberingScheme[];
   hiddenBuiltInSchemeIds: string[];
@@ -73,8 +79,13 @@ export const DEFAULT_SETTINGS: StructuredNumberingSettings = {
   showVirtualNumbers: false,
   concealStoredNumbers: false,
   showCaptionNumbers: true,
+  centerFigureCaptions: true,
+  centerTableCaptions: false,
+  centerEquationCaptions: true,
+  centerCodeCaptions: false,
   showCrossReferences: true,
   showNoteNumbers: true,
+  noteDisplayMode: "formatted",
   selectedSchemeId: "hierarchical-h2",
   customSchemes: [],
   hiddenBuiltInSchemeIds: [],
@@ -219,8 +230,23 @@ export function sanitizeSettings(value: unknown): StructuredNumberingSettings {
     showVirtualNumbers: booleanOr(raw.showVirtualNumbers, DEFAULT_SETTINGS.showVirtualNumbers),
     concealStoredNumbers: booleanOr(raw.concealStoredNumbers, DEFAULT_SETTINGS.concealStoredNumbers),
     showCaptionNumbers: booleanOr(raw.showCaptionNumbers, DEFAULT_SETTINGS.showCaptionNumbers),
+    centerFigureCaptions: booleanOr(
+      raw.centerFigureCaptions,
+      DEFAULT_SETTINGS.centerFigureCaptions,
+    ),
+    centerTableCaptions: booleanOr(raw.centerTableCaptions, DEFAULT_SETTINGS.centerTableCaptions),
+    centerEquationCaptions: booleanOr(
+      raw.centerEquationCaptions,
+      DEFAULT_SETTINGS.centerEquationCaptions,
+    ),
+    centerCodeCaptions: booleanOr(raw.centerCodeCaptions, DEFAULT_SETTINGS.centerCodeCaptions),
     showCrossReferences: booleanOr(raw.showCrossReferences, DEFAULT_SETTINGS.showCrossReferences),
     showNoteNumbers: booleanOr(raw.showNoteNumbers, DEFAULT_SETTINGS.showNoteNumbers),
+    noteDisplayMode: oneOf(
+      raw.noteDisplayMode,
+      ["formatted", "source"] as const,
+      DEFAULT_SETTINGS.noteDisplayMode,
+    ),
     selectedSchemeId,
     customSchemes,
     hiddenBuiltInSchemeIds,
@@ -312,6 +338,17 @@ export function cloneSettings(settings: StructuredNumberingSettings): Structured
     })),
     excludedFolders: [...settings.excludedFolders],
   };
+}
+
+export function centeredCaptionKinds(
+  settings: StructuredNumberingSettings,
+): CaptionKind[] {
+  const kinds: CaptionKind[] = [];
+  if (settings.centerFigureCaptions) kinds.push("Figure");
+  if (settings.centerTableCaptions) kinds.push("Table");
+  if (settings.centerEquationCaptions) kinds.push("Equation");
+  if (settings.centerCodeCaptions) kinds.push("Code");
+  return kinds;
 }
 
 export function toNumberingOptions(

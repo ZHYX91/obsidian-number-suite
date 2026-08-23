@@ -46,4 +46,23 @@ describe("settings guide", () => {
     expect(messages).toContain("See @[[#Installation|installation section]]");
     expect(styles).toContain(".structured-numbering-reference-guide-example");
   });
+
+  it("documents footnote and endnote syntax in both settings paths", () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), "src/ui/settings/note-guide.ts"),
+      "utf8",
+    );
+    const imperative = readFileSync(resolve(process.cwd(), "src/app/settings-tab.ts"), "utf8");
+    const declarative = readFileSync(resolve(process.cwd(), "src/ui/settings/definitions.ts"), "utf8");
+    const messages = readFileSync(resolve(process.cwd(), "src/config/i18n.ts"), "utf8");
+
+    expect(guide).toContain('guide.setAttribute("role", "note")');
+    expect(guide).toContain('setIcon(icon, "info")');
+    expect(guide).toContain("settings.notes.guide.footnote.source");
+    expect(guide).toContain("settings.notes.guide.endnote.source");
+    expect(imperative).toContain("renderNoteNumberingGuide(container, t)");
+    expect(declarative).toContain("renderNoteNumberingGuide(container, t)");
+    expect(messages).toContain("[^detail]: 脚注内容。");
+    expect(messages).toContain("[^endnote:later]: Endnote text.");
+  });
 });

@@ -1,4 +1,4 @@
-import type { DisplayDecorationPlan } from "./display-plan";
+import type { DisplayDecorationPlan, SelectionSpan } from "./display-plan";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import { numberHeadings } from "../core/numbering-engine";
 import {
@@ -21,7 +21,7 @@ import type {
 } from "../core/types";
 
 export interface SemanticDisplayDecoration {
-  readonly kind: "caption" | "reference" | "note-reference" | "note-definition";
+  readonly kind: "caption" | "caption-alignment" | "reference" | "note-reference" | "note-definition";
   readonly from: number;
   readonly to: number;
   readonly line: number;
@@ -30,16 +30,36 @@ export interface SemanticDisplayDecoration {
   readonly target?: string;
   readonly noteKind?: NoteKind;
   readonly noteId?: string;
+  readonly noteNumber?: number;
 }
 
 export interface SemanticDisplayPlanOptions {
   readonly showCaptionNumbers: boolean;
+  readonly centeredCaptionKinds: readonly CaptionKind[];
   readonly showCrossReferences: boolean;
   readonly showNoteNumbers: boolean;
+  readonly noteSelections: readonly SelectionSpan[];
   readonly numbering: NumberingOptions;
   readonly templateSources: readonly CleanupTemplateSource[];
   readonly headingDisplayPlan: readonly DisplayDecorationPlan[];
   readonly composing: boolean;
+}
+
+export function formatNoteLabel(kind: NoteKind, number: number): string {
+  return kind === "endnote" ? `E${number}` : String(number);
+}
+
+function selectionTouchesRange(
+  from: number,
+  to: number,
+  selections: readonly SelectionSpan[],
+): boolean {
+  return selections.some((selection) => {
+    if (selection.from === selection.to) {
+      return selection.from >= from && selection.from <= to;
+    }
+    return selection.from <= to && selection.to >= from;
+  });
 }
 
 function visibleHeadingLabels(
@@ -78,7 +98,12 @@ export function createSemanticDisplayPlan(
 ): SemanticDisplayDecoration[] {
   if (
     options.composing
-    || (!options.showCaptionNumbers && !options.showCrossReferences && !options.showNoteNumbers)
+    || (
+      !options.showCaptionNumbers
+      && options.centeredCaptionKinds.length === 0
+      && !options.showCrossReferences
+      && !options.showNoteNumbers
+    )
   ) return [];
   const semantics = parseDocumentSemantics(source);
   const numberedCaptions = numberCaptions(semantics.captions);
@@ -98,28 +123,43 @@ export function createSemanticDisplayPlan(
       });
     }
   }
+  for (const caption of numberedCaptions) {
+    if (!options.centeredCaptionKinds.includes(caption.kind)) continue;
+    decorations.push({
+      kind: "caption-alignment",
+      from: caption.lineFrom,
+      to: caption.lineFrom,
+      line: caption.line,
+      label: "",
+      captionKind: caption.kind,
+    });
+  }
   if (options.showNoteNumbers) {
     const notes = numberDocumentNotes(parseDocumentNotes(source));
     for (const reference of notes.references) {
+      if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
       decorations.push({
         kind: "note-reference",
         from: reference.from,
         to: reference.to,
         line: reference.line,
-        label: String(reference.number),
+        label: formatNoteLabel(reference.kind, reference.number),
         noteKind: reference.kind,
         noteId: reference.id,
+        noteNumber: reference.number,
       });
     }
     for (const definition of notes.definitions) {
+      if (selectionTouchesRange(definition.from, definition.to, options.noteSelections)) continue;
       decorations.push({
         kind: "note-definition",
         from: definition.from,
         to: definition.to,
         line: definition.line,
-        label: String(definition.number),
+        label: formatNoteLabel(definition.kind, definition.number),
         noteKind: definition.kind,
         noteId: definition.id,
+        noteNumber: definition.number,
       });
     }
   }

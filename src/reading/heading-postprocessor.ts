@@ -1,7 +1,9 @@
 import { App, normalizePath, TFile, type MarkdownPostProcessorContext } from "obsidian";
 
 import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
+import { createTranslator, type Translate } from "../config/i18n";
 import {
+  centeredCaptionKinds,
   cleanupTemplateSources,
   toNumberingOptions,
   type StructuredNumberingSettings,
@@ -65,10 +67,23 @@ function cleanupSemantic(container: HTMLElement): void {
   for (const anchor of container.querySelectorAll<HTMLElement>("[data-structured-numbering-reference]")) {
     delete anchor.dataset.structuredNumberingReference;
   }
+  for (const caption of container.querySelectorAll<HTMLElement>(
+    "[data-structured-numbering-caption-kind]",
+  )) {
+    caption.classList.remove("structured-numbering-caption-centered");
+    delete caption.dataset.structuredNumberingCaptionKind;
+  }
   for (const element of container.querySelectorAll<HTMLElement>("[data-structured-numbering-note-original]")) {
     element.textContent = element.dataset.structuredNumberingNoteOriginal ?? "";
+    if (element.dataset.structuredNumberingNoteAriaPresent === "true") {
+      element.setAttribute("aria-label", element.dataset.structuredNumberingNoteAriaOriginal ?? "");
+    } else {
+      element.removeAttribute("aria-label");
+    }
     delete element.dataset.structuredNumberingNoteOriginal;
     delete element.dataset.structuredNumberingNoteKind;
+    delete element.dataset.structuredNumberingNoteAriaOriginal;
+    delete element.dataset.structuredNumberingNoteAriaPresent;
   }
   for (const item of container.querySelectorAll<HTMLElement>("[data-structured-numbering-note-value]")) {
     const original = item.dataset.structuredNumberingNoteValue;
@@ -76,6 +91,7 @@ function cleanupSemantic(container: HTMLElement): void {
     else item.setAttribute("value", original);
     delete item.dataset.structuredNumberingNoteValue;
     delete item.dataset.structuredNumberingNoteKind;
+    delete item.dataset.structuredNumberingNoteLabel;
   }
   container.normalize();
 }
@@ -102,6 +118,7 @@ function insertCaptionNumber(element: HTMLElement, kind: string, label: string):
         const span = createVirtualSemanticElement(element.ownerDocument, label, "caption");
         const suffix = node.splitText(localOffset);
         suffix.parentNode?.insertBefore(span, suffix);
+        element.dataset.structuredNumberingCaptionKind = kind;
         return true;
       }
     }
@@ -109,6 +126,13 @@ function insertCaptionNumber(element: HTMLElement, kind: string, label: string):
     node = walker.nextNode() as Text | null;
   }
   return false;
+}
+
+function alignCaption(element: HTMLElement, kind: string): boolean {
+  if (!(element.textContent ?? "").trimStart().startsWith(`${kind}:`)) return false;
+  element.dataset.structuredNumberingCaptionKind = kind;
+  element.classList.add("structured-numbering-caption-centered");
+  return true;
 }
 
 function precedingAtText(anchor: HTMLElement): Text | null {
@@ -156,6 +180,7 @@ function displayNoteLabel(original: string, label: string): string {
 function enhanceNoteReferences(
   container: HTMLElement,
   notes: readonly SemanticDisplayDecoration[],
+  t: Translate,
 ): boolean {
   const roots = noteReferenceRoots(container);
   if (roots.length !== notes.length) return false;
@@ -172,7 +197,12 @@ function enhanceNoteReferences(
     const original = target.textContent ?? "";
     target.dataset.structuredNumberingNoteOriginal = original;
     target.dataset.structuredNumberingNoteKind = note.noteKind;
+    target.dataset.structuredNumberingNoteAriaPresent = String(target.hasAttribute("aria-label"));
+    target.dataset.structuredNumberingNoteAriaOriginal = target.getAttribute("aria-label") ?? "";
     target.textContent = displayNoteLabel(original, note.label);
+    target.setAttribute("aria-label", note.noteKind === "endnote"
+      ? t("display.note.endnote", { number: note.label })
+      : t("display.note.footnote", { number: note.label }));
   }
   return true;
 }
@@ -215,10 +245,11 @@ function enhanceNoteDefinitions(
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
     const definition = definitions[index];
-    if (item == null || definition?.noteKind == null) continue;
+    if (item == null || definition?.noteKind == null || definition.noteNumber == null) continue;
     item.dataset.structuredNumberingNoteValue = item.getAttribute("value") ?? "";
     item.dataset.structuredNumberingNoteKind = definition.noteKind;
-    item.setAttribute("value", definition.label);
+    item.dataset.structuredNumberingNoteLabel = definition.label;
+    item.setAttribute("value", String(definition.noteNumber));
   }
   return true;
 }
@@ -304,11 +335,13 @@ export class HeadingReadingProcessor {
       return;
     }
     const effective = resolveNoteSettings(settings, parseNoteOverrides(context.frontmatter));
+    const captionCentering = centeredCaptionKinds(settings);
     if (
       effective.disabled
       || (!effective.showVirtualNumbers
         && !effective.concealStoredNumbers
         && !settings.showCaptionNumbers
+        && captionCentering.length === 0
         && !settings.showCrossReferences
         && !settings.showNoteNumbers)
     ) {
@@ -387,6 +420,17 @@ export class HeadingReadingProcessor {
       item.line >= section.lineStart && item.line <= section.lineEnd
     ));
     const roots = captionRoots(container);
+    let alignmentRootIndex = 0;
+    for (const item of sectionSemantic) {
+      if (item.kind !== "caption-alignment" || item.captionKind == null) continue;
+      for (; alignmentRootIndex < roots.length; alignmentRootIndex += 1) {
+        const root = roots[alignmentRootIndex];
+        if (root != null && alignCaption(root, item.captionKind)) {
+          alignmentRootIndex += 1;
+          break;
+        }
+      }
+    }
     let rootIndex = 0;
     for (const item of sectionSemantic) {
       if (item.kind !== "caption" || item.captionKind == null) continue;
@@ -404,7 +448,12 @@ export class HeadingReadingProcessor {
       }
     }
     if (settings.showNoteNumbers) {
-      enhanceNoteReferences(container, sectionSemantic.filter((item) => item.kind === "note-reference"));
+      const t = createTranslator(settings.language);
+      enhanceNoteReferences(
+        container,
+        sectionSemantic.filter((item) => item.kind === "note-reference"),
+        t,
+      );
       enhanceNoteDefinitions(container, semanticPlan);
     }
   }
@@ -438,8 +487,10 @@ export class HeadingReadingProcessor {
       displayPlan,
       semanticPlan: createSemanticDisplayPlan(source, headings, {
         showCaptionNumbers: settings.showCaptionNumbers,
+        centeredCaptionKinds: centeredCaptionKinds(settings),
         showCrossReferences: settings.showCrossReferences,
         showNoteNumbers: settings.showNoteNumbers,
+        noteSelections: [],
         numbering,
         templateSources,
         headingDisplayPlan: displayPlan,

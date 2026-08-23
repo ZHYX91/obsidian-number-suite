@@ -17,19 +17,32 @@
   margin-inline-end: 0;
 }
 
+.cm-line.structured-numbering-caption-centered,
+.markdown-rendered .structured-numbering-caption-centered {
+  text-align: center;
+}
+
 .structured-numbering-note-reference {
+  cursor: text;
   font-size: 0.78em;
   line-height: 1;
   margin-inline: 0.08em;
+  pointer-events: auto;
   vertical-align: super;
 }
 
 .structured-numbering-note-definition {
+  cursor: text;
   margin-inline-end: 0.2em;
+  pointer-events: auto;
 }
 
 [data-structured-numbering-note-kind="endnote"] {
   font-variant-numeric: tabular-nums;
+}
+
+.markdown-rendered li[data-structured-numbering-note-kind="endnote"]::marker {
+  content: attr(data-structured-numbering-note-label) ". ";
 }
 
 .structured-numbering-settings-save-status {
@@ -295,7 +308,8 @@
   user-select: all;
 }
 
-.structured-numbering-reference-guide-example {
+.structured-numbering-reference-guide-example,
+.structured-numbering-note-guide-example {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
@@ -304,20 +318,23 @@
 }
 
 .structured-numbering-reference-guide-example > strong,
+.structured-numbering-note-guide-example > strong,
 .structured-numbering-reference-guide-section-title {
   color: var(--text-normal);
   display: block;
   font-weight: var(--font-semibold);
 }
 
-.structured-numbering-reference-guide-example pre {
+.structured-numbering-reference-guide-example pre,
+.structured-numbering-note-guide-example pre {
   margin-block: 7px;
   overflow-x: auto;
   padding: 8px 10px;
   user-select: all;
 }
 
-.structured-numbering-reference-guide-example p {
+.structured-numbering-reference-guide-example p,
+.structured-numbering-note-guide-example p {
   margin: 0;
 }
 

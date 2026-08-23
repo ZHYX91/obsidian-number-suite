@@ -3,6 +3,7 @@ import type { Setting, SettingDefinitionItem, SettingGroupItem } from "obsidian"
 import type { Translate } from "../../config/i18n";
 import { DEFAULT_SETTINGS } from "../../config/settings";
 import type { SettingsControlKey } from "../../app/settings-control-contract";
+import { renderNoteNumberingGuide } from "./note-guide";
 import { renderSameFileReferenceGuide } from "./reference-guide";
 
 export interface SettingsDefinitionContext {
@@ -40,12 +41,29 @@ export function createSettingDefinitions(
     {
       type: "page",
       name: t("settings.tab.captions"),
-      items: [saveStatusDefinition(context), {
-        type: "group",
-        heading: t("settings.captions"),
-        items: [toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
-          t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers)],
-      }],
+      items: [
+        saveStatusDefinition(context),
+        {
+          type: "group",
+          heading: t("settings.captions"),
+          items: [toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
+            t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers)],
+        },
+        {
+          type: "group",
+          heading: t("settings.captions.alignment"),
+          items: [
+            toggleDefinition("captions.centerFigure", t("settings.captions.center.figure"),
+              undefined, DEFAULT_SETTINGS.centerFigureCaptions),
+            toggleDefinition("captions.centerTable", t("settings.captions.center.table"),
+              undefined, DEFAULT_SETTINGS.centerTableCaptions),
+            toggleDefinition("captions.centerEquation", t("settings.captions.center.equation"),
+              undefined, DEFAULT_SETTINGS.centerEquationCaptions),
+            toggleDefinition("captions.centerCode", t("settings.captions.center.code"),
+              undefined, DEFAULT_SETTINGS.centerCodeCaptions),
+          ],
+        },
+      ],
     },
     {
       type: "page",
@@ -67,12 +85,31 @@ export function createSettingDefinitions(
     {
       type: "page",
       name: t("settings.tab.notes"),
-      items: [saveStatusDefinition(context), {
-        type: "group",
-        heading: t("settings.notes"),
-        items: [toggleDefinition("notes.showNoteNumbers", t("settings.notes.enable"),
-          t("settings.notes.enable.desc"), DEFAULT_SETTINGS.showNoteNumbers)],
-      }],
+      items: [
+        saveStatusDefinition(context),
+        {
+          type: "group",
+          heading: t("settings.notes"),
+          items: [
+            toggleDefinition("notes.showNoteNumbers", t("settings.notes.enable"),
+              t("settings.notes.enable.desc"), DEFAULT_SETTINGS.showNoteNumbers),
+            dropdownDefinition(
+              "notes.displayMode",
+              t("settings.notes.display"),
+              t("settings.notes.display.desc"),
+              {
+                formatted: t("settings.notes.display.formatted"),
+                source: t("settings.notes.display.source"),
+              },
+              DEFAULT_SETTINGS.noteDisplayMode,
+            ),
+          ],
+        },
+        customDefinition(
+          t("settings.notes.guide.title"),
+          (container) => renderNoteNumberingGuide(container, t),
+        ),
+      ],
     },
     {
       type: "page",

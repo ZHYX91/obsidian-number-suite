@@ -15,6 +15,7 @@ import {
 } from "../config/settings";
 import type { SettingsSaveStatus } from "../config/settings-save-coordinator";
 import { createSettingDefinitions } from "../ui/settings/definitions";
+import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
 import type StructuredNumberingPlugin from "./plugin";
@@ -293,6 +294,20 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
       .setDesc(t("settings.captions.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCaptionNumbers)
         .onChange((value) => this.updateControl("captions.showCaptionNumbers", value)));
+    new Setting(container).setName(t("settings.captions.alignment"))
+      .setDesc(t("settings.captions.alignment.desc"))
+      .setHeading();
+    const alignment = [
+      ["settings.captions.center.figure", "captions.centerFigure", "centerFigureCaptions"],
+      ["settings.captions.center.table", "captions.centerTable", "centerTableCaptions"],
+      ["settings.captions.center.equation", "captions.centerEquation", "centerEquationCaptions"],
+      ["settings.captions.center.code", "captions.centerCode", "centerCodeCaptions"],
+    ] as const;
+    for (const [name, control, property] of alignment) {
+      new Setting(container).setName(t(name))
+        .addToggle((toggle) => toggle.setValue(this.plugin.settings[property])
+          .onChange((value) => this.updateControl(control, value)));
+    }
   }
 
   private renderReferences(container: HTMLElement, t: Translate): void {
@@ -310,6 +325,14 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
       .setDesc(t("settings.notes.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showNoteNumbers)
         .onChange((value) => this.updateControl("notes.showNoteNumbers", value)));
+    new Setting(container).setName(t("settings.notes.display"))
+      .setDesc(t("settings.notes.display.desc"))
+      .addDropdown((dropdown) => dropdown
+        .addOption("formatted", t("settings.notes.display.formatted"))
+        .addOption("source", t("settings.notes.display.source"))
+        .setValue(this.plugin.settings.noteDisplayMode)
+        .onChange((value) => this.updateControl("notes.displayMode", value)));
+    renderNoteNumberingGuide(container, t);
   }
 
   private renderCleanup(container: HTMLElement, t: Translate): void {

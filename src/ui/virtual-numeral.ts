@@ -37,12 +37,20 @@ export function createVirtualNoteElement(
   label: string,
   kind: NoteKind,
   position: "reference" | "definition",
+  accessibleLabel = "",
+  editHint = "",
 ): HTMLSpanElement {
   const fragment = (ownerDocument.win as ObsidianWindow).createFragment();
   const element = fragment.createSpan();
   element.className = `${VIRTUAL_NUMERAL_CLASS} structured-numbering-note-${position}`;
   element.dataset.structuredNumberingNoteKind = kind;
   element.textContent = position === "reference" ? label : `[${label}]`;
+  if (accessibleLabel.length > 0) {
+    element.setAttribute("aria-label", accessibleLabel);
+    element.setAttribute("title", editHint.length > 0
+      ? `${accessibleLabel} — ${editHint}`
+      : accessibleLabel);
+  }
   element.setAttribute("contenteditable", "false");
   return element;
 }

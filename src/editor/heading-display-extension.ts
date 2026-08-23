@@ -16,7 +16,9 @@ import {
 } from "obsidian";
 
 import { parseNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
+import { createTranslator } from "../config/i18n";
 import {
+  centeredCaptionKinds,
   cleanupTemplateSources,
   toNumberingOptions,
   type StructuredNumberingSettings,
@@ -34,17 +36,23 @@ import {
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
 
-class NumeralWidget extends WidgetType {
+export class NumeralWidget extends WidgetType {
   constructor(
     private readonly label: string,
     private readonly kind: "heading" | "caption" | "reference" | "note-reference" | "note-definition" = "heading",
     private readonly noteKind: NoteKind = "footnote",
+    private readonly accessibleLabel = "",
+    private readonly editHint = "",
   ) {
     super();
   }
 
   override eq(other: NumeralWidget): boolean {
-    return this.label === other.label && this.kind === other.kind && this.noteKind === other.noteKind;
+    return this.label === other.label
+      && this.kind === other.kind
+      && this.noteKind === other.noteKind
+      && this.accessibleLabel === other.accessibleLabel
+      && this.editHint === other.editHint;
   }
 
   override toDOM(view: EditorView): HTMLElement {
@@ -57,12 +65,21 @@ class NumeralWidget extends WidgetType {
       this.label,
       this.noteKind,
       this.kind === "note-reference" ? "reference" : "definition",
+      this.accessibleLabel,
+      this.editHint,
     );
   }
 
   override ignoreEvent(): boolean {
-    return true;
+    return this.kind !== "note-reference" && this.kind !== "note-definition";
   }
+}
+
+export function shouldShowNoteWidgets(
+  settings: StructuredNumberingSettings,
+  livePreview: boolean,
+): boolean {
+  return settings.showNoteNumbers && livePreview && settings.noteDisplayMode === "formatted";
 }
 
 function syntaxConfirmsHeading(state: EditorState, heading: ParsedHeading): boolean {
@@ -185,14 +202,17 @@ export class HeadingDisplayController {
         });
         const semanticPlan = createSemanticDisplayPlan(source, headings, {
           showCaptionNumbers: settings.showCaptionNumbers,
+          centeredCaptionKinds: centeredCaptionKinds(settings),
           showCrossReferences: settings.showCrossReferences,
-          showNoteNumbers: settings.showNoteNumbers,
+          showNoteNumbers: shouldShowNoteWidgets(settings, livePreview),
+          noteSelections: selections,
           numbering,
           templateSources,
           headingDisplayPlan: plan,
           composing: this.view.composing,
         });
         const builder = new RangeSetBuilder<Decoration>();
+        const t = createTranslator(settings.language);
         const decorations = [
           ...plan.map((item) => ({ ...item, semanticKind: null })),
           ...semanticPlan.map((item) => ({ ...item, semanticKind: item.kind })),
@@ -202,9 +222,25 @@ export class HeadingDisplayController {
             builder.add(item.from, item.to, item.semanticKind === "reference"
               ? Decoration.replace({ widget: new NumeralWidget(item.label, "reference"), inclusive: false })
               : Decoration.widget({ widget: new NumeralWidget(item.label, "caption"), side: -1 }));
+          } else if (item.semanticKind === "caption-alignment" && item.captionKind != null) {
+            builder.add(item.from, item.to, Decoration.line({
+              attributes: {
+                class: "structured-numbering-caption-centered",
+                "data-structured-numbering-caption-kind": item.captionKind,
+              },
+            }));
           } else if (item.semanticKind === "note-reference" || item.semanticKind === "note-definition") {
+            const accessibleLabel = item.noteKind === "endnote"
+              ? t("display.note.endnote", { number: item.label })
+              : t("display.note.footnote", { number: item.label });
             builder.add(item.from, item.to, Decoration.replace({
-              widget: new NumeralWidget(item.label, item.semanticKind, item.noteKind),
+              widget: new NumeralWidget(
+                item.label,
+                item.semanticKind,
+                item.noteKind,
+                accessibleLabel,
+                t("display.note.editHint"),
+              ),
               inclusive: false,
             }));
           } else if (item.kind === "virtual") {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { syntaxNodeConfirmsHeading } from "../../src/editor/heading-display-extension";
+import {
+  NumeralWidget,
+  shouldShowNoteWidgets,
+  syntaxNodeConfirmsHeading,
+} from "../../src/editor/heading-display-extension";
+import { DEFAULT_SETTINGS } from "../../src/config/settings";
 
 describe("syntaxNodeConfirmsHeading", () => {
   it("accepts the supported desktop and mobile heading node names", () => {
@@ -18,5 +23,20 @@ describe("syntaxNodeConfirmsHeading", () => {
     expect(syntaxNodeConfirmsHeading("HyperMD-header_HyperMD-header-3", 2)).toBe(false);
     expect(syntaxNodeConfirmsHeading("formatting-header-2", 2)).toBe(false);
     expect(syntaxNodeConfirmsHeading("HyperMD-codeblock", 2)).toBe(false);
+  });
+});
+
+describe("Live Preview note widgets", () => {
+  it("shows formatted notes only in Live Preview when that mode is selected", () => {
+    expect(shouldShowNoteWidgets(DEFAULT_SETTINGS, true)).toBe(true);
+    expect(shouldShowNoteWidgets(DEFAULT_SETTINGS, false)).toBe(false);
+    expect(shouldShowNoteWidgets({ ...DEFAULT_SETTINGS, noteDisplayMode: "source" }, true)).toBe(false);
+    expect(shouldShowNoteWidgets({ ...DEFAULT_SETTINGS, showNoteNumbers: false }, true)).toBe(false);
+  });
+
+  it("returns note-widget events to CodeMirror so a click can reveal source", () => {
+    expect(new NumeralWidget("1", "note-reference").ignoreEvent()).toBe(false);
+    expect(new NumeralWidget("[1]", "note-definition").ignoreEvent()).toBe(false);
+    expect(new NumeralWidget("1", "heading").ignoreEvent()).toBe(true);
   });
 });

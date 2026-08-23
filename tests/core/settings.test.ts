@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseNoteOverrides, resolveNoteSettings } from "../../src/config/frontmatter";
 import {
   DEFAULT_SETTINGS,
+  centeredCaptionKinds,
   cleanupTemplateSources,
   sanitizeLastBatch,
   sanitizePluginData,
@@ -14,12 +15,28 @@ describe("settings", () => {
     const settings = sanitizeSettings({
       showVirtualNumbers: "yes",
       virtualOpacity: -2,
+      centerFigureCaptions: "yes",
+      noteDisplayMode: "numbers",
       excludedFolders: ["/Private/", "Private", 12],
     });
     expect(settings.showVirtualNumbers).toBe(DEFAULT_SETTINGS.showVirtualNumbers);
     expect(settings.virtualOpacity).toBe(0.15);
+    expect(settings.centerFigureCaptions).toBe(true);
+    expect(settings.noteDisplayMode).toBe("formatted");
     expect(settings.excludedFolders).toEqual(["Private"]);
     expect(sanitizePluginData(null)).toEqual({ schemaVersion: 1, settings: DEFAULT_SETTINGS });
+  });
+
+  it("sanitizes independent caption alignment and Live Preview note display settings", () => {
+    const settings = sanitizeSettings({
+      centerFigureCaptions: false,
+      centerTableCaptions: true,
+      centerEquationCaptions: false,
+      centerCodeCaptions: true,
+      noteDisplayMode: "source",
+    });
+    expect(centeredCaptionKinds(settings)).toEqual(["Table", "Code"]);
+    expect(settings.noteDisplayMode).toBe("source");
   });
 
   it("accepts only the versioned persisted-data envelope", () => {

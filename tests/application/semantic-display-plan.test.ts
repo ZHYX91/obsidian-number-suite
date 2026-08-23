@@ -32,8 +32,10 @@ function plan(source: string, showVirtualNumbers = true) {
   });
   return createSemanticDisplayPlan(source, headings, {
     showCaptionNumbers: true,
+    centeredCaptionKinds: [],
     showCrossReferences: true,
     showNoteNumbers: true,
+    noteSelections: [],
     numbering,
     templateSources,
     headingDisplayPlan,
@@ -93,10 +95,53 @@ describe("semantic display plan", () => {
       noteKind: item.noteKind,
     }))).toEqual([
       { kind: "note-reference", line: 0, label: "1", noteKind: "footnote" },
-      { kind: "note-reference", line: 0, label: "1", noteKind: "endnote" },
+      { kind: "note-reference", line: 0, label: "E1", noteKind: "endnote" },
       { kind: "note-reference", line: 0, label: "1", noteKind: "footnote" },
       { kind: "note-definition", line: 2, label: "1", noteKind: "footnote" },
-      { kind: "note-definition", line: 3, label: "1", noteKind: "endnote" },
+      { kind: "note-definition", line: 3, label: "E1", noteKind: "endnote" },
+    ]);
+  });
+
+  it("centers selected caption types independently from caption numbering", () => {
+    const source = "Figure: Centered\nTable: Theme default";
+    expect(createSemanticDisplayPlan(source, [], {
+      showCaptionNumbers: false,
+      centeredCaptionKinds: ["Figure"],
+      showCrossReferences: false,
+      showNoteNumbers: false,
+      noteSelections: [],
+      numbering,
+      templateSources,
+      headingDisplayPlan: [],
+      composing: false,
+    })).toEqual([{
+      kind: "caption-alignment",
+      from: 0,
+      to: 0,
+      line: 0,
+      label: "",
+      captionKind: "Figure",
+    }]);
+  });
+
+  it("reveals only the note marker touched by the editor selection", () => {
+    const source = "Foot[^a], end[^endnote:x].\n\n[^a]: Footnote\n[^endnote:x]: Endnote";
+    const from = source.indexOf("[^a]");
+    const items = createSemanticDisplayPlan(source, [], {
+      showCaptionNumbers: false,
+      centeredCaptionKinds: [],
+      showCrossReferences: false,
+      showNoteNumbers: true,
+      noteSelections: [{ from, to: from }],
+      numbering,
+      templateSources,
+      headingDisplayPlan: [],
+      composing: false,
+    }).filter((item) => item.kind.startsWith("note-"));
+    expect(items.map(({ kind, label, line }) => ({ kind, label, line }))).toEqual([
+      { kind: "note-reference", label: "E1", line: 0 },
+      { kind: "note-definition", label: "1", line: 2 },
+      { kind: "note-definition", label: "E1", line: 3 },
     ]);
   });
 
@@ -104,8 +149,10 @@ describe("semantic display plan", () => {
     const source = "Figure: One\n@[[#^one]]";
     expect(createSemanticDisplayPlan(source, [], {
       showCaptionNumbers: true,
+      centeredCaptionKinds: ["Figure", "Equation"],
       showCrossReferences: true,
       showNoteNumbers: true,
+      noteSelections: [],
       numbering,
       templateSources,
       headingDisplayPlan: [],

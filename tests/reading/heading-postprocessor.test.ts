@@ -256,6 +256,35 @@ describe("HeadingReadingProcessor", () => {
     expect(container.querySelectorAll(".structured-numbering-caption-number")).toHaveLength(2);
   });
 
+  it("centers caption types independently from virtual numbering", async () => {
+    const source = [
+      "Figure: Centered",
+      "Table: Theme default",
+      "Equation: Centered",
+      "Code: Theme default",
+    ].join("\n");
+    const { processor, context, container } = harness(source, settings({
+      showCaptionNumbers: false,
+      showCrossReferences: false,
+      showNoteNumbers: false,
+    }));
+    for (const text of source.split("\n")) {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = text;
+      container.append(paragraph);
+    }
+
+    await processor.process(container, context);
+
+    expect([...container.children].map((item) => (
+      item.classList.contains("structured-numbering-caption-centered")
+    ))).toEqual([true, false, true, false]);
+    expect([...container.children].map((item) => (
+      (item as HTMLElement).dataset.structuredNumberingCaptionKind ?? null
+    ))).toEqual(["Figure", null, "Equation", null]);
+    expect(container.querySelector(".structured-numbering-caption-number")).toBeNull();
+  });
+
   it("enhances explicit same-file references while preserving the Obsidian link and alias", async () => {
     const { processor, context, container } = harness(
       "# Heading\nCross @[[Other#Heading]]\nSee @[[#Heading|chapter]]",
@@ -343,12 +372,17 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[1]"]);
+    expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
+    expect([...paragraph.querySelectorAll("a")].map((link) => link.getAttribute("aria-label")))
+      .toEqual(["Footnote 1", "Endnote E1"]);
     expect([...list.children].map((item) => item.getAttribute("value"))).toEqual(["1", "1"]);
+    expect([...list.children].map((item) => (
+      (item as HTMLElement).dataset.structuredNumberingNoteLabel
+    ))).toEqual(["1", "E1"]);
     expect([...list.children].map((item) => (item as HTMLElement).dataset.structuredNumberingNoteKind))
       .toEqual(["footnote", "endnote"]);
     await processor.process(container, context);
-    expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[1]"]);
+    expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
   });
 
   it("keeps native note rendering unchanged when the rendered reference count differs", async () => {

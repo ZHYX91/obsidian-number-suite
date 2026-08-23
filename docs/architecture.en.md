@@ -77,12 +77,15 @@ Caption and reference widgets use the same CodeMirror lifecycle and full-source 
 but never enter `TransformPlan` or any Editor/Vault mutation path. Reading View preserves the native
 Obsidian link element and replaces only the explicit leading `@` while enhanced. Cleanup restores
 that marker. Embedded Markdown is keyed by `context.sourcePath`, so counters and targets never leak
-between the embedding file and embedded source.
+between the embedding file and embedded source. Caption alignment is emitted as a separate line or
+paragraph decoration, so it remains independent from whether a virtual caption number is present.
 
 Footnotes and endnotes also enter only the display decoration plan. CodeMirror replaces visible
-reference and definition labels; Reading View preserves Obsidian's native footnote links and list
-structure and stays unchanged unless source-plan and rendered-node counts match exactly. Cleanup
-restores original visible text and list values on reprocessing, view changes, and plugin disable.
+reference and definition labels, but drops a replacement whenever the selection touches its source
+range so the stored marker becomes editable. Note widgets return pointer events to CodeMirror.
+Reading View preserves Obsidian's native footnote links and list structure and stays unchanged unless
+source-plan and rendered-node counts match exactly. Cleanup restores original visible text, ARIA
+labels, and list values on reprocessing, view changes, and plugin disable.
 
 <!-- section: file-mutations -->
 ## File mutations

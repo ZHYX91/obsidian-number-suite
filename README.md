@@ -24,10 +24,12 @@ records are separate forms of evidence.
 - Exclude an exact heading or its whole subtree without consuming a number.
 - Show display-only numbers for `Figure:`, `Table:`, `Equation:`, and `Code:` captions; each type
   starts at 1 in every Markdown file and captions do not require IDs.
+- Center each caption type independently; Figure and Equation captions are centered by default,
+  while Table and Code captions follow the current theme.
 - Enhance explicit same-file `@[[#Heading]]` and `@[[#^block-id]]` references, including aliases,
   only when the existing target has a visible valid number.
-- Show independent display-only footnote and endnote numbers for `[^id]`, `[^footnote:id]`, and
-  `[^endnote:id]`; repeated references reuse the first number.
+- Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
+  `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
 - Override display, concealment, scheme, cleanup scope, starting counters, or full opt-out per note.
 - Use English or Simplified Chinese interface text.
 
@@ -75,6 +77,8 @@ Caption and cross-reference display never writes Markdown. A caption is a top-le
 starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. The
 plugin consumes only user-authored Obsidian heading links and block IDs; it never creates, validates,
 migrates, repairs, or otherwise manages anchors. Normal `[[#...]]` links remain entirely Obsidian's.
+Caption alignment is independent from caption numbering. Figure and Equation captions are centered
+by default; the four fixed caption types can each be changed independently in the Captions tab.
 
 ### Same-file cross references
 
@@ -101,17 +105,26 @@ alias, navigation target, block ID, and Markdown source remain unchanged.
 Ordinary `[[#...]]` links, cross-file links, missing or duplicate targets, and targets without a
 visible valid number remain unchanged. The reference and target must be in the same Markdown file.
 
-Typed note display also leaves Markdown unchanged. `[^id]` and `[^footnote:id]` are footnotes;
-`[^endnote:id]` is an endnote. Footnote and endnote counters each start at 1 per file and follow first
-reference order. A repeated reference reuses its first number. Missing, duplicate, conflicting, or
-render-mismatched definitions remain native Obsidian content. Two-space multiline note bodies are
-protected from heading, caption, and semantic-reference scanning.
+### Footnotes and endnotes
+
+Typed note display also leaves Markdown unchanged. `[^id]` and `[^footnote:id]` are footnotes and
+display as `1`, `2`, `3`; `[^endnote:id]` is an endnote and displays as `E1`, `E2`, `E3`. Both
+counters start at 1 per file and follow first-reference order. A repeated reference reuses its first
+number.
+
+The Footnotes & endnotes settings tab can keep original markers visible in Live Preview or replace
+them with formatted numbers. With formatted numbers enabled, click a displayed number or move the
+cursor to it to reveal and edit the stored marker. Reading View keeps numbered native navigation.
+Missing, duplicate, conflicting, or render-mismatched definitions remain native Obsidian content.
+Two-space multiline note bodies are protected from heading, caption, and semantic-reference
+scanning.
 
 <!-- section: settings -->
 ## Settings
 
 Settings use one accessible seven-tab surface on every supported Obsidian version: General,
-Heading numbering, Captions, Cross references, Notes, Write and cleanup, and Display and batch.
+Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
+and batch.
 
 ### Numbering schemes
 

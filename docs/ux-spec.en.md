@@ -53,7 +53,7 @@ writes and offers retry.
 ## Global settings experience
 
 Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
-Notes, Write and cleanup, and Display and batch. Built-in schemes can be expanded
+Footnotes & endnotes, Write and cleanup, and Display and batch. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H6 template
 previews, and exact exclusions. Empty templates display “This level is not numbered.” Invalid
 non-empty semantics block save with a comprehensible constraint message.
@@ -78,25 +78,31 @@ decorations are removed during IME composition. Reading View does not partially 
 and rendered heading count or levels differ.
 
 A recognized caption visually changes from `Figure:` to `Figure 1:` (and equivalently for Table,
-Equation, and Code) without editing source. An explicit semantic reference visually replaces only
+Equation, and Code) without editing source. Caption alignment is independent from numbering and has
+one centering toggle per fixed type. Figure and Equation default to centered; Table and Code default
+to following the theme. An explicit semantic reference visually replaces only
 its leading `@` with the resolved number and a space, preserving the native Obsidian link text,
 alias, click behavior, and target. If the target is missing, duplicated, cross-file, or lacks a
 visible valid number, the complete source rendering stays unchanged. Composition removes all
 semantic decorations, and plugin cleanup restores every replaced `@`.
 
-Footnotes and endnotes display separate per-file numbers assigned in first-reference order;
-repeated references reuse their first number. Decorations replace only visible reference and
-definition labels while preserving Obsidian's native links, list structure, and source. Missing,
-duplicate, or canonically conflicting definitions and rendered-node count mismatches stay
-unchanged; reprocessing and plugin cleanup restore original labels and list values.
+Footnotes display `1`, `2`, `3` and endnotes display `E1`, `E2`, `E3`, using separate per-file
+counters assigned in first-reference order; repeated references reuse their first number. Live
+Preview offers formatted numbers or original markers. Clicking or moving the cursor to a formatted
+number reveals the editable source marker. Reading View preserves native link navigation.
+Decorations replace only visible reference and definition labels while preserving Obsidian's native
+links, list structure, and source. Missing, duplicate, or canonically conflicting definitions and
+rendered-node count mismatches stay unchanged; reprocessing and plugin cleanup restore original
+labels and list values.
 
 <!-- section: accessibility-and-mobile -->
 ## Accessibility and mobile
 
-Virtual decorations are hidden from assistive semantics while stored content remains accessible.
-Controls have text labels, keyboard focus, and reasonable touch targets; summaries can reflow on
-narrow screens without dropping fields. Mobile claims require dated evidence for that version, and
-emulator results cannot be described as physical-device acceptance.
+Virtual heading and caption decorations are hidden from assistive semantics while stored content
+remains accessible. Formatted note labels expose their note type and number. Controls have text
+labels, keyboard focus, and reasonable touch targets; summaries can reflow on narrow screens without
+dropping fields. Mobile claims require dated evidence for that version, and emulator results cannot
+be described as physical-device acceptance.
 
 <!-- section: error-recovery -->
 ## Errors and recovery
