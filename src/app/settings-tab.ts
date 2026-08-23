@@ -15,6 +15,7 @@ import {
 } from "../config/settings";
 import type { SettingsSaveStatus } from "../config/settings-save-coordinator";
 import { createSettingDefinitions } from "../ui/settings/definitions";
+import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
 import type StructuredNumberingPlugin from "./plugin";
 import { SchemeSettingsRenderer, selectedSchemeName } from "./scheme-settings-renderer";
@@ -300,6 +301,7 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
       .setDesc(t("settings.references.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCrossReferences)
         .onChange((value) => this.updateControl("references.showCrossReferences", value)));
+    renderSameFileReferenceGuide(container, t);
   }
 
   private renderNotes(container: HTMLElement, t: Translate): void {

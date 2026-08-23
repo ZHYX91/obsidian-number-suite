@@ -295,6 +295,41 @@
   user-select: all;
 }
 
+.structured-numbering-reference-guide-example {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  margin-block: 10px;
+  padding: 9px 10px;
+}
+
+.structured-numbering-reference-guide-example > strong,
+.structured-numbering-reference-guide-section-title {
+  color: var(--text-normal);
+  display: block;
+  font-weight: var(--font-semibold);
+}
+
+.structured-numbering-reference-guide-example pre {
+  margin-block: 7px;
+  overflow-x: auto;
+  padding: 8px 10px;
+  user-select: all;
+}
+
+.structured-numbering-reference-guide-example p {
+  margin: 0;
+}
+
+.structured-numbering-reference-guide-section-title {
+  margin-block-start: 12px;
+}
+
+.structured-numbering-reference-guide-list {
+  margin-block: 6px 0;
+  padding-inline-start: 20px;
+}
+
 .structured-numbering-placeholder-formats {
   display: grid;
   gap: 4px;

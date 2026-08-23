@@ -3,6 +3,7 @@ import type { Setting, SettingDefinitionItem, SettingGroupItem } from "obsidian"
 import type { Translate } from "../../config/i18n";
 import { DEFAULT_SETTINGS } from "../../config/settings";
 import type { SettingsControlKey } from "../../app/settings-control-contract";
+import { renderSameFileReferenceGuide } from "./reference-guide";
 
 export interface SettingsDefinitionContext {
   readonly t: Translate;
@@ -49,12 +50,19 @@ export function createSettingDefinitions(
     {
       type: "page",
       name: t("settings.tab.references"),
-      items: [saveStatusDefinition(context), {
-        type: "group",
-        heading: t("settings.references"),
-        items: [toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
-          t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences)],
-      }],
+      items: [
+        saveStatusDefinition(context),
+        {
+          type: "group",
+          heading: t("settings.references"),
+          items: [toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
+            t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences)],
+        },
+        customDefinition(
+          t("settings.references.guide.title"),
+          (container) => renderSameFileReferenceGuide(container, t),
+        ),
+      ],
     },
     {
       type: "page",

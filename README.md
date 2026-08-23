@@ -76,6 +76,31 @@ starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is 
 plugin consumes only user-authored Obsidian heading links and block IDs; it never creates, validates,
 migrates, repairs, or otherwise manages anchors. Normal `[[#...]]` links remain entirely Obsidian's.
 
+### Same-file cross references
+
+Open **Settings → Structured Numbering → Cross references** and enable **Show same-file
+cross-reference numbers**. Prefix an Obsidian same-file heading or block link with `@`. The target
+must already have a visible valid number: enable virtual heading numbers, leave a reliably recognized
+stored heading number visible, or enable caption numbering for a caption block target.
+
+```markdown
+## Installation
+
+See @[[#Installation]] or @[[#Installation|installation section]].
+
+Figure: Architecture ^fig-architecture
+
+See @[[#^fig-architecture]] or @[[#^fig-architecture|architecture diagram]].
+```
+
+If the heading displays as `1` and the caption displays as `Figure 1`, the references display as
+`1 Installation`, `1 installation section`, `Figure 1 fig-architecture`, and `Figure 1 architecture
+diagram`. The leading `@` is replaced only in the visual presentation; the native Obsidian link,
+alias, navigation target, block ID, and Markdown source remain unchanged.
+
+Ordinary `[[#...]]` links, cross-file links, missing or duplicate targets, and targets without a
+visible valid number remain unchanged. The reference and target must be in the same Markdown file.
+
 Typed note display also leaves Markdown unchanged. `[^id]` and `[^footnote:id]` are footnotes;
 `[^endnote:id]` is an endnote. Footnote and endnote counters each start at 1 per file and follow first
 reference order. A repeated reference reuses its first number. Missing, duplicate, conflicting, or

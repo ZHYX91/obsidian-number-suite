@@ -23,4 +23,27 @@ describe("settings guide", () => {
       /\.structured-numbering-settings-guide-body\s*\{[^}]*max-inline-size:\s*68ch;/s,
     );
   });
+
+  it("renders same-file reference prerequisites, examples, and failure behavior in both settings paths", () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), "src/ui/settings/reference-guide.ts"),
+      "utf8",
+    );
+    const imperative = readFileSync(resolve(process.cwd(), "src/app/settings-tab.ts"), "utf8");
+    const declarative = readFileSync(resolve(process.cwd(), "src/ui/settings/definitions.ts"), "utf8");
+    const messages = readFileSync(resolve(process.cwd(), "src/config/i18n.ts"), "utf8");
+    const styles = readFileSync(resolve(process.cwd(), "styles.css"), "utf8");
+
+    expect(guide).toContain('guide.setAttribute("role", "note")');
+    expect(guide).toContain('setIcon(icon, "info")');
+    expect(guide).toContain("settings.references.guide.heading.source");
+    expect(guide).toContain("settings.references.guide.caption.source");
+    expect(guide).toContain("settings.references.guide.requirements.sameFile");
+    expect(guide).toContain("settings.references.guide.unchanged.body");
+    expect(imperative).toContain("renderSameFileReferenceGuide(container, t)");
+    expect(declarative).toContain("renderSameFileReferenceGuide(container, t)");
+    expect(messages).toContain("请参见 @[[#安装|安装章节]]");
+    expect(messages).toContain("See @[[#Installation|installation section]]");
+    expect(styles).toContain(".structured-numbering-reference-guide-example");
+  });
 });
