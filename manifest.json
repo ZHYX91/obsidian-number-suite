@@ -1,0 +1,10 @@
+{
+  "id": "structured-numbering",
+  "name": "Structured Numbering",
+  "version": "0.1.0",
+  "minAppVersion": "1.13.1",
+  "description": "Display or manage heading, caption, footnote, endnote, and reference numbers without changing Markdown unexpectedly.",
+  "author": "ZhengYX",
+  "authorUrl": "https://github.com/ZHYX91",
+  "isDesktopOnly": true
+}

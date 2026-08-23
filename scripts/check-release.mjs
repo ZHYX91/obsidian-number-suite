@@ -1,0 +1,117 @@
+import { readFile, readdir, stat } from "node:fs/promises";
+import { createRequire } from "node:module";
+import path from "node:path";
+import process from "node:process";
+import vm from "node:vm";
+
+const root = process.cwd();
+const dist = path.join(root, "dist");
+const readJson = async (relative) => JSON.parse(await readFile(path.join(root, relative), "utf8"));
+const [packageJson, lock, manifest, versions] = await Promise.all([
+  readJson("package.json"),
+  readJson("package-lock.json"),
+  readJson("manifest.json"),
+  readJson("versions.json"),
+]);
+
+const version = packageJson.version;
+if (manifest.version !== version || lock.version !== version || lock.packages?.[""]?.version !== version) {
+  throw new Error("package.json, package-lock.json, and manifest.json versions must match.");
+}
+if (versions[version] !== manifest.minAppVersion) {
+  throw new Error("versions.json must map the current version to manifest.minAppVersion.");
+}
+if (manifest.id !== "structured-numbering" || manifest.name !== "Structured Numbering") {
+  throw new Error("Manifest identity changed unexpectedly.");
+}
+if (manifest.isDesktopOnly !== true) {
+  const acceptanceRecord = path.join(root, "docs", "acceptance", `${version}-android-api35.md`);
+  const requiredEvidence = [
+    `# ${version} Android API 35 acceptance record`,
+    "Status: accepted",
+    "Android: 15 / API 35",
+    "Chinese IME composition: passed",
+    "Write and cleanup round trip: passed",
+  ];
+  let record;
+  try {
+    record = await readFile(acceptanceRecord, "utf8");
+  } catch {
+    throw new Error(`Mobile support requires docs/acceptance/${version}-android-api35.md.`);
+  }
+  const missingEvidence = requiredEvidence.filter((evidence) => !record.includes(evidence));
+  if (missingEvidence.length > 0) {
+    throw new Error(`Current Android acceptance record is incomplete: ${missingEvidence.join(", ")}`);
+  }
+}
+
+const expectedFiles = ["main.js", "manifest.json", "styles.css"];
+const actualFiles = (await readdir(dist)).sort();
+if (JSON.stringify(actualFiles) !== JSON.stringify([...expectedFiles].sort())) {
+  throw new Error(`dist must contain exactly ${expectedFiles.join(", ")}; received ${actualFiles.join(", ")}`);
+}
+for (const name of expectedFiles) {
+  const info = await stat(path.join(dist, name));
+  if (!info.isFile() || info.size === 0) {
+    throw new Error(`dist/${name} is missing or empty.`);
+  }
+}
+for (const staticFile of ["manifest.json", "styles.css"]) {
+  const [source, built] = await Promise.all([
+    readFile(path.join(root, staticFile)),
+    readFile(path.join(dist, staticFile)),
+  ]);
+  if (!source.equals(built)) {
+    throw new Error(`dist/${staticFile} is stale.`);
+  }
+}
+
+const bundle = await readFile(path.join(dist, "main.js"), "utf8");
+if (Buffer.byteLength(bundle) > 1_500_000) {
+  throw new Error("Production bundle exceeds the 1.5 MB release budget.");
+}
+if (bundle.includes("sourceMappingURL=") || bundle.includes("D:\\Projects\\")) {
+  throw new Error("Production bundle contains development-only source metadata.");
+}
+for (const external of ["obsidian", "@codemirror/language", "@codemirror/state", "@codemirror/view"]) {
+  if (!bundle.includes(`require("${external}")`)) {
+    throw new Error(`Expected runtime external was not preserved: ${external}`);
+  }
+}
+
+const HostClass = class {};
+const obsidianStub = {
+  App: HostClass,
+  FuzzySuggestModal: HostClass,
+  MarkdownView: HostClass,
+  Menu: HostClass,
+  Modal: HostClass,
+  Notice: HostClass,
+  Plugin: HostClass,
+  PluginSettingTab: HostClass,
+  Setting: HostClass,
+  TFile: HostClass,
+  TFolder: HostClass,
+  editorInfoField: {},
+  editorLivePreviewField: {},
+  getFrontMatterInfo: () => ({ exists: false, frontmatter: "", from: 0, to: 0, contentStart: 0 }),
+  getLanguage: () => "en",
+  normalizePath: (value) => value,
+  parseYaml: () => null,
+};
+const nativeRequire = createRequire(import.meta.url);
+const cjsModule = { exports: {} };
+vm.runInNewContext(bundle, {
+  clearTimeout,
+  console,
+  exports: cjsModule.exports,
+  module: cjsModule,
+  require: (specifier) => specifier === "obsidian" ? obsidianStub : nativeRequire(specifier),
+  setTimeout,
+}, { filename: "dist/main.js", timeout: 5_000 });
+const pluginExport = cjsModule.exports?.default;
+if (typeof pluginExport !== "function") {
+  throw new Error("Production bundle did not expose a default plugin class.");
+}
+
+process.stdout.write(`Release contract passed for Structured Numbering ${version}; bundle=${Buffer.byteLength(bundle)} bytes.\n`);

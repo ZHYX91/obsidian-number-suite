@@ -1,0 +1,596 @@
+.structured-numbering-virtual {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  opacity: var(--structured-numbering-virtual-opacity, 0.82);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  margin-inline-end: var(--structured-numbering-virtual-gap, 0.32em);
+}
+
+.structured-numbering-concealed {
+  display: none;
+}
+
+.structured-numbering-caption-number,
+.structured-numbering-reference-number {
+  margin-inline-end: 0;
+}
+
+.structured-numbering-note-reference {
+  font-size: 0.78em;
+  line-height: 1;
+  margin-inline: 0.08em;
+  vertical-align: super;
+}
+
+.structured-numbering-note-definition {
+  margin-inline-end: 0.2em;
+}
+
+[data-structured-numbering-note-kind="endnote"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.structured-numbering-settings-save-status {
+  align-items: center;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  display: flex;
+  gap: var(--size-4-2);
+  justify-content: space-between;
+  margin-block-end: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-3);
+}
+
+.structured-numbering-settings-save-status[role="alert"] {
+  border-color: var(--text-error);
+  color: var(--text-error);
+}
+
+.structured-numbering-settings-save-status[hidden],
+.structured-numbering-settings-save-row[hidden],
+.structured-numbering-settings-save-status button[hidden] {
+  display: none !important;
+}
+
+.structured-numbering-settings-tabs {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0 0 22px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  padding: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  scrollbar-width: thin;
+}
+
+.structured-numbering-settings-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 5px 5px 0 0;
+  box-sizing: border-box;
+  box-shadow: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: var(--font-ui-small);
+  height: 34px;
+  min-height: 34px;
+  margin-bottom: -1px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.structured-numbering-settings-tab:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.structured-numbering-settings-tab:hover {
+  background: var(--interactive-hover);
+  border-color: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.structured-numbering-settings-tab.is-active,
+.structured-numbering-settings-tab.is-active:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  border-color: var(--background-modifier-border);
+  border-bottom-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.structured-numbering-settings-custom-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.structured-numbering-settings-custom-body {
+  display: block;
+  min-inline-size: 0;
+  flex: 1 0 100%;
+  padding-block-start: var(--size-2-2);
+}
+
+.structured-numbering-settings-custom-body input,
+.structured-numbering-settings-custom-body select,
+.structured-numbering-settings-custom-body button {
+  max-inline-size: 100%;
+  box-sizing: border-box;
+}
+
+.structured-numbering-settings-panel:focus {
+  outline: none;
+}
+
+@media (pointer: coarse) {
+  .structured-numbering-settings-tab {
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+.structured-numbering-scheme-card {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  margin-block: var(--size-4-2);
+  padding: var(--size-4-2) var(--size-4-3);
+}
+
+.structured-numbering-scheme-card > summary {
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+}
+
+.structured-numbering-readonly-templates {
+  margin-block-start: var(--size-4-2);
+}
+
+.structured-numbering-readonly-template {
+  align-items: baseline;
+  border-block-start: 1px solid var(--background-modifier-border);
+  display: grid;
+  gap: var(--size-4-3);
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  padding: var(--size-4-2) 0;
+}
+
+.structured-numbering-readonly-template:first-child {
+  border-block-start: 0;
+}
+
+.structured-numbering-readonly-level {
+  color: var(--text-normal);
+  font-weight: var(--font-medium);
+}
+
+.structured-numbering-readonly-template-body {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--size-4-3);
+  min-inline-size: 0;
+}
+
+.structured-numbering-readonly-template-body code {
+  background: var(--code-background);
+  border-radius: var(--radius-s);
+  overflow-wrap: anywhere;
+  padding: 2px 5px;
+  white-space: normal;
+}
+
+.structured-numbering-readonly-disabled,
+.structured-numbering-readonly-preview {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.structured-numbering-readonly-preview {
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+.structured-numbering-scheme-actions {
+  border-block-start: 1px solid var(--background-modifier-border);
+  margin-block-start: var(--size-4-2);
+  padding-block-start: var(--size-4-2);
+}
+
+.structured-numbering-scheme-actions .setting-item-info {
+  display: none;
+}
+
+.structured-numbering-scheme-actions .setting-item-control {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.structured-numbering-scheme-actions button {
+  font-size: var(--font-ui-small);
+  padding-inline: var(--size-4-3);
+}
+
+.structured-numbering-scheme-actions .structured-numbering-scheme-remove {
+  background: transparent;
+  color: var(--text-error);
+}
+
+.structured-numbering-scheme-actions .structured-numbering-scheme-remove:hover {
+  background: var(--background-modifier-error-hover);
+}
+
+.structured-numbering-settings-guide {
+  background: var(--background-secondary);
+  border-inline-start: 3px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+}
+
+.structured-numbering-settings-guide-heading {
+  align-items: center;
+  color: var(--text-normal);
+  display: flex;
+  gap: 8px;
+}
+
+.structured-numbering-settings-guide-heading strong {
+  font-weight: var(--font-semibold);
+}
+
+.structured-numbering-settings-guide-icon {
+  color: var(--interactive-accent);
+  display: inline-flex;
+  flex: 0 0 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.structured-numbering-settings-guide-icon > svg {
+  height: 100%;
+  width: 100%;
+}
+
+.structured-numbering-settings-guide-body {
+  margin-block-start: 8px;
+  max-inline-size: 68ch;
+}
+
+.structured-numbering-settings-guide-body p {
+  margin: 0;
+}
+
+.structured-numbering-settings-guide-body p + p,
+.structured-numbering-settings-guide-example + p,
+.structured-numbering-settings-guide-body p + ul {
+  margin-top: 6px;
+}
+
+.structured-numbering-settings-guide-example {
+  align-items: center;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-block: 8px;
+  padding: 7px 9px;
+}
+
+.structured-numbering-settings-guide-example code {
+  color: var(--text-normal);
+  user-select: all;
+}
+
+.structured-numbering-placeholder-formats {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-block-end: 0;
+  padding-inline-start: 20px;
+}
+
+.structured-numbering-placeholder-formats li,
+.structured-numbering-placeholder-formats code {
+  overflow-wrap: anywhere;
+}
+
+.structured-numbering-scheme-note {
+  background: var(--background-secondary);
+  border-inline-start: 3px solid var(--interactive-accent);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-block: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-3);
+}
+
+.structured-numbering-scheme-note p {
+  margin: 0;
+}
+
+.structured-numbering-scheme-note p + p {
+  margin-top: 4px;
+}
+
+.structured-numbering-template-preview,
+.structured-numbering-template-validation {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-inline-start: var(--size-4-4);
+}
+
+.structured-numbering-exclusion-list .setting-item {
+  padding-block: 0.45em;
+}
+
+.structured-numbering-exclusion-list .setting-item-info {
+  display: none;
+}
+
+.structured-numbering-exclusion-list .setting-item-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  width: 100%;
+}
+
+.structured-numbering-exclusion-list input {
+  width: 100%;
+}
+
+.structured-numbering-exclusion-preview {
+  margin-block: 0.35em 0.8em;
+}
+
+.structured-numbering-template-validation:not([hidden]) {
+  color: var(--text-error);
+  margin-block: var(--size-4-2);
+}
+
+.structured-numbering-preview-modal {
+  width: min(920px, 92vw);
+}
+
+.structured-numbering-note-control-modal {
+  width: min(760px, 94vw);
+}
+
+.structured-numbering-note-control-modal .modal-content {
+  max-height: min(78vh, 860px);
+  overflow-y: auto;
+}
+
+.structured-numbering-note-control-modal .modal-content.is-loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.structured-numbering-note-control-header h3,
+.structured-numbering-note-control-header p,
+.structured-numbering-note-control-section h4 {
+  margin: 0;
+}
+
+.structured-numbering-note-control-header p {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-block-start: 2px;
+  overflow-wrap: anywhere;
+}
+
+.structured-numbering-note-control-section {
+  border-block-start: 1px solid var(--background-modifier-border);
+  margin-block-start: var(--size-4-4);
+  padding-block-start: var(--size-4-4);
+}
+
+.structured-numbering-note-control-section h4 {
+  margin-block-end: var(--size-4-2);
+}
+
+.structured-numbering-note-control-summary {
+  display: grid;
+  font-size: var(--font-ui-small);
+  grid-template-columns: minmax(8rem, 1.25fr) repeat(3, minmax(6.5rem, 1fr));
+  overflow-x: auto;
+}
+
+.structured-numbering-note-control-summary-row {
+  display: contents;
+}
+
+.structured-numbering-note-control-summary-row > div {
+  border-block-end: 1px solid var(--background-modifier-border);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--size-4-2);
+}
+
+.structured-numbering-note-control-summary-heading,
+.structured-numbering-note-control-summary-name {
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+}
+
+.structured-numbering-note-control-summary-value {
+  color: var(--text-muted);
+}
+
+.structured-numbering-note-control-error {
+  background: var(--background-secondary);
+  border-inline-start: 3px solid var(--interactive-accent);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-block-start: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-3);
+}
+
+.structured-numbering-note-control-error {
+  border-inline-start-color: var(--text-error);
+  color: var(--text-error);
+}
+
+.structured-numbering-note-control-actions {
+  display: grid;
+  gap: var(--size-4-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.structured-numbering-note-control-actions button {
+  min-height: var(--input-height);
+  white-space: normal;
+}
+
+.structured-numbering-note-control-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  justify-content: flex-end;
+  margin-block-start: var(--size-4-4);
+}
+
+.structured-numbering-note-overrides-help {
+  border-inline-start: 3px solid var(--interactive-accent);
+  padding-inline-start: var(--size-4-3);
+}
+
+.structured-numbering-preview {
+  max-height: min(78vh, 900px);
+  overflow: auto;
+}
+
+.structured-numbering-preview-summary {
+  color: var(--text-muted);
+  margin-block: 0.25rem 0.75rem;
+}
+
+.structured-numbering-preview-risk {
+  background: color-mix(in srgb, var(--text-error) 10%, var(--background-secondary));
+  border-inline-start: 3px solid var(--text-error);
+  padding: 0.75rem;
+}
+
+.structured-numbering-change {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  margin-block: 0.65rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.structured-numbering-change-meta,
+.structured-numbering-change-rule {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.structured-numbering-diff {
+  align-items: baseline;
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  margin-block-start: 0.45rem;
+}
+
+.structured-numbering-diff code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.structured-numbering-diff-before code {
+  color: var(--text-error);
+}
+
+.structured-numbering-diff-after code {
+  color: var(--color-green);
+}
+
+.structured-numbering-warning-list {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+@media (max-width: 600px) {
+  .structured-numbering-readonly-template-body {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .structured-numbering-readonly-preview {
+    margin-inline-start: 0;
+  }
+
+  .structured-numbering-diff {
+    grid-template-columns: 1fr;
+  }
+
+  .structured-numbering-exclusion-list .setting-item-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .structured-numbering-exclusion-list .setting-item-control input {
+    grid-column: 1 / -1;
+  }
+
+  .structured-numbering-note-control-modal {
+    width: calc(100vw - var(--size-4-4));
+  }
+
+  .structured-numbering-note-control-summary {
+    display: block;
+    overflow-x: visible;
+  }
+
+  .structured-numbering-note-control-summary-row.is-heading {
+    display: none;
+  }
+
+  .structured-numbering-note-control-summary-row:not(.is-heading) {
+    border-block-end: 1px solid var(--background-modifier-border);
+    display: grid;
+    gap: var(--size-4-2) var(--size-4-3);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-block: var(--size-4-3);
+  }
+
+  .structured-numbering-note-control-summary-row > div {
+    border-block-end: 0;
+    padding: 0;
+  }
+
+  .structured-numbering-note-control-summary-name {
+    grid-column: 1 / -1;
+  }
+
+  .structured-numbering-note-control-summary-value::before {
+    color: var(--text-faint);
+    content: attr(data-label);
+    display: block;
+    font-size: var(--font-ui-smaller);
+    margin-block-end: 2px;
+  }
+
+  .structured-numbering-note-control-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .structured-numbering-note-control-navigation {
+    flex-direction: column;
+  }
+
+  .structured-numbering-note-control-navigation button {
+    width: 100%;
+  }
+}
