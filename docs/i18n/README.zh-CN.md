@@ -30,7 +30,7 @@ Structured Numbering 将 Markdown 工具经常混在一起的两个决定分开�
 <!-- section: requirements-and-compatibility -->
 ## 要求与兼容性
 
-- Obsidian `1.13.1` 或更高版本。
+- Obsidian `1.12.7` 或更高版本。
 - 初始版本仅支持桌面端；取得带日期的移动端验收记录后再开放移动端加载。
 - 每个平台的支持声明都需要对应于准确候选版本的带日期运行时记录。
 - 自动测试不能证明宿主行为。参见[测试策略](../testing-strategy.zh-CN.md)和非权威的

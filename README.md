@@ -34,7 +34,7 @@ records are separate forms of evidence.
 <!-- section: requirements-and-compatibility -->
 ## Requirements and compatibility
 
-- Obsidian `1.13.1` or later.
+- Obsidian `1.12.7` or later.
 - The initial release is desktop-only until a dated mobile acceptance record exists.
 - Platform support claims require a dated runtime record for the exact release candidate.
 - Automated tests do not prove host behavior. See the

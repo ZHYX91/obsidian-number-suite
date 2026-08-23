@@ -102,7 +102,7 @@ function generalDefinitions(
         setting.addButton((button) => {
           button
             .setButtonText(t("settings.reset.button"))
-            .setDestructive()
+            .setWarning()
             .onClick(context.openResetModal);
         });
       },

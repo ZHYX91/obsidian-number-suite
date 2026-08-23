@@ -49,7 +49,7 @@ class ResetSettingsModal extends Modal {
         .onClick(() => this.close()))
       .addButton((button) => button
         .setButtonText(this.t("settings.reset.button"))
-        .setDestructive()
+        .setWarning()
         .onClick(() => {
           this.confirm();
           this.close();
@@ -185,7 +185,8 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
       this.display();
       return;
     }
-    this.update();
+    const update = (this as unknown as { readonly update?: () => void }).update;
+    update?.call(this);
   }
 
   private renderSaveStatus(container: HTMLElement, t: Translate, hideContainer = false): () => void {
@@ -253,7 +254,7 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
     new Setting(container)
       .setName(t("settings.reset"))
       .setDesc(t("settings.reset.desc"))
-      .addButton((button) => button.setButtonText(t("settings.reset.button")).setDestructive().onClick(() => {
+      .addButton((button) => button.setButtonText(t("settings.reset.button")).setWarning().onClick(() => {
         this.openResetModal(t);
       }));
   }
@@ -348,17 +349,17 @@ export class StructuredNumberingSettingTab extends PluginSettingTab {
     toggle("settings.reveal", "revealOnActiveLine");
     new Setting(container).setName(t("settings.appearance")).setHeading();
     new Setting(container).setName(t("settings.opacity")).addSlider((slider) => slider
-      .setLimits(0.15, 1, 0.05).setValue(this.plugin.settings.virtualOpacity)
+      .setLimits(0.15, 1, 0.05).setDynamicTooltip().setValue(this.plugin.settings.virtualOpacity)
       .onChange((value) => this.updateControl("views.virtualOpacity", value)));
     new Setting(container).setName(t("settings.gap")).addSlider((slider) => slider
-      .setLimits(0, 2, 0.05).setValue(this.plugin.settings.virtualGapEm)
+      .setLimits(0, 2, 0.05).setDynamicTooltip().setValue(this.plugin.settings.virtualGapEm)
       .onChange((value) => this.updateControl("views.virtualGapEm", value)));
     new Setting(container).setName(t("settings.batch")).setHeading();
     new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
       .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
         .onChange((value) => this.updateControl("views.excludedFolders", value)));
     new Setting(container).setName(t("settings.backupLimit")).addSlider((slider) => slider
-      .setLimits(1, 100, 1).setValue(this.plugin.settings.batchBackupLimitMb)
+      .setLimits(1, 100, 1).setDynamicTooltip().setValue(this.plugin.settings.batchBackupLimitMb)
       .onChange((value) => this.updateControl("views.batchBackupLimitMb", value)));
   }
 }

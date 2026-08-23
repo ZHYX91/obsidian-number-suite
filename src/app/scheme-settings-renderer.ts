@@ -145,7 +145,7 @@ export class SchemeSettingsRenderer {
     }
     new Setting(container).addButton((button) => button
       .setButtonText(t("settings.scheme.history.clear"))
-      .setDestructive()
+      .setWarning()
       .onClick(() => this.commit((settings) => { settings.cleanupHistory = []; }, "display", true, true)));
   }
 
@@ -379,7 +379,7 @@ export class SchemeSettingsRenderer {
           });
         }, "display", true, true);
       }))
-      .addButton((button) => button.setButtonText(t("settings.scheme.delete")).setDestructive().onClick(() => {
+      .addButton((button) => button.setButtonText(t("settings.scheme.delete")).setWarning().onClick(() => {
         this.commit((settings) => {
           const current = settings.customSchemes.find((item) => item.id === scheme.id);
           if (current != null) archiveScheme(settings, current);

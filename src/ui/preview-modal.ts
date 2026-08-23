@@ -98,7 +98,7 @@ export class ChangePreviewModal extends Modal {
     actions.addButton((button) => {
       button.setButtonText(t("preview.confirm")).setCta();
       if (this.options.operation === "remove") {
-        button.setDestructive();
+        button.setWarning();
       }
       button.onClick(() => {
         if (this.applying) {

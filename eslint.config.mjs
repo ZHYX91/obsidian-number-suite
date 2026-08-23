@@ -57,12 +57,14 @@ export default defineConfig([
   {
     files: ["src/app/scheme-settings-renderer.ts", "src/ui/preview-modal.ts"],
     rules: {
+      "@typescript-eslint/no-deprecated": "off",
       "obsidianmd/prefer-create-el": "off",
     },
   },
   {
     files: ["src/ui/settings/**/*.ts"],
     rules: {
+      "@typescript-eslint/no-deprecated": "off",
       "obsidianmd/prefer-create-el": "off",
     },
   },
