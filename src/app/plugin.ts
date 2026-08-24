@@ -28,7 +28,10 @@ import {
 } from "../config/settings-save-coordinator";
 import { type TransformOperation } from "../core/types";
 import { HeadingDisplayController } from "../editor/heading-display-extension";
-import { HeadingReadingProcessor } from "../reading/heading-postprocessor";
+import {
+  cleanupStructuredNumberingReadingDom,
+  HeadingReadingProcessor,
+} from "../reading/heading-postprocessor";
 import { NoteControlModal } from "../ui/note-control-modal";
 import { StructuredNumberingSettingTab } from "./settings-tab";
 import type { SettingsImpact } from "./settings-impact";
@@ -275,36 +278,8 @@ export default class StructuredNumberingPlugin extends Plugin {
 
   private cleanupReadingDom(): void {
     for (const ownerDocument of this.ownerDocuments()) {
-      for (const virtual of ownerDocument.querySelectorAll<HTMLElement>(
-        ".markdown-reading-view .structured-numbering-virtual",
-      )) {
-        const original = virtual.dataset.structuredNumberingOriginal;
-        if (original != null) virtual.replaceWith(original);
-        else virtual.remove();
-      }
-      for (const anchor of ownerDocument.querySelectorAll<HTMLElement>(
-        ".markdown-reading-view [data-structured-numbering-reference]",
-      )) delete anchor.dataset.structuredNumberingReference;
-      for (const element of ownerDocument.querySelectorAll<HTMLElement>(
-        ".markdown-reading-view [data-structured-numbering-note-original]",
-      )) {
-        element.textContent = element.dataset.structuredNumberingNoteOriginal ?? "";
-        delete element.dataset.structuredNumberingNoteOriginal;
-        delete element.dataset.structuredNumberingNoteKind;
-      }
-      for (const item of ownerDocument.querySelectorAll<HTMLElement>(
-        ".markdown-reading-view [data-structured-numbering-note-value]",
-      )) {
-        const original = item.dataset.structuredNumberingNoteValue;
-        if (original == null || original === "") item.removeAttribute("value");
-        else item.setAttribute("value", original);
-        delete item.dataset.structuredNumberingNoteValue;
-        delete item.dataset.structuredNumberingNoteKind;
-      }
-      for (const concealed of ownerDocument.querySelectorAll<HTMLElement>(
-        ".markdown-reading-view .structured-numbering-concealed",
-      )) {
-        concealed.replaceWith(...concealed.childNodes);
+      for (const readingView of ownerDocument.querySelectorAll<HTMLElement>(".markdown-reading-view")) {
+        cleanupStructuredNumberingReadingDom(readingView);
       }
     }
   }

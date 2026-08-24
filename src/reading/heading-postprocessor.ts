@@ -96,6 +96,11 @@ function cleanupSemantic(container: HTMLElement): void {
   container.normalize();
 }
 
+export function cleanupStructuredNumberingReadingDom(container: HTMLElement): void {
+  cleanupSemantic(container);
+  for (const heading of headingElements(container)) cleanupHeading(heading);
+}
+
 function captionRoots(container: HTMLElement): HTMLElement[] {
   const roots: HTMLElement[] = [];
   if (container.matches("p")) roots.push(container);
@@ -326,9 +331,8 @@ export class HeadingReadingProcessor {
   }
 
   async process(container: HTMLElement, context: MarkdownPostProcessorContext): Promise<void> {
-    cleanupSemantic(container);
+    cleanupStructuredNumberingReadingDom(container);
     const rendered = headingElements(container);
-    for (const heading of rendered) cleanupHeading(heading);
 
     const settings = this.getSettings();
     if (!settings.enableReadingView) {

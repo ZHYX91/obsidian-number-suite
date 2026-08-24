@@ -184,6 +184,78 @@ function maskInlineCode(text: string): string {
   return characters.join("");
 }
 
+function blankRange(characters: string[], from: number, to: number): void {
+  for (let index = from; index < to; index += 1) characters[index] = " ";
+}
+
+function maskInlineHtml(text: string, characters: string[]): void {
+  for (let index = 0; index < text.length;) {
+    const next = text[index + 1] ?? "";
+    if (text[index] !== "<" || !/[A-Za-z/!?]/u.test(next)) {
+      index += 1;
+      continue;
+    }
+    let quote: "\"" | "'" | null = null;
+    let closed = false;
+    for (let cursor = index + 1; cursor < text.length; cursor += 1) {
+      const character = text[cursor] ?? "";
+      if (quote !== null) {
+        if (character === quote) quote = null;
+        continue;
+      }
+      if (character === "\"" || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        blankRange(characters, index, cursor + 1);
+        index = cursor + 1;
+        closed = true;
+        break;
+      }
+    }
+    if (!closed) index += 1;
+  }
+}
+
+function maskLinkDestinations(text: string, characters: string[]): void {
+  for (let index = 0; index < text.length - 1; index += 1) {
+    if (text[index] !== "]" || text[index + 1] !== "(") continue;
+    let depth = 1;
+    let escaped = false;
+    let quote: "\"" | "'" | null = null;
+    for (let cursor = index + 2; cursor < text.length; cursor += 1) {
+      const character = text[cursor] ?? "";
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+      } else if (character === "\"" || character === "'") {
+        if (quote === character) quote = null;
+        else if (quote === null) quote = character;
+      } else if (quote !== null) {
+        continue;
+      } else if (character === "(") {
+        depth += 1;
+      } else if (character === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          blankRange(characters, index + 1, cursor + 1);
+          index = cursor;
+          break;
+        }
+      }
+    }
+  }
+}
+
+function maskInlineSyntax(text: string): string {
+  const characters = maskInlineCode(text).split("");
+  maskInlineHtml(text, characters);
+  maskLinkDestinations(text, characters);
+  return characters.join("");
+}
+
 function definitionContainerLines(lines: readonly SourceLine[]): Set<number> {
   const result = new Set<number>();
   for (let index = 0; index < lines.length; index += 1) {
@@ -233,7 +305,7 @@ export function parseDocumentNotes(source: string): DocumentNoteSemantics {
       continue;
     }
     if (containerLines.has(line.number)) continue;
-    const masked = maskInlineCode(line.text);
+    const masked = maskInlineSyntax(line.text);
     for (const match of masked.matchAll(REFERENCE)) {
       if (match.index == null || match[1] == null) continue;
       if (match.index > 0 && line.text[match.index - 1] === "\\") continue;

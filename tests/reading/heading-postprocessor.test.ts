@@ -5,7 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
 
 import { DEFAULT_SETTINGS, type StructuredNumberingSettings } from "../../src/config/settings";
-import { HeadingReadingProcessor } from "../../src/reading/heading-postprocessor";
+import {
+  cleanupStructuredNumberingReadingDom,
+  HeadingReadingProcessor,
+} from "../../src/reading/heading-postprocessor";
 
 function settings(overrides: Partial<StructuredNumberingSettings>): StructuredNumberingSettings {
   return {
@@ -383,6 +386,57 @@ describe("HeadingReadingProcessor", () => {
       .toEqual(["footnote", "endnote"]);
     await processor.process(container, context);
     expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
+  });
+
+  it("fully restores note ARIA, list values, captions, and headings during unload cleanup", async () => {
+    const source = "# Heading\nFigure: Caption\nNote[^a].\n\n[^a]: A";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: true,
+      showCaptionNumbers: true,
+      showNoteNumbers: true,
+    }));
+    container.className = "markdown-reading-view";
+    const heading = document.createElement("h1");
+    heading.textContent = "Heading";
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Caption";
+    const paragraph = document.createElement("p");
+    paragraph.append("Note");
+    const sup = document.createElement("sup");
+    sup.className = "footnote-ref";
+    const link = document.createElement("a");
+    link.textContent = "[7]";
+    link.setAttribute("aria-label", "Native note label");
+    sup.append(link);
+    paragraph.append(sup);
+    const section = document.createElement("section");
+    section.className = "footnotes";
+    const list = document.createElement("ol");
+    const item = document.createElement("li");
+    item.className = "footnote-item";
+    item.textContent = "A";
+    item.setAttribute("value", "7");
+    list.append(item);
+    section.append(list);
+    container.append(heading, caption, paragraph, section);
+
+    await processor.process(container, context);
+    expect(link.getAttribute("aria-label")).toBe("Footnote 1");
+    expect(item.getAttribute("value")).toBe("1");
+    expect(caption.classList.contains("structured-numbering-caption-centered")).toBe(true);
+
+    cleanupStructuredNumberingReadingDom(container);
+
+    expect(link.textContent).toBe("[7]");
+    expect(link.getAttribute("aria-label")).toBe("Native note label");
+    expect(link.dataset.structuredNumberingNoteAriaPresent).toBeUndefined();
+    expect(link.dataset.structuredNumberingNoteAriaOriginal).toBeUndefined();
+    expect(item.getAttribute("value")).toBe("7");
+    expect(item.dataset.structuredNumberingNoteLabel).toBeUndefined();
+    expect(caption.classList.contains("structured-numbering-caption-centered")).toBe(false);
+    expect(caption.dataset.structuredNumberingCaptionKind).toBeUndefined();
+    expect(heading.getAttribute("data-structured-numbering-mode")).toBeNull();
+    expect(heading.querySelector(".structured-numbering-virtual")).toBeNull();
   });
 
   it("keeps native note rendering unchanged when the rendered reference count differs", async () => {

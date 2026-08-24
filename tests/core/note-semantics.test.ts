@@ -84,4 +84,22 @@ describe("document note semantics", () => {
     expect(parsed.definitions.map((item) => item.id)).toEqual(["ok", "hidden"]);
     expect([...parsed.containerLines]).toEqual([2, 3, 4, 5, 6]);
   });
+
+  it("ignores note-like text in inline HTML and Markdown link destinations", () => {
+    const source = [
+      "<span data-note=[^html]>Text</span>",
+      "[Link](https://example.test/[^destination]) and visible[^ok].",
+      "[Titled](https://example.test \"title ) [^title]\")",
+      "",
+      "[^html]: HTML attribute only",
+      "[^destination]: Link destination only",
+      "[^title]: Link title only",
+      "[^ok]: Visible reference",
+    ].join("\n");
+
+    const parsed = parseDocumentNotes(source);
+
+    expect(parsed.references.map((item) => item.id)).toEqual(["ok"]);
+    expect(parsed.definitions.map((item) => item.id)).toEqual(["html", "destination", "title", "ok"]);
+  });
 });

@@ -54,7 +54,7 @@ export class BatchController {
       new Notice(translate("notice.noBatch"));
       return;
     }
-    await this.saveOpenMarkdownViews();
+    await this.synchronizeOpenMarkdownViews();
     const preflight: Array<{ file: TFile; current: string; before: string }> = [];
     for (const item of snapshot.files) {
       const file = this.app.vault.getAbstractFileByPath(item.path);
@@ -102,14 +102,38 @@ export class BatchController {
       .sort((left, right) => left.path.localeCompare(right.path));
   }
 
-  private async saveOpenMarkdownViews(): Promise<void> {
-    const saves: Promise<void>[] = [];
+  private openMarkdownViews(): MarkdownView[] {
+    const views: MarkdownView[] = [];
     this.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof MarkdownView && leaf.view.file != null) {
-        saves.push(leaf.view.save());
+        views.push(leaf.view);
       }
     });
-    await Promise.all(saves);
+    return views;
+  }
+
+  private async synchronizeOpenMarkdownViews(
+    expectedSources?: ReadonlyMap<string, string>,
+  ): Promise<boolean> {
+    const initialViews = this.openMarkdownViews();
+    const bindings = initialViews.flatMap((view) => {
+      const path = view.file?.path;
+      const expected = path == null ? undefined : expectedSources?.get(path);
+      return path == null || expected == null ? [] : [{ view, path, expected }];
+    });
+    if (bindings.some(({ view, expected }) => view.editor.getValue() !== expected)) return false;
+    await Promise.all(initialViews.map(async (view) => view.save()));
+    const currentViews = this.openMarkdownViews();
+    if (bindings.some(({ view, path, expected }) => (
+      !currentViews.includes(view)
+      || view.file?.path !== path
+      || view.editor.getValue() !== expected
+    ))) return false;
+    return currentViews.every((view) => {
+      const path = view.file?.path;
+      const expected = path == null ? undefined : expectedSources?.get(path);
+      return expected == null || view.editor.getValue() === expected;
+    });
   }
 
   private async preview(
@@ -117,7 +141,7 @@ export class BatchController {
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
-    await this.saveOpenMarkdownViews();
+    await this.synchronizeOpenMarkdownViews();
     const documents: PreviewDocument[] = [];
     let invalidFrontmatter = 0;
     for (const file of this.filesForScope(scope)) {
@@ -151,6 +175,13 @@ export class BatchController {
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
+    const expectedSources = new Map(documents.map((document) => (
+      [document.path, document.plan.source] as const
+    )));
+    if (!(await this.synchronizeOpenMarkdownViews(expectedSources))) {
+      new Notice(translate("notice.batchChanged"));
+      return;
+    }
     const files: Array<{ file: TFile; before: string; after: string }> = [];
     for (const document of documents) {
       const file = this.app.vault.getAbstractFileByPath(document.path);

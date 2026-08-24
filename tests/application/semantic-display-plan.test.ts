@@ -102,6 +102,26 @@ describe("semantic display plan", () => {
     ]);
   });
 
+  it("does not create note decorations for HTML attributes or link destinations", () => {
+    const source = [
+      "<span data-note=[^html]>Text</span>",
+      "[Link](https://example.test/[^destination]) and visible[^ok].",
+      "",
+      "[^html]: HTML attribute only",
+      "[^destination]: Link destination only",
+      "[^ok]: Visible reference",
+    ].join("\n");
+
+    expect(plan(source).filter((item) => item.kind.startsWith("note-")).map((item) => ({
+      kind: item.kind,
+      line: item.line,
+      noteId: item.noteId,
+    }))).toEqual([
+      { kind: "note-reference", line: 1, noteId: "ok" },
+      { kind: "note-definition", line: 5, noteId: "ok" },
+    ]);
+  });
+
   it("centers selected caption types independently from caption numbering", () => {
     const source = "Figure: Centered\nTable: Theme default";
     expect(createSemanticDisplayPlan(source, [], {
