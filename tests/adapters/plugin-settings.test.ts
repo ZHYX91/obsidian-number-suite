@@ -7,12 +7,12 @@ describe("Obsidian plugin settings adapter", () => {
     const open = vi.fn();
     const openTabById = vi.fn();
 
-    expect(openObsidianPluginSettings({ setting: { open, openTabById } }, "structured-numbering")).toBe(true);
+    expect(openObsidianPluginSettings({ setting: { open, openTabById } }, "number-suite")).toBe(true);
     expect(open).toHaveBeenCalledOnce();
-    expect(openTabById).toHaveBeenCalledWith("structured-numbering");
+    expect(openTabById).toHaveBeenCalledWith("number-suite");
   });
 
   it("fails closed without the host surface", () => {
-    expect(openObsidianPluginSettings({}, "structured-numbering")).toBe(false);
+    expect(openObsidianPluginSettings({}, "number-suite")).toBe(false);
   });
 });

@@ -15,7 +15,7 @@ last_synced: 2026-08-23
 <!-- section: authority -->
 ## Document authority
 
-The Chinese document is the normative source for Structured Numbering product requirements. This file
+The Chinese document is the normative source for Number Suite product requirements. This file
 is its synchronized English translation. If implementation, tests, or other documents conflict
 with it, update and review the Chinese source first, then synchronize English. Historical acceptance
 records prove only their candidate and host environment; they cannot change product requirements.
@@ -23,7 +23,7 @@ records prove only their candidate and host environment; they cannot change prod
 <!-- section: purpose -->
 ## Product purpose
 
-Structured Numbering lets users control separately whether heading numbers are stored in Markdown and
+Number Suite lets users control separately whether heading numbers are stored in Markdown and
 whether they are visible in Obsidian. Users must be able to keep clean source, save stored numbers,
 conceal stored numbers, or replace their visual presentation with calculated numbers while every
 file change remains previewable, explainable, and recoverable where practical.

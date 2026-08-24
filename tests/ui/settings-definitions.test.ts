@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { App } from "obsidian";
 
-import { StructuredNumberingSettingTab } from "../../src/app/settings-tab";
+import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
 import { cloneSettings, DEFAULT_SETTINGS } from "../../src/config/settings";
 
 function createHost() {
@@ -26,7 +26,7 @@ function createHost() {
 describe("Obsidian 1.13 settings definitions", () => {
   it("retains seven native pages while the host falls back to the custom tablist", () => {
     const host = createHost();
-    const tab = new StructuredNumberingSettingTab(new App(), host as never);
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
     expect(tab.getSettingDefinitions()).toEqual([]);
     const definitions = tab.getDeclarativeSettingDefinitions();
 
@@ -65,7 +65,7 @@ describe("Obsidian 1.13 settings definitions", () => {
 
   it("persists native control changes through the plugin host", async () => {
     const host = createHost();
-    const tab = new StructuredNumberingSettingTab(new App(), host as never);
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
 
     expect(tab.getControlValue("general.language")).toBe("auto");
     expect(tab.getControlValue("general.showVirtualNumbers")).toBe(false);
@@ -100,7 +100,7 @@ describe("Obsidian 1.13 settings definitions", () => {
 
   it("rejects invalid values instead of silently persisting them", async () => {
     const host = createHost();
-    const tab = new StructuredNumberingSettingTab(new App(), host as never);
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
 
     await expect(tab.setControlValue("general.language", "automatic")).rejects.toThrow(
       "Invalid value",

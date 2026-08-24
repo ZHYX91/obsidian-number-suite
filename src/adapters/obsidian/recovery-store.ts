@@ -7,7 +7,7 @@ export class RecoveryStore {
   private readonly temporaryPath: string;
 
   constructor(private readonly app: App, manifest: PluginManifest) {
-    if (manifest.dir == null) throw new Error("Structured Numbering plugin directory is unavailable.");
+    if (manifest.dir == null) throw new Error("Number Suite plugin directory is unavailable.");
     this.path = normalizePath(`${manifest.dir}/recovery.json`);
     this.temporaryPath = normalizePath(`${manifest.dir}/recovery.pending.json`);
   }
@@ -18,7 +18,7 @@ export class RecoveryStore {
       try {
         return sanitizeLastBatch(JSON.parse(await this.app.vault.adapter.read(path)));
       } catch (error) {
-        console.error(`Structured Numbering: could not read ${path}`, error);
+        console.error(`Number Suite: could not read ${path}`, error);
       }
     }
     return null;

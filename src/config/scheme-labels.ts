@@ -1,11 +1,11 @@
 import type { Translate } from "./i18n";
-import type { StructuredNumberingSettings } from "./settings";
+import type { NumberSuiteSettings } from "./settings";
 import { isBuiltInSchemeId } from "../core/schemes";
 import { BUILT_IN_SCHEME_IDS } from "../core/types";
 
 export function schemeDisplayName(
   id: string,
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   t: Translate,
 ): string {
   if (isBuiltInSchemeId(id)) return t(`scheme.${id}`);
@@ -15,7 +15,7 @@ export function schemeDisplayName(
 }
 
 export function noteSchemeOptions(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   currentId: string | null,
   t: Translate,
 ): ReadonlyArray<readonly [string, string]> {

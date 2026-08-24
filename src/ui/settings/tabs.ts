@@ -12,7 +12,7 @@ export function createSettingsTabs(
   onSelect: (id: SettingsTabId) => void,
 ): { panel: HTMLElement; cleanup: () => void } {
   const document = container.ownerDocument;
-  const list = container.createDiv({ cls: "structured-numbering-settings-tabs" });
+  const list = container.createDiv({ cls: "number-suite-settings-tabs" });
   list.setAttribute("role", "tablist");
   list.setAttribute("aria-label", ariaLabel);
   list.setAttribute("aria-orientation", "horizontal");
@@ -21,12 +21,12 @@ export function createSettingsTabs(
     const button = list.createEl("button");
     const active = definition.id === activeId;
     button.type = "button";
-    button.className = `structured-numbering-settings-tab${active ? " is-active" : ""}`;
+    button.className = `number-suite-settings-tab${active ? " is-active" : ""}`;
     button.textContent = definition.label;
-    button.id = `structured-numbering-settings-tab-${definition.id}`;
+    button.id = `number-suite-settings-tab-${definition.id}`;
     button.setAttribute("role", "tab");
     button.setAttribute("aria-selected", String(active));
-    button.setAttribute("aria-controls", `structured-numbering-settings-panel-${definition.id}`);
+    button.setAttribute("aria-controls", `number-suite-settings-panel-${definition.id}`);
     button.tabIndex = active ? 0 : -1;
     const click = (): void => onSelect(definition.id);
     const keydown = (event: KeyboardEvent): void => {
@@ -48,10 +48,10 @@ export function createSettingsTabs(
     });
     return button;
   });
-  const panel = container.createDiv({ cls: "structured-numbering-settings-panel" });
-  panel.id = `structured-numbering-settings-panel-${activeId}`;
+  const panel = container.createDiv({ cls: "number-suite-settings-panel" });
+  panel.id = `number-suite-settings-panel-${activeId}`;
   panel.setAttribute("role", "tabpanel");
-  panel.setAttribute("aria-labelledby", `structured-numbering-settings-tab-${activeId}`);
+  panel.setAttribute("aria-labelledby", `number-suite-settings-tab-${activeId}`);
   panel.tabIndex = 0;
   const activeButton = buttons.find((button) => button.classList.contains("is-active"));
   document.defaultView?.requestAnimationFrame(() => (

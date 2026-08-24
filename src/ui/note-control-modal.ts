@@ -10,7 +10,7 @@ import {
 import type { Translate } from "../config/i18n";
 import { parseFrontmatterRecordFromSource } from "../config/frontmatter-source";
 import { noteSchemeOptions, schemeDisplayName } from "../config/scheme-labels";
-import type { StructuredNumberingSettings } from "../config/settings";
+import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 
 export interface NoteControlActions {
@@ -35,7 +35,7 @@ export class NoteControlModal extends Modal {
   constructor(
     app: App,
     private readonly file: TFile,
-    private readonly getSettings: () => StructuredNumberingSettings,
+    private readonly getSettings: () => NumberSuiteSettings,
     private readonly t: Translate,
     private readonly actions: NoteControlActions,
   ) {
@@ -43,7 +43,7 @@ export class NoteControlModal extends Modal {
   }
 
   override onOpen(): void {
-    this.modalEl.addClass("structured-numbering-note-control-modal");
+    this.modalEl.addClass("number-suite-note-control-modal");
     this.setTitle(this.t("panel.title"));
     void this.reload();
   }
@@ -59,7 +59,7 @@ export class NoteControlModal extends Modal {
       const source = await this.app.vault.cachedRead(this.file);
       this.frontmatter = parseFrontmatterRecordFromSource(source);
     } catch (error: unknown) {
-      console.error("Structured Numbering: failed to read current note Properties", error);
+      console.error("Number Suite: failed to read current note Properties", error);
       this.frontmatter = null;
     }
     this.busy = false;
@@ -77,12 +77,12 @@ export class NoteControlModal extends Modal {
 
   private render(): void {
     this.contentEl.empty();
-    const header = this.contentEl.createDiv({ cls: "structured-numbering-note-control-header" });
+    const header = this.contentEl.createDiv({ cls: "number-suite-note-control-header" });
     header.createEl("h3", { text: this.file.basename });
     header.createEl("p", { text: this.file.path });
 
     if (this.frontmatter == null) {
-      const error = this.contentEl.createDiv({ cls: "structured-numbering-note-control-error" });
+      const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
       error.setAttribute("role", "alert");
       error.setText(this.t("notice.invalidFrontmatter"));
       new Setting(this.contentEl).addButton((button) => button
@@ -98,12 +98,12 @@ export class NoteControlModal extends Modal {
     this.renderActions();
   }
 
-  private renderSummary(snapshot: NoteControlSnapshot, settings: StructuredNumberingSettings): void {
-    const section = this.contentEl.createDiv({ cls: "structured-numbering-note-control-section" });
+  private renderSummary(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
+    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
     section.createEl("h4", { text: this.t("panel.summary") });
-    const grid = section.createDiv({ cls: "structured-numbering-note-control-summary" });
+    const grid = section.createDiv({ cls: "number-suite-note-control-summary" });
     grid.setAttribute("role", "table");
-    const headingRow = grid.createDiv({ cls: "structured-numbering-note-control-summary-row is-heading" });
+    const headingRow = grid.createDiv({ cls: "number-suite-note-control-summary-row is-heading" });
     headingRow.setAttribute("role", "row");
     for (const heading of [
       this.t("panel.summary.setting"),
@@ -111,7 +111,7 @@ export class NoteControlModal extends Modal {
       this.t("panel.summary.override"),
       this.t("panel.summary.effective"),
     ]) {
-      const cell = headingRow.createDiv({ cls: "structured-numbering-note-control-summary-heading" });
+      const cell = headingRow.createDiv({ cls: "number-suite-note-control-summary-heading" });
       cell.setAttribute("role", "columnheader");
       cell.setText(heading);
     }
@@ -143,9 +143,9 @@ export class NoteControlModal extends Modal {
   }
 
   private addSummaryRow(container: HTMLElement, name: string, values: readonly string[]): void {
-    const row = container.createDiv({ cls: "structured-numbering-note-control-summary-row" });
+    const row = container.createDiv({ cls: "number-suite-note-control-summary-row" });
     row.setAttribute("role", "row");
-    const nameCell = row.createDiv({ cls: "structured-numbering-note-control-summary-name" });
+    const nameCell = row.createDiv({ cls: "number-suite-note-control-summary-name" });
     nameCell.setAttribute("role", "rowheader");
     nameCell.setText(name);
     const labels = [
@@ -154,15 +154,15 @@ export class NoteControlModal extends Modal {
       this.t("panel.summary.effective"),
     ];
     values.forEach((value, index) => {
-      const cell = row.createDiv({ cls: "structured-numbering-note-control-summary-value" });
+      const cell = row.createDiv({ cls: "number-suite-note-control-summary-value" });
       cell.setAttribute("role", "cell");
       cell.dataset.label = labels[index] ?? "";
       cell.setText(value);
     });
   }
 
-  private renderOverrides(snapshot: NoteControlSnapshot, settings: StructuredNumberingSettings): void {
-    const section = this.contentEl.createDiv({ cls: "structured-numbering-note-control-section" });
+  private renderOverrides(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
+    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
     section.createEl("h4", { text: this.t("panel.overrides") });
     this.addTriStateSetting(
       section,
@@ -221,9 +221,9 @@ export class NoteControlModal extends Modal {
   }
 
   private renderActions(): void {
-    const section = this.contentEl.createDiv({ cls: "structured-numbering-note-control-section" });
+    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
     section.createEl("h4", { text: this.t("panel.actions") });
-    const actions = section.createDiv({ cls: "structured-numbering-note-control-actions" });
+    const actions = section.createDiv({ cls: "number-suite-note-control-actions" });
     for (const [operation, key] of [
       ["write", "command.write.current"],
       ["remove", "command.remove.current"],
@@ -236,7 +236,7 @@ export class NoteControlModal extends Modal {
         this.actions.runCurrent(operation);
       });
     }
-    const navigation = section.createDiv({ cls: "structured-numbering-note-control-navigation" });
+    const navigation = section.createDiv({ cls: "number-suite-note-control-navigation" });
     const batch = navigation.createEl("button", { text: this.t("command.batch.folder") });
     batch.addEventListener("click", () => {
       this.close();
@@ -263,7 +263,7 @@ export class NoteControlModal extends Modal {
       this.actions.refreshDisplay();
       await this.reload();
     } catch (error: unknown) {
-      console.error("Structured Numbering: failed to update current note Properties", error);
+      console.error("Number Suite: failed to update current note Properties", error);
       new Notice(this.t("panel.saveFailed"));
       this.busy = false;
       this.contentEl.removeClass("is-loading");

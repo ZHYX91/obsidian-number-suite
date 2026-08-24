@@ -50,11 +50,11 @@ describe("settings", () => {
 
   it("parses and resolves independent per-note overrides", () => {
     const overrides = parseNoteOverrides({
-      "structured-numbering-show-virtual": true,
-      "structured-numbering-conceal-stored": true,
-      "structured-numbering-scheme": "legal",
-      "structured-numbering-clean-scope": "common",
-      "structured-numbering-start": { h2: 3, h7: 9 },
+      "number-suite-show-virtual": true,
+      "number-suite-conceal-stored": true,
+      "number-suite-scheme": "legal",
+      "number-suite-clean-scope": "common",
+      "number-suite-start": { h2: 3, h7: 9 },
     });
     expect(resolveNoteSettings(DEFAULT_SETTINGS, overrides)).toMatchObject({
       disabled: false,
@@ -76,7 +76,7 @@ describe("settings", () => {
       concealStoredNumbers: null,
       cleanupScope: null,
     });
-    expect(parseNoteOverrides({ "structured-numbering-ignore": true }).disabled).toBe(true);
+    expect(parseNoteOverrides({ "number-suite-ignore": true }).disabled).toBe(true);
   });
 
   it("keeps current and retired custom templates available to cleanup", () => {

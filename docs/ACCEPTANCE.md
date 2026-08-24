@@ -12,7 +12,7 @@ first acceptance.
 ## Test setup
 
 - [ ] Build with `npm ci && npm run check`.
-- [ ] Copy only `dist/main.js`, `dist/manifest.json`, and `dist/styles.css` into `.obsidian/plugins/structured-numbering/`.
+- [ ] Copy only `dist/main.js`, `dist/manifest.json`, and `dist/styles.css` into `.obsidian/plugins/number-suite/`.
 - [ ] Hash-verify the copied files.
 - [ ] Ensure no other heading-number plugin or CSS counter snippet is active.
 - [ ] Record Obsidian version, OS, theme, and plugin version.
@@ -58,7 +58,7 @@ first acceptance.
 - [ ] Open different notes in two panes with different Properties view modes.
 - [ ] Open a pop-out window and verify styling and independent view state.
 - [ ] Edit a heading to another heading of the same character length; decorations must update.
-- [ ] Toggle `structured-numbering-show-virtual` and `structured-numbering-conceal-stored` without changing file length; both independent states must update immediately.
+- [ ] Toggle `number-suite-show-virtual` and `number-suite-conceal-stored` without changing file length; both independent states must update immediately.
 - [ ] Scroll a note with at least 2,000 headings and record editing latency.
 
 ## Parser safety

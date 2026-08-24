@@ -13,14 +13,14 @@ describe("settings guide", () => {
 
     expect(source).toContain('guide.setAttribute("role", "note")');
     expect(source).toContain('setIcon(icon, "info")');
-    expect(source).toContain("structured-numbering-settings-guide-heading");
-    expect(source).toContain("structured-numbering-settings-guide-body");
-    expect(source).toContain("structured-numbering-settings-guide-example");
+    expect(source).toContain("number-suite-settings-guide-heading");
+    expect(source).toContain("number-suite-settings-guide-body");
+    expect(source).toContain("number-suite-settings-guide-example");
     expect(styles).toMatch(
-      /\.structured-numbering-settings-guide\s*\{[^}]*border-inline-start:\s*3px solid var\(--interactive-accent\);[^}]*box-shadow:\s*none;[^}]*padding:\s*12px 14px;/s,
+      /\.number-suite-settings-guide\s*\{[^}]*border-inline-start:\s*3px solid var\(--interactive-accent\);[^}]*box-shadow:\s*none;[^}]*padding:\s*12px 14px;/s,
     );
     expect(styles).toMatch(
-      /\.structured-numbering-settings-guide-body\s*\{[^}]*max-inline-size:\s*68ch;/s,
+      /\.number-suite-settings-guide-body\s*\{[^}]*max-inline-size:\s*68ch;/s,
     );
   });
 
@@ -44,7 +44,7 @@ describe("settings guide", () => {
     expect(declarative).toContain("renderSameFileReferenceGuide(container, t)");
     expect(messages).toContain("请参见 @[[#安装|安装章节]]");
     expect(messages).toContain("See @[[#Installation|installation section]]");
-    expect(styles).toContain(".structured-numbering-reference-guide-example");
+    expect(styles).toContain(".number-suite-reference-guide-example");
   });
 
   it("documents footnote and endnote syntax in both settings paths", () => {

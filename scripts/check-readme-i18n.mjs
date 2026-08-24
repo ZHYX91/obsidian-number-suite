@@ -25,9 +25,9 @@ function sectionMarkers(source, file) {
 
 sectionMarkers(english, englishPath);
 sectionMarkers(chinese, chinesePath);
-assert.match(english, /^# Structured Numbering\n\n\[简体中文\]\(docs\/i18n\/README\.zh-CN\.md\)/u,
+assert.match(english, /^# Number Suite\n\n\[简体中文\]\(docs\/i18n\/README\.zh-CN\.md\)/u,
   "English README must link to the Simplified Chinese README");
-assert.match(chinese, /^# Structured Numbering\n\n\[English\]\(\.\.\/\.\.\/README\.md\)/u,
+assert.match(chinese, /^# Number Suite\n\n\[English\]\(\.\.\/\.\.\/README\.md\)/u,
   "Chinese README must link to the canonical English README");
 assert.match(english, /## Features/u, "Root README must be the English canonical document");
 assert.match(chinese, /## 功能/u, "Chinese README must contain translated content");

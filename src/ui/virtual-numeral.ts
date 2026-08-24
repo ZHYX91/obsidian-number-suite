@@ -1,4 +1,4 @@
-export const VIRTUAL_NUMERAL_CLASS = "structured-numbering-virtual";
+export const VIRTUAL_NUMERAL_CLASS = "number-suite-virtual";
 export const VIRTUAL_NUMERAL_SELECTOR = `.${VIRTUAL_NUMERAL_CLASS}`;
 
 interface ObsidianWindow extends Window {
@@ -25,7 +25,7 @@ export function createVirtualSemanticElement(
 ): HTMLSpanElement {
   const fragment = (ownerDocument.win as ObsidianWindow).createFragment();
   const element = fragment.createSpan();
-  element.className = `${VIRTUAL_NUMERAL_CLASS} structured-numbering-${kind}-number`;
+  element.className = `${VIRTUAL_NUMERAL_CLASS} number-suite-${kind}-number`;
   element.textContent = kind === "caption" ? ` ${label}` : `${label} `;
   element.setAttribute("aria-hidden", "true");
   element.setAttribute("contenteditable", "false");
@@ -42,8 +42,8 @@ export function createVirtualNoteElement(
 ): HTMLSpanElement {
   const fragment = (ownerDocument.win as ObsidianWindow).createFragment();
   const element = fragment.createSpan();
-  element.className = `${VIRTUAL_NUMERAL_CLASS} structured-numbering-note-${position}`;
-  element.dataset.structuredNumberingNoteKind = kind;
+  element.className = `${VIRTUAL_NUMERAL_CLASS} number-suite-note-${position}`;
+  element.dataset.numberSuiteNoteKind = kind;
   element.textContent = position === "reference" ? label : `[${label}]`;
   if (accessibleLabel.length > 0) {
     element.setAttribute("aria-label", accessibleLabel);

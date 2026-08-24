@@ -28,7 +28,7 @@ describe("release workflow contract", () => {
   });
 
   it("publishes only the three loose assets and the manual-install ZIP", () => {
-    expect(publish).toContain("structured-numbering-$GITHUB_REF_NAME.zip");
+    expect(publish).toContain("number-suite-$GITHUB_REF_NAME.zip");
     expect(publish).toContain("main.js");
     expect(publish).toContain("manifest.json");
     expect(publish).toContain("styles.css");

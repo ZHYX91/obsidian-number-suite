@@ -14,7 +14,7 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
 import type { CaptionKind } from "../core/document-semantics";
 
-export interface StructuredNumberingSettings {
+export interface NumberSuiteSettings {
   language: "auto" | "en" | "zh";
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
@@ -60,7 +60,7 @@ export interface LastBatchSnapshot {
 
 export interface PersistedPluginData {
   schemaVersion: 1;
-  settings: StructuredNumberingSettings;
+  settings: NumberSuiteSettings;
 }
 
 export const PERSISTENCE_SCHEMA_VERSION = 1 as const;
@@ -74,7 +74,7 @@ export const DEFAULT_CUSTOM_TEMPLATES = [
   "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}",
 ];
 
-export const DEFAULT_SETTINGS: StructuredNumberingSettings = {
+export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   language: "auto",
   showVirtualNumbers: false,
   concealStoredNumbers: false,
@@ -203,7 +203,7 @@ function sanitizeCleanupHistory(value: unknown): CleanupTemplateHistory[] {
   return output;
 }
 
-export function sanitizeSettings(value: unknown): StructuredNumberingSettings {
+export function sanitizeSettings(value: unknown): NumberSuiteSettings {
   const raw = isRecord(value) ? value : {};
   const customSchemes = sanitizeCustomSchemes(raw.customSchemes);
   const requestedScheme = typeof raw.selectedSchemeId === "string"
@@ -323,7 +323,7 @@ export function sanitizePluginData(value: unknown): PersistedPluginData {
   };
 }
 
-export function cloneSettings(settings: StructuredNumberingSettings): StructuredNumberingSettings {
+export function cloneSettings(settings: NumberSuiteSettings): NumberSuiteSettings {
   return {
     ...settings,
     customSchemes: settings.customSchemes.map((scheme) => ({
@@ -341,7 +341,7 @@ export function cloneSettings(settings: StructuredNumberingSettings): Structured
 }
 
 export function centeredCaptionKinds(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
 ): CaptionKind[] {
   const kinds: CaptionKind[] = [];
   if (settings.centerFigureCaptions) kinds.push("Figure");
@@ -352,7 +352,7 @@ export function centeredCaptionKinds(
 }
 
 export function toNumberingOptions(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   overrides: Readonly<{
     schemeId?: SchemeId;
     starts?: Readonly<Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>>>;
@@ -366,7 +366,7 @@ export function toNumberingOptions(
   };
 }
 
-export function cleanupTemplateSources(settings: StructuredNumberingSettings): CleanupTemplateSource[] {
+export function cleanupTemplateSources(settings: NumberSuiteSettings): CleanupTemplateSource[] {
   const sources: CleanupTemplateSource[] = Object.values(BUILT_IN_SCHEMES).map((scheme) => ({
     schemeId: scheme.id,
     schemeName: scheme.id,

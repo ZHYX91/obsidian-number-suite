@@ -19,7 +19,7 @@ import {
   cloneSettings,
   sanitizePluginData,
   sanitizeSettings,
-  type StructuredNumberingSettings,
+  type NumberSuiteSettings,
   type LastBatchSnapshot,
 } from "../config/settings";
 import {
@@ -29,20 +29,20 @@ import {
 import { type TransformOperation } from "../core/types";
 import { HeadingDisplayController } from "../editor/heading-display-extension";
 import {
-  cleanupStructuredNumberingReadingDom,
+  cleanupNumberSuiteReadingDom,
   HeadingReadingProcessor,
 } from "../reading/heading-postprocessor";
 import { NoteControlModal } from "../ui/note-control-modal";
-import { StructuredNumberingSettingTab } from "./settings-tab";
+import { NumberSuiteSettingTab } from "./settings-tab";
 import type { SettingsImpact } from "./settings-impact";
 
-export default class StructuredNumberingPlugin extends Plugin {
-  override settings: StructuredNumberingSettings = { ...DEFAULT_SETTINGS };
+export default class NumberSuitePlugin extends Plugin {
+  override settings: NumberSuiteSettings = { ...DEFAULT_SETTINGS };
   private lastBatch: LastBatchSnapshot | null = null;
   private displayController: HeadingDisplayController | null = null;
   private batchController: BatchController | null = null;
   private recoveryStore: RecoveryStore | null = null;
-  private settingsCoordinator: SettingsSaveCoordinator<StructuredNumberingSettings> | null = null;
+  private settingsCoordinator: SettingsSaveCoordinator<NumberSuiteSettings> | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
 
   override async onload(): Promise<void> {
@@ -72,7 +72,7 @@ export default class StructuredNumberingPlugin extends Plugin {
       },
     );
 
-    this.addSettingTab(new StructuredNumberingSettingTab(this.app, this));
+    this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
     this.registerCommands();
     this.addRibbon();
     this.applyAppearance();
@@ -80,20 +80,20 @@ export default class StructuredNumberingPlugin extends Plugin {
 
   override onunload(): void {
     void this.settingsCoordinator?.flush().catch((error: unknown) => {
-      console.error("Structured Numbering: failed to flush settings", error);
+      console.error("Number Suite: failed to flush settings", error);
     });
     this.cleanupReadingDom();
     this.clearAppearance();
   }
 
-  scheduleSettings(settings: StructuredNumberingSettings, impact: SettingsImpact = "all"): void {
+  scheduleSettings(settings: NumberSuiteSettings, impact: SettingsImpact = "all"): void {
     this.settings = sanitizeSettings(settings);
     this.applySettingsImpact(impact);
     this.settingsCoordinator?.schedule(cloneSettings(this.settings));
   }
 
   async saveSettings(
-    settings: StructuredNumberingSettings = this.settings,
+    settings: NumberSuiteSettings = this.settings,
     impact: SettingsImpact = "all",
   ): Promise<void> {
     this.settings = sanitizeSettings(settings);
@@ -132,7 +132,7 @@ export default class StructuredNumberingPlugin extends Plugin {
         id: `set-view-mode-${mode}`,
         name: this.translate()(key),
         callback: () => void this.updateDisplayPreference(mode).catch((error: unknown) => {
-          console.error("Structured Numbering: failed to save view mode", error);
+          console.error("Number Suite: failed to save view mode", error);
         }),
       });
     }
@@ -259,11 +259,11 @@ export default class StructuredNumberingPlugin extends Plugin {
   private applyAppearance(): void {
     for (const ownerDocument of this.ownerDocuments()) {
       ownerDocument.body.style.setProperty(
-        "--structured-numbering-virtual-opacity",
+        "--number-suite-virtual-opacity",
         String(this.settings.virtualOpacity),
       );
       ownerDocument.body.style.setProperty(
-        "--structured-numbering-virtual-gap",
+        "--number-suite-virtual-gap",
         `${this.settings.virtualGapEm}em`,
       );
     }
@@ -271,15 +271,15 @@ export default class StructuredNumberingPlugin extends Plugin {
 
   private clearAppearance(): void {
     for (const ownerDocument of this.ownerDocuments()) {
-      ownerDocument.body.style.removeProperty("--structured-numbering-virtual-opacity");
-      ownerDocument.body.style.removeProperty("--structured-numbering-virtual-gap");
+      ownerDocument.body.style.removeProperty("--number-suite-virtual-opacity");
+      ownerDocument.body.style.removeProperty("--number-suite-virtual-gap");
     }
   }
 
   private cleanupReadingDom(): void {
     for (const ownerDocument of this.ownerDocuments()) {
       for (const readingView of ownerDocument.querySelectorAll<HTMLElement>(".markdown-reading-view")) {
-        cleanupStructuredNumberingReadingDom(readingView);
+        cleanupNumberSuiteReadingDom(readingView);
       }
     }
   }

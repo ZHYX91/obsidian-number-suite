@@ -21,7 +21,7 @@ import {
   centeredCaptionKinds,
   cleanupTemplateSources,
   toNumberingOptions,
-  type StructuredNumberingSettings,
+  type NumberSuiteSettings,
 } from "../config/settings";
 import { parseAtxHeadings } from "../core/heading-parser";
 import type { NoteKind } from "../core/note-semantics";
@@ -76,7 +76,7 @@ export class NumeralWidget extends WidgetType {
 }
 
 export function shouldShowNoteWidgets(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   livePreview: boolean,
 ): boolean {
   return settings.showNoteNumbers && livePreview && settings.noteDisplayMode === "formatted";
@@ -123,7 +123,7 @@ function parseOverrides(source: string): NoteOverrides | null {
 export class HeadingDisplayController {
   private readonly views = new Set<EditorView>();
 
-  constructor(private readonly getSettings: () => StructuredNumberingSettings) {}
+  constructor(private readonly getSettings: () => NumberSuiteSettings) {}
 
   createExtension(): Extension {
     const views = this.views;
@@ -225,8 +225,8 @@ export class HeadingDisplayController {
           } else if (item.semanticKind === "caption-alignment" && item.captionKind != null) {
             builder.add(item.from, item.to, Decoration.line({
               attributes: {
-                class: "structured-numbering-caption-centered",
-                "data-structured-numbering-caption-kind": item.captionKind,
+                class: "number-suite-caption-centered",
+                "data-number-suite-caption-kind": item.captionKind,
               },
             }));
           } else if (item.semanticKind === "note-reference" || item.semanticKind === "note-definition") {

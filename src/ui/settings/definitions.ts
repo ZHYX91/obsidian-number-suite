@@ -176,7 +176,7 @@ function headingDefinitions(
       name: t("settings.noteOverrides"),
       desc: t("settings.noteOverrides.desc"),
       render: (setting) => {
-        setting.settingEl.addClass("structured-numbering-note-overrides-help");
+        setting.settingEl.addClass("number-suite-note-overrides-help");
       },
     },
     dropdownDefinition(
@@ -288,8 +288,8 @@ function customDefinition(
     searchable: false,
     render: (setting) => {
       setting.settingEl.empty();
-      setting.settingEl.addClass("structured-numbering-settings-custom-row");
-      const body = setting.settingEl.createDiv({ cls: "structured-numbering-settings-custom-body" });
+      setting.settingEl.addClass("number-suite-settings-custom-row");
+      const body = setting.settingEl.createDiv({ cls: "number-suite-settings-custom-body" });
       render(body);
       return () => body.remove();
     },

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Structured Numbering are documented here.
+All notable changes to Number Suite are documented here.
 
 ## 0.1.0 - Unreleased
 
@@ -14,5 +14,5 @@ All notable changes to Structured Numbering are documented here.
 - Per-note controls, previewed file changes, and guarded batch recovery.
 - English and Simplified Chinese interfaces.
 
-This is the first release of the independent `structured-numbering` plugin. It does not migrate
+This is the first release of the independent `number-suite` plugin. It does not migrate
 settings, Properties, or data from other plugin identifiers.

@@ -52,7 +52,7 @@ Automated gates prove source and candidate contracts only, not real Obsidian or 
 ## Release assets
 
 The public Release contains only `main.js`, `manifest.json`, `styles.css`, and deterministic
-`structured-numbering-x.y.z.zip`. The ZIP contains the same three assets under `structured-numbering/`.
+`number-suite-x.y.z.zip`. The ZIP contains the same three assets under `number-suite/`.
 Workflow handoff may additionally contain `SHA256SUMS`, but it is not a public release asset.
 
 <!-- section: publication -->

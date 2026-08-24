@@ -1,14 +1,14 @@
 import { App, MarkdownView, Notice, type Editor, type EditorChange } from "obsidian";
 
 import type { Translate } from "../config/i18n";
-import type { StructuredNumberingSettings } from "../config/settings";
+import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 import { ChangePreviewModal } from "../ui/preview-modal";
 import { createSourcePlan } from "./transform-options";
 
 export function runCurrentNoteOperation(
   app: App,
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   operation: TransformOperation,
   translate: Translate,
 ): void {
@@ -65,5 +65,5 @@ function applyEditorPlan(
       to: editor.offsetToPos(change.to),
       text: change.insert,
     }));
-  editor.transaction({ changes: editorChanges }, "structured-numbering");
+  editor.transaction({ changes: editorChanges }, "number-suite");
 }

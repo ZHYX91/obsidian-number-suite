@@ -31,17 +31,17 @@ export class ChangePreviewModal extends Modal {
   override onOpen(): void {
     const { contentEl, titleEl } = this;
     const t = this.options.translate;
-    this.modalEl.addClass("structured-numbering-preview-modal");
+    this.modalEl.addClass("number-suite-preview-modal");
     titleEl.setText(t(`preview.title.${this.options.operation}`));
-    contentEl.addClass("structured-numbering-preview");
+    contentEl.addClass("number-suite-preview");
     const changes = this.options.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
     const warnings = this.options.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
     contentEl.createEl("p", {
-      cls: "structured-numbering-preview-summary",
+      cls: "number-suite-preview-summary",
       text: t("preview.summary", { changes, warnings }),
     });
     contentEl.createEl("p", {
-      cls: "structured-numbering-preview-risk",
+      cls: "number-suite-preview-risk",
       text: t("preview.warningLinks"),
     });
 
@@ -55,19 +55,19 @@ export class ChangePreviewModal extends Modal {
           break;
         }
         renderedChanges += 1;
-        const card = contentEl.createDiv({ cls: "structured-numbering-change" });
+        const card = contentEl.createDiv({ cls: "number-suite-change" });
         card.createDiv({
-          cls: "structured-numbering-change-meta",
+          cls: "number-suite-change-meta",
           text: t("preview.line", { line: change.line + 1, level: change.level }),
         });
         card.createDiv({
-          cls: "structured-numbering-change-rule",
+          cls: "number-suite-change-rule",
           text: t("preview.rule", { rule: change.ruleId }),
         });
-        const before = card.createDiv({ cls: "structured-numbering-diff structured-numbering-diff-before" });
+        const before = card.createDiv({ cls: "number-suite-diff number-suite-diff-before" });
         before.createEl("strong", { text: `${t("preview.before")}: ` });
         before.createEl("code", { text: visibleMarkers(change.before) });
-        const after = card.createDiv({ cls: "structured-numbering-diff structured-numbering-diff-after" });
+        const after = card.createDiv({ cls: "number-suite-diff number-suite-diff-after" });
         after.createEl("strong", { text: `${t("preview.after")}: ` });
         after.createEl("code", { text: visibleMarkers(change.after) });
       }
@@ -83,7 +83,7 @@ export class ChangePreviewModal extends Modal {
     ));
     if (warningEntries.length > 0) {
       contentEl.createEl("h3", { text: t("preview.warnings") });
-      const list = contentEl.createEl("ul", { cls: "structured-numbering-warning-list" });
+      const list = contentEl.createEl("ul", { cls: "number-suite-warning-list" });
       for (const entry of warningEntries.slice(0, 200)) {
         list.createEl("li", {
           text: `${entry.path}:${entry.warning.line + 1} — ${entry.warning.detail}`,
@@ -111,14 +111,14 @@ export class ChangePreviewModal extends Modal {
           .catch((error: unknown) => {
             this.applying = false;
             button.setDisabled(false);
-            console.error("Structured Numbering preview apply failed", error);
+            console.error("Number Suite preview apply failed", error);
           });
       });
     });
   }
 
   override onClose(): void {
-    this.modalEl.removeClass("structured-numbering-preview-modal");
+    this.modalEl.removeClass("number-suite-preview-modal");
     this.contentEl.empty();
   }
 }

@@ -21,7 +21,7 @@ if (manifest.version !== version || lock.version !== version || lock.packages?.[
 if (versions[version] !== manifest.minAppVersion) {
   throw new Error("versions.json must map the current version to manifest.minAppVersion.");
 }
-if (manifest.id !== "structured-numbering" || manifest.name !== "Structured Numbering") {
+if (manifest.id !== "number-suite" || manifest.name !== "Number Suite") {
   throw new Error("Manifest identity changed unexpectedly.");
 }
 if (manifest.isDesktopOnly !== true) {
@@ -114,4 +114,4 @@ if (typeof pluginExport !== "function") {
   throw new Error("Production bundle did not expose a default plugin class.");
 }
 
-process.stdout.write(`Release contract passed for Structured Numbering ${version}; bundle=${Buffer.byteLength(bundle)} bytes.\n`);
+process.stdout.write(`Release contract passed for Number Suite ${version}; bundle=${Buffer.byteLength(bundle)} bytes.\n`);

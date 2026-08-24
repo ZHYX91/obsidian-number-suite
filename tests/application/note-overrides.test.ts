@@ -32,8 +32,8 @@ describe("current note overrides", () => {
     expect(applyNoteOverrideChange(values, { kind: "conceal-stored", value: "off" })).toBe(true);
 
     expect(values).toEqual({
-      "structured-numbering-show-virtual": true,
-      "structured-numbering-conceal-stored": false,
+      "number-suite-show-virtual": true,
+      "number-suite-conceal-stored": false,
     });
     expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS)).toMatchObject({
       showVirtual: "on",
@@ -45,7 +45,7 @@ describe("current note overrides", () => {
 
   it("deletes a property when its control returns to follow global", () => {
     const values = {
-      "structured-numbering-show-virtual": false,
+      "number-suite-show-virtual": false,
       unrelated: "kept",
     } as Record<string, unknown>;
 
@@ -57,20 +57,20 @@ describe("current note overrides", () => {
     const values: Record<string, unknown> = {};
     expect(applyNoteOverrideChange(values, { kind: "ignore", value: true })).toBe(true);
     expect(applyNoteOverrideChange(values, { kind: "ignore", value: true })).toBe(false);
-    expect(values).toEqual({ "structured-numbering-ignore": true });
+    expect(values).toEqual({ "number-suite-ignore": true });
   });
 
   it("uses only selectable scheme IDs and restores inheritance by deletion", () => {
     const values: Record<string, unknown> = {};
     applyNoteOverrideChange(values, { kind: "scheme", value: "legal" });
-    expect(values).toEqual({ "structured-numbering-scheme": "legal" });
+    expect(values).toEqual({ "number-suite-scheme": "legal" });
     applyNoteOverrideChange(values, { kind: "scheme", value: null });
     expect(values).toEqual({});
   });
 
   it("falls back to the global scheme when a stored scheme is unavailable", () => {
     const snapshot = readNoteControlSnapshot(
-      { "structured-numbering-scheme": "missing-scheme" },
+      { "number-suite-scheme": "missing-scheme" },
       DEFAULT_SETTINGS,
     );
     expect(snapshot.schemeId).toBe("missing-scheme");
@@ -90,7 +90,7 @@ describe("current note overrides", () => {
       }],
     };
     const snapshot = readNoteControlSnapshot(
-      { "structured-numbering-scheme": "custom-one" },
+      { "number-suite-scheme": "custom-one" },
       settings,
     );
     expect(snapshot.effectiveSchemeId).toBe("custom-one");

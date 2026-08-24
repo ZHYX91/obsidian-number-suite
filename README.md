@@ -1,8 +1,8 @@
-# Structured Numbering
+# Number Suite
 
 [简体中文](docs/i18n/README.zh-CN.md)
 
-Structured Numbering separates two decisions that Markdown tools often mix together: whether heading
+Number Suite separates two decisions that Markdown tools often mix together: whether heading
 numbers are stored in a Markdown file and whether those numbers are visible in Obsidian. It can
 write, remove, virtually display, or visually conceal heading numbers without network access or
 telemetry.
@@ -49,12 +49,12 @@ records are separate forms of evidence.
 ### Community Plugins
 
 After the initial listing is approved, open **Settings → Community plugins → Browse**, search for
-**Structured Numbering**, install it, and enable it.
+**Number Suite**, install it, and enable it.
 
 ### Manual installation
 
 Download `main.js`, `manifest.json`, and `styles.css` from one matching GitHub Release. Place those
-three files in `.obsidian/plugins/structured-numbering/`, then reload Obsidian and enable the plugin.
+three files in `.obsidian/plugins/number-suite/`, then reload Obsidian and enable the plugin.
 Do not mix files from different versions.
 
 <!-- section: usage -->
@@ -82,7 +82,7 @@ by default; the four fixed caption types can each be changed independently in th
 
 ### Same-file cross references
 
-Open **Settings → Structured Numbering → Cross references** and enable **Show same-file
+Open **Settings → Number Suite → Cross references** and enable **Show same-file
 cross-reference numbers**. Prefix an Obsidian same-file heading or block link with `@`. The target
 must already have a visible valid number: enable virtual heading numbers, leave a reliably recognized
 stored heading number visible, or enable caption numbering for a caption block target.
@@ -155,20 +155,20 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 The current-note panel exposes global, override, and effective values. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
-removes every Structured Numbering override and preserves unrelated Properties.
+removes every Number Suite override and preserves unrelated Properties.
 
 ```yaml
 ---
-structured-numbering-show-virtual: true
-structured-numbering-conceal-stored: true
-structured-numbering-scheme: hierarchical-h2
-structured-numbering-clean-scope: templates
-structured-numbering-start:
+number-suite-show-virtual: true
+number-suite-conceal-stored: true
+number-suite-scheme: hierarchical-h2
+number-suite-clean-scope: templates
+number-suite-start:
   h2: 3
 ---
 ```
 
-`structured-numbering-ignore: true` opts the note out of display and file operations.
+`number-suite-ignore: true` opts the note out of display and file operations.
 
 <!-- section: limitations -->
 ## Limitations
@@ -191,7 +191,7 @@ structured-numbering-start:
 <!-- section: privacy-and-security -->
 ## Privacy and security
 
-Structured Numbering runs locally and contains no networking, telemetry, analytics, advertisements,
+Number Suite runs locally and contains no networking, telemetry, analytics, advertisements,
 remote fonts, or remote assets. Virtual display and concealment never call file-write APIs.
 
 Current-note changes use one editor transaction. Batch operations preview all targets, revalidate
@@ -233,7 +233,7 @@ Governance and project history:
 <!-- section: support -->
 ## Support
 
-Use [GitHub Issues](https://github.com/ZHYX91/obsidian-structured-numbering/issues) for reproducible bugs
+Use [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues) for reproducible bugs
 and feature requests. Include plugin and Obsidian versions, operating system, minimal synthetic
 Markdown, the selected scheme, and the exact action taken. Do not attach private vault content.
 

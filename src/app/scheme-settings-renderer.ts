@@ -1,7 +1,7 @@
 import { Setting, setIcon } from "obsidian";
 
 import { type Translate } from "../config/i18n";
-import { type StructuredNumberingSettings } from "../config/settings";
+import { type NumberSuiteSettings } from "../config/settings";
 import {
   BUILT_IN_SCHEMES,
   findMatchingBuiltInSchemeId,
@@ -26,7 +26,7 @@ type EditableScheme = Omit<CustomNumberingScheme, "templates" | "exclusions"> & 
 };
 
 type SchemeCommit = (
-  update: (settings: StructuredNumberingSettings) => void,
+  update: (settings: NumberSuiteSettings) => void,
   impact: SettingsImpact,
   immediate?: boolean,
   rerender?: boolean,
@@ -36,7 +36,7 @@ function builtInName(id: string, t: Translate): string {
   return isBuiltInSchemeId(id) ? t(`scheme.${id}`) : id;
 }
 
-function newCustomId(settings: StructuredNumberingSettings): string {
+function newCustomId(settings: NumberSuiteSettings): string {
   const prefix = `custom-${Date.now().toString(36)}`;
   let id = prefix;
   let suffix = 1;
@@ -47,7 +47,7 @@ function newCustomId(settings: StructuredNumberingSettings): string {
   return id;
 }
 
-function archiveScheme(settings: StructuredNumberingSettings, scheme: CustomNumberingScheme): void {
+function archiveScheme(settings: NumberSuiteSettings, scheme: CustomNumberingScheme): void {
   const key = `${scheme.id}@${scheme.revision}`;
   if (settings.cleanupHistory.some((entry) => `${entry.schemeId}@${entry.revision}` === key)) return;
   settings.cleanupHistory.push({
@@ -59,7 +59,7 @@ function archiveScheme(settings: StructuredNumberingSettings, scheme: CustomNumb
   });
 }
 
-export function firstAvailableScheme(settings: StructuredNumberingSettings, excluding?: string): string {
+export function firstAvailableScheme(settings: NumberSuiteSettings, excluding?: string): string {
   const custom = settings.customSchemes.find((scheme) => scheme.id !== excluding);
   if (custom != null) return custom.id;
   const builtIn = BUILT_IN_SCHEME_IDS.find((id) => (
@@ -71,7 +71,7 @@ export function firstAvailableScheme(settings: StructuredNumberingSettings, excl
   return "hierarchical-h2";
 }
 
-export function selectedSchemeName(settings: StructuredNumberingSettings, t: Translate): string {
+export function selectedSchemeName(settings: NumberSuiteSettings, t: Translate): string {
   if (isBuiltInSchemeId(settings.selectedSchemeId)) return builtInName(settings.selectedSchemeId, t);
   const custom = settings.customSchemes.find((scheme) => scheme.id === settings.selectedSchemeId);
   return custom == null ? settings.selectedSchemeId : custom.name;
@@ -79,7 +79,7 @@ export function selectedSchemeName(settings: StructuredNumberingSettings, t: Tra
 
 export class SchemeSettingsRenderer {
   constructor(
-    private readonly getSettings: () => StructuredNumberingSettings,
+    private readonly getSettings: () => NumberSuiteSettings,
     private readonly commit: SchemeCommit,
     private readonly t: Translate,
     private readonly getActiveHeadings: () => readonly ParsedHeading[] = () => [],
@@ -151,25 +151,25 @@ export class SchemeSettingsRenderer {
 
   private renderPlaceholderHelp(container: HTMLElement): void {
     const t = this.t;
-    const guide = container.createDiv({ cls: "structured-numbering-settings-guide" });
+    const guide = container.createDiv({ cls: "number-suite-settings-guide" });
     guide.setAttribute("role", "note");
-    const heading = guide.createDiv({ cls: "structured-numbering-settings-guide-heading" });
+    const heading = guide.createDiv({ cls: "number-suite-settings-guide-heading" });
     const icon = heading.createSpan({
-      cls: "structured-numbering-settings-guide-icon",
+      cls: "number-suite-settings-guide-icon",
       attr: { "aria-hidden": "true" },
     });
     setIcon(icon, "info");
     heading.createEl("strong", { text: t("settings.scheme.placeholder.title") });
-    const body = guide.createDiv({ cls: "structured-numbering-settings-guide-body" });
+    const body = guide.createDiv({ cls: "number-suite-settings-guide-body" });
     const syntax = body.createEl("p");
     syntax.append(`${t("settings.scheme.placeholder.syntax")} `);
     syntax.createEl("code", { text: "{1.arabic}" });
-    const example = body.createDiv({ cls: "structured-numbering-settings-guide-example" });
+    const example = body.createDiv({ cls: "number-suite-settings-guide-example" });
     example.append(`${t("settings.scheme.placeholder.example")} `);
     example.createEl("code", { text: "{2.arabic}" });
     example.append(` → 3 · ${t("settings.scheme.placeholder.explanation")}`);
     body.createEl("p", { text: t("settings.scheme.placeholder.formats") });
-    const list = body.createEl("ul", { cls: "structured-numbering-placeholder-formats" });
+    const list = body.createEl("ul", { cls: "number-suite-placeholder-formats" });
     for (const format of NUMBER_FORMATS) {
       const item = list.createEl("li");
       item.createEl("code", { text: `{1.${format}}` });
@@ -180,11 +180,11 @@ export class SchemeSettingsRenderer {
   private renderBuiltInScheme(container: HTMLElement, id: typeof BUILT_IN_SCHEME_IDS[number]): void {
     const t = this.t;
     const scheme = BUILT_IN_SCHEMES[id];
-    const details = container.createEl("details", { cls: "structured-numbering-scheme-card" });
+    const details = container.createEl("details", { cls: "number-suite-scheme-card" });
     details.createEl("summary", { text: `${builtInName(id, t)} · ${t("settings.scheme.builtin")}` });
     this.renderReadOnlyTemplates(details, scheme.templates);
     const actions = new Setting(details);
-    actions.settingEl.addClass("structured-numbering-scheme-actions");
+    actions.settingEl.addClass("number-suite-scheme-actions");
     actions
       .addButton((button) => button.setButtonText(t("settings.scheme.copy")).onClick(() => {
         this.commit((settings) => {
@@ -201,7 +201,7 @@ export class SchemeSettingsRenderer {
         }, "display", true, true);
       }))
       .addButton((button) => {
-        button.buttonEl.addClass("structured-numbering-scheme-remove");
+        button.buttonEl.addClass("number-suite-scheme-remove");
         return button.setButtonText(t("settings.scheme.hide")).onClick(() => {
           this.commit((settings) => {
             if (!settings.hiddenBuiltInSchemeIds.includes(id)) settings.hiddenBuiltInSchemeIds.push(id);
@@ -213,18 +213,18 @@ export class SchemeSettingsRenderer {
 
   private renderReadOnlyTemplates(container: HTMLElement, templates: readonly string[]): void {
     const t = this.t;
-    const list = container.createDiv({ cls: "structured-numbering-readonly-templates" });
+    const list = container.createDiv({ cls: "number-suite-readonly-templates" });
     for (let index = 0; index < 6; index += 1) {
       const template = templates[index] ?? "";
-      const row = list.createDiv({ cls: "structured-numbering-readonly-template" });
-      row.createSpan({ cls: "structured-numbering-readonly-level", text: `H${index + 1}` });
-      const body = row.createDiv({ cls: "structured-numbering-readonly-template-body" });
+      const row = list.createDiv({ cls: "number-suite-readonly-template" });
+      row.createSpan({ cls: "number-suite-readonly-level", text: `H${index + 1}` });
+      const body = row.createDiv({ cls: "number-suite-readonly-template-body" });
       if (template.length === 0) {
-        body.createSpan({ cls: "structured-numbering-readonly-disabled", text: t("settings.scheme.disabled") });
+        body.createSpan({ cls: "number-suite-readonly-disabled", text: t("settings.scheme.disabled") });
       } else {
         body.createEl("code", { text: template });
         body.createSpan({
-          cls: "structured-numbering-readonly-preview",
+          cls: "number-suite-readonly-preview",
           text: `→ ${renderTemplate(template, PREVIEW_COUNTERS)}`,
         });
       }
@@ -233,13 +233,13 @@ export class SchemeSettingsRenderer {
 
   private renderCustomScheme(container: HTMLElement, scheme: CustomNumberingScheme): void {
     const t = this.t;
-    const details = container.createEl("details", { cls: "structured-numbering-scheme-card" });
+    const details = container.createEl("details", { cls: "number-suite-scheme-card" });
     details.open = this.getSettings().selectedSchemeId === scheme.id;
     const displayName = scheme.name;
     details.createEl("summary", { text: `${displayName} · ${t("settings.scheme.custom")}` });
     const matchingBuiltInId = findMatchingBuiltInSchemeId(scheme);
     if (matchingBuiltInId != null) {
-      const note = details.createDiv({ cls: "structured-numbering-scheme-note" });
+      const note = details.createDiv({ cls: "number-suite-scheme-note" });
       note.setAttribute("role", "note");
       note.createEl("p", {
         text: t("settings.scheme.matchesBuiltin", { scheme: builtInName(matchingBuiltInId, t) }),
@@ -260,7 +260,7 @@ export class SchemeSettingsRenderer {
         draft.baseLevel = Number(value);
       });
     });
-    const validation = details.createDiv({ cls: "structured-numbering-template-validation" });
+    const validation = details.createDiv({ cls: "number-suite-template-validation" });
     validation.setAttribute("role", "alert");
     const previewElements: HTMLElement[] = [];
     const updateValidation = (): boolean => {
@@ -281,7 +281,7 @@ export class SchemeSettingsRenderer {
       return !invalidTemplate && !invalidExclusions && draft.name.trim().length > 0;
     };
     for (let index = 0; index < 6; index += 1) {
-      const preview = details.createDiv({ cls: "structured-numbering-template-preview" });
+      const preview = details.createDiv({ cls: "number-suite-template-preview" });
       previewElements.push(preview);
       new Setting(details).setName(`H${index + 1}`).addText((text) => text
         .setValue(draft.templates[index] ?? "")
@@ -294,9 +294,9 @@ export class SchemeSettingsRenderer {
       .setName(t("settings.scheme.exclusions"))
       .setDesc(t("settings.scheme.exclusions.desc"))
       .setHeading();
-    const exclusionList = details.createDiv({ cls: "structured-numbering-exclusion-list" });
+    const exclusionList = details.createDiv({ cls: "number-suite-exclusion-list" });
     const exclusionPreview = details.createEl("p", {
-      cls: "setting-item-description structured-numbering-exclusion-preview",
+      cls: "setting-item-description number-suite-exclusion-preview",
     });
     const updateExclusionPreview = (): void => {
       const matches = this.getActiveHeadings().filter((heading) => matchHeadingExclusion(heading, draft) != null);

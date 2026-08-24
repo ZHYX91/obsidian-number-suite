@@ -1,8 +1,8 @@
-# Structured Numbering
+# Number Suite
 
 [English](../../README.md)
 
-Structured Numbering 将 Markdown 工具经常混在一起的两个决定分开：标题序号是否写入 Markdown
+Number Suite 将 Markdown 工具经常混在一起的两个决定分开：标题序号是否写入 Markdown
 文件，以及这些序号是否在 Obsidian 中可见。它可以写入、移除、虚拟显示或视觉隐藏标题
 序号，不访问网络，也不收集遥测。
 
@@ -44,12 +44,12 @@ Structured Numbering 将 Markdown 工具经常混在一起的两个决定分开�
 ### 第三方插件市场
 
 初始条目通过审核后，在 Obsidian 中打开**设置 → 第三方插件 → 浏览**，搜索
-**Structured Numbering**，安装并启用。
+**Number Suite**，安装并启用。
 
 ### 手动安装
 
 从同一个 GitHub Release 下载 `main.js`、`manifest.json` 和 `styles.css`，将三个文件放入
-`.obsidian/plugins/structured-numbering/`，然后重新加载 Obsidian 并启用插件。不要混用不同
+`.obsidian/plugins/number-suite/`，然后重新加载 Obsidian 并启用插件。不要混用不同
 版本的文件。
 
 <!-- section: usage -->
@@ -75,7 +75,7 @@ Structured Numbering 将 Markdown 工具经常混在一起的两个决定分开�
 
 ### 同文件交叉引用
 
-打开 **设置 → Structured Numbering → 交叉引用**，开启**显示同文件交叉引用编号**。在
+打开 **设置 → Number Suite → 交叉引用**，开启**显示同文件交叉引用编号**。在
 Obsidian 的同文件标题链接或块链接前加上 `@`。目标必须已经具备可见且有效的编号：可以开启
 虚拟标题序号，保留一个可可靠识别的可见实体标题序号，或者为题注块目标开启虚拟题注编号。
 
@@ -137,21 +137,21 @@ Obsidian 原生链接、别名、跳转目标、块 ID 和 Markdown 源码均保
 ### 按笔记 Properties 覆盖
 
 当前笔记面板显示全局值、覆盖值和最终生效值。未修改的笔记不会得到插件 Properties。
-将控制项改回“跟随全局”会删除对应属性；“全部恢复”会移除全部 Structured Numbering 覆盖，
+将控制项改回“跟随全局”会删除对应属性；“全部恢复”会移除全部 Number Suite 覆盖，
 并保留无关 Properties。
 
 ```yaml
 ---
-structured-numbering-show-virtual: true
-structured-numbering-conceal-stored: true
-structured-numbering-scheme: hierarchical-h2
-structured-numbering-clean-scope: templates
-structured-numbering-start:
+number-suite-show-virtual: true
+number-suite-conceal-stored: true
+number-suite-scheme: hierarchical-h2
+number-suite-clean-scope: templates
+number-suite-start:
   h2: 3
 ---
 ```
 
-`structured-numbering-ignore: true` 让当前笔记退出显示和文件操作。
+`number-suite-ignore: true` 让当前笔记退出显示和文件操作。
 
 <!-- section: limitations -->
 ## 限制
@@ -171,7 +171,7 @@ structured-numbering-start:
 <!-- section: privacy-and-security -->
 ## 隐私与安全
 
-Structured Numbering 完全在本地运行，不包含联网、遥测、分析、广告、远程字体或远程资源。虚拟
+Number Suite 完全在本地运行，不包含联网、遥测、分析、广告、远程字体或远程资源。虚拟
 显示和视觉隐藏路径不会调用文件写入 API。
 
 当前笔记修改使用一次编辑器事务。批处理会预览全部目标、重新校验精确内容、保存有界恢复
@@ -212,7 +212,7 @@ npm run check
 <!-- section: support -->
 ## 支持
 
-请通过 [GitHub Issues](https://github.com/ZHYX91/obsidian-structured-numbering/issues) 报告可复现问题
+请通过 [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues) 报告可复现问题
 或提出功能建议。请提供插件和 Obsidian 版本、操作系统、最小化的合成 Markdown、所选方案及
 精确操作。不要附带私有 Vault 内容。
 

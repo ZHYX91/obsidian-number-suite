@@ -24,7 +24,7 @@ function harness(initial: Readonly<Record<string, string>> = {}) {
     },
   };
   const app = { vault: { adapter } } as unknown as App;
-  const manifest = { dir: ".obsidian/plugins/structured-numbering" } as PluginManifest;
+  const manifest = { dir: ".obsidian/plugins/number-suite" } as PluginManifest;
   return { files, store: new RecoveryStore(app, manifest) };
 }
 
@@ -39,22 +39,22 @@ describe("RecoveryStore", () => {
   it("promotes the pending file and removes both paths when cleared", async () => {
     const { files, store } = harness();
     await store.save(snapshot);
-    expect(files.has(".obsidian/plugins/structured-numbering/recovery.json")).toBe(true);
-    expect(files.has(".obsidian/plugins/structured-numbering/recovery.pending.json")).toBe(false);
+    expect(files.has(".obsidian/plugins/number-suite/recovery.json")).toBe(true);
+    expect(files.has(".obsidian/plugins/number-suite/recovery.pending.json")).toBe(false);
     await expect(store.load()).resolves.toEqual(snapshot);
     await store.save(null);
     expect(files.size).toBe(0);
   });
 
   it("recovers a valid pending snapshot left by an interrupted promotion", async () => {
-    const path = ".obsidian/plugins/structured-numbering/recovery.pending.json";
+    const path = ".obsidian/plugins/number-suite/recovery.pending.json";
     const { store } = harness({ [path]: JSON.stringify(snapshot) });
     await expect(store.load()).resolves.toEqual(snapshot);
   });
 
   it("prefers the newer pending snapshot when an interrupted promotion leaves both files", async () => {
-    const permanentPath = ".obsidian/plugins/structured-numbering/recovery.json";
-    const pendingPath = ".obsidian/plugins/structured-numbering/recovery.pending.json";
+    const permanentPath = ".obsidian/plugins/number-suite/recovery.json";
+    const pendingPath = ".obsidian/plugins/number-suite/recovery.pending.json";
     const older = { ...snapshot, createdAt: "2026-08-07T00:00:00.000Z" };
     const { store } = harness({
       [permanentPath]: JSON.stringify(older),
@@ -64,8 +64,8 @@ describe("RecoveryStore", () => {
   });
 
   it("falls back to the permanent snapshot when the pending file is invalid", async () => {
-    const permanentPath = ".obsidian/plugins/structured-numbering/recovery.json";
-    const pendingPath = ".obsidian/plugins/structured-numbering/recovery.pending.json";
+    const permanentPath = ".obsidian/plugins/number-suite/recovery.json";
+    const pendingPath = ".obsidian/plugins/number-suite/recovery.pending.json";
     const { store } = harness({
       [permanentPath]: JSON.stringify(snapshot),
       [pendingPath]: "not json",

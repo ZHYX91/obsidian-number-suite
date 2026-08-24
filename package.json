@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-structured-numbering",
+  "name": "obsidian-number-suite",
   "version": "0.1.0",
   "description": "Display or manage heading, caption, footnote, endnote, and reference numbers in Obsidian.",
   "type": "module",

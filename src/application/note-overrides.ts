@@ -1,13 +1,13 @@
-import type { StructuredNumberingSettings } from "../config/settings";
+import type { NumberSuiteSettings } from "../config/settings";
 import { isBuiltInSchemeId } from "../core/schemes";
 
 export const NOTE_OVERRIDE_KEYS = [
-  "structured-numbering-ignore",
-  "structured-numbering-show-virtual",
-  "structured-numbering-conceal-stored",
-  "structured-numbering-scheme",
-  "structured-numbering-clean-scope",
-  "structured-numbering-start",
+  "number-suite-ignore",
+  "number-suite-show-virtual",
+  "number-suite-conceal-stored",
+  "number-suite-scheme",
+  "number-suite-clean-scope",
+  "number-suite-start",
 ] as const;
 
 export type TriState = "inherit" | "on" | "off";
@@ -45,19 +45,19 @@ function stateValue(value: TriState, fallback: boolean): boolean {
 
 export function readNoteControlSnapshot(
   values: Readonly<Record<string, unknown>>,
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
 ): NoteControlSnapshot {
-  const showVirtual = explicitTriState(values["structured-numbering-show-virtual"])
+  const showVirtual = explicitTriState(values["number-suite-show-virtual"])
     ?? "inherit";
-  const concealStored = explicitTriState(values["structured-numbering-conceal-stored"])
+  const concealStored = explicitTriState(values["number-suite-conceal-stored"])
     ?? "inherit";
-  const rawScheme = values["structured-numbering-scheme"];
+  const rawScheme = values["number-suite-scheme"];
   const schemeId = typeof rawScheme === "string" && rawScheme.length > 0 ? rawScheme : null;
   const schemeExists = schemeId != null && (
     settings.customSchemes.some((scheme) => scheme.id === schemeId)
     || isBuiltInSchemeId(schemeId)
   );
-  const ignore = values["structured-numbering-ignore"] === true;
+  const ignore = values["number-suite-ignore"] === true;
 
   return {
     showVirtual,
@@ -86,7 +86,7 @@ function remove(values: Record<string, unknown>, key: string): boolean {
 
 function applyTriState(
   values: Record<string, unknown>,
-  key: "structured-numbering-show-virtual" | "structured-numbering-conceal-stored",
+  key: "number-suite-show-virtual" | "number-suite-conceal-stored",
   value: TriState,
 ): boolean {
   return value === "inherit"
@@ -100,17 +100,17 @@ export function applyNoteOverrideChange(
 ): boolean {
   switch (change.kind) {
     case "show-virtual":
-      return applyTriState(values, "structured-numbering-show-virtual", change.value);
+      return applyTriState(values, "number-suite-show-virtual", change.value);
     case "conceal-stored":
-      return applyTriState(values, "structured-numbering-conceal-stored", change.value);
+      return applyTriState(values, "number-suite-conceal-stored", change.value);
     case "scheme":
       return change.value == null
-        ? remove(values, "structured-numbering-scheme")
-        : assign(values, "structured-numbering-scheme", change.value);
+        ? remove(values, "number-suite-scheme")
+        : assign(values, "number-suite-scheme", change.value);
     case "ignore": {
       return change.value
-        ? assign(values, "structured-numbering-ignore", true)
-        : remove(values, "structured-numbering-ignore");
+        ? assign(values, "number-suite-ignore", true)
+        : remove(values, "number-suite-ignore");
     }
     case "reset": {
       let changed = false;

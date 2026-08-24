@@ -1,4 +1,4 @@
-import type { StructuredNumberingSettings } from "./settings";
+import type { NumberSuiteSettings } from "./settings";
 import {
   type CleanupScope,
 } from "../core/types";
@@ -48,20 +48,20 @@ export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
   if (data == null) {
     return { ...EMPTY_OVERRIDES, starts: {} };
   }
-  const ignore = data["structured-numbering-ignore"] === true;
-  const showValue = data["structured-numbering-show-virtual"];
-  const concealValue = data["structured-numbering-conceal-stored"];
+  const ignore = data["number-suite-ignore"] === true;
+  const showValue = data["number-suite-show-virtual"];
+  const concealValue = data["number-suite-conceal-stored"];
   const showVirtualNumbers = typeof showValue === "boolean" ? showValue : null;
   const concealStoredNumbers = typeof concealValue === "boolean" ? concealValue : null;
-  const schemeValue = data["structured-numbering-scheme"];
+  const schemeValue = data["number-suite-scheme"];
   const schemeId = typeof schemeValue === "string" && /^[a-z0-9][a-z0-9-]{0,63}$/u.test(schemeValue)
     ? schemeValue
     : null;
-  const scopeValue = data["structured-numbering-clean-scope"];
+  const scopeValue = data["number-suite-clean-scope"];
   const cleanupScope = scopeValue === "plugin" || scopeValue === "templates" || scopeValue === "common"
     ? scopeValue
     : null;
-  const startsData = record(data["structured-numbering-start"]);
+  const startsData = record(data["number-suite-start"]);
   const starts: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>> = {};
   if (startsData != null) {
     for (let level = 1; level <= 6; level += 1) {
@@ -75,7 +75,7 @@ export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
 }
 
 export function resolveNoteSettings(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   overrides: NoteOverrides,
 ): EffectiveNoteSettings {
   const requestedScheme = overrides.schemeId;

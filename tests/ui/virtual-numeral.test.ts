@@ -14,7 +14,7 @@ describe("virtual numeral element", () => {
     Object.defineProperty(document, "win", { configurable: true, value: window });
     Object.assign(window, { createFragment: () => document.createDocumentFragment() });
     const element = createVirtualNumeralElement(document, "1.2");
-    expect(element.className).toBe("structured-numbering-virtual");
+    expect(element.className).toBe("number-suite-virtual");
     expect(element.getAttribute("aria-hidden")).toBe("true");
     expect(element.getAttribute("contenteditable")).toBe("false");
     expect(element.firstChild?.textContent).toBe("1.2");
@@ -39,8 +39,8 @@ describe("virtual numeral element", () => {
       "Click to edit the source marker",
     );
     const definition = createVirtualNoteElement(document, "E2", "endnote", "definition");
-    expect(reference.classList.contains("structured-numbering-note-reference")).toBe(true);
-    expect(reference.dataset.structuredNumberingNoteKind).toBe("endnote");
+    expect(reference.classList.contains("number-suite-note-reference")).toBe(true);
+    expect(reference.dataset.numberSuiteNoteKind).toBe("endnote");
     expect(reference.textContent).toBe("E2");
     expect(reference.getAttribute("aria-label")).toBe("Endnote E2");
     expect(reference.getAttribute("title")).toContain("Click to edit");

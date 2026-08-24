@@ -45,7 +45,7 @@ jobs:
         with:
           compression-level: 0
           if-no-files-found: error
-          name: structured-numbering-production-${{ github.sha }}
+          name: number-suite-production-${{ github.sha }}
           overwrite: false
           path: |
             dist/main.js

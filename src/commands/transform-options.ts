@@ -3,7 +3,7 @@ import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import {
   cleanupTemplateSources,
   toNumberingOptions,
-  type StructuredNumberingSettings,
+  type NumberSuiteSettings,
 } from "../config/settings";
 import { planHeadingTransform } from "../core/transform";
 import type { TransformOperation, TransformPlan } from "../core/types";
@@ -16,7 +16,7 @@ export interface SourcePlanResult {
 export function createSourcePlan(
   source: string,
   operation: TransformOperation,
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
 ): SourcePlanResult {
   const overrides = parseNoteOverridesFromSource(source);
   if (overrides == null) {

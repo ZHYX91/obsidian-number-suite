@@ -170,7 +170,7 @@ jobs:
               echo "exists=false" >> "$GITHUB_OUTPUT"
               ;;
             "200")
-              archive="structured-numbering-${GITHUB_REF_NAME}.zip"
+              archive="number-suite-${GITHUB_REF_NAME}.zip"
               jq --exit-status --arg archive "$archive" --arg tag "$GITHUB_REF_NAME" '
                 .tag_name == $tag and .immutable == true and .draft == false and .prerelease == false and
                 ([.assets[].name] | sort) == ([$archive, "main.js", "manifest.json", "styles.css"] | sort) and
@@ -214,7 +214,7 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           include-hidden-files: false
-          name: structured-numbering-release-${{ github.run_id }}-${{ github.run_attempt }}
+          name: number-suite-release-${{ github.run_id }}-${{ github.run_attempt }}
           overwrite: false
           path: ${{ runner.temp }}/release
           retention-days: 7
@@ -226,7 +226,7 @@ jobs:
         env:
           ARTIFACT_DIGEST: ${{ steps.upload_candidate.outputs.artifact-digest }}
           ARTIFACT_ID: ${{ steps.upload_candidate.outputs.artifact-id }}
-          ARTIFACT_NAME: structured-numbering-release-${{ github.run_id }}-${{ github.run_attempt }}
+          ARTIFACT_NAME: number-suite-release-${{ github.run_id }}-${{ github.run_attempt }}
           ARTIFACT_URL: ${{ steps.upload_candidate.outputs.artifact-url }}
         run: |
           set -euo pipefail
@@ -281,7 +281,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          [[ "$EXPECTED_ARTIFACT_NAME" == "structured-numbering-release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" ]]
+          [[ "$EXPECTED_ARTIFACT_NAME" == "number-suite-release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" ]]
           [[ "$EXPECTED_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$EXPECTED_ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]
           artifact_json="$RUNNER_TEMP/artifact.json"
@@ -303,7 +303,7 @@ jobs:
             "$(jq --raw-output '.archive_download_url' "$artifact_json")" \
             --output "$transport_zip"
           test "$(sha256sum "$transport_zip" | cut -d' ' -f1)" = "$EXPECTED_ARTIFACT_DIGEST"
-          expected_names="$(printf '%s\n' SHA256SUMS "structured-numbering-$GITHUB_REF_NAME.zip" main.js manifest.json styles.css | LC_ALL=C sort)"
+          expected_names="$(printf '%s\n' SHA256SUMS "number-suite-$GITHUB_REF_NAME.zip" main.js manifest.json styles.css | LC_ALL=C sort)"
           actual_names="$(unzip -Z1 "$transport_zip" | LC_ALL=C sort)"
           test "$actual_names" = "$expected_names"
           mkdir "$RUNNER_TEMP/release"
@@ -318,7 +318,7 @@ jobs:
             ${{ runner.temp }}/release/main.js
             ${{ runner.temp }}/release/manifest.json
             ${{ runner.temp }}/release/styles.css
-            ${{ runner.temp }}/release/structured-numbering-${{ github.ref_name }}.zip
+            ${{ runner.temp }}/release/number-suite-${{ github.ref_name }}.zip
 
       - name: Publish GitHub Release
         env:
@@ -330,7 +330,7 @@ jobs:
             "$RUNNER_TEMP/release/main.js" \
             "$RUNNER_TEMP/release/manifest.json" \
             "$RUNNER_TEMP/release/styles.css" \
-            "$RUNNER_TEMP/release/structured-numbering-$GITHUB_REF_NAME.zip" \
+            "$RUNNER_TEMP/release/number-suite-$GITHUB_REF_NAME.zip" \
             --generate-notes \
             --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
@@ -342,7 +342,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="structured-numbering-$GITHUB_REF_NAME.zip"
+          archive="number-suite-$GITHUB_REF_NAME.zip"
           for attempt in 1 2 3 4 5; do
             if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" \
               > "$RUNNER_TEMP/published-release.json" && \
@@ -359,7 +359,7 @@ jobs:
           done
           mkdir "$RUNNER_TEMP/published"
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/published"
-          expected=(main.js manifest.json styles.css "structured-numbering-$GITHUB_REF_NAME.zip")
+          expected=(main.js manifest.json styles.css "number-suite-$GITHUB_REF_NAME.zip")
           for name in "${expected[@]}"; do
             cmp --silent "$RUNNER_TEMP/release/$name" "$RUNNER_TEMP/published/$name"
             for attempt in 1 2 3 4 5; do

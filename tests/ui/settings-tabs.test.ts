@@ -40,7 +40,7 @@ describe("settings tabs", () => {
     expect(tabs[0]?.getAttribute("aria-selected")).toBe("true");
     tabs[0]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     expect(select).toHaveBeenCalledWith("headings");
-    expect(result.panel.getAttribute("aria-labelledby")).toBe("structured-numbering-settings-tab-general");
+    expect(result.panel.getAttribute("aria-labelledby")).toBe("number-suite-settings-tab-general");
     result.cleanup();
   });
 });

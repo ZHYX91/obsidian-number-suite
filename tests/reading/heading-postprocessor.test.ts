@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
 
-import { DEFAULT_SETTINGS, type StructuredNumberingSettings } from "../../src/config/settings";
+import { DEFAULT_SETTINGS, type NumberSuiteSettings } from "../../src/config/settings";
 import {
-  cleanupStructuredNumberingReadingDom,
+  cleanupNumberSuiteReadingDom,
   HeadingReadingProcessor,
 } from "../../src/reading/heading-postprocessor";
 
-function settings(overrides: Partial<StructuredNumberingSettings>): StructuredNumberingSettings {
+function settings(overrides: Partial<NumberSuiteSettings>): NumberSuiteSettings {
   return {
     ...DEFAULT_SETTINGS,
     customSchemes: DEFAULT_SETTINGS.customSchemes.map((scheme) => ({
@@ -42,7 +42,7 @@ beforeEach(() => {
   Object.assign(window, { createFragment: () => document.createDocumentFragment() });
 });
 
-function harness(source: string, configured: StructuredNumberingSettings) {
+function harness(source: string, configured: NumberSuiteSettings) {
   let currentSource = source;
   const FileConstructor = TFile as unknown as new (path: string) => TFile;
   const file = new FileConstructor("note.md");
@@ -90,7 +90,7 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    expect(container.querySelectorAll(".structured-numbering-virtual")).toHaveLength(2);
+    expect(container.querySelectorAll(".number-suite-virtual")).toHaveLength(2);
     expect(container.children[0]?.textContent).toBe("1 First");
     expect(container.children[1]?.textContent).toBe("1.1 Second");
   });
@@ -110,10 +110,10 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    const concealed = heading.querySelector(".structured-numbering-concealed");
+    const concealed = heading.querySelector(".number-suite-concealed");
     expect(concealed?.textContent).toBe("1.1 ");
     expect(heading.textContent).toBe("1.1 Stored");
-    expect(heading.getAttribute("data-structured-numbering-mode")).toBe("conceal");
+    expect(heading.getAttribute("data-number-suite-mode")).toBe("conceal");
   });
 
   it("fails closed when rendered heading levels do not match source", async () => {
@@ -127,7 +127,7 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    expect(container.querySelector(".structured-numbering-virtual")).toBeNull();
+    expect(container.querySelector(".number-suite-virtual")).toBeNull();
   });
 
   it("reapplies one full-document plan idempotently", async () => {
@@ -141,7 +141,7 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
     await processor.process(container, context);
     expect(cachedRead).toHaveBeenCalledTimes(2);
-    expect(container.querySelectorAll(".structured-numbering-virtual")).toHaveLength(2);
+    expect(container.querySelectorAll(".number-suite-virtual")).toHaveLength(2);
   });
 
   it("cleans prior decorations when display is disabled", async () => {
@@ -151,12 +151,12 @@ describe("HeadingReadingProcessor", () => {
     heading.textContent = "First";
     container.appendChild(heading);
     await processor.process(container, context);
-    expect(heading.querySelector(".structured-numbering-virtual")).not.toBeNull();
+    expect(heading.querySelector(".number-suite-virtual")).not.toBeNull();
 
     configured.showVirtualNumbers = false;
     await processor.process(container, context);
 
-    expect(heading.querySelector(".structured-numbering-virtual")).toBeNull();
+    expect(heading.querySelector(".number-suite-virtual")).toBeNull();
     expect(heading.textContent).toBe("First");
   });
 
@@ -195,9 +195,9 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    expect(heading.querySelector(".structured-numbering-concealed")?.textContent).toBe("1 ");
-    expect(heading.querySelector(".structured-numbering-virtual")?.textContent).toBe("1 ");
-    expect(heading.getAttribute("data-structured-numbering-mode")).toBe("show-conceal");
+    expect(heading.querySelector(".number-suite-concealed")?.textContent).toBe("1 ");
+    expect(heading.querySelector(".number-suite-virtual")?.textContent).toBe("1 ");
+    expect(heading.getAttribute("data-number-suite-mode")).toBe("show-conceal");
   });
 
   it("uses the selected custom scheme exclusions in Reading View", async () => {
@@ -237,7 +237,7 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
 
     expect(Array.from(container.children).map((heading) => (
-      heading.querySelector(".structured-numbering-virtual")?.textContent ?? null
+      heading.querySelector(".number-suite-virtual")?.textContent ?? null
     ))).toEqual(["1 ", null, null, "1.1 "]);
   });
 
@@ -256,7 +256,7 @@ describe("HeadingReadingProcessor", () => {
 
     expect(first.textContent).toBe("Figure 1: Plain");
     expect(second.textContent).toBe("Figure 2: Target");
-    expect(container.querySelectorAll(".structured-numbering-caption-number")).toHaveLength(2);
+    expect(container.querySelectorAll(".number-suite-caption-number")).toHaveLength(2);
   });
 
   it("centers caption types independently from virtual numbering", async () => {
@@ -280,12 +280,12 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
 
     expect([...container.children].map((item) => (
-      item.classList.contains("structured-numbering-caption-centered")
+      item.classList.contains("number-suite-caption-centered")
     ))).toEqual([true, false, true, false]);
     expect([...container.children].map((item) => (
-      (item as HTMLElement).dataset.structuredNumberingCaptionKind ?? null
+      (item as HTMLElement).dataset.numberSuiteCaptionKind ?? null
     ))).toEqual(["Figure", null, "Equation", null]);
-    expect(container.querySelector(".structured-numbering-caption-number")).toBeNull();
+    expect(container.querySelector(".number-suite-caption-number")).toBeNull();
   });
 
   it("enhances explicit same-file references while preserving the Obsidian link and alias", async () => {
@@ -316,7 +316,7 @@ describe("HeadingReadingProcessor", () => {
     expect(paragraph.textContent).toBe("See 1 chapter");
     expect(paragraph.querySelector("a")?.textContent).toBe("chapter");
     expect(crossFile.textContent).toBe("Cross @Heading");
-    expect(paragraph.querySelector(".structured-numbering-reference-number")?.textContent).toBe("1 ");
+    expect(paragraph.querySelector(".number-suite-reference-number")?.textContent).toBe("1 ");
     await processor.process(container, context);
     expect(paragraph.textContent).toBe("See 1 chapter");
   });
@@ -340,7 +340,7 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
 
     expect(paragraph.textContent).toBe("See @Heading");
-    expect(paragraph.querySelector(".structured-numbering-reference-number")).toBeNull();
+    expect(paragraph.querySelector(".number-suite-reference-number")).toBeNull();
   });
 
   it("renumbers native footnote and endnote references with independent counters", async () => {
@@ -380,9 +380,9 @@ describe("HeadingReadingProcessor", () => {
       .toEqual(["Footnote 1", "Endnote E1"]);
     expect([...list.children].map((item) => item.getAttribute("value"))).toEqual(["1", "1"]);
     expect([...list.children].map((item) => (
-      (item as HTMLElement).dataset.structuredNumberingNoteLabel
+      (item as HTMLElement).dataset.numberSuiteNoteLabel
     ))).toEqual(["1", "E1"]);
-    expect([...list.children].map((item) => (item as HTMLElement).dataset.structuredNumberingNoteKind))
+    expect([...list.children].map((item) => (item as HTMLElement).dataset.numberSuiteNoteKind))
       .toEqual(["footnote", "endnote"]);
     await processor.process(container, context);
     expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
@@ -423,20 +423,20 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
     expect(link.getAttribute("aria-label")).toBe("Footnote 1");
     expect(item.getAttribute("value")).toBe("1");
-    expect(caption.classList.contains("structured-numbering-caption-centered")).toBe(true);
+    expect(caption.classList.contains("number-suite-caption-centered")).toBe(true);
 
-    cleanupStructuredNumberingReadingDom(container);
+    cleanupNumberSuiteReadingDom(container);
 
     expect(link.textContent).toBe("[7]");
     expect(link.getAttribute("aria-label")).toBe("Native note label");
-    expect(link.dataset.structuredNumberingNoteAriaPresent).toBeUndefined();
-    expect(link.dataset.structuredNumberingNoteAriaOriginal).toBeUndefined();
+    expect(link.dataset.numberSuiteNoteAriaPresent).toBeUndefined();
+    expect(link.dataset.numberSuiteNoteAriaOriginal).toBeUndefined();
     expect(item.getAttribute("value")).toBe("7");
-    expect(item.dataset.structuredNumberingNoteLabel).toBeUndefined();
-    expect(caption.classList.contains("structured-numbering-caption-centered")).toBe(false);
-    expect(caption.dataset.structuredNumberingCaptionKind).toBeUndefined();
-    expect(heading.getAttribute("data-structured-numbering-mode")).toBeNull();
-    expect(heading.querySelector(".structured-numbering-virtual")).toBeNull();
+    expect(item.dataset.numberSuiteNoteLabel).toBeUndefined();
+    expect(caption.classList.contains("number-suite-caption-centered")).toBe(false);
+    expect(caption.dataset.numberSuiteCaptionKind).toBeUndefined();
+    expect(heading.getAttribute("data-number-suite-mode")).toBeNull();
+    expect(heading.querySelector(".number-suite-virtual")).toBeNull();
   });
 
   it("keeps native note rendering unchanged when the rendered reference count differs", async () => {
@@ -452,6 +452,6 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
 
     expect(link.textContent).toBe("[1]");
-    expect(link.dataset.structuredNumberingNoteOriginal).toBeUndefined();
+    expect(link.dataset.numberSuiteNoteOriginal).toBeUndefined();
   });
 });

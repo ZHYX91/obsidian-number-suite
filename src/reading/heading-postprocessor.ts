@@ -6,7 +6,7 @@ import {
   centeredCaptionKinds,
   cleanupTemplateSources,
   toNumberingOptions,
-  type StructuredNumberingSettings,
+  type NumberSuiteSettings,
 } from "../config/settings";
 import { parseAtxHeadings } from "../core/heading-parser";
 import { WORD_JOINER } from "../core/markers";
@@ -45,58 +45,58 @@ function headingElements(container: HTMLElement): HTMLHeadingElement[] {
 
 function cleanupHeading(element: HTMLHeadingElement): void {
   for (const virtual of element.querySelectorAll<HTMLElement>(VIRTUAL_NUMERAL_SELECTOR)) {
-    const original = virtual.dataset.structuredNumberingOriginal;
+    const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);
     else virtual.remove();
   }
-  for (const concealed of element.querySelectorAll<HTMLElement>(".structured-numbering-concealed")) {
+  for (const concealed of element.querySelectorAll<HTMLElement>(".number-suite-concealed")) {
     concealed.replaceWith(...concealed.childNodes);
   }
   element.normalize();
-  element.removeAttribute("data-structured-numbering-mode");
+  element.removeAttribute("data-number-suite-mode");
 }
 
 function cleanupSemantic(container: HTMLElement): void {
   for (const virtual of container.querySelectorAll<HTMLElement>(
-    ".structured-numbering-caption-number, .structured-numbering-reference-number",
+    ".number-suite-caption-number, .number-suite-reference-number",
   )) {
-    const original = virtual.dataset.structuredNumberingOriginal;
+    const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);
     else virtual.remove();
   }
-  for (const anchor of container.querySelectorAll<HTMLElement>("[data-structured-numbering-reference]")) {
-    delete anchor.dataset.structuredNumberingReference;
+  for (const anchor of container.querySelectorAll<HTMLElement>("[data-number-suite-reference]")) {
+    delete anchor.dataset.numberSuiteReference;
   }
   for (const caption of container.querySelectorAll<HTMLElement>(
-    "[data-structured-numbering-caption-kind]",
+    "[data-number-suite-caption-kind]",
   )) {
-    caption.classList.remove("structured-numbering-caption-centered");
-    delete caption.dataset.structuredNumberingCaptionKind;
+    caption.classList.remove("number-suite-caption-centered");
+    delete caption.dataset.numberSuiteCaptionKind;
   }
-  for (const element of container.querySelectorAll<HTMLElement>("[data-structured-numbering-note-original]")) {
-    element.textContent = element.dataset.structuredNumberingNoteOriginal ?? "";
-    if (element.dataset.structuredNumberingNoteAriaPresent === "true") {
-      element.setAttribute("aria-label", element.dataset.structuredNumberingNoteAriaOriginal ?? "");
+  for (const element of container.querySelectorAll<HTMLElement>("[data-number-suite-note-original]")) {
+    element.textContent = element.dataset.numberSuiteNoteOriginal ?? "";
+    if (element.dataset.numberSuiteNoteAriaPresent === "true") {
+      element.setAttribute("aria-label", element.dataset.numberSuiteNoteAriaOriginal ?? "");
     } else {
       element.removeAttribute("aria-label");
     }
-    delete element.dataset.structuredNumberingNoteOriginal;
-    delete element.dataset.structuredNumberingNoteKind;
-    delete element.dataset.structuredNumberingNoteAriaOriginal;
-    delete element.dataset.structuredNumberingNoteAriaPresent;
+    delete element.dataset.numberSuiteNoteOriginal;
+    delete element.dataset.numberSuiteNoteKind;
+    delete element.dataset.numberSuiteNoteAriaOriginal;
+    delete element.dataset.numberSuiteNoteAriaPresent;
   }
-  for (const item of container.querySelectorAll<HTMLElement>("[data-structured-numbering-note-value]")) {
-    const original = item.dataset.structuredNumberingNoteValue;
+  for (const item of container.querySelectorAll<HTMLElement>("[data-number-suite-note-value]")) {
+    const original = item.dataset.numberSuiteNoteValue;
     if (original == null || original === "") item.removeAttribute("value");
     else item.setAttribute("value", original);
-    delete item.dataset.structuredNumberingNoteValue;
-    delete item.dataset.structuredNumberingNoteKind;
-    delete item.dataset.structuredNumberingNoteLabel;
+    delete item.dataset.numberSuiteNoteValue;
+    delete item.dataset.numberSuiteNoteKind;
+    delete item.dataset.numberSuiteNoteLabel;
   }
   container.normalize();
 }
 
-export function cleanupStructuredNumberingReadingDom(container: HTMLElement): void {
+export function cleanupNumberSuiteReadingDom(container: HTMLElement): void {
   cleanupSemantic(container);
   for (const heading of headingElements(container)) cleanupHeading(heading);
 }
@@ -123,7 +123,7 @@ function insertCaptionNumber(element: HTMLElement, kind: string, label: string):
         const span = createVirtualSemanticElement(element.ownerDocument, label, "caption");
         const suffix = node.splitText(localOffset);
         suffix.parentNode?.insertBefore(span, suffix);
-        element.dataset.structuredNumberingCaptionKind = kind;
+        element.dataset.numberSuiteCaptionKind = kind;
         return true;
       }
     }
@@ -135,8 +135,8 @@ function insertCaptionNumber(element: HTMLElement, kind: string, label: string):
 
 function alignCaption(element: HTMLElement, kind: string): boolean {
   if (!(element.textContent ?? "").trimStart().startsWith(`${kind}:`)) return false;
-  element.dataset.structuredNumberingCaptionKind = kind;
-  element.classList.add("structured-numbering-caption-centered");
+  element.dataset.numberSuiteCaptionKind = kind;
+  element.classList.add("number-suite-caption-centered");
   return true;
 }
 
@@ -154,7 +154,7 @@ function enhanceReference(container: HTMLElement, target: string, label: string)
   const expected = `#${target}`;
   const anchors = container.querySelectorAll<HTMLElement>("a.internal-link");
   for (const anchor of anchors) {
-    if (anchor.dataset.structuredNumberingReference === "true") continue;
+    if (anchor.dataset.numberSuiteReference === "true") continue;
     const dataHref = anchor.getAttribute("data-href");
     const href = anchor.getAttribute("href");
     if ((dataHref != null && dataHref !== expected) || (dataHref == null && href !== expected)) continue;
@@ -162,9 +162,9 @@ function enhanceReference(container: HTMLElement, target: string, label: string)
     if (text == null) continue;
     text.deleteData(text.length - 1, 1);
     const span = createVirtualSemanticElement(container.ownerDocument, label, "reference");
-    span.dataset.structuredNumberingOriginal = "@";
+    span.dataset.numberSuiteOriginal = "@";
     text.parentNode?.insertBefore(span, anchor);
-    anchor.dataset.structuredNumberingReference = "true";
+    anchor.dataset.numberSuiteReference = "true";
     return true;
   }
   return false;
@@ -200,10 +200,10 @@ function enhanceNoteReferences(
     const note = notes[index];
     if (target == null || note?.noteKind == null) continue;
     const original = target.textContent ?? "";
-    target.dataset.structuredNumberingNoteOriginal = original;
-    target.dataset.structuredNumberingNoteKind = note.noteKind;
-    target.dataset.structuredNumberingNoteAriaPresent = String(target.hasAttribute("aria-label"));
-    target.dataset.structuredNumberingNoteAriaOriginal = target.getAttribute("aria-label") ?? "";
+    target.dataset.numberSuiteNoteOriginal = original;
+    target.dataset.numberSuiteNoteKind = note.noteKind;
+    target.dataset.numberSuiteNoteAriaPresent = String(target.hasAttribute("aria-label"));
+    target.dataset.numberSuiteNoteAriaOriginal = target.getAttribute("aria-label") ?? "";
     target.textContent = displayNoteLabel(original, note.label);
     target.setAttribute("aria-label", note.noteKind === "endnote"
       ? t("display.note.endnote", { number: note.label })
@@ -251,9 +251,9 @@ function enhanceNoteDefinitions(
     const item = items[index];
     const definition = definitions[index];
     if (item == null || definition?.noteKind == null || definition.noteNumber == null) continue;
-    item.dataset.structuredNumberingNoteValue = item.getAttribute("value") ?? "";
-    item.dataset.structuredNumberingNoteKind = definition.noteKind;
-    item.dataset.structuredNumberingNoteLabel = definition.label;
+    item.dataset.numberSuiteNoteValue = item.getAttribute("value") ?? "";
+    item.dataset.numberSuiteNoteKind = definition.noteKind;
+    item.dataset.numberSuiteNoteLabel = definition.label;
     item.setAttribute("value", String(definition.noteNumber));
   }
   return true;
@@ -273,8 +273,8 @@ function leadingTextNodes(element: HTMLHeadingElement): Text[] {
     const parent = current.parentElement;
     if (
       parent == null
-      || (!parent.classList.contains("structured-numbering-virtual")
-        && !parent.classList.contains("structured-numbering-concealed"))
+      || (!parent.classList.contains("number-suite-virtual")
+        && !parent.classList.contains("number-suite-concealed"))
     ) {
       nodes.push(current as Text);
     }
@@ -309,7 +309,7 @@ function concealPrefix(element: HTMLHeadingElement, sourcePrefix: string): boole
     if (parent == null) {
       return false;
     }
-    const span = parent.createSpan({ cls: "structured-numbering-concealed" });
+    const span = parent.createSpan({ cls: "number-suite-concealed" });
     span.setAttribute("aria-hidden", "true");
     parent.insertBefore(span, node);
     span.appendChild(node);
@@ -323,7 +323,7 @@ export class HeadingReadingProcessor {
 
   constructor(
     private readonly app: App,
-    private readonly getSettings: () => StructuredNumberingSettings,
+    private readonly getSettings: () => NumberSuiteSettings,
   ) {}
 
   invalidate(): void {
@@ -331,7 +331,7 @@ export class HeadingReadingProcessor {
   }
 
   async process(container: HTMLElement, context: MarkdownPostProcessorContext): Promise<void> {
-    cleanupStructuredNumberingReadingDom(container);
+    cleanupNumberSuiteReadingDom(container);
     const rendered = headingElements(container);
 
     const settings = this.getSettings();
@@ -413,11 +413,11 @@ export class HeadingReadingProcessor {
         prependVirtualNumber(element, virtual.label);
       }
       if (virtual != null && concealed) {
-        element.setAttribute("data-structured-numbering-mode", "show-conceal");
+        element.setAttribute("data-number-suite-mode", "show-conceal");
       } else if (virtual != null) {
-        element.setAttribute("data-structured-numbering-mode", "show");
+        element.setAttribute("data-number-suite-mode", "show");
       } else if (concealed) {
-        element.setAttribute("data-structured-numbering-mode", "conceal");
+        element.setAttribute("data-number-suite-mode", "conceal");
       }
     }
     const sectionSemantic = semanticPlan.filter((item) => (
@@ -464,7 +464,7 @@ export class HeadingReadingProcessor {
 
   private buildPlan(
     source: string,
-    settings: StructuredNumberingSettings,
+    settings: NumberSuiteSettings,
     effective: ReturnType<typeof resolveNoteSettings>,
   ): CachedReadingPlan {
     const headings = parseAtxHeadings(source);

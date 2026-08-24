@@ -12,7 +12,7 @@ interface TimerHost {
 
 const unavailableTimerHost: TimerHost = {
   setTimeout: () => {
-    throw new Error("Structured Numbering settings saves require a browser window.");
+    throw new Error("Number Suite settings saves require a browser window.");
   },
   clearTimeout: () => undefined,
 };

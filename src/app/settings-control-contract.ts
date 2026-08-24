@@ -1,4 +1,4 @@
-import { cloneSettings, type StructuredNumberingSettings } from "../config/settings";
+import { cloneSettings, type NumberSuiteSettings } from "../config/settings";
 import type { SettingsImpact } from "./settings-impact";
 
 export type SettingsControlKey =
@@ -28,7 +28,7 @@ export type SettingsControlKey =
   | "views.batchBackupLimitMb";
 
 export interface SettingsControlMutation {
-  readonly settings: StructuredNumberingSettings;
+  readonly settings: NumberSuiteSettings;
   readonly impact: SettingsImpact;
   readonly refreshSurface: boolean;
   readonly persistence: "immediate" | "scheduled";
@@ -66,7 +66,7 @@ export function isSettingsControlKey(value: string): value is SettingsControlKey
 }
 
 export function getSettingsControlValue(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   key: SettingsControlKey,
 ): unknown {
   switch (key) {
@@ -98,7 +98,7 @@ export function getSettingsControlValue(
 }
 
 export function applySettingsControlValue(
-  settings: StructuredNumberingSettings,
+  settings: NumberSuiteSettings,
   key: SettingsControlKey,
   value: unknown,
 ): SettingsControlMutation {
@@ -206,7 +206,7 @@ export function applySettingsControlValue(
 }
 
 function invalidControlValue(key: string): Error {
-  return new Error(`Invalid value for Structured Numbering setting: ${key}`);
+  return new Error(`Invalid value for Number Suite setting: ${key}`);
 }
 
 function controlBoolean(key: string, value: unknown): boolean {

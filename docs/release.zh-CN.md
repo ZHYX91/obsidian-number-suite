@@ -47,7 +47,7 @@ last_synced: 2026-08-13
 ## 发布资产
 
 公开 Release 只包含 `main.js`、`manifest.json`、`styles.css` 和确定性的
-`structured-numbering-x.y.z.zip`。ZIP 内使用 `structured-numbering/` 目录并包含同一组三个资产。
+`number-suite-x.y.z.zip`。ZIP 内使用 `number-suite/` 目录并包含同一组三个资产。
 工作流交接可额外包含 `SHA256SUMS`，但它不属于公开资产集合。
 
 <!-- section: publication -->
