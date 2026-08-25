@@ -18,6 +18,7 @@ const CONFIDENCE_RANK: Readonly<Record<Confidence, number>> = {
 const CHINESE_DIGITS = "零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟";
 const CIRCLED_NUMBERS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
 const MEASUREMENT_START = /^(?:倍|版(?:本)?|年|月|日|种|个|项|条|米|厘米|毫米|千米|克|千克|kg|g|mm|cm|m|%)/iu;
+const VERSION_START = /^(?:v(?:ersion)?|version|release|build|版本|版次)(?:\b|\s|：|:)/iu;
 const YEAR = /^(?:19|20)\d{2}$/;
 
 interface Candidate {
@@ -31,7 +32,7 @@ interface Candidate {
 
 function meaningfulRemainder(text: string, to: number): boolean {
   const remainder = text.slice(to).trim();
-  return remainder.length > 0 && /[\p{L}\p{N}\p{S}]/u.test(remainder);
+  return remainder.length > 0;
 }
 
 function candidateFromRegex(
@@ -125,8 +126,10 @@ function parseHierarchical(text: string): HeadingNumberMatch | null {
   const remainder = text.slice(candidate.matched.length).trimStart();
   if (
     parts.some((part) => part === 0)
+    || YEAR.test(String(parts[0] ?? ""))
     || (parts.length === 2 && (parts[1] ?? 0) >= 10)
     || MEASUREMENT_START.test(remainder)
+    || VERSION_START.test(remainder)
   ) {
     candidate.confidence = "low";
     candidate.ruleId = "suspicious-decimal-or-version";
@@ -163,6 +166,10 @@ function parseTemplatePrefix(
     const match = pattern?.exec(text);
     if (match == null || match[0].length === 0 || !meaningfulRemainder(text, match[0].length)) continue;
     const core = match[1] ?? match[0].trimEnd();
+    const manual = parseManualPrefix(text);
+    const confidence = manual?.confidence === "low" && manual.to === match[0].length
+      ? "low"
+      : "high";
     return {
       fullPrefix: match[0],
       numberCore: core,
@@ -170,7 +177,7 @@ function parseTemplatePrefix(
       from: 0,
       to: match[0].length,
       style: inferStyle(core),
-      confidence: "high",
+      confidence,
       provenance: "template",
       ruleId: `template:${source.schemeId}@${source.revision}`,
       schemeId: source.schemeId,
@@ -339,7 +346,7 @@ export function meetsCleanupScope(
 ): boolean {
   if (match.provenance === "plugin") return true;
   if (scope === "plugin") return false;
-  if (match.provenance === "template") return true;
+  if (match.provenance === "template") return match.confidence !== "low";
   return scope === "common" && CONFIDENCE_RANK[match.confidence] >= CONFIDENCE_RANK.medium;
 }
 

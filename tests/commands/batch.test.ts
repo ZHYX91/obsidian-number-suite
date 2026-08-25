@@ -20,39 +20,87 @@ async function snapshot(contents: Readonly<Record<string, string>>): Promise<Las
   };
 }
 
-function harness(initial: Readonly<Record<string, string>>, initialSnapshot: LastBatchSnapshot) {
+function harness(
+  initial: Readonly<Record<string, string>>,
+  initialSnapshot: LastBatchSnapshot | null = null,
+) {
   const contents = new Map(Object.entries(initial));
   const FileConstructor = TFile as unknown as new (path: string) => TFile;
   const files = new Map([...contents.keys()].map((path) => [path, new FileConstructor(path)]));
   let stored: LastBatchSnapshot | null = initialSnapshot;
-  let processHook: ((path: string, call: number) => void) | null = null;
+  let processHook: ((path: string, call: number) => void | Promise<void>) | null = null;
+  let processAfterHook: ((path: string, call: number) => void | Promise<void>) | null = null;
+  let persistenceHook: ((next: LastBatchSnapshot | null, call: number) => void | Promise<void>) | null = null;
   let processCalls = 0;
+  let persistenceCalls = 0;
+  const persistedSnapshots: Array<LastBatchSnapshot | null> = [];
+  const leaves: Array<{ view: MarkdownView }> = [];
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? null,
     cachedRead: async (file: TFile) => contents.get(file.path) ?? "",
     process: async (file: TFile, transform: (current: string) => string) => {
       processCalls += 1;
-      processHook?.(file.path, processCalls);
+      await processHook?.(file.path, processCalls);
       const current = contents.get(file.path);
       if (current == null) throw new Error(`Missing ${file.path}`);
       const next = transform(current);
       contents.set(file.path, next);
+      await processAfterHook?.(file.path, processCalls);
       return next;
     },
   };
   const app = {
     vault,
-    workspace: { iterateAllLeaves: () => undefined },
+    workspace: {
+      iterateAllLeaves: (callback: (leaf: { view: MarkdownView }) => void) => leaves.forEach(callback),
+    },
   } as unknown as App;
   const persistence: BatchPersistence = {
     getLastBatch: () => stored,
-    setLastBatch: async (next) => { stored = next; },
+    setLastBatch: async (next) => {
+      persistenceCalls += 1;
+      stored = next;
+      persistedSnapshots.push(next);
+      await persistenceHook?.(next, persistenceCalls);
+    },
   };
   return {
     contents,
     controller: new BatchController(app, () => DEFAULT_SETTINGS, persistence),
+    addView: (path: string, initialValue: string) => {
+      const view = new MarkdownView({} as never);
+      view.file = files.get(path) ?? null;
+      let buffer = initialValue;
+      const save = vi.fn(async () => {
+        const currentPath = view.file?.path;
+        if (currentPath != null) contents.set(currentPath, buffer);
+      });
+      Object.assign(view, { editor: { getValue: () => buffer }, save });
+      leaves.push({ view });
+      return { view, save, setBuffer: (next: string) => { buffer = next; } };
+    },
+    getFile: (path: string) => files.get(path) ?? null,
     getStored: () => stored,
+    persistedSnapshots,
+    processCalls: () => processCalls,
+    renameFile: (path: string, nextPath: string) => {
+      const file = files.get(path);
+      if (file == null) throw new Error(`Missing ${path}`);
+      const content = contents.get(path);
+      files.delete(path);
+      contents.delete(path);
+      file.path = nextPath;
+      files.set(nextPath, file);
+      if (content != null) contents.set(nextPath, content);
+    },
+    replaceFile: (path: string) => {
+      const replacement = new FileConstructor(path);
+      files.set(path, replacement);
+      return replacement;
+    },
+    setPersistenceHook: (hook: typeof persistenceHook) => { persistenceHook = hook; },
     setProcessHook: (hook: typeof processHook) => { processHook = hook; },
+    setProcessAfterHook: (hook: typeof processAfterHook) => { processAfterHook = hook; },
   };
 }
 
@@ -106,9 +154,9 @@ function applyHarness(diskSource: string, bufferSource: string) {
   };
 }
 
-function previewDocument(source: string, result: string): PreviewDocument {
+function previewDocument(source: string, result: string, path = "a.md"): PreviewDocument {
   return {
-    path: "a.md",
+    path,
     plan: { operation: "write", source, result, changes: [], warnings: [] },
   };
 }
@@ -120,6 +168,18 @@ async function applyPreview(controller: BatchController, document: PreviewDocume
     translate: (key: string) => string,
   ) => Promise<void>;
   await apply.call(controller, [document], "write", (key) => key);
+}
+
+async function applyPreviews(
+  controller: BatchController,
+  documents: readonly PreviewDocument[],
+): Promise<void> {
+  const apply = Reflect.get(controller, "apply") as (
+    nextDocuments: readonly PreviewDocument[],
+    operation: "write",
+    translate: (key: string) => string,
+  ) => Promise<void>;
+  await apply.call(controller, documents, "write", (key) => key);
 }
 
 beforeEach(() => {
@@ -155,6 +215,20 @@ describe("BatchController undo", () => {
     expect(test.contents.get("a.md")).toBe("user-edit");
     expect(test.contents.get("b.md")).toBe("after-b");
     expect(test.getStored()).toBe(recovery);
+  });
+
+  it("aborts when an open editor cannot be synchronized and leaves disk and recovery untouched", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "after-a" }, recovery);
+    const open = test.addView("a.md", "unsaved edit");
+
+    await test.controller.undo((key) => key);
+
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(open.save).not.toHaveBeenCalled();
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.undoConflict");
   });
 });
 
@@ -223,5 +297,123 @@ describe("BatchController apply", () => {
     expect(test.getStored()).toBeNull();
     expect((Notice as unknown as { readonly messages: string[] }).messages)
       .toContain("notice.batchChanged");
+  });
+
+  it("keeps pending and applied recovery snapshots immutable", async () => {
+    const test = harness({ "a.md": "before" });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.persistedSnapshots).toHaveLength(2);
+    expect(test.persistedSnapshots[0]?.status).toBe("pending");
+    expect(test.persistedSnapshots[1]?.status).toBe("applied");
+    expect(test.persistedSnapshots[0]).not.toBe(test.persistedSnapshots[1]);
+  });
+
+  it("restores the previous recovery snapshot after a failed batch rolls back cleanly", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" }, previous);
+    test.setProcessHook((_path, call) => {
+      if (call === 2) throw new Error("injected write failure");
+    });
+
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+    ]);
+
+    expect(test.contents).toEqual(new Map([
+      ["a.md", "before-a"],
+      ["b.md", "before-b"],
+    ]));
+    expect(test.getStored()).toBe(previous);
+  });
+
+  it("rejects a same-path TFile replacement after preflight without writing the replacement", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before" }, previous);
+    test.setPersistenceHook((next) => {
+      if (next?.status === "pending") test.replaceFile("a.md");
+    });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.contents.get("a.md")).toBe("before");
+    expect(test.processCalls()).toBe(0);
+    expect(test.getStored()).toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
+  it("rejects a rename after preflight and never records or writes the renamed target", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before" }, previous);
+    test.setPersistenceHook((next) => {
+      if (next?.status === "pending") test.renameFile("a.md", "renamed.md");
+    });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.contents.get("renamed.md")).toBe("before");
+    expect(test.processCalls()).toBe(0);
+    expect(test.getStored()).toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
+  it("retains the pending recovery snapshot when a file is renamed as its write completes", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before" }, previous);
+    test.setProcessAfterHook((_path, call) => {
+      if (call === 1) test.renameFile("a.md", "renamed.md");
+    });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.contents.get("renamed.md")).toBe("after");
+    expect(test.getStored()).toMatchObject({ status: "pending" });
+    expect(test.getStored()).not.toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
+  it("rechecks remaining open editors before every file write", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" }, previous);
+    const second = test.addView("b.md", "before-b");
+    test.setProcessAfterHook((_path, call) => {
+      if (call === 1) second.setBuffer("unsaved second-file edit");
+    });
+
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+    ]);
+
+    expect(test.contents.get("a.md")).toBe("before-a");
+    expect(test.contents.get("b.md")).toBe("before-b");
+    expect(test.getStored()).toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
+  it("serializes apply and undo so a second operation cannot overlap", async () => {
+    const test = harness({ "a.md": "before" });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    test.setProcessHook(async (_path, call) => {
+      if (call === 1) await gate;
+    });
+
+    const first = applyPreview(test.controller, previewDocument("before", "after"));
+    await vi.waitFor(() => expect(test.processCalls()).toBe(1));
+    await test.controller.undo((key) => key);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchBusy");
+    release();
+    await first;
+
+    expect(test.contents.get("a.md")).toBe("after");
+    expect(test.processCalls()).toBe(1);
   });
 });

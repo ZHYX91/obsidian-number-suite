@@ -1,4 +1,5 @@
 import { meetsCleanupScope } from "../core/number-parser";
+import { sourceOffsetForHeadingContent } from "../core/heading-parser";
 import { numberHeadings } from "../core/numbering-engine";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import type {
@@ -19,6 +20,7 @@ export interface DisplayDecorationPlan {
   to: number;
   label: string;
   line: number;
+  sourceText?: string;
 }
 
 export interface DisplayPlanOptions {
@@ -75,9 +77,10 @@ export function createDisplayPlan(
           decorations.push({
             kind: "conceal",
             from: heading.contentFrom,
-            to: heading.contentFrom + first.to,
+            to: sourceOffsetForHeadingContent(heading, first.to),
             label: "",
             line: heading.line,
+            sourceText: heading.content.slice(0, first.to),
           });
         }
       }
@@ -101,9 +104,10 @@ export function createDisplayPlan(
       decorations.push({
         kind: "conceal",
         from: heading.contentFrom,
-        to: heading.contentFrom + concealTo,
+        to: sourceOffsetForHeadingContent(heading, concealTo),
         label: "",
         line: heading.line,
+        sourceText: heading.content.slice(0, concealTo),
       });
     }
     if (

@@ -10,6 +10,30 @@ telemetry.
 Initial release: `0.1.0`. Automated gates, packaged-candidate checks, and dated Obsidian acceptance
 records are separate forms of evidence.
 
+<!-- section: screenshots -->
+## Screenshots
+
+### Display-only document numbering
+
+See virtual heading numbers, caption numbers, same-file references, footnotes, and endnotes together
+without changing the stored Markdown.
+
+![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
+
+### Current note controls
+
+Compare global defaults, per-note overrides, and the effective values before changing the current
+note.
+
+![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
+
+### Safe file-operation preview
+
+Review every proposed before-and-after change and any warning before Number Suite writes to
+Markdown.
+
+![Number Suite preview of heading number writes](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-write-preview-en.png)
+
 <!-- section: features -->
 ## Features
 
@@ -135,7 +159,10 @@ upper/lower Latin letters, and upper/lower Roman numerals.
 An empty Hn template does not output a number, but that heading remains structural: it increments
 its counter, resets deeper counters, and can be referenced by descendant templates. A non-empty Hn
 template must include an Hn placeholder and must not reference a deeper heading level. Scheme
-templates are the per-level rule used by the numbering core.
+templates are the per-level rule used by the numbering core. Templates must be single-line, must not
+start with whitespace, and must not contain HTML comments or U+2060 source markers. A bare letter or
+Roman-numeral counter is rejected unless the template adds an explicit delimiter, such as
+`{1.letter_lower}.`.
 
 Custom schemes may exclude exact logical heading titles. A whole-subtree exclusion skips the
 heading and all descendants; a heading-only exclusion leaves descendants to the selected

@@ -1,5 +1,6 @@
 import { renderCurrentLevel, renderTemplate } from "./schemes";
 import { matchHeadingExclusion } from "./heading-exclusions";
+import { inspectSchemeTemplates } from "./scheme-template-validation";
 import type {
   Counters,
   NumberedHeading,
@@ -22,6 +23,15 @@ export function numberHeadings(
   options: NumberingOptions,
 ): NumberedHeading[] {
   const scheme = options.scheme;
+  if (inspectSchemeTemplates(scheme.templates).length > 0) {
+    return headings.map((heading) => ({
+      heading,
+      label: null,
+      counters: [0, 0, 0, 0, 0, 0],
+      warning: null,
+      exclusion: null,
+    }));
+  }
   const starts = Array.from({ length: 6 }, (_unused, index) => normalizedStart(options, index + 1));
   const counters = starts.map((start) => start - 1) as Counters;
   const initialized = [false, false, false, false, false, false];
@@ -30,6 +40,16 @@ export function numberHeadings(
   let excludedSubtreeLevel: number | null = null;
 
   for (const heading of headings) {
+    if (heading.content.trim().length === 0) {
+      output.push({
+        heading,
+        label: null,
+        counters: cloneCounters(counters),
+        warning: null,
+        exclusion: null,
+      });
+      continue;
+    }
     const index = heading.level - 1;
     if (excludedSubtreeLevel != null && heading.level > excludedSubtreeLevel) {
       output.push({
@@ -108,12 +128,13 @@ export function numberHeadings(
     }
 
     const currentCounters = cloneCounters(counters);
-    const label = missing.length > 0 && options.missingLevelStrategy === "current-only"
+    const rendered = missing.length > 0 && options.missingLevelStrategy === "current-only"
       ? renderCurrentLevel(template, heading.level, currentCounters)
       : renderTemplate(template, currentCounters);
+    const label = /^[A-Za-z]+$/u.test(rendered.trim()) ? null : rendered;
     output.push({
       heading,
-      label: label.trim().length === 0 ? null : label,
+      label: label == null || label.trim().length === 0 ? null : label,
       counters: currentCounters,
       warning: null,
       exclusion: null,

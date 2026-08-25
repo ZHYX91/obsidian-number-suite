@@ -86,4 +86,34 @@ describe("settings guide", () => {
     expect(messages).toContain("Other Properties remain unchanged.");
     expect(messages).toContain("其他 Properties 保持不变。");
   });
+
+  it("explains heading display, caption syntax, file operations, and batches in both settings paths", () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), "src/ui/settings/usage-guides.ts"),
+      "utf8",
+    );
+    const imperative = readFileSync(resolve(process.cwd(), "src/app/settings-tab.ts"), "utf8");
+    const declarative = readFileSync(resolve(process.cwd(), "src/ui/settings/definitions.ts"), "utf8");
+    const messages = readFileSync(resolve(process.cwd(), "src/config/i18n.ts"), "utf8");
+
+    expect(guide).toContain('guide.setAttribute("role", "note")');
+    expect(guide).toContain('setIcon(icon, "info")');
+    for (const renderer of [
+      "renderHeadingDisplayGuide",
+      "renderCaptionNumberingGuide",
+      "renderFileOperationsGuide",
+      "renderBatchOperationsGuide",
+    ]) {
+      expect(imperative).toContain(`${renderer}(container, t)`);
+      expect(declarative).toContain(`${renderer}(container, t)`);
+    }
+    expect(messages).toContain("Figure: Architecture\\nTable: Results");
+    expect(messages).toContain("Figure: 系统架构\\nTable: 结果");
+    expect(messages).toContain("Open current note controls");
+    expect(messages).toContain("打开当前笔记控制面板");
+    expect(messages).toContain("Undo the most recent batch");
+    expect(messages).toContain("撤销最近一次批量处理");
+    expect(messages).toContain("may break heading links, embeds, or external anchors");
+    expect(messages).toContain("可能使标题链接、嵌入或外部锚点失效");
+  });
 });

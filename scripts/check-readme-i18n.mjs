@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const englishPath = "README.md";
 const chinesePath = "docs/i18n/README.zh-CN.md";
 const sections = [
+  "screenshots",
   "features",
   "requirements-and-compatibility",
   "installation",

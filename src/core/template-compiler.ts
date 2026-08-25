@@ -20,7 +20,15 @@ export type TemplateNode =
 export interface TemplateDiagnostic {
   readonly from: number;
   readonly to: number;
-  readonly code: "unclosed-token" | "unexpected-closing-brace" | "invalid-token";
+  readonly code:
+    | "unclosed-token"
+    | "unexpected-closing-brace"
+    | "invalid-token"
+    | "unsafe-newline"
+    | "unsafe-leading-whitespace"
+    | "unsafe-html-comment"
+    | "unsafe-source-marker"
+    | "unsafe-bare-alpha-roman";
 }
 
 export interface CompiledTemplate {
@@ -42,6 +50,20 @@ function counterNode(content: string): TemplateNode | null {
 export function compileTemplate(source: string): CompiledTemplate {
   const nodes: TemplateNode[] = [];
   const diagnostics: TemplateDiagnostic[] = [];
+  if (/[\r\n]/u.test(source)) {
+    diagnostics.push({ from: 0, to: source.length, code: "unsafe-newline" });
+  }
+  if (source.trim().length > 0 && /^[ \t]/u.test(source)) {
+    diagnostics.push({ from: 0, to: 1, code: "unsafe-leading-whitespace" });
+  }
+  const commentAt = source.search(/<!--|-->/u);
+  if (commentAt >= 0) {
+    diagnostics.push({ from: commentAt, to: Math.min(source.length, commentAt + 4), code: "unsafe-html-comment" });
+  }
+  const markerAt = source.indexOf("\u2060");
+  if (markerAt >= 0) {
+    diagnostics.push({ from: markerAt, to: markerAt + 1, code: "unsafe-source-marker" });
+  }
   let literal = "";
   const flushLiteral = (): void => {
     if (literal.length > 0) {
@@ -79,6 +101,15 @@ export function compileTemplate(source: string): CompiledTemplate {
     index = closing + 1;
   }
   flushLiteral();
+  const counters = nodes.filter((node) => node.kind === "counter");
+  const onlyAlphaRoman = counters.length > 0 && counters.every((node) => (
+    node.kind === "counter"
+    && ["letter_upper", "letter_lower", "roman_upper", "roman_lower"].includes(node.format)
+  ));
+  const hasDelimiter = nodes.some((node) => node.kind === "literal" && node.value.trim().length > 0);
+  if (onlyAlphaRoman && !hasDelimiter) {
+    diagnostics.push({ from: 0, to: source.length, code: "unsafe-bare-alpha-roman" });
+  }
   return { source, nodes, diagnostics };
 }
 
@@ -90,12 +121,12 @@ export function renderCompiledTemplate(template: CompiledTemplate, counters: Cou
 
 export function renderTemplate(source: string, counters: Counters): string {
   const compiled = compileTemplate(source);
-  return compiled.diagnostics.length === 0 ? renderCompiledTemplate(compiled, counters) : source;
+  return compiled.diagnostics.length === 0 ? renderCompiledTemplate(compiled, counters) : "";
 }
 
 export function renderCurrentLevel(source: string, level: number, counters: Counters): string {
   const compiled = compileTemplate(source);
-  if (compiled.diagnostics.length > 0) return source;
+  if (compiled.diagnostics.length > 0) return "";
   const countersInTemplate = compiled.nodes.filter((node) => node.kind === "counter");
   const current = countersInTemplate.find((node) => node.kind === "counter" && node.level === level);
   if (current?.kind !== "counter") return String(counters[level - 1] ?? 0);

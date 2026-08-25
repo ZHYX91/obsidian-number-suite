@@ -122,4 +122,28 @@ describe("display plan", () => {
       { kind: "virtual", line: 2, label: "2" },
     ]);
   });
+
+  it("supports punctuation titles and comment-mapped source ranges", () => {
+    const source = "# <!-- lead --> 1 ???\n# 2 ...";
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      showVirtualNumbers: true,
+      concealStoredNumbers: true,
+    }));
+    expect(plan.filter((item) => item.kind === "conceal").map((item) => source.slice(item.from, item.to)))
+      .toEqual(["1 ", "2 "]);
+    expect(plan.filter((item) => item.kind === "virtual").map((item) => item.label))
+      .toEqual(["1", "2"]);
+  });
+
+  it("fails closed for unsafe bare alphabetic schemes", () => {
+    const unsafe = {
+      id: "custom-letter",
+      baseLevel: 1,
+      templates: ["{1.letter_lower}", "", "", "", "", ""],
+      exclusions: [],
+    };
+    expect(createDisplayPlan(parseAtxHeadings("# Plan"), options({
+      numbering: { scheme: unsafe, missingLevelStrategy: "fill-one", starts: {} },
+    }))).toEqual([]);
+  });
 });

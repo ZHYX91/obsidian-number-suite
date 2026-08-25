@@ -7,6 +7,14 @@ import {
   parseHeadingNumber,
   parseHeadingNumberPrefixes,
 } from "../../src/core/number-parser";
+import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+
+const HIERARCHICAL_SOURCE = [{
+  schemeId: "hierarchical",
+  schemeName: "Hierarchical",
+  revision: 1,
+  templates: BUILT_IN_SCHEMES.hierarchical.templates,
+}];
 
 describe("number parser", () => {
   it("recognizes exact plugin markers", () => {
@@ -80,5 +88,41 @@ describe("number parser", () => {
     });
     expect(parseHeadingNumber("6 种方法")?.confidence).toBe("low");
     expect(parseHeadingNumber("2026 Annual")?.confidence).toBe("low");
+  });
+
+  it.each([
+    ["2026 Annual", 1],
+    ["6 种常见方法", 1],
+    ["6 kg load", 1],
+    ["3.14 Version notes", 2],
+  ])("keeps suspicious template-shaped text conservative: %s", (source, headingLevel) => {
+    const match = parseHeadingNumber(source, {
+      headingLevel,
+      templateSources: HIERARCHICAL_SOURCE,
+    });
+    expect(match).toMatchObject({ provenance: "template", confidence: "low" });
+    expect(match && meetsCleanupScope(match, "templates")).toBe(false);
+    expect(match && meetsCleanupScope(match, "common")).toBe(false);
+  });
+
+  it.each([
+    ["2026.8.24 Date", "date"],
+    ["1.2.3 Version notes", "version"],
+    ["6.2.3 kg load", "measurement"],
+    ["2.5.1 版本记录", "localized version"],
+  ])("keeps hierarchical %s text conservative for active and historical templates", (source) => {
+    for (const revision of [1, 2]) {
+      const match = parseHeadingNumber(source, {
+        headingLevel: 3,
+        templateSources: [{
+          schemeId: "hierarchical",
+          schemeName: "Hierarchical",
+          revision,
+          templates: ["{1.arabic}", "{1.arabic}.{2.arabic}", "{1.arabic}.{2.arabic}.{3.arabic}"],
+        }],
+      });
+      expect(match).toMatchObject({ provenance: "template", confidence: "low" });
+      expect(match && meetsCleanupScope(match, "templates")).toBe(false);
+    }
   });
 });

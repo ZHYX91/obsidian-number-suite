@@ -1,4 +1,4 @@
-import { parseAtxHeadings } from "./heading-parser";
+import { parseAtxHeadings, sourceOffsetForHeadingContent } from "./heading-parser";
 import { wrapPluginNumber } from "./markers";
 import { meetsCleanupScope } from "./number-parser";
 import { numberHeadings } from "./numbering-engine";
@@ -45,6 +45,26 @@ export function applyTextChanges(source: string, changes: readonly PlannedChange
 
 function previewAfter(content: string, from: number, to: number, insert: string): string {
   return content.slice(0, from) + insert + content.slice(to);
+}
+
+function sourcePrefixReplacement(
+  source: string,
+  heading: ReturnType<typeof parseAtxHeadings>[number],
+  visibleTo: number,
+  insert: string,
+): { from: number; to: number; insert: string } {
+  const from = sourceOffsetForHeadingContent(heading, 0);
+  const to = sourceOffsetForHeadingContent(heading, visibleTo);
+  let cursor = from;
+  let hidden = "";
+  for (const span of heading.contentSpans) {
+    if (span.visibleFrom >= visibleTo) break;
+    const segmentFrom = span.sourceFrom;
+    const segmentTo = span.sourceFrom + Math.min(span.visibleTo, visibleTo) - span.visibleFrom;
+    if (segmentFrom > cursor) hidden += source.slice(cursor, segmentFrom);
+    cursor = Math.max(cursor, segmentTo);
+  }
+  return { from, to, insert: `${insert}${hidden}` };
 }
 
 export function planHeadingTransform(
@@ -95,10 +115,9 @@ export function planHeadingTransform(
         continue;
       }
       const insert = `${first.numberCore}${first.separator}`;
+      const replacement = sourcePrefixReplacement(source, heading, first.to, insert);
       changes.push({
-        from: heading.contentFrom,
-        to: heading.contentFrom + first.to,
-        insert,
+        ...replacement,
         line: heading.line,
         level: heading.level,
         before: content,
@@ -147,10 +166,9 @@ export function planHeadingTransform(
         contiguousTo = match.to;
         last = match;
       }
+      const replacement = sourcePrefixReplacement(source, heading, contiguousTo, "");
       changes.push({
-        from: heading.contentFrom,
-        to: heading.contentFrom + contiguousTo,
-        insert: "",
+        ...replacement,
         line: heading.line,
         level: heading.level,
         before: content,
@@ -178,7 +196,11 @@ export function planHeadingTransform(
         }
         continue;
       }
-      if (matches.length > 1 || (first.provenance !== "plugin" && first.provenance !== "template")) {
+      if (
+        matches.length > 1
+        || !meetsCleanupScope(first, options.cleanupScope)
+        || (first.provenance !== "plugin" && first.provenance !== "template")
+      ) {
         warnings.push({
           line: heading.line,
           heading: content,
@@ -187,10 +209,9 @@ export function planHeadingTransform(
         });
         continue;
       }
+      const replacement = sourcePrefixReplacement(source, heading, first.to, "");
       changes.push({
-        from: heading.contentFrom,
-        to: heading.contentFrom + first.to,
-        insert: "",
+        ...replacement,
         line: heading.line,
         level: heading.level,
         before: content,
@@ -252,9 +273,7 @@ export function planHeadingTransform(
         continue;
       }
       changes.push({
-        from: heading.contentFrom,
-        to: heading.contentFrom + first.to,
-        insert,
+        ...sourcePrefixReplacement(source, heading, first.to, insert),
         line: heading.line,
         level: heading.level,
         before: content,
@@ -269,15 +288,13 @@ export function planHeadingTransform(
     if (
       operation === "renumber"
       && options.normalizeManualOnRenumber
-      && (first.provenance === "template" || first.confidence === "high")
+      && first.confidence === "high"
     ) {
       if (content.slice(0, first.to) === insert) {
         continue;
       }
       changes.push({
-        from: heading.contentFrom,
-        to: heading.contentFrom + first.to,
-        insert,
+        ...sourcePrefixReplacement(source, heading, first.to, insert),
         line: heading.line,
         level: heading.level,
         before: content,

@@ -6,6 +6,12 @@ import type { SettingsControlKey } from "../../app/settings-control-contract";
 import { renderNoteNumberingGuide } from "./note-guide";
 import { renderNoteOverridesGuide } from "./note-overrides-guide";
 import { renderSameFileReferenceGuide } from "./reference-guide";
+import {
+  renderBatchOperationsGuide,
+  renderCaptionNumberingGuide,
+  renderFileOperationsGuide,
+  renderHeadingDisplayGuide,
+} from "./usage-guides";
 
 export interface SettingsDefinitionContext {
   readonly t: Translate;
@@ -50,6 +56,10 @@ export function createSettingDefinitions(
           items: [toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
             t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers)],
         },
+        customDefinition(
+          t("settings.captions.guide.title"),
+          (container) => renderCaptionNumberingGuide(container, t),
+        ),
         {
           type: "group",
           heading: t("settings.captions.alignment"),
@@ -117,6 +127,10 @@ export function createSettingDefinitions(
       name: t("settings.tab.cleanup"),
       items: [
         saveStatusDefinition(context),
+        customDefinition(
+          t("settings.operations.guide.title"),
+          (container) => renderFileOperationsGuide(container, t),
+        ),
         { type: "group", heading: t("settings.write"), items: cleanupDefinitions(t) },
         customDefinition(t("settings.scheme.history"), context.renderCleanupHistory),
       ],
@@ -172,6 +186,10 @@ function headingDefinitions(
       t("settings.concealStored"),
       t("settings.concealStored.desc"),
       DEFAULT_SETTINGS.concealStoredNumbers,
+    ),
+    customDefinition(
+      t("settings.headings.guide.title"),
+      (container) => renderHeadingDisplayGuide(container, t),
     ),
     customDefinition(
       t("settings.noteOverrides.guide.title"),
@@ -251,6 +269,10 @@ function viewDefinitions(t: Translate): SettingDefinitionItem<SettingsControlKey
           DEFAULT_SETTINGS.virtualGapEm, 0, 2, 0.05),
       ],
     },
+    customDefinition(
+      t("settings.batch.guide.title"),
+      (container) => renderBatchOperationsGuide(container, t),
+    ),
     {
       type: "group",
       heading: t("settings.batch"),

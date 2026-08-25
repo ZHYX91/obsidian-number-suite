@@ -1,4 +1,4 @@
-import type { ParsedHeading } from "./types";
+import type { HeadingContentSpan, ParsedHeading } from "./types";
 import { noteContainerLines } from "./note-semantics";
 
 const BLOCK_TAGS = new Set([
@@ -43,6 +43,108 @@ function sourceLines(source: string): SourceLine[] {
 function rawHtmlTag(line: string): string | null {
   const match = /^ {0,3}<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/>)/.exec(line);
   return match?.[1]?.toLowerCase() ?? null;
+}
+
+function hasUnclosedHtmlComment(source: string): boolean {
+  let cursor = 0;
+  while (cursor < source.length) {
+    const opening = source.indexOf("<!--", cursor);
+    if (opening < 0) return false;
+    const closing = source.indexOf("-->", opening + 4);
+    if (closing < 0) return true;
+    cursor = closing + 3;
+  }
+  return false;
+}
+
+function projectVisibleContent(
+  source: string,
+  sourceFrom: number,
+): Pick<ParsedHeading, "content" | "contentFrom" | "contentTo" | "contentSpans"> {
+  const characters: Array<{ value: string; source: number }> = [];
+  let cursor = 0;
+  while (cursor < source.length) {
+    const opening = source.indexOf("<!--", cursor);
+    const segmentTo = opening < 0 ? source.length : opening;
+    for (let index = cursor; index < segmentTo; index += 1) {
+      characters.push({ value: source[index] ?? "", source: sourceFrom + index });
+    }
+    if (opening < 0) break;
+    const closing = source.indexOf("-->", opening + 4);
+    if (closing < 0) break;
+    cursor = closing + 3;
+  }
+  let visibleFrom = 0;
+  let visibleTo = characters.length;
+  while (visibleFrom < visibleTo && /^[ \t]$/u.test(characters[visibleFrom]?.value ?? "")) {
+    visibleFrom += 1;
+  }
+  while (visibleTo > visibleFrom && /^[ \t]$/u.test(characters[visibleTo - 1]?.value ?? "")) {
+    visibleTo -= 1;
+  }
+  const visible = characters.slice(visibleFrom, visibleTo);
+  const spans: HeadingContentSpan[] = [];
+  for (let index = 0; index < visible.length; index += 1) {
+    const character = visible[index];
+    if (character == null) continue;
+    const previous = spans[spans.length - 1];
+    if (previous != null && previous.sourceTo === character.source) {
+      spans[spans.length - 1] = {
+        ...previous,
+        visibleTo: index + 1,
+        sourceTo: character.source + 1,
+      };
+    } else {
+      spans.push({
+        visibleFrom: index,
+        visibleTo: index + 1,
+        sourceFrom: character.source,
+        sourceTo: character.source + 1,
+      });
+    }
+  }
+  return {
+    content: visible.map((character) => character.value).join(""),
+    contentFrom: spans[0]?.sourceFrom ?? sourceFrom,
+    contentTo: spans[spans.length - 1]?.sourceTo ?? sourceFrom,
+    contentSpans: spans,
+  };
+}
+
+function parseAtxLine(line: SourceLine): ParsedHeading | null {
+  const match = /^( {0,3})(#{1,6})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
+  if (match == null) return null;
+  const indent = match[1] ?? "";
+  const hashes = match[2] ?? "";
+  const spacing = match[3] ?? "";
+  const rawContent = match[4] ?? "";
+  const closing = /^(.*?)(?:[ \t]+#+[ \t]*)$/.exec(rawContent);
+  const sourceContent = closing?.[1] ?? (/^#+[ \t]*$/u.test(rawContent) ? "" : rawContent);
+  const rawContentFrom = line.from + indent.length + hashes.length + spacing.length;
+  return {
+    line: line.number,
+    level: hashes.length,
+    lineFrom: line.from,
+    lineTo: line.to,
+    markerFrom: line.from + indent.length,
+    ...projectVisibleContent(sourceContent, rawContentFrom),
+  };
+}
+
+export function sourceOffsetForHeadingContent(
+  heading: ParsedHeading,
+  visibleOffset: number,
+): number {
+  if (!Number.isSafeInteger(visibleOffset) || visibleOffset < 0 || visibleOffset > heading.content.length) {
+    throw new RangeError(`Invalid visible heading offset: ${visibleOffset}`);
+  }
+  if (visibleOffset === 0) return heading.contentSpans[0]?.sourceFrom ?? heading.contentFrom;
+  for (const span of heading.contentSpans) {
+    if (visibleOffset >= span.visibleFrom && visibleOffset <= span.visibleTo) {
+      return span.sourceFrom + visibleOffset - span.visibleFrom;
+    }
+  }
+  return heading.contentTo;
 }
 
 export function parseAtxHeadings(source: string): ParsedHeading[] {
@@ -113,14 +215,6 @@ export function parseAtxHeadings(source: string): ParsedHeading[] {
       if (closing < 0) inObsidianComment = true;
       continue;
     }
-    const commentStart = line.text.indexOf("<!--");
-    if (commentStart >= 0) {
-      if (line.text.indexOf("-->", commentStart + 4) < 0) {
-        inComment = true;
-      }
-      continue;
-    }
-
     if (rawTag != null) {
       if (new RegExp(`</${rawTag}[ \\t]*>`, "i").test(line.text)) {
         rawTag = null;
@@ -133,6 +227,17 @@ export function parseAtxHeadings(source: string): ParsedHeading[] {
       }
       continue;
     }
+    const commentStart = line.text.indexOf("<!--");
+    if (commentStart >= 0) {
+      if (hasUnclosedHtmlComment(line.text)) {
+        inComment = true;
+        continue;
+      }
+      const heading = parseAtxLine(line);
+      if (heading != null) headings.push(heading);
+      continue;
+    }
+
     const htmlTag = rawHtmlTag(line.text);
     if (htmlTag != null) {
       if (["script", "pre", "style", "textarea"].includes(htmlTag)) {
@@ -145,27 +250,8 @@ export function parseAtxHeadings(source: string): ParsedHeading[] {
       continue;
     }
 
-    const match = /^( {0,3})(#{1,6})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
-    if (match == null) {
-      continue;
-    }
-    const indent = match[1] ?? "";
-    const hashes = match[2] ?? "";
-    const spacing = match[3] ?? "";
-    const rawContent = match[4] ?? "";
-    const closing = /^(.*?)(?:[ \t]+#+[ \t]*)$/.exec(rawContent);
-    const content = closing?.[1] ?? rawContent;
-    const contentFrom = line.from + indent.length + hashes.length + spacing.length;
-    headings.push({
-      line: line.number,
-      level: hashes.length,
-      lineFrom: line.from,
-      lineTo: line.to,
-      markerFrom: line.from + indent.length,
-      contentFrom,
-      contentTo: contentFrom + content.length,
-      content,
-    });
+    const heading = parseAtxLine(line);
+    if (heading != null) headings.push(heading);
   }
 
   return headings;

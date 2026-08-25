@@ -41,6 +41,13 @@ export type Counters = [number, number, number, number, number, number];
 
 export type HeadingExclusionScope = "heading" | "subtree";
 
+export interface HeadingContentSpan {
+  visibleFrom: number;
+  visibleTo: number;
+  sourceFrom: number;
+  sourceTo: number;
+}
+
 export interface HeadingExclusionRule {
   title: string;
   scope: HeadingExclusionScope;
@@ -55,6 +62,7 @@ export interface ParsedHeading {
   contentFrom: number;
   contentTo: number;
   content: string;
+  contentSpans: readonly HeadingContentSpan[];
 }
 
 export interface HeadingNumberMatch {

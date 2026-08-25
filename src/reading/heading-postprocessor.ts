@@ -320,6 +320,8 @@ function concealPrefix(element: HTMLHeadingElement, sourcePrefix: string): boole
 
 export class HeadingReadingProcessor {
   private readonly cache = new Map<string, ReadingPlanCacheEntry>();
+  private readonly containerRequests = new WeakMap<HTMLElement, number>();
+  private generation = 0;
 
   constructor(
     private readonly app: App,
@@ -328,9 +330,13 @@ export class HeadingReadingProcessor {
 
   invalidate(): void {
     this.cache.clear();
+    this.generation += 1;
   }
 
   async process(container: HTMLElement, context: MarkdownPostProcessorContext): Promise<void> {
+    const request = (this.containerRequests.get(container) ?? 0) + 1;
+    const generation = this.generation;
+    this.containerRequests.set(container, request);
     cleanupNumberSuiteReadingDom(container);
     const rendered = headingElements(container);
 
@@ -356,6 +362,13 @@ export class HeadingReadingProcessor {
       return;
     }
     const source = await this.app.vault.cachedRead(file);
+    if (
+      this.generation !== generation
+      || this.containerRequests.get(container) !== request
+      || !container.isConnected
+    ) {
+      return;
+    }
     const fingerprint = JSON.stringify({ settings, effective });
     let cached = this.cache.get(file.path);
     if (cached == null || cached.fingerprint !== fingerprint || cached.source !== source) {
@@ -403,8 +416,7 @@ export class HeadingReadingProcessor {
       const virtual = items.find((item) => item.kind === "virtual");
       let concealed = false;
       if (conceal != null) {
-        const prefixLength = conceal.to - conceal.from;
-        const prefix = sourceHeading.content.slice(0, prefixLength);
+        const prefix = conceal.sourceText ?? source.slice(conceal.from, conceal.to);
         if (concealPrefix(element, prefix)) {
           concealed = true;
         }

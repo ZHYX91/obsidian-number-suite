@@ -95,6 +95,88 @@ describe("HeadingReadingProcessor", () => {
     expect(container.children[1]?.textContent).toBe("1.1 Second");
   });
 
+  it("numbers headings with closed inline comments using their visible titles", async () => {
+    const { processor, context, container } = harness(
+      "# <!-- lead --> Title\n# Ti<!-- middle -->tle\n# Tail <!-- tail -->",
+      settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical" }),
+    );
+    for (const title of ["Title", "Title", "Tail"]) {
+      const heading = document.createElement("h1");
+      heading.textContent = title;
+      container.append(heading);
+    }
+
+    await processor.process(container, context);
+
+    expect([...container.children].map((heading) => heading.textContent))
+      .toEqual(["1 Title", "2 Title", "3 Tail"]);
+  });
+
+  it("fails closed for unsafe bare alphabetic custom schemes", async () => {
+    const { processor, context, container } = harness(
+      "# Plan",
+      settings({
+        showVirtualNumbers: true,
+        selectedSchemeId: "custom-unsafe",
+        customSchemes: [{
+          id: "custom-unsafe",
+          name: "Unsafe",
+          revision: 1,
+          baseLevel: 1,
+          templates: ["{1.letter_lower}", "", "", "", "", ""],
+          exclusions: [],
+        }],
+      }),
+    );
+    const heading = document.createElement("h1");
+    heading.textContent = "Plan";
+    container.append(heading);
+
+    await processor.process(container, context);
+
+    expect(heading.querySelector(".number-suite-virtual")).toBeNull();
+    expect(heading.textContent).toBe("Plan");
+  });
+
+  it("lets only the latest overlapping render mutate a reading section", async () => {
+    const source = "# First";
+    const pendingReads: Array<(value: string) => void> = [];
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("note.md");
+    const app = {
+      vault: {
+        getAbstractFileByPath: () => file,
+        cachedRead: () => new Promise<string>((resolve) => pendingReads.push(resolve)),
+      },
+    } as unknown as App;
+    const processor = new HeadingReadingProcessor(
+      app,
+      () => settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical" }),
+    );
+    const context = {
+      sourcePath: "note.md",
+      frontmatter: null,
+      getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: 0 }),
+    } as unknown as MarkdownPostProcessorContext;
+    const container = document.createElement("div");
+    const heading = document.createElement("h1");
+    heading.textContent = "First";
+    container.append(heading);
+    document.body.append(container);
+
+    const older = processor.process(container, context);
+    const latest = processor.process(container, context);
+    expect(pendingReads).toHaveLength(2);
+
+    pendingReads[0]?.(source);
+    await older;
+    pendingReads[1]?.(source);
+    await latest;
+
+    expect(container.querySelectorAll(".number-suite-virtual")).toHaveLength(1);
+    expect(heading.textContent).toBe("1 First");
+  });
+
   it("conceals only the validated source prefix", async () => {
     const { processor, context, container } = harness(
       "# 1.1 Stored",

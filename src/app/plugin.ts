@@ -82,6 +82,7 @@ export default class NumberSuitePlugin extends Plugin {
     void this.settingsCoordinator?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
+    this.readingProcessor?.invalidate();
     this.cleanupReadingDom();
     this.clearAppearance();
   }

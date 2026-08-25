@@ -22,7 +22,7 @@ describe("template compiler", () => {
     ["1}", "unexpected-closing-brace"],
   ])("reports %s without interpreting it", (source, code) => {
     expect(compileTemplate(source).diagnostics[0]?.code).toBe(code);
-    expect(renderTemplate(source, [...counters])).toBe(source);
+    expect(renderTemplate(source, [...counters])).toBe("");
   });
 
   it("builds an anchored inverse matcher for cleanup", () => {
@@ -30,4 +30,25 @@ describe("template compiler", () => {
     expect(pattern?.exec("第三章 范围")?.[1]).toBe("第三章");
     expect(pattern?.test("前言 第三章 范围")).toBe(false);
   });
+
+  it.each([
+    "\n{1.arabic}",
+    " {1.arabic}",
+    "<!-- -->{1.arabic}",
+    "\u2060{1.arabic}",
+    "{1.letter_lower}",
+    "{1.roman_lower}",
+  ])("fails closed for unsafe template source %j", (source) => {
+    expect(compileTemplate(source).diagnostics.length).toBeGreaterThan(0);
+    expect(renderTemplate(source, [...counters])).toBe("");
+    expect(templatePrefixPattern(source)).toBeNull();
+  });
+
+  it.each(["{1.letter_lower}.", "({1.roman_upper})"])(
+    "keeps explicitly delimited alphabetic templates usable: %s",
+    (source) => {
+      expect(compileTemplate(source).diagnostics).toEqual([]);
+      expect(templatePrefixPattern(source)).not.toBeNull();
+    },
+  );
 });

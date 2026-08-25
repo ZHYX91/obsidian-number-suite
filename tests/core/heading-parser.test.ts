@@ -43,6 +43,7 @@ describe("parseAtxHeadings", () => {
       "-->",
       "<div>",
       "### In HTML",
+      "### <!-- hidden --> Also in HTML",
       "</div>",
       "",
       "## Also real",
@@ -69,5 +70,34 @@ describe("parseAtxHeadings", () => {
       "Visible",
       "Also visible",
     ]);
+  });
+
+  it("treats closing-hash-only ATX headings as empty without hiding a real hash title", () => {
+    const source = "# #\n# ###\n## ##\n# # title\n# Actual";
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual([
+      "",
+      "",
+      "",
+      "# title",
+      "Actual",
+    ]);
+  });
+
+  it("projects closed inline HTML comments out of heading semantics and preserves source spans", () => {
+    const source = [
+      "# <!-- lead --> Title",
+      "# Ti<!-- middle -->tle",
+      "# Tail <!-- tail -->",
+      "# <!-- only -->",
+    ].join("\n");
+    const headings = parseAtxHeadings(source);
+    expect(headings.map((heading) => heading.content)).toEqual(["Title", "Title", "Tail", ""]);
+    expect(source.slice(headings[0]?.contentFrom, headings[0]?.contentTo)).toBe("Title");
+    expect(headings[1]?.contentSpans).toHaveLength(2);
+  });
+
+  it("fails closed for an unclosed inline HTML comment", () => {
+    const source = "# Visible\n# Broken <!--\n## Hidden\n-->\n# After";
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Visible", "After"]);
   });
 });

@@ -8,6 +8,27 @@ Number Suite 将 Markdown 工具经常混在一起的两个决定分开：标题
 
 初始版本：`0.1.0`。自动门禁、候选包检查和带日期的 Obsidian 验收记录是彼此独立的证据。
 
+<!-- section: screenshots -->
+## 界面截图
+
+### 纯显示文档编号
+
+同时查看虚拟标题序号、题注编号、同文件引用、脚注和尾注，不修改 Markdown 源文件。
+
+![Number Suite 纯显示标题、题注、引用、脚注和尾注编号](../assets/number-suite-document-numbers-en.png)
+
+### 当前笔记控制面板
+
+修改当前笔记前，对比全局默认值、按笔记覆盖值和最终生效值。
+
+![Number Suite 当前笔记生效设置与按笔记覆盖](../assets/number-suite-current-note-controls-en.png)
+
+### 安全的文件操作预览
+
+Number Suite 写入 Markdown 前，逐项检查修改前后内容和全部警告。
+
+![Number Suite 标题序号写入预览](../assets/number-suite-write-preview-en.png)
+
 <!-- section: features -->
 ## 功能
 
@@ -121,7 +142,8 @@ Obsidian 原生链接、别名、跳转目标、块 ID 和 Markdown 源码均保
 
 空的 Hn 模板不输出序号，但该标题仍属于结构：它会增加本层计数、重置更深层计数，并可由
 后代模板引用。非空 Hn 模板必须包含 Hn 占位符，且不能引用更深层级。编号核心以方案模板
-作为逐层规则。
+作为逐层规则。模板必须为单行、不能以空白开头，也不能包含 HTML 注释或 U+2060 来源标记。
+裸字母或罗马数字计数器必须带明确分隔符，例如 `{1.letter_lower}.`，否则会被拒绝。
 
 自定义方案可以精确排除逻辑标题。排除整个子树会跳过标题及其全部后代；仅排除标题时，后代
 采用所选的跨级策略。排除不支持模糊匹配或正则表达式。

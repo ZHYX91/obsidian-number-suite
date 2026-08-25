@@ -55,4 +55,23 @@ describe("scheme template semantics", () => {
       expect(inspectSchemeTemplates(scheme.templates), scheme.id).toEqual([]);
     }
   });
+
+  it.each([
+    "{1.letter_lower}",
+    "{1.roman_lower}",
+    " {1.arabic}",
+    "{1.arabic}\nInjected",
+    "<!-- hidden -->{1.arabic}",
+    "\u2060{1.arabic}",
+  ])("rejects unsafe templates at the scheme boundary: %j", (template) => {
+    expect(inspectSchemeTemplates([template, "", "", "", "", ""]))
+      .toContainEqual({ headingLevel: 1, code: "invalid-placeholder" });
+  });
+
+  it.each(["{1.letter_lower}.", "({1.roman_lower})"])(
+    "accepts explicitly delimited alphabetic templates: %s",
+    (template) => {
+      expect(inspectSchemeTemplates([template, "", "", "", "", ""])).toEqual([]);
+    },
+  );
 });

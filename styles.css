@@ -309,7 +309,8 @@
 }
 
 .number-suite-reference-guide-example,
-.number-suite-note-guide-example {
+.number-suite-note-guide-example,
+.number-suite-settings-guide-example {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
@@ -319,6 +320,7 @@
 
 .number-suite-reference-guide-example > strong,
 .number-suite-note-guide-example > strong,
+.number-suite-settings-guide-example > strong,
 .number-suite-reference-guide-section-title {
   color: var(--text-normal);
   display: block;
@@ -326,7 +328,8 @@
 }
 
 .number-suite-reference-guide-example pre,
-.number-suite-note-guide-example pre {
+.number-suite-note-guide-example pre,
+.number-suite-settings-guide-example pre {
   margin-block: 7px;
   overflow-x: auto;
   padding: 8px 10px;
@@ -334,7 +337,8 @@
 }
 
 .number-suite-reference-guide-example p,
-.number-suite-note-guide-example p {
+.number-suite-note-guide-example p,
+.number-suite-settings-guide-example p {
   margin: 0;
 }
 
@@ -342,7 +346,8 @@
   margin-block-start: 12px;
 }
 
-.number-suite-reference-guide-list {
+.number-suite-reference-guide-list,
+.number-suite-settings-guide-list {
   margin-block: 6px 0;
   padding-inline-start: 20px;
 }

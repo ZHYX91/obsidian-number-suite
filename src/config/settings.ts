@@ -129,7 +129,8 @@ function templates(value: unknown, fallback: readonly string[]): string[] {
   const source: readonly unknown[] = Array.isArray(value) ? value as unknown[] : fallback;
   return Array.from({ length: 6 }, (_unused, index) => {
     const template = source[index];
-    return typeof template === "string" ? template.slice(0, 300) : fallback[index] ?? "";
+    const bounded = typeof template === "string" ? template.slice(0, 300) : fallback[index] ?? "";
+    return bounded.trim().length === 0 ? "" : bounded;
   });
 }
 
@@ -191,6 +192,7 @@ function sanitizeCleanupHistory(value: unknown): CleanupTemplateHistory[] {
     if (seen.has(key)) continue;
     const nextTemplates = templates(item.templates, []);
     if (nextTemplates.every((template) => template.length === 0)) continue;
+    if (inspectSchemeTemplates(nextTemplates).length > 0) continue;
     seen.add(key);
     output.push({
       schemeId: item.schemeId.slice(0, 64),

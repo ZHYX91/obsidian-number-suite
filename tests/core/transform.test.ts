@@ -70,6 +70,22 @@ describe("heading transforms", () => {
     expect(plan.changes).toHaveLength(2);
   });
 
+  it.each(["remove", "renumber"] as const)(
+    "preserves bare years, quantities, measurements, and versions during %s",
+    (operation) => {
+      const source = [
+        "# 2026 Annual",
+        "# 6 种常见方法",
+        "# 6 kg load",
+        "## 3.14 Version notes",
+      ].join("\n");
+      const plan = planHeadingTransform(source, operation, options());
+      expect(plan.result).toBe(source);
+      expect(plan.changes).toEqual([]);
+      expect(plan.warnings).toHaveLength(4);
+    },
+  );
+
   it("removes exact plugin numbers and can strip markers without deleting numbers", () => {
     const source = `# ${WORD_JOINER}1${WORD_JOINER} Heading`;
     expect(planHeadingTransform(source, "remove", options({ cleanupScope: "plugin" })).result)
@@ -103,6 +119,123 @@ describe("heading transforms", () => {
       options({ writeMarkers: true, cleanupScope: "plugin" }),
     );
     expect(cleaned.result).toBe(source);
+  });
+
+  it.each([false, true])(
+    "round-trips punctuation-only titles with writeMarkers=%s",
+    (writeMarkers) => {
+      const source = ["# ???", "# ...", "# ---", "# ()"].join("\n");
+      const written = planHeadingTransform(source, "write", options({ writeMarkers }));
+      expect(written.changes).toHaveLength(4);
+      const cleaned = planHeadingTransform(
+        written.result,
+        "remove",
+        options({ writeMarkers, cleanupScope: writeMarkers ? "plugin" : "templates" }),
+      );
+      expect(cleaned.result).toBe(source);
+    },
+  );
+
+  it("preserves closed comment bytes inside a removable visible prefix", () => {
+    const source = "# 1<!-- gap --> ???";
+    const plan = planHeadingTransform(source, "remove", options());
+    expect(plan.result).toBe("# <!-- gap -->???");
+    expect(plan.result).toContain("<!-- gap -->");
+  });
+
+  it("leaves empty and comment-only headings unnumbered without consuming counters", () => {
+    const source = "# #\n# ###\n## ##\n# <!-- only -->\n# # title\n# Actual";
+    expect(planHeadingTransform(source, "write", options()).result).toBe(
+      "# #\n# ###\n## ##\n# <!-- only -->\n# 1 # title\n# 2 Actual",
+    );
+  });
+
+  it.each([false, true])(
+    "preserves inline HTML comment bytes across write and cleanup with writeMarkers=%s",
+    (writeMarkers) => {
+      const source = [
+        "# <!-- lead --> Title",
+        "# Ti<!-- middle -->tle",
+        "# Tail <!-- tail -->",
+      ].join("\n");
+      const written = planHeadingTransform(source, "write", options({ writeMarkers }));
+      expect(written.result).toContain("<!-- lead -->");
+      expect(written.result).toContain("<!-- middle -->");
+      expect(written.result).toContain("<!-- tail -->");
+      expect(planHeadingTransform(
+        written.result,
+        "remove",
+        options({ writeMarkers, cleanupScope: writeMarkers ? "plugin" : "templates" }),
+      ).result).toBe(source);
+    },
+  );
+
+  it("fails closed for bare alphabetic templates across cleanup and repeated current-only writes", () => {
+    const bareLetter = {
+      id: "custom-letter",
+      baseLevel: 1,
+      templates: ["{1.letter_lower}", "{1.arabic}.{2.letter_lower}", "", "", "", ""],
+      exclusions: [],
+    };
+    const configured = options({
+      numbering: { scheme: bareLetter, missingLevelStrategy: "current-only", starts: {} },
+      templateSources: [{
+        schemeId: "custom-letter",
+        schemeName: "Letter",
+        revision: 1,
+        templates: bareLetter.templates,
+      }],
+    });
+    expect(planHeadingTransform("# a plan", "remove", configured).result).toBe("# a plan");
+    const first = planHeadingTransform("## Plan", "write", configured);
+    const second = planHeadingTransform(first.result, "write", configured);
+    expect(first.result).toBe("## Plan");
+    expect(second.result).toBe("## Plan");
+
+    const romanScheme = {
+      ...bareLetter,
+      id: "custom-roman",
+      templates: ["{1.roman_lower}", "{1.arabic}.{2.roman_lower}", "", "", "", ""],
+    };
+    expect(planHeadingTransform("## Think", "write", options({
+      numbering: { scheme: romanScheme, missingLevelStrategy: "current-only", starts: {} },
+      templateSources: [],
+    })).result).toBe("## Think");
+  });
+
+  it("round-trips explicitly delimited alphabetic templates", () => {
+    const scheme = {
+      id: "custom-letter-safe",
+      baseLevel: 1,
+      templates: ["{1.letter_lower}.", "", "", "", "", ""],
+      exclusions: [],
+    };
+    const configured = options({
+      numbering: { scheme, missingLevelStrategy: "current-only", starts: {} },
+      templateSources: [{
+        schemeId: scheme.id,
+        schemeName: "Safe letters",
+        revision: 1,
+        templates: scheme.templates,
+      }],
+    });
+    const written = planHeadingTransform("# Plan", "write", configured);
+    expect(written.result).toBe("# a. Plan");
+    expect(planHeadingTransform(written.result, "remove", configured).result).toBe("# Plan");
+  });
+
+  it("preserves date and version shaped H3 prefixes from active and historical templates", () => {
+    const templateSources = [1, 2].map((revision) => ({
+      schemeId: "hierarchical",
+      schemeName: "Hierarchical",
+      revision,
+      templates: ["{1.arabic}", "{1.arabic}.{2.arabic}", "{1.arabic}.{2.arabic}.{3.arabic}"],
+    }));
+    const source = "### 2026.8.24 Date\n### 1.2.3 Version notes";
+    const plan = planHeadingTransform(source, "remove", options({ templateSources }));
+    expect(plan.result).toBe(source);
+    expect(plan.changes).toEqual([]);
+    expect(plan.warnings).toHaveLength(2);
   });
 
   it("removes prefixes from active and historical templates without broad manual cleanup", () => {

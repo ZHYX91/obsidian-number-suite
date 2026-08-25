@@ -154,6 +154,33 @@ describe("settings", () => {
     });
   });
 
+  it("migrates unsafe custom and cleanup-history templates out of persisted settings", () => {
+    const configured = sanitizeSettings({
+      selectedSchemeId: "custom-unsafe",
+      customSchemes: [{
+        id: "custom-unsafe",
+        name: "Unsafe",
+        revision: 1,
+        baseLevel: 1,
+        templates: ["{1.letter_lower}", "", "", "", "", ""],
+        exclusions: [],
+      }],
+      cleanupHistory: [{
+        schemeId: "custom-unsafe",
+        schemeName: "Unsafe",
+        revision: 1,
+        baseLevel: 1,
+        templates: ["{1.roman_lower}", "", "", "", "", ""],
+      }],
+    });
+
+    expect(configured.selectedSchemeId).toBe(DEFAULT_SETTINGS.selectedSchemeId);
+    expect(configured.customSchemes).toEqual([]);
+    expect(configured.cleanupHistory).toEqual([]);
+    expect(cleanupTemplateSources(configured).some((source) => source.schemeId === "custom-unsafe"))
+      .toBe(false);
+  });
+
   it("never hides the selected built-in scheme during sanitization", () => {
     const configured = sanitizeSettings({
       selectedSchemeId: "legal",

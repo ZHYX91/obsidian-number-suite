@@ -19,6 +19,12 @@ import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
+import {
+  renderBatchOperationsGuide,
+  renderCaptionNumberingGuide,
+  renderFileOperationsGuide,
+  renderHeadingDisplayGuide,
+} from "../ui/settings/usage-guides";
 import type NumberSuitePlugin from "./plugin";
 import { SchemeSettingsRenderer, selectedSchemeName } from "./scheme-settings-renderer";
 import { parseAtxHeadings } from "../core/heading-parser";
@@ -274,6 +280,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.concealStored.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.concealStoredNumbers)
         .onChange((value) => this.updateControl("general.concealStoredNumbers", value)));
+    renderHeadingDisplayGuide(container, t);
     renderNoteOverridesGuide(container, t, "settings");
     new Setting(container)
       .setName(t("settings.missing"))
@@ -292,6 +299,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.captions.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCaptionNumbers)
         .onChange((value) => this.updateControl("captions.showCaptionNumbers", value)));
+    renderCaptionNumberingGuide(container, t);
     new Setting(container).setName(t("settings.captions.alignment"))
       .setDesc(t("settings.captions.alignment.desc"))
       .setHeading();
@@ -335,6 +343,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
 
   private renderCleanup(container: HTMLElement, t: Translate): void {
     new Setting(container).setName(t("settings.write")).setHeading();
+    renderFileOperationsGuide(container, t);
     new Setting(container)
       .setName(t("settings.markers"))
       .setDesc(t("settings.markers.desc"))
@@ -378,6 +387,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setLimits(0, 2, 0.05).setDynamicTooltip().setValue(this.plugin.settings.virtualGapEm)
       .onChange((value) => this.updateControl("views.virtualGapEm", value)));
     new Setting(container).setName(t("settings.batch")).setHeading();
+    renderBatchOperationsGuide(container, t);
     new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
       .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
         .onChange((value) => this.updateControl("views.excludedFolders", value)));
