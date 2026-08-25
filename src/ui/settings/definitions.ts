@@ -32,7 +32,7 @@ export function createSettingDefinitions(
       name: t("settings.tab.general"),
       items: [
         saveStatusDefinition(context),
-        { type: "group", heading: t("settings.general"), items: generalDefinitions(context) },
+        ...generalDefinitions(context),
       ],
     },
     {
@@ -41,7 +41,7 @@ export function createSettingDefinitions(
       displayValue: context.selectedSchemeName,
       items: [
         saveStatusDefinition(context),
-        { type: "group", heading: t("settings.headings"), items: headingDefinitions(context) },
+        ...headingDefinitions(context),
         customDefinition(t("settings.scheme"), context.renderSchemes),
       ],
     },
@@ -50,12 +50,8 @@ export function createSettingDefinitions(
       name: t("settings.tab.captions"),
       items: [
         saveStatusDefinition(context),
-        {
-          type: "group",
-          heading: t("settings.captions"),
-          items: [toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
-            t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers)],
-        },
+        toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
+          t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers),
         customDefinition(
           t("settings.captions.guide.title"),
           (container) => renderCaptionNumberingGuide(container, t),
@@ -81,12 +77,8 @@ export function createSettingDefinitions(
       name: t("settings.tab.references"),
       items: [
         saveStatusDefinition(context),
-        {
-          type: "group",
-          heading: t("settings.references"),
-          items: [toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
-            t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences)],
-        },
+        toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
+          t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences),
         customDefinition(
           t("settings.references.guide.title"),
           (container) => renderSameFileReferenceGuide(container, t),
@@ -98,24 +90,18 @@ export function createSettingDefinitions(
       name: t("settings.tab.notes"),
       items: [
         saveStatusDefinition(context),
-        {
-          type: "group",
-          heading: t("settings.notes"),
-          items: [
-            toggleDefinition("notes.showNoteNumbers", t("settings.notes.enable"),
-              t("settings.notes.enable.desc"), DEFAULT_SETTINGS.showNoteNumbers),
-            dropdownDefinition(
-              "notes.displayMode",
-              t("settings.notes.display"),
-              t("settings.notes.display.desc"),
-              {
-                formatted: t("settings.notes.display.formatted"),
-                source: t("settings.notes.display.source"),
-              },
-              DEFAULT_SETTINGS.noteDisplayMode,
-            ),
-          ],
-        },
+        toggleDefinition("notes.showNoteNumbers", t("settings.notes.enable"),
+          t("settings.notes.enable.desc"), DEFAULT_SETTINGS.showNoteNumbers),
+        dropdownDefinition(
+          "notes.displayMode",
+          t("settings.notes.display"),
+          t("settings.notes.display.desc"),
+          {
+            formatted: t("settings.notes.display.formatted"),
+            source: t("settings.notes.display.source"),
+          },
+          DEFAULT_SETTINGS.noteDisplayMode,
+        ),
         customDefinition(
           t("settings.notes.guide.title"),
           (container) => renderNoteNumberingGuide(container, t),
@@ -131,7 +117,7 @@ export function createSettingDefinitions(
           t("settings.operations.guide.title"),
           (container) => renderFileOperationsGuide(container, t),
         ),
-        { type: "group", heading: t("settings.write"), items: cleanupDefinitions(t) },
+        ...cleanupDefinitions(t),
         customDefinition(t("settings.scheme.history"), context.renderCleanupHistory),
       ],
     },

@@ -148,7 +148,9 @@ scanning.
 
 Settings use one accessible seven-tab surface on every supported Obsidian version: General,
 Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
-and batch.
+and batch. The tab itself identifies the current section, so its content starts directly with the
+first control or guide. Headings are reserved for genuine subgroups such as caption alignment,
+appearance, and batch operations.
 
 ### Numbering schemes
 

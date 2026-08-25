@@ -53,7 +53,8 @@ writes and offers retry.
 ## Global settings experience
 
 Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
-Footnotes & endnotes, Write and cleanup, and Display and batch. Built-in schemes can be expanded
+Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
+underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H6 template
 previews, and exact exclusions. Empty templates display “This level is not numbered.” Invalid
 non-empty semantics block save with a comprehensible constraint message.

@@ -31,9 +31,12 @@ export function createSettingsTabs(
     const click = (): void => onSelect(definition.id);
     const keydown = (event: KeyboardEvent): void => {
       let target = index;
-      if (event.key === "ArrowRight") target = (index + 1) % definitions.length;
-      else if (event.key === "ArrowLeft") target = (index - 1 + definitions.length) % definitions.length;
-      else if (event.key === "Home") target = 0;
+      const inlineDirection = isRightToLeft(button) ? -1 : 1;
+      if (event.key === "ArrowRight") {
+        target = (index + inlineDirection + definitions.length) % definitions.length;
+      } else if (event.key === "ArrowLeft") {
+        target = (index - inlineDirection + definitions.length) % definitions.length;
+      } else if (event.key === "Home") target = 0;
       else if (event.key === "End") target = definitions.length - 1;
       else return;
       event.preventDefault();
@@ -58,4 +61,12 @@ export function createSettingsTabs(
     activeButton?.scrollIntoView({ block: "nearest", inline: "nearest" })
   ));
   return { panel, cleanup: () => listeners.reverse().forEach((cleanup) => cleanup()) };
+}
+
+function isRightToLeft(element: HTMLElement): boolean {
+  const explicitDirection = element.closest<HTMLElement>("[dir]")?.dir;
+  if (explicitDirection === "rtl") return true;
+  if (explicitDirection === "ltr") return false;
+  if (element.ownerDocument.documentElement.dir === "rtl") return true;
+  return element.ownerDocument.defaultView?.getComputedStyle(element).direction === "rtl";
 }

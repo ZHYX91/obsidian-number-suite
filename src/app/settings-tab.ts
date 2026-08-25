@@ -148,8 +148,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const t = createTranslator(settings.language);
     containerEl.empty();
     containerEl.addClass("number-suite-settings");
-    new Setting(containerEl).setName(t("settings.title")).setHeading();
-    const statusCleanup = this.renderSaveStatus(containerEl, t);
     const tabs = [
       { id: "general", label: t("settings.tab.general") },
       { id: "headings", label: t("settings.tab.headings") },
@@ -165,6 +163,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       const target = this.containerEl.querySelector<HTMLElement>(`#number-suite-settings-tab-${id}`);
       target?.focus();
     });
+    const statusCleanup = this.renderSaveStatus(layout.panel, t);
     if (this.activeTab === "general") this.renderGeneral(layout.panel, t);
     else if (this.activeTab === "headings") this.renderHeadings(layout.panel, t);
     else if (this.activeTab === "captions") this.renderCaptions(layout.panel, t);
@@ -250,7 +249,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderGeneral(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.general")).setHeading();
     new Setting(container)
       .setName(t("settings.language"))
       .setDesc(t("settings.language.desc"))
@@ -269,7 +267,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderHeadings(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.headings")).setHeading();
     new Setting(container)
       .setName(t("settings.showVirtual"))
       .setDesc(t("settings.showVirtual.desc"))
@@ -294,7 +291,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderCaptions(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.captions")).setHeading();
     new Setting(container).setName(t("settings.captions.enable"))
       .setDesc(t("settings.captions.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCaptionNumbers)
@@ -317,7 +313,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderReferences(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.references")).setHeading();
     new Setting(container).setName(t("settings.references.enable"))
       .setDesc(t("settings.references.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCrossReferences)
@@ -326,7 +321,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderNotes(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.notes")).setHeading();
     new Setting(container).setName(t("settings.notes.enable"))
       .setDesc(t("settings.notes.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showNoteNumbers)
@@ -342,7 +336,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderCleanup(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.write")).setHeading();
     renderFileOperationsGuide(container, t);
     new Setting(container)
       .setName(t("settings.markers"))

@@ -11,7 +11,9 @@ All notable changes to Number Suite are documented here.
 - Per-type caption centering, with Figure and Equation centered by default.
 - Distinct footnote and endnote labels, editable Live Preview numbers, and an original-marker mode.
 - Built-in and custom numbering schemes with exact-title exclusions.
-- Per-note controls, previewed file changes, and guarded batch recovery.
+- Per-note Property overrides with in-app guidance, previewed file changes, stale-content checks, and guarded batch recovery.
+- Strict heading, number, and template validation with deterministic handling of malformed or unsafe input.
+- Native-style settings navigation with clear active states and task-focused usage guides.
 - English and Simplified Chinese interfaces.
 
 This is the first release of the independent `number-suite` plugin. It does not migrate
