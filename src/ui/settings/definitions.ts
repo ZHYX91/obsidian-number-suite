@@ -4,6 +4,7 @@ import type { Translate } from "../../config/i18n";
 import { DEFAULT_SETTINGS } from "../../config/settings";
 import type { SettingsControlKey } from "../../app/settings-control-contract";
 import { renderNoteNumberingGuide } from "./note-guide";
+import { renderNoteOverridesGuide } from "./note-overrides-guide";
 import { renderSameFileReferenceGuide } from "./reference-guide";
 
 export interface SettingsDefinitionContext {
@@ -172,13 +173,10 @@ function headingDefinitions(
       t("settings.concealStored.desc"),
       DEFAULT_SETTINGS.concealStoredNumbers,
     ),
-    {
-      name: t("settings.noteOverrides"),
-      desc: t("settings.noteOverrides.desc"),
-      render: (setting) => {
-        setting.settingEl.addClass("number-suite-note-overrides-help");
-      },
-    },
+    customDefinition(
+      t("settings.noteOverrides.guide.title"),
+      (container) => renderNoteOverridesGuide(container, t, "settings"),
+    ),
     dropdownDefinition(
       "general.missingLevelStrategy",
       t("settings.missing"),

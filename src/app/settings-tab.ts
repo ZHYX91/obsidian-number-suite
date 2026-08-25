@@ -16,6 +16,7 @@ import {
 import type { SettingsSaveStatus } from "../config/settings-save-coordinator";
 import { createSettingDefinitions } from "../ui/settings/definitions";
 import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
+import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
 import type NumberSuitePlugin from "./plugin";
@@ -273,10 +274,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.concealStored.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.concealStoredNumbers)
         .onChange((value) => this.updateControl("general.concealStoredNumbers", value)));
-    const noteOverridesHelp = new Setting(container)
-      .setName(t("settings.noteOverrides"))
-      .setDesc(t("settings.noteOverrides.desc"));
-    noteOverridesHelp.settingEl.addClass("number-suite-note-overrides-help");
+    renderNoteOverridesGuide(container, t, "settings");
     new Setting(container)
       .setName(t("settings.missing"))
       .addDropdown((dropdown) => dropdown

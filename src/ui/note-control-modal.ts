@@ -12,6 +12,7 @@ import { parseFrontmatterRecordFromSource } from "../config/frontmatter-source";
 import { noteSchemeOptions, schemeDisplayName } from "../config/scheme-labels";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
+import { renderNoteOverridesGuide } from "./settings/note-overrides-guide";
 
 export interface NoteControlActions {
   readonly refreshDisplay: () => void;
@@ -164,6 +165,7 @@ export class NoteControlModal extends Modal {
   private renderOverrides(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
     const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
     section.createEl("h4", { text: this.t("panel.overrides") });
+    renderNoteOverridesGuide(section, this.t, "panel");
     this.addTriStateSetting(
       section,
       this.t("settings.showVirtual"),

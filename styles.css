@@ -513,9 +513,8 @@
   margin-block-start: var(--size-4-4);
 }
 
-.number-suite-note-overrides-help {
-  border-inline-start: 3px solid var(--interactive-accent);
-  padding-inline-start: var(--size-4-3);
+.number-suite-note-overrides-guide.is-panel {
+  margin-block: var(--size-4-2) var(--size-4-3);
 }
 
 .number-suite-preview {

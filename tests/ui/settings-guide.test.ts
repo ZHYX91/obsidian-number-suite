@@ -65,4 +65,25 @@ describe("settings guide", () => {
     expect(messages).toContain("[^detail]: 脚注内容。");
     expect(messages).toContain("[^endnote:later]: Endnote text.");
   });
+
+  it("explains optional current-note Properties at the settings and point-of-change surfaces", () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), "src/ui/settings/note-overrides-guide.ts"),
+      "utf8",
+    );
+    const imperative = readFileSync(resolve(process.cwd(), "src/app/settings-tab.ts"), "utf8");
+    const declarative = readFileSync(resolve(process.cwd(), "src/ui/settings/definitions.ts"), "utf8");
+    const panel = readFileSync(resolve(process.cwd(), "src/ui/note-control-modal.ts"), "utf8");
+    const messages = readFileSync(resolve(process.cwd(), "src/config/i18n.ts"), "utf8");
+
+    expect(guide).toContain('guide.setAttribute("role", "note")');
+    expect(guide).toContain('setIcon(icon, "info")');
+    expect(imperative).toContain('renderNoteOverridesGuide(container, t, "settings")');
+    expect(declarative).toContain('renderNoteOverridesGuide(container, t, "settings")');
+    expect(panel).toContain('renderNoteOverridesGuide(section, this.t, "panel")');
+    expect(messages).toContain("Current-note Properties are optional");
+    expect(messages).toContain("当前笔记 Properties 并非必需");
+    expect(messages).toContain("Other Properties remain unchanged.");
+    expect(messages).toContain("其他 Properties 保持不变。");
+  });
 });
