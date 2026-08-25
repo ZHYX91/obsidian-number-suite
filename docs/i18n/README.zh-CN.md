@@ -6,8 +6,6 @@ Number Suite 将 Markdown 工具经常混在一起的两个决定分开：标题
 文件，以及这些序号是否在 Obsidian 中可见。它可以写入、移除、虚拟显示或视觉隐藏标题
 序号，不访问网络，也不收集遥测。
 
-初始版本：`0.1.0`。自动门禁、候选包检查和带日期的 Obsidian 验收记录是彼此独立的证据。
-
 <!-- section: screenshots -->
 ## 界面截图
 
@@ -54,18 +52,15 @@ Number Suite 写入 Markdown 前，逐项检查修改前后内容和全部警告
 ## 要求与兼容性
 
 - Obsidian `1.12.7` 或更高版本。
-- 初始版本仅支持桌面端；取得带日期的移动端验收记录后再开放移动端加载。
-- 每个平台的支持声明都需要对应于准确候选版本的带日期运行时记录。
-- 自动测试不能证明宿主行为。参见[测试策略](../testing-strategy.zh-CN.md)和非权威的
-  [运行时检查清单](../ACCEPTANCE.md)。
+- 仅支持桌面版 Obsidian。
 
 <!-- section: installation -->
 ## 安装
 
 ### 第三方插件市场
 
-初始条目通过审核后，在 Obsidian 中打开**设置 → 第三方插件 → 浏览**，搜索
-**Number Suite**，安装并启用。
+在 Obsidian 中打开**设置 → 第三方插件 → 浏览**，搜索 **Number Suite**，安装并启用。
+如果当前目录中尚未显示，请按下文手动安装。
 
 ### 手动安装
 
@@ -186,7 +181,7 @@ number-suite-start:
   管理；插件只改变经过校验的可见标签。
 - 只处理顶层 ATX H1-H6 标题。Setext 标题、块引用、列表、注释、frontmatter、围栏代码和
   HTML 块都不是编号目标。
-- `0.1.0` 不包含 Canvas、Outline、Backlinks、Search Results 或 PDF 导出集成。
+- 不支持 Canvas、Outline、Backlinks、Search Results 或 PDF 导出集成。
 - Source Mode 装饰默认关闭，使实体 Markdown 始终直接可见。
 - 阅读视图隐藏只改变可见文本，不改变标题 DOM `id`；锚点仍跟随实体标题。
 - 如果第三方渲染器改变标题数量或层级，阅读视图会对该区块失败关闭。
@@ -214,11 +209,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` 验证固定运行时、格式、双语 README 和稳定文档契约、lint、严格 TypeScript、
-覆盖率阈值、生产 bundle 以及精确发布布局。它属于源码/候选包证据，不等于 Obsidian 运行时
-验收。
-
-稳定项目文档：
+项目文档：
 
 - [产品需求](../product-requirements.zh-CN.md)
 - [UX 规格](../ux-spec.zh-CN.md)
@@ -226,7 +217,7 @@ npm run check
 - [测试策略](../testing-strategy.zh-CN.md)
 - [发布策略](../release.zh-CN.md)
 
-治理与项目历史：
+项目链接：
 
 - [贡献指南](../../CONTRIBUTING.md)
 - [安全策略](../../SECURITY.md)

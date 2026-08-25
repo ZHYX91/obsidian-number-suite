@@ -17,7 +17,7 @@ last_synced: 2026-08-23
 
 The Chinese document is the normative source for verification layers, gates, and evidence claims.
 This file is its synchronized English translation. `ACCEPTANCE.md` is an executable checklist and
-`docs/acceptance/` contains historical evidence; neither can weaken this strategy.
+cannot weaken this strategy.
 
 <!-- section: evidence-levels -->
 ## Evidence levels

@@ -7,9 +7,6 @@ numbers are stored in a Markdown file and whether those numbers are visible in O
 write, remove, virtually display, or visually conceal heading numbers without network access or
 telemetry.
 
-Initial release: `0.1.0`. Automated gates, packaged-candidate checks, and dated Obsidian acceptance
-records are separate forms of evidence.
-
 <!-- section: screenshots -->
 ## Screenshots
 
@@ -61,19 +58,15 @@ Markdown.
 ## Requirements and compatibility
 
 - Obsidian `1.12.7` or later.
-- The initial release is desktop-only until a dated mobile acceptance record exists.
-- Platform support claims require a dated runtime record for the exact release candidate.
-- Automated tests do not prove host behavior. See the
-  [testing strategy](docs/testing-strategy.en.md) and the non-authoritative
-  [runtime checklist](docs/ACCEPTANCE.md).
+- Desktop Obsidian only.
 
 <!-- section: installation -->
 ## Installation
 
 ### Community Plugins
 
-After the initial listing is approved, open **Settings → Community plugins → Browse**, search for
-**Number Suite**, install it, and enable it.
+Open **Settings → Community plugins → Browse**, search for **Number Suite**, install it, and enable
+it. If it is not available in your catalog, use the manual installation below.
 
 ### Manual installation
 
@@ -210,7 +203,7 @@ number-suite-start:
   navigation, layout, and definition rendering; the plugin changes only validated visible labels.
 - Only top-level ATX H1-H6 headings are handled. Setext headings, blockquotes, lists, comments,
   frontmatter, fenced code, and HTML blocks are not numbering targets.
-- Canvas, Outline, Backlinks, Search Results, and PDF export integration are not included in `0.1.0`.
+- Canvas, Outline, Backlinks, Search Results, and PDF export integration are not supported.
 - Source Mode decorations are disabled by default so stored Markdown remains directly visible.
 - Reading View concealment changes visible text, not the heading DOM `id`; anchors still follow the
   stored heading.
@@ -241,11 +234,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` verifies the pinned runtime, formatting, bilingual README and canonical-document
-contracts, lint, strict TypeScript, coverage thresholds, the production bundle, and the exact
-release layout. It is source/package evidence, not Obsidian runtime acceptance.
-
-Stable project documents:
+Project documents:
 
 - [Product requirements](docs/product-requirements.en.md)
 - [UX specification](docs/ux-spec.en.md)
@@ -253,7 +242,7 @@ Stable project documents:
 - [Testing strategy](docs/testing-strategy.en.md)
 - [Release policy](docs/release.en.md)
 
-Governance and project history:
+Project links:
 
 - [Contributing guide](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

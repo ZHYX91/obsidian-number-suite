@@ -16,8 +16,8 @@ last_synced: 2026-08-23
 ## Document authority
 
 The Chinese document is the normative source for interaction and copy behavior. This file is the
-synchronized English translation. Screenshots and historical acceptance records prove only their
-version and do not override this specification.
+synchronized English translation. Screenshots and execution evidence do not override this
+specification.
 
 <!-- section: principles -->
 ## Interaction principles
@@ -102,8 +102,7 @@ labels and list values.
 Virtual heading and caption decorations are hidden from assistive semantics while stored content
 remains accessible. Formatted note labels expose their note type and number. Controls have text
 labels, keyboard focus, and reasonable touch targets; summaries can reflow on narrow screens without
-dropping fields. Mobile claims require dated evidence for that version, and emulator results cannot
-be described as physical-device acceptance.
+dropping fields. Emulator results cannot be described as physical-device acceptance.
 
 <!-- section: error-recovery -->
 ## Errors and recovery

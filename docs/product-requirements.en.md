@@ -17,8 +17,8 @@ last_synced: 2026-08-23
 
 The Chinese document is the normative source for Number Suite product requirements. This file
 is its synchronized English translation. If implementation, tests, or other documents conflict
-with it, update and review the Chinese source first, then synchronize English. Historical acceptance
-records prove only their candidate and host environment; they cannot change product requirements.
+with it, update and review the Chinese source first, then synchronize English. Execution evidence
+cannot change product requirements.
 
 <!-- section: purpose -->
 ## Product purpose
@@ -108,7 +108,7 @@ governed by their own source and settings.
 ## Product acceptance
 
 Every requirement needs pure-logic or adapter coverage. Claims involving real Obsidian UI, IME,
-mobile, themes, or lifecycle also need dated evidence from an isolated vault. Source checks,
-candidate-package checks, host acceptance, physical-device acceptance, and public release status
-must be reported separately. See the [testing strategy](testing-strategy.en.md) and
+mobile, themes, or lifecycle also need evidence from an isolated Vault using the exact candidate.
+Source checks, candidate-package checks, host acceptance, physical-device acceptance, and public
+release status must be evaluated separately. See the [testing strategy](testing-strategy.en.md) and
 [release policy](release.en.md).

@@ -2,8 +2,6 @@
 
 This is a non-authoritative execution checklist. The normative evidence rules are in the stable
 [testing strategy](testing-strategy.en.md) and its [Chinese source](testing-strategy.zh-CN.md).
-Historical records under `docs/acceptance/` retain candidate-specific evidence and do not prove
-later versions.
 
 Automated checks are necessary but do not prove Obsidian runtime behavior. Complete this checklist
 in a disposable acceptance Vault before publishing a release. Do not use a production Vault for
@@ -104,9 +102,8 @@ Source markers are disabled by default. Before enabling them for a release claim
 
 - [ ] Test the default theme and at least one third-party theme.
 - [ ] Test Windows desktop and one additional desktop platform before claiming cross-platform support.
-- [ ] Keep `isDesktopOnly: true` until a dated mobile runtime acceptance record exists under
-  `docs/acceptance/`. Once mobile loading is enabled, preserve that platform baseline and continue
-  recording emulator, physical-device, and release-specific evidence as separate claims.
+- [ ] Test every platform claimed by the candidate. Keep emulator and physical-device results as
+  separate evidence and do not infer one from the other.
 
 ## Acceptance record
 

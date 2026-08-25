@@ -15,7 +15,7 @@ last_synced: 2026-08-23
 ## 文档权威性
 
 本文是验证层级、准入门槛和证据声明规则的中文规范源，英文文件为同步译本。
-`ACCEPTANCE.md` 是可执行清单，`docs/acceptance/` 是历史证据记录；两者都不能降低本文要求。
+`ACCEPTANCE.md` 是可执行清单，不能降低本文要求。
 
 <!-- section: evidence-levels -->
 ## 证据层级

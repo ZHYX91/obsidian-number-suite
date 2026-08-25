@@ -39,7 +39,8 @@ release problem with a new version.
 1. Define version scope, user-visible changes, breaking changes, and known limitations.
 2. Update synchronized stable documents and changelog; pass bilingual and format checks.
 3. Run `npm ci` and `npm run release:check` under pinned Node.js/npm.
-4. Use final candidate assets for dated isolated-vault acceptance covering claimed platforms.
+4. Use final candidate assets in an isolated Vault to accept every claimed platform, and record the
+   environment and result.
 5. Record candidate commit and SHA-256 for all three runtime assets.
 6. Commit intended source, confirm no modified or untracked files, then manually run the read-only
    Release preflight from the current remote default-branch HEAD with the proposed version. The
@@ -92,5 +93,5 @@ unverified instead of inferring from old records.
 ## Delivery reporting
 
 Report version, commit, push/tag/Release state, asset hashes, automated gate, real host matrix,
-device type, marketplace state, vault target, and known limitations. Preserve historical acceptance
-records with their original wording and date; stable-document updates cannot expand their scope.
+device type, marketplace state, Vault target, and known limitations. Keep run-specific evidence
+outside the stable documentation and do not infer one evidence layer from another.
