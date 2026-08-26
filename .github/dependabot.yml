@@ -3,24 +3,29 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "09:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
-    # These versions are coupled to the pinned host/runtime toolchain and must
-    # be advanced together instead of by an isolated Dependabot pull request.
+    # Major upgrades are deliberate maintenance work. These filters apply to
+    # routine version updates; Dependabot security updates remain eligible.
     ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
       - dependency-name: "@codemirror/state"
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
+          - version-update:semver-patch
       - dependency-name: "@codemirror/view"
-      - dependency-name: "@types/node"
         update-types:
           - version-update:semver-major
-      - dependency-name: typescript
-        update-types:
-          - version-update:semver-major
+          - version-update:semver-minor
+          - version-update:semver-patch
     groups:
       non-major:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -30,13 +35,17 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "09:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       non-major:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
