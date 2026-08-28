@@ -35,7 +35,41 @@ import {
 } from "../ui/virtual-numeral";
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
-const setHeadingComposition = StateEffect.define<boolean>();
+
+export type HeadingCompositionEvent = "start" | "end";
+export type HeadingTouchEditingEvent = "prepare" | "finish";
+
+export interface HeadingCompositionTransition {
+  eventCompositionActive: boolean;
+  requestRefresh: boolean;
+}
+
+export function transitionHeadingComposition(
+  currentActive: boolean,
+  event: HeadingCompositionEvent,
+): HeadingCompositionTransition {
+  if (event === "end") {
+    return {
+      eventCompositionActive: false,
+      requestRefresh: currentActive,
+    };
+  }
+  return {
+    eventCompositionActive: true,
+    requestRefresh: false,
+  };
+}
+
+export function transitionHeadingTouchEditing(
+  currentActive: boolean,
+  event: HeadingTouchEditingEvent,
+): HeadingCompositionTransition {
+  const eventCompositionActive = event === "prepare";
+  return {
+    eventCompositionActive,
+    requestRefresh: eventCompositionActive !== currentActive,
+  };
+}
 
 export class NumeralWidget extends WidgetType {
   constructor(
@@ -140,6 +174,7 @@ export class HeadingDisplayController {
       decorations: DecorationSet;
       private overrides: NoteOverrides;
       private eventCompositionActive = false;
+      private touchEditingActive = false;
 
       constructor(private readonly view: EditorView) {
         this.overrides = parseOverrides(view.state.doc.toString()) ?? parseNoteOverrides(null);
@@ -147,16 +182,19 @@ export class HeadingDisplayController {
         this.decorations = this.buildDecorations();
       }
 
+      handleCompositionEvent(event: HeadingCompositionEvent): boolean {
+        const transition = transitionHeadingComposition(this.eventCompositionActive, event);
+        this.eventCompositionActive = transition.eventCompositionActive;
+        return transition.requestRefresh;
+      }
+
+      handleTouchEditingEvent(event: HeadingTouchEditingEvent): boolean {
+        const transition = transitionHeadingTouchEditing(this.touchEditingActive, event);
+        this.touchEditingActive = transition.eventCompositionActive;
+        return transition.requestRefresh;
+      }
+
       update(update: ViewUpdate): void {
-        let compositionChanged = false;
-        for (const transaction of update.transactions) {
-          for (const effect of transaction.effects) {
-            if (effect.is(setHeadingComposition) && effect.value !== this.eventCompositionActive) {
-              this.eventCompositionActive = effect.value;
-              compositionChanged = true;
-            }
-          }
-        }
         if (update.docChanged) {
           const nextOverrides = parseOverrides(update.state.doc.toString());
           if (nextOverrides != null) {
@@ -176,7 +214,6 @@ export class HeadingDisplayController {
           || livePreviewChanged
           || previousFile !== currentFile
           || explicitlyRefreshed
-          || compositionChanged
         ) {
           this.decorations = this.buildDecorations();
         }
@@ -207,7 +244,7 @@ export class HeadingDisplayController {
         const templateSources = cleanupTemplateSources(settings);
         const composing = isHeadingCompositionActive(
           this.view.composing,
-          this.eventCompositionActive,
+          this.eventCompositionActive || this.touchEditingActive,
         );
         const numbering = toNumberingOptions(settings, {
           schemeId: effective.schemeId,
@@ -282,18 +319,48 @@ export class HeadingDisplayController {
     });
 
     const compositionHandlers = EditorView.domEventHandlers({
+      pointerdown: (_event, view) => {
+        const timerWindow = view.dom.ownerDocument.defaultView;
+        if (!timerWindow?.matchMedia?.("(pointer: coarse)").matches) return false;
+        timerWindow.setTimeout(() => {
+          const instance = view.plugin(displayPlugin);
+          if (
+            view.dom.isConnected
+            && !view.composing
+            && (instance?.handleTouchEditingEvent("prepare") ?? false)
+          ) {
+            // Let CodeMirror place the cursor first, then remove virtual widgets
+            // before Android opens an IME composition session.
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+          }
+        }, 0);
+        return false;
+      },
       compositionstart: (_event, view) => {
-        // CodeMirror updates `view.composing` after the DOM event begins. Track the
-        // event explicitly so Android IMEs see an undecorated editor before opening
-        // their candidate window.
-        view.dispatch({ effects: setHeadingComposition.of(true) });
+        // Do not dispatch from inside `compositionstart`: an extra CodeMirror
+        // transaction here cancels the Android candidate window. The IME's own
+        // first document update observes this event flag and removes decorations.
+        view.plugin(displayPlugin)?.handleCompositionEvent("start");
         return false;
       },
       compositionend: (_event, view) => {
+        const requestRefresh = view.plugin(displayPlugin)?.handleCompositionEvent("end") ?? false;
         const timerWindow = view.dom.ownerDocument.defaultView;
-        timerWindow?.setTimeout(() => {
+        if (requestRefresh) timerWindow?.setTimeout(() => {
           if (view.dom.isConnected) {
-            view.dispatch({ effects: setHeadingComposition.of(false) });
+            // Restore virtual display once, after CodeMirror and the IME finish
+            // their composition-end bookkeeping.
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+          }
+        }, 0);
+        return false;
+      },
+      blur: (_event, view) => {
+        const requestRefresh = view.plugin(displayPlugin)?.handleTouchEditingEvent("finish") ?? false;
+        const timerWindow = view.dom.ownerDocument.defaultView;
+        if (requestRefresh) timerWindow?.setTimeout(() => {
+          if (view.dom.isConnected && !view.composing) {
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
           }
         }, 0);
         return false;

@@ -5,6 +5,8 @@ import {
   NumeralWidget,
   shouldShowNoteWidgets,
   syntaxNodeConfirmsHeading,
+  transitionHeadingComposition,
+  transitionHeadingTouchEditing,
 } from "../../src/editor/heading-display-extension";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 
@@ -47,5 +49,41 @@ describe("isHeadingCompositionActive", () => {
     expect(isHeadingCompositionActive(false, true)).toBe(true);
     expect(isHeadingCompositionActive(true, false)).toBe(true);
     expect(isHeadingCompositionActive(false, false)).toBe(false);
+  });
+
+  it("lets the IME own composition start and requests one refresh after composition end", () => {
+    expect(transitionHeadingTouchEditing(false, "prepare")).toEqual({
+      eventCompositionActive: true,
+      requestRefresh: true,
+    });
+    expect(transitionHeadingComposition(true, "start")).toEqual({
+      eventCompositionActive: true,
+      requestRefresh: false,
+    });
+    expect(transitionHeadingComposition(true, "end")).toEqual({
+      eventCompositionActive: false,
+      requestRefresh: true,
+    });
+    expect(transitionHeadingComposition(false, "end")).toEqual({
+      eventCompositionActive: false,
+      requestRefresh: false,
+    });
+    expect(transitionHeadingTouchEditing(true, "finish")).toEqual({
+      eventCompositionActive: false,
+      requestRefresh: true,
+    });
+  });
+
+  it("keeps decorations suppressed across consecutive touch IME compositions", () => {
+    const touch = transitionHeadingTouchEditing(false, "prepare");
+    const firstStart = transitionHeadingComposition(false, "start");
+    const firstEnd = transitionHeadingComposition(firstStart.eventCompositionActive, "end");
+    const secondStart = transitionHeadingComposition(firstEnd.eventCompositionActive, "start");
+
+    expect(isHeadingCompositionActive(false, touch.eventCompositionActive)).toBe(true);
+    expect(firstStart.requestRefresh).toBe(false);
+    expect(firstEnd.requestRefresh).toBe(true);
+    expect(isHeadingCompositionActive(false, touch.eventCompositionActive)).toBe(true);
+    expect(secondStart.requestRefresh).toBe(false);
   });
 });
