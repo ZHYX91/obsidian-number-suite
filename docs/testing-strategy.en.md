@@ -88,10 +88,9 @@ An isolated Android 15 / API 35 emulator is the baseline device gate for every m
 Install and hash-check the final candidate, then cover current-note controls, Live Preview, Reading
 View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
 and disable cleanup. Physical Android is separate enhanced evidence, not Number Suite's baseline
-mobile gate. A release plan may explicitly require it in advance for a material touch, IME, storage,
-or platform-boundary risk. Report its absence as unverified and never infer physical-device success
-from emulator evidence. iOS is outside the current acceptance matrix and cannot be inferred from
-Android results.
+mobile gate and cannot be promoted into a plugin-specific release prerequisite. Report its absence
+as unverified and never infer physical-device success from emulator evidence. iOS is outside the
+current acceptance matrix and cannot be inferred from Android results.
 
 <!-- section: records -->
 ## Acceptance records
