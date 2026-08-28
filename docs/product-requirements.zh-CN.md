@@ -4,10 +4,10 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# 产品需求
+# Number Suite — 产品需求
 
 [English synced translation](product-requirements.en.md)
 

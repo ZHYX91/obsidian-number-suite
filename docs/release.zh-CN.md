@@ -4,10 +4,10 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-13
+last_synced: 2026-08-26
 ---
 
-# 发布策略
+# Number Suite — 发布流程
 
 [English synced translation](release.en.md)
 

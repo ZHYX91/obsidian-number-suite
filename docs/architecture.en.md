@@ -5,10 +5,10 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# Architecture
+# Number Suite — Architecture
 
 [中文规范源](architecture.zh-CN.md)
 

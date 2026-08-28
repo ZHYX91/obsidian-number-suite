@@ -8,6 +8,25 @@
 - A green `npm run check` is not real Obsidian runtime acceptance; use `docs/ACCEPTANCE.md`.
 - Use Conventional Commit subjects and normal Git identity; do not add agent attribution.
 
+## Settings surface policy
+
+Declarative settings are intentionally disabled because Obsidian 1.13 bypasses `display()` for
+non-empty definitions, which removes Number Suite's seven-tab settings layout and degrades the user
+experience. Preserve the imperative `PluginSettingTab.display()` surface and keep
+`getSettingDefinitions()` empty. Dormant declarative builders and tests may remain, but must not be
+activated accidentally. Do not flag the `display()` deprecation, empty definitions, the disabled
+feature switch, or missing settings search, and do not propose a declarative migration unless the
+user explicitly asks to revisit this decision.
+
+## Manual installation release policy
+
+The versioned `number-suite-<version>.zip` is an intentional required public release asset for
+users who install without the Obsidian Community marketplace. Community ignores it during plugin
+ingestion, so the automated-review `extra unsupported files` recommendation is expected and must
+not be treated as a defect or a reason to remove the archive. The deterministic ZIP contains one
+`number-suite/` directory with `main.js`, `manifest.json`, and `styles.css`, byte-identical to the
+three loose release assets. Release checks must preserve and verify all four public assets.
+
 ## Public documentation
 
 `CHANGELOG.md` is the only public document that records release history. README and user help

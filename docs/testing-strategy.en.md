@@ -5,10 +5,10 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# Testing strategy
+# Number Suite — Testing strategy
 
 [中文规范源](testing-strategy.zh-CN.md)
 

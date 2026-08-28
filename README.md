@@ -1,6 +1,6 @@
 # Number Suite
 
-[简体中文](docs/i18n/README.zh-CN.md)
+[English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md)
 
 Number Suite separates two decisions that Markdown tools often mix together: whether heading
 numbers are stored in a Markdown file and whether those numbers are visible in Obsidian. It can
@@ -216,6 +216,9 @@ number-suite-start:
 Number Suite runs locally and contains no networking, telemetry, analytics, advertisements,
 remote fonts, or remote assets. Virtual display and concealment never call file-write APIs.
 
+Opening a batch tool enumerates the Vault's folder tree and Markdown file list so Number Suite can
+filter the chosen scope, exclude configured folders, and produce an exact preview before writing.
+
 Current-note changes use one editor transaction. Batch operations preview all targets, revalidate
 their exact content, persist bounded recovery data, and avoid overwriting concurrent edits. These
 safeguards reduce risk but do not make first-run testing in an ordinary or production vault
@@ -240,7 +243,7 @@ Project documents:
 - [UX specification](docs/ux-spec.en.md)
 - [Architecture](docs/architecture.en.md)
 - [Testing strategy](docs/testing-strategy.en.md)
-- [Release policy](docs/release.en.md)
+- [Release procedure](docs/release.en.md)
 
 Project links:
 

@@ -4,10 +4,10 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# 架构
+# Number Suite — 架构
 
 [English synced translation](architecture.en.md)
 

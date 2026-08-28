@@ -4,10 +4,10 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# 测试策略
+# Number Suite — 测试策略
 
 [English synced translation](testing-strategy.en.md)
 

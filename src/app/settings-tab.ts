@@ -36,8 +36,9 @@ import {
   type SettingsControlKey,
 } from "./settings-control-contract";
 
-// Keep the established seven-tab surface as the active UX. The tested Obsidian 1.13
-// definitions remain available behind this explicit switch for a future native-page transition.
+// Declarative settings are intentionally inactive. Non-empty definitions bypass
+// display() and remove the established seven-tab surface, degrading the settings
+// experience. Dormant definitions remain covered by tests but must not activate by default.
 const USE_NATIVE_SETTING_PAGES = false;
 
 class ResetSettingsModal extends Modal {

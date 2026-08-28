@@ -4,10 +4,10 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# UX 规格
+# Number Suite — 交互规范
 
 [English synced translation](ux-spec.en.md)
 

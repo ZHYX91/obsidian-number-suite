@@ -5,10 +5,10 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-23
+last_synced: 2026-08-26
 ---
 
-# UX specification
+# Number Suite — UX specification
 
 [中文规范源](ux-spec.zh-CN.md)
 

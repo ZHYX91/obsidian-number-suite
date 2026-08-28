@@ -1,6 +1,6 @@
 # Number Suite
 
-[English](../../README.md)
+[English](../../README.md) · [简体中文](README.zh-CN.md)
 
 Number Suite 将 Markdown 工具经常混在一起的两个决定分开：标题序号是否写入 Markdown
 文件，以及这些序号是否在 Obsidian 中可见。它可以写入、移除、虚拟显示或视觉隐藏标题
@@ -192,6 +192,9 @@ number-suite-start:
 Number Suite 完全在本地运行，不包含联网、遥测、分析、广告、远程字体或远程资源。虚拟
 显示和视觉隐藏路径不会调用文件写入 API。
 
+打开批处理工具时，Number Suite 会枚举 Vault 的文件夹树和 Markdown 文件列表，以筛选
+用户选择的范围、排除已配置的文件夹，并在写入前生成精确预览。
+
 当前笔记修改使用一次编辑器事务。批处理会预览全部目标、重新校验精确内容、保存有界恢复
 数据，并避免覆盖并发编辑。这些保护能够降低风险，但不能说明适合直接在普通或正式 Vault
 中进行首次验收。验收应使用隔离测试 Vault。
@@ -215,7 +218,7 @@ npm run check
 - [UX 规格](../ux-spec.zh-CN.md)
 - [架构](../architecture.zh-CN.md)
 - [测试策略](../testing-strategy.zh-CN.md)
-- [发布策略](../release.zh-CN.md)
+- [发布流程](../release.zh-CN.md)
 
 项目链接：
 

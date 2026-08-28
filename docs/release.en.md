@@ -5,10 +5,10 @@ source_language: zh-CN
 translation_of: release.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-13
+last_synced: 2026-08-26
 ---
 
-# Release policy
+# Number Suite — Release procedure
 
 [中文规范源](release.zh-CN.md)
 
