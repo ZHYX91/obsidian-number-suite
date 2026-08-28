@@ -35,6 +35,7 @@ import {
 } from "../ui/virtual-numeral";
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
+const setHeadingComposition = StateEffect.define<boolean>();
 
 export class NumeralWidget extends WidgetType {
   constructor(
@@ -80,6 +81,13 @@ export function shouldShowNoteWidgets(
   livePreview: boolean,
 ): boolean {
   return settings.showNoteNumbers && livePreview && settings.noteDisplayMode === "formatted";
+}
+
+export function isHeadingCompositionActive(
+  viewComposing: boolean,
+  eventCompositionActive: boolean,
+): boolean {
+  return viewComposing || eventCompositionActive;
 }
 
 function syntaxConfirmsHeading(state: EditorState, heading: ParsedHeading): boolean {
@@ -131,6 +139,7 @@ export class HeadingDisplayController {
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
       private overrides: NoteOverrides;
+      private eventCompositionActive = false;
 
       constructor(private readonly view: EditorView) {
         this.overrides = parseOverrides(view.state.doc.toString()) ?? parseNoteOverrides(null);
@@ -139,6 +148,15 @@ export class HeadingDisplayController {
       }
 
       update(update: ViewUpdate): void {
+        let compositionChanged = false;
+        for (const transaction of update.transactions) {
+          for (const effect of transaction.effects) {
+            if (effect.is(setHeadingComposition) && effect.value !== this.eventCompositionActive) {
+              this.eventCompositionActive = effect.value;
+              compositionChanged = true;
+            }
+          }
+        }
         if (update.docChanged) {
           const nextOverrides = parseOverrides(update.state.doc.toString());
           if (nextOverrides != null) {
@@ -158,6 +176,7 @@ export class HeadingDisplayController {
           || livePreviewChanged
           || previousFile !== currentFile
           || explicitlyRefreshed
+          || compositionChanged
         ) {
           this.decorations = this.buildDecorations();
         }
@@ -186,6 +205,10 @@ export class HeadingDisplayController {
           to: range.to,
         }));
         const templateSources = cleanupTemplateSources(settings);
+        const composing = isHeadingCompositionActive(
+          this.view.composing,
+          this.eventCompositionActive,
+        );
         const numbering = toNumberingOptions(settings, {
           schemeId: effective.schemeId,
           starts: effective.starts,
@@ -198,7 +221,7 @@ export class HeadingDisplayController {
           templateSources,
           revealOnActiveLine: settings.revealOnActiveLine,
           selections,
-          composing: this.view.composing,
+          composing,
         });
         const semanticPlan = createSemanticDisplayPlan(source, headings, {
           showCaptionNumbers: settings.showCaptionNumbers,
@@ -209,7 +232,7 @@ export class HeadingDisplayController {
           numbering,
           templateSources,
           headingDisplayPlan: plan,
-          composing: this.view.composing,
+          composing,
         });
         const builder = new RangeSetBuilder<Decoration>();
         const t = createTranslator(settings.language);
@@ -260,14 +283,17 @@ export class HeadingDisplayController {
 
     const compositionHandlers = EditorView.domEventHandlers({
       compositionstart: (_event, view) => {
-        view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+        // CodeMirror updates `view.composing` after the DOM event begins. Track the
+        // event explicitly so Android IMEs see an undecorated editor before opening
+        // their candidate window.
+        view.dispatch({ effects: setHeadingComposition.of(true) });
         return false;
       },
       compositionend: (_event, view) => {
         const timerWindow = view.dom.ownerDocument.defaultView;
         timerWindow?.setTimeout(() => {
           if (view.dom.isConnected) {
-            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+            view.dispatch({ effects: setHeadingComposition.of(false) });
           }
         }, 0);
         return false;

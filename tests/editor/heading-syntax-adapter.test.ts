@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isHeadingCompositionActive,
   NumeralWidget,
   shouldShowNoteWidgets,
   syntaxNodeConfirmsHeading,
@@ -38,5 +39,13 @@ describe("Live Preview note widgets", () => {
     expect(new NumeralWidget("1", "note-reference").ignoreEvent()).toBe(false);
     expect(new NumeralWidget("[1]", "note-definition").ignoreEvent()).toBe(false);
     expect(new NumeralWidget("1", "heading").ignoreEvent()).toBe(true);
+  });
+});
+
+describe("isHeadingCompositionActive", () => {
+  it("suppresses decorations as soon as the DOM composition event starts", () => {
+    expect(isHeadingCompositionActive(false, true)).toBe(true);
+    expect(isHeadingCompositionActive(true, false)).toBe(true);
+    expect(isHeadingCompositionActive(false, false)).toBe(false);
   });
 });
