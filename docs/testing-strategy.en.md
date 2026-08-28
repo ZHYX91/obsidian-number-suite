@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-28
 ---
 
 # Number Suite — Testing strategy
@@ -84,6 +84,14 @@ IME, mobile, pop-out windows, third-party themes, and long-document latency requ
 environments; automated DOM tests cannot replace them. Detailed steps remain in the
 [runtime checklist](ACCEPTANCE.md).
 
+An isolated Android 15 / API 35 emulator is the baseline device gate for every mobile candidate.
+Install and hash-check the final candidate, then cover current-note controls, Live Preview, Reading
+View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
+and disable cleanup. Physical Android is separate evidence, added for initial platform qualification
+or a material touch, IME, storage, or platform-boundary change. Report its absence as unverified;
+it does not invalidate obtained emulator evidence. iOS is outside the current acceptance matrix and
+cannot be inferred from Android results.
+
 <!-- section: records -->
 ## Acceptance records
 
@@ -97,5 +105,6 @@ candidate as acceptance of a new one.
 
 Claim only the scope supported by the target version's canonical gate, candidate contract, and
 required host matrix. If macOS, Linux, or physical-mobile records are missing, state that limitation
-instead of saying “cross-platform verified.” See the [release policy](release.en.md) for publication
-and remote-asset verification.
+instead of saying “cross-platform verified.” An Android support claim requires at least current-
+candidate API 35 emulator evidence; physical Android remains separately reported. See the
+[release policy](release.en.md) for publication and remote-asset verification.

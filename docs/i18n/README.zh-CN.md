@@ -52,7 +52,8 @@ Number Suite 写入 Markdown 前，逐项检查修改前后内容和全部警告
 ## 要求与兼容性
 
 - Obsidian `1.12.7` 或更高版本。
-- 仅支持桌面版 Obsidian。
+- 支持桌面版和 Android 版 Obsidian；移动端以 Android 15 / API 35 作为基准验收环境。
+- 当前未验证 iOS 行为。
 
 <!-- section: installation -->
 ## 安装

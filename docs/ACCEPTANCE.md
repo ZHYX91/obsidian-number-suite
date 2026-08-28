@@ -105,6 +105,23 @@ Source markers are disabled by default. Before enabling them for a release claim
 - [ ] Test every platform claimed by the candidate. Keep emulator and physical-device results as
   separate evidence and do not infer one from the other.
 
+## Android baseline
+
+- [ ] Use an isolated Android 15 / API 35 emulator Vault and hash-verify the installed candidate.
+- [ ] Open the current-note panel from the ribbon, change an override, close and reopen the panel,
+  and confirm the effective values persist without changing unrelated Properties.
+- [ ] In Live Preview, verify virtual numbers, stored-number concealment, cursor reveal, selection,
+  copy, and Chinese IME composition. Switch to Reading View and confirm the same numbering model.
+- [ ] Preview and apply a current-note write, then undo and redo once. Run cleanup and confirm the
+  original Markdown is restored without changing unrelated content.
+- [ ] Open all seven settings tabs at phone width, change one setting, reload the plugin, and confirm
+  persistence without clipped controls or hover-only actions.
+- [ ] Background and foreground Obsidian, switch notes, disable and re-enable the plugin, and confirm
+  there is no stale decoration, plugin error, crash, or ANR.
+- [ ] Record physical Android separately when it is available or when a change materially affects
+  touch, IME, storage, or platform boundaries. Missing physical-device evidence must remain visible
+  but does not convert emulator evidence into a failure.
+
 ## Acceptance record
 
 Record evidence here or in a release issue:

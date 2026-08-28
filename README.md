@@ -58,7 +58,8 @@ Markdown.
 ## Requirements and compatibility
 
 - Obsidian `1.12.7` or later.
-- Desktop Obsidian only.
+- Desktop and Android Obsidian. Android 15 / API 35 is the baseline mobile acceptance profile.
+- iOS behavior is not currently verified.
 
 <!-- section: installation -->
 ## Installation

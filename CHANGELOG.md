@@ -2,6 +2,18 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.2.0 - 2026-08-28
+
+### Added
+
+- Support Number Suite on Android Obsidian, including coarse-pointer and narrow-screen settings,
+  mobile Live Preview heading syntax, and IME-safe display decorations.
+
+### Changed
+
+- Keep current-candidate Android execution evidence outside the public plugin repository while the
+  public release gate verifies the portable mobile-support contract.
+
 ## 0.1.0 - 2026-08-25
 
 ### Added

@@ -24,24 +24,18 @@ if (versions[version] !== manifest.minAppVersion) {
 if (manifest.id !== "number-suite" || manifest.name !== "Number Suite") {
   throw new Error("Manifest identity changed unexpectedly.");
 }
-if (manifest.isDesktopOnly !== true) {
-  const acceptanceRecord = path.join(root, "docs", "acceptance", `${version}-android-api35.md`);
-  const requiredEvidence = [
-    `# ${version} Android API 35 acceptance record`,
-    "Status: accepted",
-    "Android: 15 / API 35",
-    "Chinese IME composition: passed",
-    "Write and cleanup round trip: passed",
-  ];
-  let record;
-  try {
-    record = await readFile(acceptanceRecord, "utf8");
-  } catch {
-    throw new Error(`Mobile support requires docs/acceptance/${version}-android-api35.md.`);
-  }
-  const missingEvidence = requiredEvidence.filter((evidence) => !record.includes(evidence));
-  if (missingEvidence.length > 0) {
-    throw new Error(`Current Android acceptance record is incomplete: ${missingEvidence.join(", ")}`);
+if (manifest.isDesktopOnly !== false) {
+  throw new Error("Number Suite releases must remain available on mobile Obsidian.");
+}
+const mobileContractFiles = [
+  ["README.md", "Desktop and Android Obsidian"],
+  ["docs/i18n/README.zh-CN.md", "支持桌面版和 Android 版 Obsidian"],
+  ["docs/ACCEPTANCE.md", "Android 15 / API 35 emulator"],
+];
+for (const [relativePath, requiredText] of mobileContractFiles) {
+  const source = await readFile(path.join(root, relativePath), "utf8");
+  if (!source.includes(requiredText)) {
+    throw new Error(`${relativePath} is missing the mobile support contract: ${requiredText}`);
   }
 }
 

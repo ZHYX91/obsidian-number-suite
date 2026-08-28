@@ -1,10 +1,10 @@
 {
   "id": "number-suite",
   "name": "Number Suite",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.12.7",
   "description": "Display or manage heading, caption, footnote, endnote, and reference numbers without changing Markdown unexpectedly.",
   "author": "ZhengYX",
   "authorUrl": "https://github.com/ZHYX91",
-  "isDesktopOnly": true
+  "isDesktopOnly": false
 }
