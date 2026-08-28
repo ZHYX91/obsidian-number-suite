@@ -118,9 +118,10 @@ Source markers are disabled by default. Before enabling them for a release claim
   persistence without clipped controls or hover-only actions.
 - [ ] Background and foreground Obsidian, switch notes, disable and re-enable the plugin, and confirm
   there is no stale decoration, plugin error, crash, or ANR.
-- [ ] Record physical Android separately when it is available or when a change materially affects
-  touch, IME, storage, or platform boundaries. Missing physical-device evidence must remain visible
-  but does not convert emulator evidence into a failure.
+- [ ] Record physical Android separately when it is available. A release plan may explicitly require
+  it for a material touch, IME, storage, or platform-boundary risk, but it is not Number Suite's
+  baseline mobile gate. Missing physical-device evidence remains visible as unverified and cannot be
+  inferred from emulator evidence.
 
 ## Acceptance record
 
