@@ -56,6 +56,11 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(serialized).toContain('"key":"captions.centerTable"');
     expect(serialized).toContain('"key":"captions.centerEquation"');
     expect(serialized).toContain('"key":"captions.centerCode"');
+    expect(serialized).toContain('"key":"captions.figurePlacement"');
+    expect(serialized).toContain('"key":"captions.tablePlacement"');
+    expect(serialized).toContain('"key":"captions.equationPlacement"');
+    expect(serialized).toContain('"key":"captions.codePlacement"');
+    expect(serialized).toContain('"key":"captions.showImageCaptionTooltips"');
     expect(serialized).toContain('"key":"references.showCrossReferences"');
     expect(serialized).toContain('"key":"notes.showNoteNumbers"');
     expect(serialized).toContain('"key":"notes.displayMode"');
@@ -77,6 +82,11 @@ describe("Obsidian 1.13 settings definitions", () => {
     await tab.setControlValue("captions.centerTable", true);
     await tab.setControlValue("captions.centerEquation", false);
     await tab.setControlValue("captions.centerCode", true);
+    await tab.setControlValue("captions.figurePlacement", "below");
+    await tab.setControlValue("captions.tablePlacement", "below");
+    await tab.setControlValue("captions.equationPlacement", "below");
+    await tab.setControlValue("captions.codePlacement", "below");
+    await tab.setControlValue("captions.showImageCaptionTooltips", false);
     await tab.setControlValue("references.showCrossReferences", false);
     await tab.setControlValue("notes.showNoteNumbers", false);
     await tab.setControlValue("notes.displayMode", "source");
@@ -90,11 +100,16 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(host.settings.centerTableCaptions).toBe(true);
     expect(host.settings.centerEquationCaptions).toBe(false);
     expect(host.settings.centerCodeCaptions).toBe(true);
+    expect(host.settings.figureCaptionPlacement).toBe("below");
+    expect(host.settings.tableCaptionPlacement).toBe("below");
+    expect(host.settings.equationCaptionPlacement).toBe("below");
+    expect(host.settings.codeCaptionPlacement).toBe("below");
+    expect(host.settings.showImageCaptionTooltips).toBe(false);
     expect(host.settings.showCrossReferences).toBe(false);
     expect(host.settings.showNoteNumbers).toBe(false);
     expect(host.settings.noteDisplayMode).toBe("source");
     expect(host.settings.excludedFolders).toEqual(["Private", "Archive"]);
-    expect(host.saveSettings).toHaveBeenCalledTimes(11);
+    expect(host.saveSettings).toHaveBeenCalledTimes(16);
     expect(host.scheduleSettings).toHaveBeenCalledTimes(1);
   });
 
@@ -107,6 +122,8 @@ describe("Obsidian 1.13 settings definitions", () => {
     );
     await expect(tab.setControlValue("views.virtualOpacity", 2)).rejects.toThrow("Invalid value");
     await expect(tab.setControlValue("notes.displayMode", "numbers")).rejects.toThrow("Invalid value");
+    await expect(tab.setControlValue("captions.figurePlacement", "sideways"))
+      .rejects.toThrow("Invalid value");
     expect(host.saveSettings).not.toHaveBeenCalled();
     expect(host.scheduleSettings).not.toHaveBeenCalled();
   });

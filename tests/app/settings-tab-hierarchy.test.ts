@@ -24,6 +24,7 @@ describe("settings page hierarchy", () => {
   });
 
   it("retains headings for genuine subgroups", () => {
+    expect(source).toContain('setName(t("settings.captions.placement"))');
     expect(source).toContain('setName(t("settings.captions.alignment"))');
     expect(source).toContain('setName(t("settings.views")).setHeading()');
     expect(definitions).toContain('heading: t("settings.views")');

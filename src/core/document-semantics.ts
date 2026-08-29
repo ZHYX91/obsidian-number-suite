@@ -12,6 +12,7 @@ export interface ParsedCaption {
   readonly lineTo: number;
   readonly colonFrom: number;
   readonly content: string;
+  readonly title: string;
   readonly blockId: string | null;
 }
 
@@ -26,7 +27,12 @@ export interface ParsedSemanticReference {
   readonly to: number;
   readonly target: string;
   readonly alias: string | null;
-  readonly kind: "heading" | "block";
+  readonly kind: "title" | "block";
+}
+
+export interface ResolvedSemanticTitleTarget {
+  readonly kind: "heading" | "caption";
+  readonly line: number;
 }
 
 export interface SemanticDocument {
@@ -35,7 +41,7 @@ export interface SemanticDocument {
   readonly blockOwners: ReadonlyMap<string, number>;
 }
 
-interface SourceLine {
+export interface SemanticSourceLine {
   readonly text: string;
   readonly from: number;
   readonly to: number;
@@ -44,7 +50,7 @@ interface SourceLine {
 }
 
 const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
-const BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
+export const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 const SEMANTIC_REFERENCE = /@\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu;
 const BLOCK_HTML_TAGS = new Set([
@@ -53,8 +59,8 @@ const BLOCK_HTML_TAGS = new Set([
   "main", "nav", "ol", "pre", "script", "section", "style", "table", "textarea", "ul",
 ]);
 
-function sourceLines(source: string): SourceLine[] {
-  const raw: Array<Omit<SourceLine, "available">> = [];
+function sourceLines(source: string): SemanticSourceLine[] {
+  const raw: Array<Omit<SemanticSourceLine, "available">> = [];
   let from = 0;
   let number = 0;
   while (from < source.length) {
@@ -144,6 +150,14 @@ function sourceLines(source: string): SourceLine[] {
   });
 }
 
+export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
+  const protectedNoteLines = noteContainerLines(source);
+  return sourceLines(source).map((line) => ({
+    ...line,
+    available: line.available && !protectedNoteLines.has(line.number),
+  }));
+}
+
 function maskInlineCode(text: string): string {
   const characters = text.split("");
   for (let index = 0; index < text.length;) {
@@ -161,12 +175,20 @@ function maskInlineCode(text: string): string {
   return characters.join("");
 }
 
-function normalizeTarget(value: string): string {
+export function withoutTrailingBlockId(value: string): string {
+  return value.replace(TRAILING_BLOCK_ID, "").trim();
+}
+
+export function normalizeSemanticTarget(value: string): string {
   return value.replace(new RegExp(WORD_JOINER, "gu"), "").normalize("NFC").trim().replace(/[ \t]+/gu, " ").toLowerCase();
 }
 
 export function headingTargetKey(content: string): string {
-  return `heading:${normalizeTarget(content)}`;
+  return `heading:${normalizeSemanticTarget(withoutTrailingBlockId(content))}`;
+}
+
+export function captionTargetKey(kind: CaptionKind, title: string): string {
+  return `caption:${normalizeSemanticTarget(`${kind}: ${withoutTrailingBlockId(title)}`)}`;
 }
 
 export function blockTargetKey(id: string): string {
@@ -174,16 +196,13 @@ export function blockTargetKey(id: string): string {
 }
 
 export function parseDocumentSemantics(source: string): SemanticDocument {
-  const protectedNoteLines = noteContainerLines(source);
-  const lines = sourceLines(source).map((line) => ({
-    ...line,
-    available: line.available && !protectedNoteLines.has(line.number),
-  }));
+  const lines = scanSemanticSourceLines(source);
   const captions: ParsedCaption[] = [];
   const references: ParsedSemanticReference[] = [];
   const blockOwners = new Map<string, number>();
   const ambiguousBlockIds = new Set<string>();
   let previousSemanticLine: number | null = null;
+  let interveningBlankLines = 0;
   const recordBlockOwner = (id: string, line: number): void => {
     const key = blockTargetKey(id);
     if (blockOwners.has(key)) {
@@ -197,6 +216,7 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
   for (const line of lines) {
     if (!line.available) {
       previousSemanticLine = null;
+      interveningBlankLines = 0;
       continue;
     }
     const standalone = STANDALONE_BLOCK_ID.exec(line.text);
@@ -208,24 +228,29 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
     const captionMatch = CAPTION.exec(line.text);
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
-      const blockId = BLOCK_ID.exec(line.text)?.[1] ?? null;
+      const blockId = TRAILING_BLOCK_ID.exec(line.text)?.[1] ?? null;
+      const content = captionMatch[3] ?? "";
       const caption: ParsedCaption = {
         kind,
         line: line.number,
         lineFrom: line.from,
         lineTo: line.to,
         colonFrom: line.from + (captionMatch[1]?.length ?? 0) + kind.length,
-        content: captionMatch[3] ?? "",
+        content,
+        title: withoutTrailingBlockId(content),
         blockId,
       };
       captions.push(caption);
       previousSemanticLine = line.number;
+      interveningBlankLines = 0;
       if (blockId != null) recordBlockOwner(blockId, line.number);
     } else if (line.text.trim().length === 0) {
-      previousSemanticLine = null;
+      interveningBlankLines += 1;
+      if (interveningBlankLines > 1) previousSemanticLine = null;
     } else {
       previousSemanticLine = line.number;
-      const blockId = BLOCK_ID.exec(line.text)?.[1];
+      interveningBlankLines = 0;
+      const blockId = TRAILING_BLOCK_ID.exec(line.text)?.[1];
       if (blockId != null) recordBlockOwner(blockId, line.number);
     }
 
@@ -243,7 +268,7 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
         to: line.from + match.index + match[0].length,
         target,
         alias: match[2]?.trim() || null,
-        kind: block ? "block" : "heading",
+        kind: block ? "block" : "title",
       });
     }
   }
@@ -272,4 +297,24 @@ export function uniqueHeadingTargets(headings: readonly ParsedHeading[]): Readon
     }
   }
   return result;
+}
+
+export function resolveUniqueSemanticTitleTarget(
+  target: string,
+  headings: readonly ParsedHeading[],
+  captions: readonly ParsedCaption[],
+): ResolvedSemanticTitleTarget | null {
+  const normalized = normalizeSemanticTarget(target);
+  const candidates: ResolvedSemanticTitleTarget[] = [];
+  for (const heading of headings) {
+    if (normalizeSemanticTarget(withoutTrailingBlockId(heading.content)) === normalized) {
+      candidates.push({ kind: "heading", line: heading.line });
+    }
+  }
+  for (const caption of captions) {
+    if (normalizeSemanticTarget(`${caption.kind}: ${caption.title}`) === normalized) {
+      candidates.push({ kind: "caption", line: caption.line });
+    }
+  }
+  return candidates.length === 1 ? candidates[0] ?? null : null;
 }

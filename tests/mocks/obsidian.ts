@@ -1,3 +1,15 @@
+import { StateField } from "@codemirror/state";
+
+export const editorLivePreviewField = StateField.define<boolean>({
+  create: () => true,
+  update: (value) => value,
+});
+
+export const editorInfoField = StateField.define<unknown>({
+  create: () => null,
+  update: (value) => value,
+});
+
 export class App {}
 
 export class MarkdownView {

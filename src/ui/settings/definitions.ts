@@ -58,6 +58,22 @@ export function createSettingDefinitions(
         ),
         {
           type: "group",
+          heading: t("settings.captions.placement"),
+          items: [
+            dropdownDefinition("captions.figurePlacement", t("settings.captions.placement.figure"),
+              undefined, captionPlacementOptions(t), DEFAULT_SETTINGS.figureCaptionPlacement),
+            dropdownDefinition("captions.tablePlacement", t("settings.captions.placement.table"),
+              undefined, captionPlacementOptions(t), DEFAULT_SETTINGS.tableCaptionPlacement),
+            dropdownDefinition("captions.equationPlacement", t("settings.captions.placement.equation"),
+              undefined, captionPlacementOptions(t), DEFAULT_SETTINGS.equationCaptionPlacement),
+            dropdownDefinition("captions.codePlacement", t("settings.captions.placement.code"),
+              undefined, captionPlacementOptions(t), DEFAULT_SETTINGS.codeCaptionPlacement),
+            toggleDefinition("captions.showImageCaptionTooltips", t("settings.captions.imageTooltip"),
+              t("settings.captions.imageTooltip.desc"), DEFAULT_SETTINGS.showImageCaptionTooltips),
+          ],
+        },
+        {
+          type: "group",
           heading: t("settings.captions.alignment"),
           items: [
             toggleDefinition("captions.centerFigure", t("settings.captions.center.figure"),
@@ -127,6 +143,13 @@ export function createSettingDefinitions(
       items: [saveStatusDefinition(context), ...viewDefinitions(t)],
     },
   ];
+}
+
+function captionPlacementOptions(t: Translate): Record<string, string> {
+  return {
+    above: t("settings.captions.placement.above"),
+    below: t("settings.captions.placement.below"),
+  };
 }
 
 function generalDefinitions(

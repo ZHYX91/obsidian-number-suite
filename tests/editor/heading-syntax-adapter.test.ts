@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { EditorState } from "@codemirror/state";
 
 import {
+  captionBlockWidgetAnchor,
   isHeadingCompositionActive,
   NumeralWidget,
   shouldShowNoteWidgets,
@@ -38,6 +40,22 @@ describe("selectionTouchesHeadingLine", () => {
     } as Parameters<typeof selectionTouchesHeadingLine>[0];
     expect(selectionTouchesHeadingLine(heading, [{ from: 20, to: 20 }])).toBe(true);
     expect(selectionTouchesHeadingLine(heading, [{ from: 31, to: 31 }])).toBe(false);
+  });
+});
+
+describe("captionBlockWidgetAnchor", () => {
+  it("anchors above and below at outer line boundaries with stable widget ordering", () => {
+    const state = EditorState.create({ doc: "Caption\n\n| A |\n| --- |\n| 1 |\nAfter" });
+    const objectFrom = state.doc.line(3).from;
+    const objectTo = state.doc.line(5).to;
+    expect(captionBlockWidgetAnchor(state, "above", objectFrom, objectTo)).toEqual({
+      position: state.doc.line(3).from,
+      side: -10_000,
+    });
+    expect(captionBlockWidgetAnchor(state, "below", objectFrom, objectTo)).toEqual({
+      position: state.doc.line(5).to,
+      side: 10_000,
+    });
   });
 });
 

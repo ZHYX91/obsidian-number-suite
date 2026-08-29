@@ -107,14 +107,48 @@ section stays unchanged. Source Mode keeps the extension marker visible by defau
 identify these levels as a Number Suite/DocWen extension, not native Obsidian headings, and should
 recommend a stable block ID for interoperation.
 
-A recognized caption visually changes from `Figure:` to `Figure 1:` (and equivalently for Table,
-Equation, and Code) without editing source. Caption alignment is independent from numbering and has
+A recognized caption becomes one wrapping filled pill and visually changes from `Figure:` to
+`Figure 1:` when numbering is on (and equivalently for Table, Equation, and Code) without editing
+source. Caption alignment is independent from numbering and has
 one centering toggle per fixed type. Figure and Equation default to centered; Table and Code default
-to following the theme. An explicit semantic reference visually replaces only
-its leading `@` with the resolved number and a space, preserving the native Obsidian link text,
-alias, click behavior, and target. If the target is missing, duplicated, cross-file, or lacks a
-visible valid number, the complete source rendering stays unchanged. Composition removes all
-semantic decorations, and plugin cleanup restores every replaced `@`.
+to following the theme. Caption kind supplies the semantic label and counter, while any adjacent
+standalone image, table, display equation, or fenced code block may be the carrier. Zero or one blank
+line may separate them; two blank lines and either-side ambiguity leave the caption unbound. Each
+fixed type also has an independent above/below visual placement, defaulting above. Every bound
+caption uses the same carrier anchor and compact theme-independent gap. New captions are authored
+above their carriers, but display never rewrites existing source. An active caption reveals its exact
+source at its authored location; Source Mode always shows Markdown. An active reference reveals only
+its own source token.
+
+In editing mode, the context menu offers Figure on a standalone image, Table on any row of a
+top-level Markdown table, Equation on a standalone display equation, and Code on a top-level fenced
+code block. It resolves the actual pointer target before falling back to the cursor. A focused dialog
+also contributes Add Table caption to a Structural Tables-owned rendered table menu and resolves
+the complete source range, including every consecutive header row, before showing that dialog. It
+prefills a safe image-title suggestion when available, shows the exact stored caption preview, and
+keeps confirmation disabled for an empty title. All new captions go above their objects; a legacy
+Figure immediately below its image offers a move-above repair. A nearby case-only keyword mismatch
+changes to a repair action, and an adjacent caption of any type removes the action. Inline and table-cell
+images, math, and code are ineligible. Caption creation never creates an ID.
+
+The default-on image/Figure hover setting applies the same structured tooltip to a bound image and
+caption: rendered caption title first, meaningful replacement/alt text second. Equal values collapse
+to one line; dimensions and filename-only fallbacks are omitted. Inline and cell images may expose
+replacement text only.
+
+An explicit semantic reference replaces its complete visual source with an interactive outline pill.
+The pill contains the alias or target title plus a visible target number when one exists; it remains
+a pill when numbering is off. Heading and complete typed caption names share one same-file ambiguity
+space, and missing, duplicate, ambiguous, or cross-file targets stay unchanged. A pill click or
+keyboard activation navigates to the exact source target. Composition and a selection touching the
+reference restore editable source. Plugin cleanup restores the leading `@`, native link text, ARIA,
+and target metadata.
+
+The heading/caption context menu contains one **Copy cross-reference** item. An existing target block
+ID copies immediately. A missing ID opens a focused before/after preview; confirmation performs one
+stale-checked insertion at the target's valid position (inline for captions, following for headings)
+and then copies a readable alias link. There is no submenu and
+no automatic migration of title references.
 
 Footnotes display `1`, `2`, `3` and endnotes display `E1`, `E2`, `E3`, using separate per-file
 counters assigned in first-reference order; repeated references reuse their first number. Live
@@ -128,8 +162,10 @@ labels and list values.
 <!-- section: accessibility-and-mobile -->
 ## Accessibility and mobile
 
-Virtual heading and caption decorations are hidden from assistive semantics while stored content
-remains accessible. Formatted note labels expose their note type and number. Sidebar tabs, outline
+Virtual heading numerals and generated caption numerals are hidden from assistive semantics while
+stored caption content remains accessible. Reference pills expose link semantics, visible text,
+keyboard focus, and a non-color-only outline treatment. Formatted note labels expose their note type
+and number. Sidebar tabs, outline
 rows, collapse controls, and action buttons have consistent alignment, keyboard focus, and at least
 44-pixel touch height on coarse-pointer devices; summaries reflow on narrow screens without dropping
 fields. Emulator results cannot be described as physical-device acceptance.

@@ -1,5 +1,11 @@
 import { syntaxTree } from "@codemirror/language";
-import { StateEffect, type EditorState, type Extension, type Range } from "@codemirror/state";
+import {
+  StateEffect,
+  StateField,
+  type EditorState,
+  type Extension,
+  type Range,
+} from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -13,28 +19,39 @@ import {
   editorLivePreviewField,
   getFrontMatterInfo,
   parseYaml,
+  type Editor,
 } from "obsidian";
 
 import { parseNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
 import { createTranslator } from "../config/i18n";
 import {
   centeredCaptionKinds,
+  captionPlacements,
   cleanupTemplateSources,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
 import { parseAtxHeadings } from "../core/heading-parser";
+import { meaningfulImageReplacementText } from "../core/caption-objects";
+import type { CaptionKind } from "../core/document-semantics";
 import type { NoteKind } from "../core/note-semantics";
 import type { ParsedHeading } from "../core/types";
 import { createDisplayPlan } from "../application/display-plan";
-import { createSemanticDisplayPlan } from "../application/semantic-display-plan";
+import {
+  createSemanticDisplayPlan,
+  imageTooltipContentAtOffset,
+} from "../application/semantic-display-plan";
 import {
   createVirtualNoteElement,
   createVirtualNumeralElement,
+  createCaptionPillElement,
+  createReferencePillElement,
   createVirtualSemanticElement,
 } from "../ui/virtual-numeral";
+import { applySemanticTooltip, clearSemanticTooltip } from "../ui/semantic-tooltip";
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
+const suppressAnchoredCaptionDisplay = StateEffect.define<boolean>();
 
 export type HeadingCompositionEvent = "start" | "end";
 export type HeadingTouchEditingEvent = "prepare" | "finish";
@@ -78,6 +95,7 @@ export class NumeralWidget extends WidgetType {
     private readonly noteKind: NoteKind = "footnote",
     private readonly accessibleLabel = "",
     private readonly editHint = "",
+    private readonly targetLine: number | null = null,
   ) {
     super();
   }
@@ -87,12 +105,32 @@ export class NumeralWidget extends WidgetType {
       && this.kind === other.kind
       && this.noteKind === other.noteKind
       && this.accessibleLabel === other.accessibleLabel
-      && this.editHint === other.editHint;
+      && this.editHint === other.editHint
+      && this.targetLine === other.targetLine;
   }
 
   override toDOM(view: EditorView): HTMLElement {
     if (this.kind === "heading") return createVirtualNumeralElement(view.dom.ownerDocument, this.label);
-    if (this.kind === "caption" || this.kind === "reference") {
+    if (this.kind === "reference") {
+      const element = createReferencePillElement(view.dom.ownerDocument, this.label);
+      const navigate = (): void => {
+        if (this.targetLine == null || this.targetLine < 0 || this.targetLine >= view.state.doc.lines) return;
+        const anchor = view.state.doc.line(this.targetLine + 1).from;
+        view.dispatch({ selection: { anchor }, scrollIntoView: true });
+        view.focus();
+      };
+      element.addEventListener("click", (event) => {
+        event.preventDefault();
+        navigate();
+      });
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        navigate();
+      });
+      return element;
+    }
+    if (this.kind === "caption") {
       return createVirtualSemanticElement(view.dom.ownerDocument, this.label, this.kind);
     }
     return createVirtualNoteElement(
@@ -106,7 +144,221 @@ export class NumeralWidget extends WidgetType {
   }
 
   override ignoreEvent(): boolean {
-    return this.kind !== "note-reference" && this.kind !== "note-definition";
+    return this.kind !== "reference"
+      && this.kind !== "note-reference"
+      && this.kind !== "note-definition";
+  }
+}
+
+class CaptionWidget extends WidgetType {
+  constructor(
+    private readonly label: string,
+    private readonly editOffset: number,
+    private readonly centered: boolean,
+    private readonly tooltipTitle: string,
+    private readonly tooltipBody: string,
+    private readonly placement: "above" | "below",
+    private readonly objectKind: CaptionKind | null,
+    private readonly objectOffset: number | null,
+  ) {
+    super();
+  }
+
+  override eq(other: CaptionWidget): boolean {
+    return this.label === other.label
+      && this.editOffset === other.editOffset
+      && this.centered === other.centered
+      && this.tooltipTitle === other.tooltipTitle
+      && this.tooltipBody === other.tooltipBody
+      && this.placement === other.placement
+      && this.objectKind === other.objectKind
+      && this.objectOffset === other.objectOffset;
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const wrapper = view.dom.ownerDocument.createElement("span");
+    wrapper.className = "number-suite-caption-widget";
+    wrapper.dataset.numberSuiteCaptionPlacement = this.placement;
+    if (this.objectKind != null) wrapper.dataset.numberSuiteCaptionObjectKind = this.objectKind;
+    if (this.objectOffset != null) {
+      wrapper.dataset.numberSuiteObjectSourceOffset = String(this.objectOffset);
+    }
+    if (this.centered) wrapper.classList.add("number-suite-caption-centered");
+    wrapper.dataset.numberSuiteSourceOffset = String(this.editOffset);
+    const pill = createCaptionPillElement(view.dom.ownerDocument, this.label);
+    pill.dataset.numberSuiteSourceOffset = String(this.editOffset);
+    if (this.tooltipTitle.length > 0 || this.tooltipBody.length > 0) {
+      pill.dataset.numberSuiteTooltip = "true";
+      pill.dataset.numberSuiteTooltipTitle = this.tooltipTitle;
+      pill.dataset.numberSuiteTooltipBody = this.tooltipBody;
+    }
+    const edit = (): void => {
+      if (this.editOffset < 0 || this.editOffset > view.state.doc.length) return;
+      view.dispatch({ selection: { anchor: this.editOffset }, scrollIntoView: true });
+      view.focus();
+    };
+    pill.addEventListener("click", (event) => {
+      event.preventDefault();
+      edit();
+    });
+    wrapper.append(pill);
+    scheduleCaptionTrackMeasurement(view, wrapper, this.objectOffset);
+    return wrapper;
+  }
+
+  override ignoreEvent(): boolean {
+    return false;
+  }
+}
+
+function captionCarrierSelector(kind: CaptionKind): string {
+  if (kind === "Figure") return "img, .image-embed, .internal-embed.image-embed";
+  if (kind === "Table") {
+    return "table, .structural-tables-live-preview, .structural-tables-container";
+  }
+  if (kind === "Equation") return ".math-block, mjx-container[display='true']";
+  return "pre, .HyperMD-codeblock";
+}
+
+function normalizedCaptionCarrier(target: HTMLElement): HTMLElement {
+  return target.matches(".image-embed, .internal-embed.image-embed")
+    ? target.querySelector<HTMLElement>("img") ?? target
+    : target;
+}
+
+function targetNearSourcePosition(
+  view: EditorView,
+  sourceOffset: number,
+  selector: string,
+): HTMLElement | null {
+  try {
+    const point = view.domAtPos(sourceOffset);
+    let node: Node | null = point.node;
+    if (node.nodeType === Node.ELEMENT_NODE && node.childNodes.length > 0) {
+      node = node.childNodes[Math.min(point.offset, node.childNodes.length - 1)] ?? node;
+    }
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? node as HTMLElement
+      : node.parentElement;
+    const sourceRoot = element?.closest<HTMLElement>(".cm-line, .cm-block-widget") ?? element;
+    const direct = sourceRoot?.matches(selector) === true
+      ? sourceRoot
+      : sourceRoot?.querySelector<HTMLElement>(selector) ?? null;
+    if (direct != null) return normalizedCaptionCarrier(direct);
+  } catch {
+    // A replacement decoration may not expose a stable DOM position; use coordinates below.
+  }
+
+  let sourceY: number | null = null;
+  try {
+    sourceY = view.coordsAtPos(sourceOffset)?.top ?? null;
+  } catch {
+    sourceY = null;
+  }
+  if (sourceY == null) return null;
+  let nearest: HTMLElement | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const candidate of view.contentDOM.querySelectorAll<HTMLElement>(selector)) {
+    if (candidate.closest(".number-suite-caption-widget") != null) continue;
+    const rect = candidate.getBoundingClientRect();
+    const distance = sourceY < rect.top
+      ? rect.top - sourceY
+      : sourceY > rect.bottom ? sourceY - rect.bottom : 0;
+    if (distance < nearestDistance) {
+      nearest = candidate;
+      nearestDistance = distance;
+    }
+  }
+  return nearest == null ? null : normalizedCaptionCarrier(nearest);
+}
+
+function nearbyCaptionCarrier(
+  view: EditorView,
+  wrapper: HTMLElement,
+  kind: CaptionKind,
+  sourceOffset: number,
+): HTMLElement | null {
+  const selector = captionCarrierSelector(kind);
+  const positioned = targetNearSourcePosition(view, sourceOffset, selector);
+  if (positioned != null) return positioned;
+  const placement = wrapper.dataset.numberSuiteCaptionPlacement;
+  const block = wrapper.closest<HTMLElement>(".cm-block-widget") ?? wrapper;
+  let sibling = placement === "below" ? block.previousElementSibling : block.nextElementSibling;
+  for (let distance = 0; sibling != null && distance < 8; distance += 1) {
+    if (sibling.querySelector(".number-suite-caption-widget") == null) {
+      const target = sibling.matches(selector)
+        ? sibling as HTMLElement
+        : sibling.querySelector<HTMLElement>(selector);
+      if (target != null) return normalizedCaptionCarrier(target);
+    }
+    sibling = placement === "below" ? sibling.previousElementSibling : sibling.nextElementSibling;
+  }
+  return null;
+}
+
+function scheduleCaptionTrackMeasurement(
+  view: EditorView,
+  wrapper: HTMLElement,
+  sourceOffset: number | null,
+): void {
+  const objectKind = wrapper.dataset.numberSuiteCaptionObjectKind as CaptionKind | undefined;
+  if (objectKind == null || sourceOffset == null) return;
+  view.requestMeasure({
+    key: wrapper,
+    read: () => {
+      const carrier = nearbyCaptionCarrier(view, wrapper, objectKind, sourceOffset);
+      if (carrier == null || !wrapper.isConnected) return null;
+      const contentRect = view.contentDOM.getBoundingClientRect();
+      const carrierRect = carrier.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const track = captionTrackGeometry(contentRect, carrierRect);
+      if (track == null) return null;
+      const previousShift = Number(wrapper.dataset.numberSuiteCaptionBlockShift ?? "0");
+      const baseGap = wrapper.dataset.numberSuiteCaptionPlacement === "below"
+        ? wrapperRect.top - carrierRect.bottom - previousShift
+        : carrierRect.top - wrapperRect.bottom + previousShift;
+      const shift = captionAttachmentShift(
+        wrapper.dataset.numberSuiteCaptionPlacement === "below" ? "below" : "above",
+        baseGap,
+      );
+      return { ...track, shift };
+    },
+    write: (measurement) => {
+      if (measurement == null || !wrapper.isConnected) return;
+      wrapper.style.inlineSize = `${measurement.width}px`;
+      wrapper.style.marginInlineStart = `${measurement.offset}px`;
+      wrapper.style.transform = `translateY(${measurement.shift}px)`;
+      wrapper.dataset.numberSuiteCaptionBlockShift = String(measurement.shift);
+      view.requestMeasure();
+    },
+  });
+}
+
+export function captionTrackGeometry(
+  content: Readonly<Pick<DOMRect, "left" | "width">>,
+  carrier: Readonly<Pick<DOMRect, "left" | "width">>,
+): Readonly<{ offset: number; width: number }> | null {
+  if (content.width <= 0 || carrier.width <= 0) return null;
+  const offset = Math.max(0, carrier.left - content.left);
+  const width = Math.min(carrier.width, Math.max(0, content.width - offset));
+  return width <= 0 ? null : { offset, width };
+}
+
+export function captionAttachmentShift(
+  placement: "above" | "below",
+  unshiftedGap: number,
+  desiredGap = 4,
+): number {
+  const excess = Math.max(0, unshiftedGap - desiredGap);
+  return placement === "below" ? -excess : excess;
+}
+
+function scheduleCaptionTrackMeasurements(view: EditorView): void {
+  for (const wrapper of view.dom.querySelectorAll<HTMLElement>(
+    ".number-suite-caption-widget[data-number-suite-caption-object-kind]",
+  )) {
+    const sourceOffset = Number(wrapper.dataset.numberSuiteObjectSourceOffset);
+    scheduleCaptionTrackMeasurement(view, wrapper, Number.isFinite(sourceOffset) ? sourceOffset : null);
   }
 }
 
@@ -162,6 +414,20 @@ export function selectionTouchesHeadingLine(
   ));
 }
 
+export function captionBlockWidgetAnchor(
+  state: EditorState,
+  placement: "above" | "below",
+  objectFrom: number,
+  objectTo: number,
+): Readonly<{ position: number; side: number }> {
+  const above = placement === "above";
+  const objectLine = state.doc.lineAt(above ? objectFrom : objectTo);
+  return {
+    position: above ? objectLine.from : objectLine.to,
+    side: above ? -10_000 : 10_000,
+  };
+}
+
 function parseOverrides(source: string): NoteOverrides | null {
   try {
     const info = getFrontMatterInfo(source);
@@ -174,24 +440,134 @@ function parseOverrides(source: string): NoteOverrides | null {
   }
 }
 
+interface AnchoredCaptionDecorationState {
+  readonly suppressed: boolean;
+  readonly decorations: DecorationSet;
+}
+
+function buildAnchoredCaptionDecorations(
+  state: EditorState,
+  settingsProvider: () => NumberSuiteSettings,
+  suppressed: boolean,
+): DecorationSet {
+  const settings = settingsProvider();
+  const livePreview = state.field(editorLivePreviewField, false) ?? false;
+  if (suppressed || !livePreview || !settings.enableLivePreview) return Decoration.none;
+  const source = state.doc.toString();
+  const overrides = parseOverrides(source) ?? parseNoteOverrides(null);
+  const effective = resolveNoteSettings(settings, overrides);
+  if (effective.disabled) return Decoration.none;
+  const selections = state.selection.ranges.map((range) => ({ from: range.from, to: range.to }));
+  const semanticPlan = createSemanticDisplayPlan(source, [], {
+    showCaptionNumbers: settings.showCaptionNumbers,
+    centeredCaptionKinds: centeredCaptionKinds(settings),
+    captionPlacements: captionPlacements(settings),
+    showImageCaptionTooltips: settings.showImageCaptionTooltips,
+    showCrossReferences: false,
+    showNoteNumbers: false,
+    noteSelections: selections,
+    numbering: toNumberingOptions(settings, {
+      schemeId: effective.schemeId,
+      starts: effective.starts,
+    }),
+    templateSources: cleanupTemplateSources(settings),
+    headingDisplayPlan: [],
+    composing: false,
+  });
+  const ranges: Range<Decoration>[] = [];
+  for (const item of semanticPlan) {
+    if (
+      item.kind !== "caption"
+      || item.pillFrom == null
+      || item.pillTo == null
+      || item.displayLabel == null
+      || item.sourcePlacement == null
+      || item.displayPlacement == null
+      || item.objectFrom == null
+      || item.objectTo == null
+    ) {
+      continue;
+    }
+    const widget = new CaptionWidget(
+      item.displayLabel,
+      item.pillFrom,
+      item.captionCentered === true,
+      item.tooltipTitle ?? "",
+      item.tooltipBody ?? "",
+      item.displayPlacement,
+      item.objectKind ?? null,
+      item.objectFrom,
+    );
+    const anchor = captionBlockWidgetAnchor(
+      state,
+      item.displayPlacement,
+      item.objectFrom,
+      item.objectTo,
+    );
+    ranges.push(Decoration.line({
+      attributes: { class: "number-suite-caption-source-relocated" },
+    }).range(item.pillFrom));
+    ranges.push(Decoration.replace({ inclusive: false }).range(item.pillFrom, item.pillTo));
+    ranges.push(Decoration.widget({
+      widget,
+      side: anchor.side,
+      block: true,
+    }).range(anchor.position));
+  }
+  return Decoration.set(ranges, true);
+}
+
 export class HeadingDisplayController {
   private readonly views = new Set<EditorView>();
+  private readonly contextMenuOffsets = new WeakMap<Editor, number>();
 
   constructor(private readonly getSettings: () => NumberSuiteSettings) {}
 
   createExtension(): Extension {
     const views = this.views;
+    const contextMenuOffsets = this.contextMenuOffsets;
     const settingsProvider = this.getSettings;
+    const anchoredCaptionField = StateField.define<AnchoredCaptionDecorationState>({
+      create: (state) => ({
+        suppressed: false,
+        decorations: buildAnchoredCaptionDecorations(state, settingsProvider, false),
+      }),
+      update: (value, transaction) => {
+        const suppression = transaction.effects.find((effect) => (
+          effect.is(suppressAnchoredCaptionDisplay)
+        ));
+        const suppressed = suppression?.value ?? value.suppressed;
+        const refreshed = transaction.effects.some((effect) => effect.is(refreshHeadingDisplay));
+        const modeChanged = transaction.startState.field(editorLivePreviewField, false)
+          !== transaction.state.field(editorLivePreviewField, false);
+        if (
+          !transaction.docChanged
+          && transaction.selection == null
+          && !refreshed
+          && !modeChanged
+          && suppression == null
+        ) {
+          return value;
+        }
+        return {
+          suppressed,
+          decorations: buildAnchoredCaptionDecorations(transaction.state, settingsProvider, suppressed),
+        };
+      },
+      provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
+    });
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
       private overrides: NoteOverrides;
       private eventCompositionActive = false;
       private touchEditingActive = false;
+      private imageTooltipGeneration = 0;
 
       constructor(private readonly view: EditorView) {
         this.overrides = parseOverrides(view.state.doc.toString()) ?? parseNoteOverrides(null);
         views.add(view);
         this.decorations = this.buildDecorations();
+        this.scheduleImageTooltips();
       }
 
       handleCompositionEvent(event: HeadingCompositionEvent): boolean {
@@ -229,10 +605,59 @@ export class HeadingDisplayController {
         ) {
           this.decorations = this.buildDecorations();
         }
+        if (update.docChanged || update.viewportChanged || update.geometryChanged || update.selectionSet) {
+          this.scheduleImageTooltips();
+        }
       }
 
       destroy(): void {
+        this.imageTooltipGeneration += 1;
+        for (const image of this.view.dom.querySelectorAll<HTMLElement>("img[data-number-suite-tooltip]")) {
+          clearSemanticTooltip(image);
+        }
         views.delete(this.view);
+      }
+
+      private scheduleImageTooltips(): void {
+        const generation = ++this.imageTooltipGeneration;
+        const timerWindow = this.view.dom.ownerDocument.defaultView;
+        timerWindow?.setTimeout(() => {
+          if (generation !== this.imageTooltipGeneration || !this.view.dom.isConnected) return;
+          this.annotateImageTooltips();
+        }, 0);
+      }
+
+      docViewUpdate(): void {
+        scheduleCaptionTrackMeasurements(this.view);
+      }
+
+      private annotateImageTooltips(): void {
+        const settings = settingsProvider();
+        const source = this.view.state.doc.toString();
+        for (const image of this.view.dom.querySelectorAll<HTMLImageElement>("img")) {
+          clearSemanticTooltip(image);
+          if (!settings.showImageCaptionTooltips) continue;
+          let offset: number | null = null;
+          try {
+            const rect = image.getBoundingClientRect();
+            offset = this.view.posAtCoords({
+              x: rect.left + Math.min(rect.width / 2, 2),
+              y: rect.top + Math.min(rect.height / 2, 2),
+            });
+            offset ??= this.view.posAtDOM(image);
+          } catch {
+            offset = null;
+          }
+          const tooltip = offset == null
+            ? null
+            : imageTooltipContentAtOffset(source, offset, settings.showCaptionNumbers);
+          const fallback = meaningfulImageReplacementText(image.alt);
+          if (tooltip != null) {
+            applySemanticTooltip(image, tooltip.title, tooltip.body);
+          } else if (fallback.length > 0 && !/^\d+(?:x\d+)?$/u.test(fallback)) {
+            applySemanticTooltip(image, "", fallback);
+          }
+        }
       }
 
       private buildDecorations(): DecorationSet {
@@ -275,6 +700,8 @@ export class HeadingDisplayController {
         const semanticPlan = createSemanticDisplayPlan(source, headings, {
           showCaptionNumbers: settings.showCaptionNumbers,
           centeredCaptionKinds: centeredCaptionKinds(settings),
+          captionPlacements: captionPlacements(settings),
+          showImageCaptionTooltips: settings.showImageCaptionTooltips,
           showCrossReferences: settings.showCrossReferences,
           showNoteNumbers: shouldShowNoteWidgets(settings, livePreview),
           noteSelections: selections,
@@ -290,12 +717,53 @@ export class HeadingDisplayController {
           ...semanticPlan.map((item) => ({ ...item, semanticKind: item.kind })),
         ].sort((left, right) => left.from - right.from || left.to - right.to);
         for (const item of decorations) {
-          if (item.semanticKind === "caption" || item.semanticKind === "reference") {
-            ranges.push((item.semanticKind === "reference"
-              ? Decoration.replace({ widget: new NumeralWidget(item.label, "reference"), inclusive: false })
-              : Decoration.widget({ widget: new NumeralWidget(item.label, "caption"), side: -1 }))
-              .range(item.from, item.to));
-          } else if (item.semanticKind === "caption-alignment" && item.captionKind != null) {
+          if (item.semanticKind === "caption") {
+            if (item.pillFrom == null || item.pillTo == null || item.displayLabel == null) continue;
+            const widget = new CaptionWidget(
+              item.displayLabel,
+              item.pillFrom,
+              item.captionCentered === true,
+              item.tooltipTitle ?? "",
+              item.tooltipBody ?? "",
+              item.displayPlacement ?? item.sourcePlacement ?? "above",
+              item.objectKind ?? null,
+              item.objectFrom ?? null,
+            );
+            const anchored = item.sourcePlacement != null
+              && item.displayPlacement != null
+              && item.objectFrom != null
+              && item.objectTo != null;
+            if (anchored) {
+              continue;
+            }
+            if (!livePreview) {
+              continue;
+            } else {
+              ranges.push(Decoration.line({
+                attributes: { class: "number-suite-caption-line" },
+              }).range(item.pillFrom));
+              ranges.push(Decoration.replace({
+                widget,
+                inclusive: false,
+              }).range(item.pillFrom, item.pillTo));
+            }
+          } else if (item.semanticKind === "reference") {
+            ranges.push(Decoration.replace({
+              widget: new NumeralWidget(
+                item.label,
+                "reference",
+                "footnote",
+                "",
+                "",
+                item.targetLine ?? null,
+              ),
+              inclusive: false,
+            }).range(item.from, item.to));
+          } else if (
+            item.semanticKind === "caption-alignment"
+            && item.captionKind != null
+            && livePreview
+          ) {
             ranges.push(Decoration.line({
               attributes: {
                 class: "number-suite-caption-centered",
@@ -349,6 +817,24 @@ export class HeadingDisplayController {
     });
 
     const compositionHandlers = EditorView.domEventHandlers({
+      contextmenu: (event, view) => {
+        const info = view.state.field(editorInfoField, false);
+        const editor = info?.editor;
+        if (editor == null) return false;
+        const target = event.target;
+        const targetElement = target != null && "nodeType" in target && target.nodeType === 1
+          ? target as Element
+          : null;
+        const sourceOffset = targetElement != null
+          ? Number(targetElement.closest<HTMLElement>("[data-number-suite-source-offset]")
+            ?.dataset.numberSuiteSourceOffset)
+          : Number.NaN;
+        const offset = Number.isSafeInteger(sourceOffset)
+          ? sourceOffset
+          : view.posAtCoords({ x: event.clientX, y: event.clientY });
+        if (offset != null) contextMenuOffsets.set(editor, offset);
+        return false;
+      },
       pointerdown: (_event, view) => {
         const timerWindow = view.dom.ownerDocument.defaultView;
         if (!timerWindow?.matchMedia?.("(pointer: coarse)").matches) return false;
@@ -361,7 +847,10 @@ export class HeadingDisplayController {
           ) {
             // Let CodeMirror place the cursor first, then remove virtual widgets
             // before Android opens an IME composition session.
-            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+            view.dispatch({ effects: [
+              refreshHeadingDisplay.of(undefined),
+              suppressAnchoredCaptionDisplay.of(true),
+            ] });
           }
         }, 0);
         return false;
@@ -380,7 +869,10 @@ export class HeadingDisplayController {
           if (view.dom.isConnected) {
             // Restore virtual display once, after CodeMirror and the IME finish
             // their composition-end bookkeeping.
-            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+            view.dispatch({ effects: [
+              refreshHeadingDisplay.of(undefined),
+              suppressAnchoredCaptionDisplay.of(false),
+            ] });
           }
         }, 0);
         return false;
@@ -390,19 +882,28 @@ export class HeadingDisplayController {
         const timerWindow = view.dom.ownerDocument.defaultView;
         if (requestRefresh) timerWindow?.setTimeout(() => {
           if (view.dom.isConnected && !view.composing) {
-            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
+            view.dispatch({ effects: [
+              refreshHeadingDisplay.of(undefined),
+              suppressAnchoredCaptionDisplay.of(false),
+            ] });
           }
         }, 0);
         return false;
       },
     });
 
-    return [displayPlugin, compositionHandlers];
+    return [anchoredCaptionField, displayPlugin, compositionHandlers];
   }
 
   refreshAll(): void {
     for (const view of this.views) {
       view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
     }
+  }
+
+  consumeContextMenuOffset(editor: Editor): number | null {
+    const offset = this.contextMenuOffsets.get(editor) ?? null;
+    this.contextMenuOffsets.delete(editor);
+    return offset;
   }
 }

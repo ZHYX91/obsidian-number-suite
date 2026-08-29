@@ -40,6 +40,17 @@ function renderExample(
   example.createEl("p", { text: result });
 }
 
+function renderCaptionPreview(container: HTMLElement, values: readonly string[]): void {
+  const preview = container.createDiv({ cls: "number-suite-settings-rendered-example" });
+  for (const value of values) preview.createSpan({ cls: "number-suite-caption-pill", text: value });
+}
+
+function renderHeadingPreview(container: HTMLElement, number: string, title: string): void {
+  const preview = container.createDiv({ cls: "number-suite-settings-rendered-example" });
+  preview.createSpan({ cls: "number-suite-heading-number", text: number });
+  preview.createSpan({ text: title });
+}
+
 function renderList(
   container: HTMLElement,
   t: Translate,
@@ -61,6 +72,11 @@ export function renderHeadingDisplayGuide(container: HTMLElement, t: Translate):
     t("settings.headings.guide.example.source"),
     t("settings.headings.guide.example.result"),
   );
+  renderHeadingPreview(
+    body,
+    t("settings.headings.guide.example.preview.number"),
+    t("settings.headings.guide.example.preview.title"),
+  );
   renderList(body, t, [
     "settings.headings.guide.virtual",
     "settings.headings.guide.conceal",
@@ -79,11 +95,20 @@ export function renderCaptionNumberingGuide(container: HTMLElement, t: Translate
     t("settings.captions.guide.example.source"),
     t("settings.captions.guide.example.result"),
   );
+  renderCaptionPreview(body, [
+    t("settings.captions.guide.example.preview.figure"),
+    t("settings.captions.guide.example.preview.table"),
+  ]);
   renderList(body, t, [
     "settings.captions.guide.exact",
     "settings.captions.guide.counter",
+    "settings.captions.guide.binding",
     "settings.captions.guide.safety",
+    "settings.captions.guide.placement",
+    "settings.captions.guide.hover",
+    "settings.captions.guide.editing",
     "settings.captions.guide.blockId",
+    "settings.captions.guide.reference",
   ]);
 }
 

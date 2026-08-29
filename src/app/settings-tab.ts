@@ -297,6 +297,27 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCaptionNumbers)
         .onChange((value) => this.updateControl("captions.showCaptionNumbers", value)));
     renderCaptionNumberingGuide(container, t);
+    new Setting(container).setName(t("settings.captions.placement"))
+      .setDesc(t("settings.captions.placement.desc"))
+      .setHeading();
+    const placements = [
+      ["settings.captions.placement.figure", "captions.figurePlacement", "figureCaptionPlacement"],
+      ["settings.captions.placement.table", "captions.tablePlacement", "tableCaptionPlacement"],
+      ["settings.captions.placement.equation", "captions.equationPlacement", "equationCaptionPlacement"],
+      ["settings.captions.placement.code", "captions.codePlacement", "codeCaptionPlacement"],
+    ] as const;
+    for (const [name, control, property] of placements) {
+      new Setting(container).setName(t(name))
+        .addDropdown((dropdown) => dropdown
+          .addOption("above", t("settings.captions.placement.above"))
+          .addOption("below", t("settings.captions.placement.below"))
+          .setValue(this.plugin.settings[property])
+          .onChange((value) => this.updateControl(control, value)));
+    }
+    new Setting(container).setName(t("settings.captions.imageTooltip"))
+      .setDesc(t("settings.captions.imageTooltip.desc"))
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.showImageCaptionTooltips)
+        .onChange((value) => this.updateControl("captions.showImageCaptionTooltips", value)));
     new Setting(container).setName(t("settings.captions.alignment"))
       .setDesc(t("settings.captions.alignment.desc"))
       .setHeading();

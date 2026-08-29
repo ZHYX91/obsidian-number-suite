@@ -10,6 +10,11 @@ export type SettingsControlKey =
   | "captions.centerTable"
   | "captions.centerEquation"
   | "captions.centerCode"
+  | "captions.figurePlacement"
+  | "captions.tablePlacement"
+  | "captions.equationPlacement"
+  | "captions.codePlacement"
+  | "captions.showImageCaptionTooltips"
   | "references.showCrossReferences"
   | "notes.showNoteNumbers"
   | "notes.displayMode"
@@ -43,6 +48,11 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "captions.centerTable",
   "captions.centerEquation",
   "captions.centerCode",
+  "captions.figurePlacement",
+  "captions.tablePlacement",
+  "captions.equationPlacement",
+  "captions.codePlacement",
+  "captions.showImageCaptionTooltips",
   "references.showCrossReferences",
   "notes.showNoteNumbers",
   "notes.displayMode",
@@ -78,6 +88,11 @@ export function getSettingsControlValue(
     case "captions.centerTable": return settings.centerTableCaptions;
     case "captions.centerEquation": return settings.centerEquationCaptions;
     case "captions.centerCode": return settings.centerCodeCaptions;
+    case "captions.figurePlacement": return settings.figureCaptionPlacement;
+    case "captions.tablePlacement": return settings.tableCaptionPlacement;
+    case "captions.equationPlacement": return settings.equationCaptionPlacement;
+    case "captions.codePlacement": return settings.codeCaptionPlacement;
+    case "captions.showImageCaptionTooltips": return settings.showImageCaptionTooltips;
     case "references.showCrossReferences": return settings.showCrossReferences;
     case "notes.showNoteNumbers": return settings.showNoteNumbers;
     case "notes.displayMode": return settings.noteDisplayMode;
@@ -142,6 +157,29 @@ export function applySettingsControlValue(
       impact = "display";
       break;
     }
+    case "captions.figurePlacement":
+    case "captions.tablePlacement":
+    case "captions.equationPlacement":
+    case "captions.codePlacement": {
+      if (value !== "above" && value !== "below") throw invalidControlValue(key);
+      const property = {
+        "captions.figurePlacement": "figureCaptionPlacement",
+        "captions.tablePlacement": "tableCaptionPlacement",
+        "captions.equationPlacement": "equationCaptionPlacement",
+        "captions.codePlacement": "codeCaptionPlacement",
+      }[key] as
+        | "figureCaptionPlacement"
+        | "tableCaptionPlacement"
+        | "equationCaptionPlacement"
+        | "codeCaptionPlacement";
+      next[property] = value;
+      impact = "display";
+      break;
+    }
+    case "captions.showImageCaptionTooltips":
+      next.showImageCaptionTooltips = controlBoolean(key, value);
+      impact = "display";
+      break;
     case "references.showCrossReferences":
       next.showCrossReferences = controlBoolean(key, value);
       impact = "display";

@@ -2,7 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
+import { MarkdownView, TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
 
 import { DEFAULT_SETTINGS, type NumberSuiteSettings } from "../../src/config/settings";
 import {
@@ -21,6 +21,38 @@ function settings(overrides: Partial<NumberSuiteSettings>): NumberSuiteSettings 
     ...overrides,
   };
 }
+
+const READING_CAPTION_KINDS = ["Figure", "Table", "Equation", "Code"] as const;
+const READING_CARRIER_CASES = [
+  {
+    objectKind: "Figure",
+    objectSource: "![[carrier.png]]",
+    createRoot: (): HTMLElement => {
+      const paragraph = document.createElement("p");
+      paragraph.append(document.createElement("img"));
+      return paragraph;
+    },
+  },
+  {
+    objectKind: "Table",
+    objectSource: "| A |\n| --- |\n| 1 |",
+    createRoot: (): HTMLElement => document.createElement("table"),
+  },
+  {
+    objectKind: "Equation",
+    objectSource: "$$ x = 1 $$",
+    createRoot: (): HTMLElement => {
+      const equation = document.createElement("div");
+      equation.className = "math-block";
+      return equation;
+    },
+  },
+  {
+    objectKind: "Code",
+    objectSource: "```ts\nconst x = 1;\n```",
+    createRoot: (): HTMLElement => document.createElement("pre"),
+  },
+] as const;
 
 beforeEach(() => {
   window.Node.prototype.createSpan = function createSpan(
@@ -47,10 +79,29 @@ function harness(source: string, configured: NumberSuiteSettings) {
   const FileConstructor = TFile as unknown as new (path: string) => TFile;
   const file = new FileConstructor("note.md");
   const cachedRead = vi.fn(async () => currentSource);
+  const MarkdownViewConstructor = MarkdownView as unknown as new () => MarkdownView;
+  const view = new MarkdownViewConstructor();
+  view.file = file;
+  const setCursor = vi.fn();
+  const scrollIntoView = vi.fn();
+  const focus = vi.fn();
+  Object.assign(view, {
+    getMode: () => "source",
+    editor: { setCursor, scrollIntoView, focus },
+  });
+  const setEphemeralState = vi.fn();
+  const openFile = vi.fn(async () => undefined);
+  const leaf = { view, setEphemeralState, openFile };
+  const revealLeaf = vi.fn(async () => undefined);
   const app = {
     vault: {
       getAbstractFileByPath: () => file,
       cachedRead,
+    },
+    workspace: {
+      iterateAllLeaves: (callback: (candidate: typeof leaf) => void) => callback(leaf),
+      getLeaf: () => leaf,
+      revealLeaf,
     },
   } as unknown as App;
   const processor = new HeadingReadingProcessor(app, () => configured);
@@ -70,6 +121,7 @@ function harness(source: string, configured: NumberSuiteSettings) {
     context,
     container,
     cachedRead,
+    navigation: { setCursor, scrollIntoView, focus, setEphemeralState, openFile, revealLeaf },
     setSource: (next: string) => { currentSource = next; },
   };
 }
@@ -371,6 +423,239 @@ describe("HeadingReadingProcessor", () => {
     expect(first.textContent).toBe("Figure 1: Plain");
     expect(second.textContent).toBe("Figure 2: Target");
     expect(container.querySelectorAll(".number-suite-caption-number")).toHaveLength(2);
+    expect(container.querySelectorAll(".number-suite-caption-pill")).toHaveLength(2);
+  });
+
+  it("moves a bound Figure caption below only in the rendered DOM and shares its tooltip", async () => {
+    const source = "Figure: Lunch\n\n![[lunch.png|tray of food]]";
+    const { processor, context, container } = harness(source, settings({
+      figureCaptionPlacement: "below",
+      showCaptionNumbers: true,
+      showImageCaptionTooltips: true,
+    }));
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Lunch";
+    const imageParagraph = document.createElement("p");
+    const image = document.createElement("img");
+    image.alt = "tray of food";
+    imageParagraph.append(image);
+    container.append(caption, imageParagraph);
+
+    await processor.process(container, context);
+
+    expect([...container.children]).toEqual([imageParagraph, caption]);
+    expect(caption.textContent).toBe("Figure 1: Lunch");
+    expect(caption.dataset.numberSuiteCaptionPlacement).toBe("below");
+    expect(caption.dataset.numberSuiteTooltipTitle).toBe("Figure 1: Lunch");
+    expect(caption.dataset.numberSuiteTooltipBody).toBe("tray of food");
+    expect(image.dataset.numberSuiteTooltipTitle).toBe("Figure 1: Lunch");
+    expect(image.dataset.numberSuiteTooltipBody).toBe("tray of food");
+    expect(imageParagraph.classList.contains("number-suite-caption-object")).toBe(true);
+    expect(imageParagraph.dataset.numberSuiteCaptionPlacement).toBe("below");
+
+    cleanupNumberSuiteReadingDom(container);
+    expect([...container.children]).toEqual([caption, imageParagraph]);
+    expect(caption.textContent).toBe("Figure: Lunch");
+    expect(caption.dataset.numberSuiteTooltip).toBeUndefined();
+    expect(image.dataset.numberSuiteTooltip).toBeUndefined();
+    expect(imageParagraph.classList.contains("number-suite-caption-object")).toBe(false);
+  });
+
+  it("binds a Figure caption to a table carrier and restores its stable DOM origin", async () => {
+    const source = [
+      "Figure: Comparison",
+      "",
+      "| Before | After |",
+      "| --- | --- |",
+      "| ![[before.png]] | ![[after.png]] |",
+    ].join("\n");
+    const { processor, context, container } = harness(source, settings({
+      figureCaptionPlacement: "below",
+      showCaptionNumbers: true,
+      showImageCaptionTooltips: true,
+    }));
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Comparison";
+    const table = document.createElement("table");
+    container.getBoundingClientRect = () => ({
+      left: 100, right: 900, top: 0, bottom: 600, width: 800, height: 600, x: 100, y: 0,
+      toJSON: () => ({}),
+    });
+    table.getBoundingClientRect = () => ({
+      left: 220, right: 620, top: 100, bottom: 300, width: 400, height: 200, x: 220, y: 100,
+      toJSON: () => ({}),
+    });
+    caption.getBoundingClientRect = () => ({
+      left: 0, right: 100, top: 0, bottom: 30, width: 100, height: 30, x: 0, y: 0,
+      toJSON: () => ({}),
+    });
+    container.append(caption, table);
+
+    await processor.process(container, context);
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+
+    expect([...container.children]).toEqual([table, caption]);
+    expect(caption.textContent).toBe("Figure 1: Comparison");
+    expect(caption.classList.contains("number-suite-caption-centered")).toBe(true);
+    expect(table.classList.contains("number-suite-caption-object")).toBe(true);
+    expect(table.dataset.numberSuiteTooltipTitle).toBe("Figure 1: Comparison");
+    expect(caption.style.getPropertyValue("--number-suite-caption-inline-offset")).toBe("270px");
+
+    table.replaceWith(document.createElement("div"));
+    cleanupNumberSuiteReadingDom(container);
+    expect(container.firstElementChild).toBe(caption);
+    expect(caption.textContent).toBe("Figure: Comparison");
+    expect(caption.style.getPropertyValue("--number-suite-caption-inline-offset")).toBe("");
+  });
+
+  it("renders all sixteen caption and carrier combinations", async () => {
+    for (const captionKind of READING_CAPTION_KINDS) {
+      for (const carrier of READING_CARRIER_CASES) {
+        const source = `${captionKind}: Pair\n\n${carrier.objectSource}`;
+        const { processor, context, container } = harness(source, settings({
+          showCaptionNumbers: true,
+          centerFigureCaptions: true,
+          centerTableCaptions: true,
+          centerEquationCaptions: true,
+          centerCodeCaptions: true,
+          figureCaptionPlacement: "below",
+          tableCaptionPlacement: "below",
+          equationCaptionPlacement: "below",
+          codeCaptionPlacement: "below",
+        }));
+        const caption = document.createElement("p");
+        caption.textContent = `${captionKind}: Pair`;
+        const objectRoot = carrier.createRoot();
+        container.append(caption, objectRoot);
+
+        await processor.process(container, context);
+
+        const pair = `${captionKind} -> ${carrier.objectKind}`;
+        expect([...container.children], pair).toEqual([objectRoot, caption]);
+        expect(caption.textContent, pair).toBe(`${captionKind} 1: Pair`);
+        expect(caption.dataset.numberSuiteCaptionPlacement, pair).toBe("below");
+        expect(caption.classList.contains("number-suite-caption-centered"), pair).toBe(true);
+        expect(objectRoot.classList.contains("number-suite-caption-object"), pair).toBe(true);
+
+        cleanupNumberSuiteReadingDom(container);
+        container.remove();
+      }
+    }
+  });
+
+  it("keeps a source-below caption attached to its rendered carrier", async () => {
+    const source = "![[miao.png]]\n\nFigure: Miao";
+    const { processor, context, container } = harness(source, settings({
+      figureCaptionPlacement: "below",
+      showCaptionNumbers: true,
+    }));
+    const imageParagraph = document.createElement("p");
+    imageParagraph.append(document.createElement("img"));
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Miao";
+    container.append(imageParagraph, caption);
+
+    await processor.process(container, context);
+
+    expect([...container.children]).toEqual([imageParagraph, caption]);
+    expect(caption.textContent).toBe("Figure 1: Miao");
+    expect(caption.dataset.numberSuiteCaptionPlacement).toBe("below");
+    expect(imageParagraph.classList.contains("number-suite-caption-object")).toBe(true);
+  });
+
+  it.each((['above', 'below'] as const).flatMap((sourcePlacement) => (
+    [false, true].map((withBreak) => ({ sourcePlacement, withBreak }))
+  )))(
+    "enhances and restores a source-$sourcePlacement zero-gap shared paragraph withBreak=$withBreak",
+    async ({ sourcePlacement, withBreak }) => {
+      const source = sourcePlacement === "above"
+        ? "Figure: Miao\n![[miao.png]]"
+        : "![[miao.png]]\nFigure: Miao";
+      const { processor, context, container } = harness(source, settings({
+        showCaptionNumbers: true,
+      }));
+      const sharedParagraph = document.createElement("p");
+      const image = document.createElement("img");
+      const separator = withBreak ? document.createElement("br") : null;
+      if (sourcePlacement === "above") {
+        sharedParagraph.append("Figure: Miao");
+        if (separator != null) sharedParagraph.append(separator);
+        sharedParagraph.append(image);
+      } else {
+        sharedParagraph.append(image);
+        if (separator != null) sharedParagraph.append(separator);
+        sharedParagraph.append("Figure: Miao");
+      }
+      container.append(sharedParagraph);
+
+      await processor.process(container, context);
+
+      const renderedCaption = container.querySelector<HTMLElement>(
+        "[data-number-suite-caption-kind='Figure']",
+      );
+      expect(renderedCaption).not.toBeNull();
+      expect(renderedCaption?.textContent).toBe("Figure 1: Miao");
+      expect([...container.children]).toEqual([renderedCaption, sharedParagraph]);
+      expect(sharedParagraph.classList.contains("number-suite-caption-object")).toBe(true);
+
+      cleanupNumberSuiteReadingDom(container);
+
+      expect([...container.children]).toEqual([sharedParagraph]);
+      expect(sharedParagraph.textContent).toBe("Figure: Miao");
+      expect(sharedParagraph.contains(image)).toBe(true);
+      expect(separator == null || sharedParagraph.contains(separator)).toBe(true);
+      const firstIsCaption = sharedParagraph.firstChild?.textContent === "Figure: Miao";
+      expect(firstIsCaption).toBe(sourcePlacement === "above");
+    },
+  );
+
+  it("fails closed when a shared rendered paragraph contains extra carrier-side prose", async () => {
+    const source = "![[miao.png]]\nFigure: Miao";
+    const { processor, context, container } = harness(source, settings({
+      showCaptionNumbers: true,
+    }));
+    const sharedParagraph = document.createElement("p");
+    sharedParagraph.append(
+      "Not a standalone image ",
+      document.createElement("img"),
+      document.createElement("br"),
+      "Figure: Miao",
+    );
+    container.append(sharedParagraph);
+
+    await processor.process(container, context);
+
+    expect([...container.children]).toEqual([sharedParagraph]);
+    expect(sharedParagraph.textContent).toBe("Not a standalone image Figure: Miao");
+    expect(sharedParagraph.querySelector(".number-suite-caption-number")).toBeNull();
+  });
+
+  it("moves each bound caption kind independently and keeps unbound image alt tooltips", async () => {
+    const source = [
+      "Table: Results",
+      "",
+      "| A |",
+      "| --- |",
+      "| ![[cell.png|Cell image]] |",
+    ].join("\n");
+    const { processor, context, container } = harness(source, settings({
+      tableCaptionPlacement: "below",
+      showImageCaptionTooltips: true,
+    }));
+    const caption = document.createElement("p");
+    caption.textContent = "Table: Results";
+    const table = document.createElement("table");
+    const image = document.createElement("img");
+    image.alt = "Cell image";
+    table.append(image);
+    container.append(caption, table);
+
+    await processor.process(container, context);
+
+    expect([...container.children]).toEqual([table, caption]);
+    expect(caption.dataset.numberSuiteCaptionPlacement).toBe("below");
+    expect(image.dataset.numberSuiteTooltipTitle).toBe("");
+    expect(image.dataset.numberSuiteTooltipBody).toBe("Cell image");
   });
 
   it("centers caption types independently from virtual numbering", async () => {
@@ -398,7 +683,7 @@ describe("HeadingReadingProcessor", () => {
     ))).toEqual([true, false, true, false]);
     expect([...container.children].map((item) => (
       (item as HTMLElement).dataset.numberSuiteCaptionKind ?? null
-    ))).toEqual(["Figure", null, "Equation", null]);
+    ))).toEqual(["Figure", "Table", "Equation", "Code"]);
     expect(container.querySelector(".number-suite-caption-number")).toBeNull();
   });
 
@@ -428,14 +713,14 @@ describe("HeadingReadingProcessor", () => {
     await processor.process(container, context);
 
     expect(paragraph.textContent).toBe("See 1 chapter");
-    expect(paragraph.querySelector("a")?.textContent).toBe("chapter");
+    expect(paragraph.querySelector("a")?.textContent).toBe("1 chapter");
     expect(crossFile.textContent).toBe("Cross @Heading");
-    expect(paragraph.querySelector(".number-suite-reference-number")?.textContent).toBe("1 ");
+    expect(paragraph.querySelector("a.number-suite-reference-pill")?.textContent).toBe("1 chapter");
     await processor.process(container, context);
     expect(paragraph.textContent).toBe("See 1 chapter");
   });
 
-  it("fails closed for semantic references whose target has no visible valid number", async () => {
+  it("renders semantic-reference pills even when the heading has no visible number", async () => {
     const { processor, context, container } = harness(
       "# Heading\nSee @[[#Heading]]",
       settings({ showVirtualNumbers: false, showCrossReferences: true }),
@@ -453,8 +738,42 @@ describe("HeadingReadingProcessor", () => {
 
     await processor.process(container, context);
 
-    expect(paragraph.textContent).toBe("See @Heading");
-    expect(paragraph.querySelector(".number-suite-reference-number")).toBeNull();
+    expect(paragraph.textContent).toBe("See Heading");
+    expect(paragraph.querySelector("a.number-suite-reference-pill")?.textContent).toBe("Heading");
+  });
+
+  it("resolves a unique caption title without requiring a block ID", async () => {
+    const { processor, context, container, navigation } = harness(
+      "Figure: Miao\nSee @[[#Figure: Miao]]",
+      settings({ showCaptionNumbers: true, showCrossReferences: true }),
+    );
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Miao";
+    const paragraph = document.createElement("p");
+    paragraph.append("See @");
+    const link = document.createElement("a");
+    link.className = "internal-link";
+    link.dataset.href = "#Figure: Miao";
+    link.textContent = "Figure: Miao";
+    paragraph.append(link);
+    container.append(caption, paragraph);
+
+    await processor.process(container, context);
+
+    expect(caption.textContent).toBe("Figure 1: Miao");
+    expect(link.textContent).toBe("Figure 1: Miao");
+    expect(link.classList.contains("number-suite-reference-pill")).toBe(true);
+    expect(link.dataset.numberSuiteReferenceLine).toBe("0");
+
+    link.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(navigation.setEphemeralState).toHaveBeenCalledWith({ line: 0 });
+    expect(navigation.revealLeaf).toHaveBeenCalled();
+    expect(navigation.setCursor).toHaveBeenCalledWith({ line: 0, ch: 0 });
+    expect(navigation.scrollIntoView).toHaveBeenCalled();
+    expect(navigation.focus).toHaveBeenCalled();
+    expect(navigation.openFile).not.toHaveBeenCalled();
   });
 
   it("renumbers native footnote and endnote references with independent counters", async () => {
@@ -503,7 +822,7 @@ describe("HeadingReadingProcessor", () => {
   });
 
   it("fully restores note ARIA, list values, captions, and headings during unload cleanup", async () => {
-    const source = "# Heading\nFigure: Caption\nNote[^a].\n\n[^a]: A";
+    const source = "# Heading\nFigure: Caption\nSee @[[#Heading|section]]\nNote[^a].\n\n[^a]: A";
     const { processor, context, container } = harness(source, settings({
       showVirtualNumbers: true,
       showCaptionNumbers: true,
@@ -515,7 +834,13 @@ describe("HeadingReadingProcessor", () => {
     const caption = document.createElement("p");
     caption.textContent = "Figure: Caption";
     const paragraph = document.createElement("p");
-    paragraph.append("Note");
+    paragraph.append("See @");
+    const reference = document.createElement("a");
+    reference.className = "internal-link";
+    reference.dataset.href = "#Heading";
+    reference.textContent = "section";
+    reference.setAttribute("aria-label", "Native heading link");
+    paragraph.append(reference, document.createElement("br"), "Note");
     const sup = document.createElement("sup");
     sup.className = "footnote-ref";
     const link = document.createElement("a");
@@ -538,6 +863,9 @@ describe("HeadingReadingProcessor", () => {
     expect(link.getAttribute("aria-label")).toBe("Footnote 1");
     expect(item.getAttribute("value")).toBe("1");
     expect(caption.classList.contains("number-suite-caption-centered")).toBe(true);
+    expect(reference.textContent).toBe("section");
+    expect(reference.classList.contains("number-suite-reference-pill")).toBe(true);
+    expect(paragraph.textContent).not.toContain("@");
 
     cleanupNumberSuiteReadingDom(container);
 
@@ -549,6 +877,10 @@ describe("HeadingReadingProcessor", () => {
     expect(item.dataset.numberSuiteNoteLabel).toBeUndefined();
     expect(caption.classList.contains("number-suite-caption-centered")).toBe(false);
     expect(caption.dataset.numberSuiteCaptionKind).toBeUndefined();
+    expect(paragraph.textContent).toContain("See @section");
+    expect(reference.textContent).toBe("section");
+    expect(reference.getAttribute("aria-label")).toBe("Native heading link");
+    expect(reference.classList.contains("number-suite-reference-pill")).toBe(false);
     expect(heading.getAttribute("data-number-suite-mode")).toBeNull();
     expect(heading.querySelector(".number-suite-virtual")).toBeNull();
   });

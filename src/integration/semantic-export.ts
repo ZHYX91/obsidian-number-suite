@@ -7,11 +7,12 @@ import {
 import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import {
   blockTargetKey,
-  headingTargetKey,
   numberCaptions,
   parseDocumentSemantics,
-  uniqueHeadingTargets,
+  resolveUniqueSemanticTitleTarget,
+  scanSemanticSourceLines,
   type CaptionKind,
+  type SemanticDocument,
 } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
 import { numberHeadings } from "../core/numbering-engine";
@@ -96,13 +97,27 @@ export interface NumberSuiteInteropApiV2 {
 
 const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]{1,128})[ \t]*$/u;
 
-function targetIdentity(value: string): { readonly targetId: string | null; readonly authoredText: string } {
+function targetAuthoredText(value: string): string {
   const match = TRAILING_BLOCK_ID.exec(value);
-  if (match?.[1] == null) return { targetId: null, authoredText: value.trim() };
-  return {
-    targetId: match[1],
-    authoredText: value.slice(0, match.index).trim(),
-  };
+  return match?.[1] == null ? value.trim() : value.slice(0, match.index).trim();
+}
+
+function uniqueTargetIdForLine(
+  source: string,
+  line: number,
+  semantics: SemanticDocument,
+): string | null {
+  const ownerKeys = [...semantics.blockOwners.entries()]
+    .filter(([, ownerLine]) => ownerLine === line)
+    .map(([key]) => key);
+  if (ownerKeys.length !== 1) return null;
+  const ownerKey = ownerKeys[0];
+  if (ownerKey == null) return null;
+  for (const sourceLine of scanSemanticSourceLines(source)) {
+    const id = TRAILING_BLOCK_ID.exec(sourceLine.text)?.[1];
+    if (id != null && blockTargetKey(id) === ownerKey) return id;
+  }
+  return null;
 }
 
 function displaySegments(
@@ -134,13 +149,13 @@ function displaySegments(
 
 function headingTargets(
   source: string,
+  headings: readonly ParsedHeading[],
+  semantics: SemanticDocument,
   settings: NumberSuiteSettings,
   frontmatter: unknown,
 ): NumberSuiteHeadingTargetV2[] {
   const overrides = parseNoteOverrides(frontmatter);
   const effective = resolveNoteSettings(settings, overrides);
-  if (effective.disabled) return [];
-  const headings = parseAtxHeadings(source);
   const numbering = toNumberingOptions(settings, {
     schemeId: effective.schemeId,
     starts: effective.starts,
@@ -162,7 +177,7 @@ function headingTargets(
     const visibleContent = concealed?.sourceText == null
       ? item.heading.content
       : item.heading.content.slice(concealed.sourceText.length).trimStart();
-    const identity = targetIdentity(visibleContent);
+    const authoredText = targetAuthoredText(visibleContent);
     // The v2 consumer contract can insert a virtual list label without
     // rewriting authored Markdown. Replacing a stored prefix needs a future
     // source-edit carrier, so it is deliberately not exported as enabled.
@@ -181,8 +196,8 @@ function headingTargets(
       sourceEndUtf16: item.heading.lineTo,
       line: item.heading.line,
       level: item.heading.level,
-      targetId: identity.targetId,
-      authoredText: identity.authoredText,
+      targetId: uniqueTargetIdForLine(source, item.heading.line, semantics),
+      authoredText,
       enabled,
       derivedNumber: enabled ? item.label : null,
       counters: [...item.counters],
@@ -193,20 +208,19 @@ function headingTargets(
 
 function captionTargets(
   source: string,
+  semantics: SemanticDocument,
   settings: NumberSuiteSettings,
-  disabled: boolean,
 ): NumberSuiteCaptionTargetV2[] {
-  const semantics = parseDocumentSemantics(source);
   return numberCaptions(semantics.captions).map((caption) => {
-    const identity = targetIdentity(caption.content);
-    const enabled = !disabled && settings.showCaptionNumbers;
+    const authoredText = targetAuthoredText(caption.content);
+    const enabled = settings.showCaptionNumbers;
     return {
       sourceStartUtf16: caption.lineFrom,
       sourceEndUtf16: caption.lineTo,
       line: caption.line,
       kind: caption.kind,
-      targetId: identity.targetId,
-      authoredText: identity.authoredText,
+      targetId: uniqueTargetIdForLine(source, caption.line, semantics),
+      authoredText,
       enabled,
       derivedNumber: enabled ? String(caption.number) : null,
     };
@@ -214,21 +228,19 @@ function captionTargets(
 }
 
 function semanticReferences(
-  source: string,
+  semantics: SemanticDocument,
+  parsedHeadings: readonly ParsedHeading[],
   headings: readonly NumberSuiteHeadingTargetV2[],
   captions: readonly NumberSuiteCaptionTargetV2[],
 ): NumberSuiteReferenceV2[] {
-  const semantics = parseDocumentSemantics(source);
-  const parsedHeadings = parseAtxHeadings(source);
-  const uniqueHeadings = uniqueHeadingTargets(parsedHeadings);
   const targetByLine = new Map<number, NumberSuiteHeadingTargetV2 | NumberSuiteCaptionTargetV2>();
   for (const target of [...headings, ...captions]) {
-    if (target.enabled) targetByLine.set(target.line, target);
+    targetByLine.set(target.line, target);
   }
   const output: NumberSuiteReferenceV2[] = [];
   for (const reference of semantics.references) {
-    const targetLine = reference.kind === "heading"
-      ? uniqueHeadings.get(headingTargetKey(reference.target))
+    const targetLine = reference.kind === "title"
+      ? resolveUniqueSemanticTitleTarget(reference.target, parsedHeadings, semantics.captions)?.line
       : semantics.blockOwners.get(blockTargetKey(reference.target));
     const target = targetLine == null ? null : targetByLine.get(targetLine) ?? null;
     if (target == null) continue;
@@ -252,15 +264,33 @@ export function exportSemanticSnapshotV2(
   }
   const overrides = parseNoteOverrides(request.frontmatter);
   const disabled = resolveNoteSettings(settings, overrides).disabled;
-  const headings = headingTargets(request.authoredMarkdown, settings, request.frontmatter);
-  const captions = captionTargets(request.authoredMarkdown, settings, disabled);
+  if (disabled) {
+    return {
+      schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,
+      offsetEncoding: "utf16",
+      disabled: true,
+      headingTargets: [],
+      captionTargets: [],
+      references: [],
+    };
+  }
+  const semantics = parseDocumentSemantics(request.authoredMarkdown);
+  const parsedHeadings = parseAtxHeadings(request.authoredMarkdown);
+  const headings = headingTargets(
+    request.authoredMarkdown,
+    parsedHeadings,
+    semantics,
+    settings,
+    request.frontmatter,
+  );
+  const captions = captionTargets(request.authoredMarkdown, semantics, settings);
   return {
     schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,
     offsetEncoding: "utf16",
     disabled,
     headingTargets: headings,
     captionTargets: captions,
-    references: semanticReferences(request.authoredMarkdown, headings, captions),
+    references: semanticReferences(semantics, parsedHeadings, headings, captions),
   };
 }
 

@@ -63,13 +63,26 @@ governed by their own source and settings.
    relevant property.
 9. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
     `Listing:` is not compatible. Each type counts independently from 1 per Markdown file, with or
-    without a block ID, and display must never write a stored caption number. Each fixed type has an
+    without a block ID, and display must never write a stored caption number. A recognized caption
+    uses one filled pill whether numbering is on or off. Each fixed type has an
     independent centering toggle that also works when caption numbering is off; Figure and Equation
-    default on, while Table and Code default off and follow the theme.
-10. Only `@[[#Heading]]` and `@[[#^block-id]]`, with optional Obsidian aliases, request semantic
-    same-file enhancement. Ordinary links remain unchanged. Resolution consumes existing anchors
-    and fails closed unless the unique target has a visible valid heading or caption number.
-11. The plugin must not create, validate, migrate, repair, or otherwise manage heading or block IDs.
+    default on, while Table and Code default off and follow the theme. The caption type controls
+    semantic labeling and numbering, not carrier type: any caption may bind one adjacent standalone
+    image, table, display equation, or fenced code block. Zero or one blank line may separate them;
+    two blank lines break the binding; caption/object candidate ambiguity fails closed. Unbound
+    declarations remain captions. Each type independently displays above or below its bound object,
+    defaulting above, without rewriting source; the carrier anchor owns one compact visual gap.
+    Image/Figure hover details are enabled by default and separate the rendered caption from
+    meaningful replacement text while suppressing duplicates, sizes, and filename-only noise.
+10. Only explicit `@[[#target]]` and `@[[#^block-id]]` forms, with optional Obsidian aliases, request
+    same-file enhancement. A target may be one unique heading name or one unique complete typed
+    caption name such as `Figure: Architecture`. Heading and caption names share one ambiguity
+    space; zero or multiple matches fail closed. A number is included when visible but is not required.
+11. Display and caption insertion must never create or rewrite IDs. The explicit **Copy
+    cross-reference** context action may reuse an existing target block ID or, after exact preview
+    and stale-source validation, create one block ID at the target's valid Markdown position in one
+    editor transaction. Caption IDs are inline; heading IDs may use a following standalone line. Existing
+    title references are never migrated or auto-rewritten when later edits introduce ambiguity.
 12. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
     order, and repeated references reuse the first number. Footnotes display plain numbers and
@@ -92,6 +105,20 @@ governed by their own source and settings.
     Number Suite display labels, supports collapse and source-line navigation, and never modifies
     Markdown. Markdown-changing actions from Current note still require the normal preview and
     stale-source checks.
+16. The editor context menu offers caption insertion only on standalone image embeds, top-level
+    Markdown tables, standalone display equations, and top-level fenced code blocks. Figure, Table,
+    Equation, and Code captions are stored above their objects; an adjacent legacy Figure caption
+    below its image offers a bounded migration. The actual context-menu target takes precedence over
+    the editor cursor. Inline and table-cell images, math, and code never become independent caption
+    targets. A Structural Tables-owned Live Preview widget contributes the same Table action through
+    its rendered menu and maps its public source-table index back to the complete Markdown range;
+    an uncertain mapping fails closed. An adjacent case-only keyword mismatch is normalized instead of duplicated. Every action
+    requires a title preview, an immutable bounded plan, exact source revalidation, and one editor
+    transaction; unsupported, protected, stale, ambiguous, or already captioned targets fail closed.
+    An adjacent caption of any semantic type makes the carrier already captioned.
+17. Heading virtual numbers use compact filled pills, whole captions use wrapping filled pills, and
+    enhanced references use keyboard-focusable interactive outline pills. Target and reference
+    treatments differ by fill and border rather than color alone.
 
 <!-- section: safety-requirements -->
 ## Safety requirements

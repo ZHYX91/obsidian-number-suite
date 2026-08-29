@@ -3,12 +3,19 @@ import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import { numberHeadings } from "../core/numbering-engine";
 import {
   blockTargetKey,
-  headingTargetKey,
   numberCaptions,
   parseDocumentSemantics,
-  uniqueHeadingTargets,
+  resolveUniqueSemanticTitleTarget,
+  withoutTrailingBlockId,
 } from "../core/document-semantics";
-import type { CaptionKind } from "../core/document-semantics";
+import type { CaptionKind, NumberedCaption } from "../core/document-semantics";
+import {
+  bindCaptionObjects,
+  imageTextAtOffset,
+  scanCaptionObjects,
+  type CaptionSourcePlacement,
+} from "../core/caption-objects";
+import type { CaptionPlacement } from "../config/settings";
 import {
   numberDocumentNotes,
   parseDocumentNotes,
@@ -28,14 +35,29 @@ export interface SemanticDisplayDecoration {
   readonly label: string;
   readonly captionKind?: CaptionKind;
   readonly target?: string;
+  readonly targetLine?: number;
+  readonly targetKind?: "heading" | "caption";
+  readonly pillFrom?: number;
+  readonly pillTo?: number;
   readonly noteKind?: NoteKind;
   readonly noteId?: string;
   readonly noteNumber?: number;
+  readonly displayLabel?: string;
+  readonly sourcePlacement?: CaptionSourcePlacement;
+  readonly displayPlacement?: CaptionPlacement;
+  readonly objectFrom?: number;
+  readonly objectTo?: number;
+  readonly objectKind?: CaptionKind;
+  readonly tooltipTitle?: string;
+  readonly tooltipBody?: string;
+  readonly captionCentered?: boolean;
 }
 
 export interface SemanticDisplayPlanOptions {
   readonly showCaptionNumbers: boolean;
   readonly centeredCaptionKinds: readonly CaptionKind[];
+  readonly captionPlacements?: Readonly<Record<CaptionKind, CaptionPlacement>>;
+  readonly showImageCaptionTooltips?: boolean;
   readonly showCrossReferences: boolean;
   readonly showNoteNumbers: boolean;
   readonly noteSelections: readonly SelectionSpan[];
@@ -91,39 +113,116 @@ function visibleHeadingLabels(
   return labels;
 }
 
+function headingTitle(
+  heading: ParsedHeading,
+  visibleLabel: string | null,
+  templateSources: readonly CleanupTemplateSource[],
+): string {
+  const content = withoutTrailingBlockId(heading.content);
+  if (visibleLabel == null) return content;
+  const first = analyzeHeadingPrefix(heading, visibleLabel, templateSources).first;
+  if (first?.from === 0 && first.numberCore === visibleLabel) {
+    return withoutTrailingBlockId(heading.content.slice(first.to));
+  }
+  return content;
+}
+
+function captionReferenceLabel(
+  caption: NumberedCaption,
+  alias: string | null,
+  showNumber: boolean,
+): string {
+  const title = alias ?? caption.title;
+  const prefix = showNumber ? `${caption.kind} ${caption.number}` : caption.kind;
+  return `${prefix}: ${title}`;
+}
+
+function captionDisplayLabel(caption: NumberedCaption, showNumber: boolean): string {
+  const prefix = showNumber ? `${caption.kind} ${caption.number}` : caption.kind;
+  return `${prefix}: ${caption.title}`;
+}
+
+function normalizedTooltipPart(value: string): string {
+  return value.normalize("NFC").trim().replace(/[ \t]+/gu, " ").toLowerCase();
+}
+
+export interface ImageTooltipContent {
+  readonly title: string;
+  readonly body: string;
+}
+
+export function imageTooltipContentAtOffset(
+  source: string,
+  offset: number,
+  showCaptionNumbers: boolean,
+): ImageTooltipContent | null {
+  const semantics = parseDocumentSemantics(source);
+  const numbered = numberCaptions(semantics.captions);
+  const object = scanCaptionObjects(source).find((candidate) => (
+    candidate.kind === "Figure" && offset >= candidate.from && offset <= candidate.to
+  ));
+  if (object != null) {
+    const binding = bindCaptionObjects(source).find((candidate) => candidate.object.from === object.from);
+    const caption = binding == null
+      ? null
+      : numbered.find((candidate) => candidate.line === binding.caption.line) ?? null;
+    const title = caption == null ? "" : captionDisplayLabel(caption, showCaptionNumbers);
+    const body = caption != null
+      && normalizedTooltipPart(caption.title) === normalizedTooltipPart(object.replacementText)
+      ? ""
+      : object.replacementText;
+    return title.length === 0 && body.length === 0 ? null : { title, body };
+  }
+  const image = imageTextAtOffset(source, offset);
+  return image?.replacementText ? { title: "", body: image.replacementText } : null;
+}
+
 export function createSemanticDisplayPlan(
   source: string,
   headings: readonly ParsedHeading[],
   options: SemanticDisplayPlanOptions,
 ): SemanticDisplayDecoration[] {
-  if (
-    options.composing
-    || (
-      !options.showCaptionNumbers
-      && options.centeredCaptionKinds.length === 0
-      && !options.showCrossReferences
-      && !options.showNoteNumbers
-    )
-  ) return [];
+  if (options.composing) return [];
   const semantics = parseDocumentSemantics(source);
   const numberedCaptions = numberCaptions(semantics.captions);
+  const bindings = new Map(bindCaptionObjects(source).map((binding) => (
+    [binding.caption.line, binding] as const
+  )));
   const decorations: SemanticDisplayDecoration[] = [];
-  const labelsByLine = new Map<number, string>();
-
-  if (options.showCaptionNumbers) {
-    for (const caption of numberedCaptions) {
-      labelsByLine.set(caption.line, caption.label);
-      decorations.push({
-        kind: "caption",
-        from: caption.colonFrom,
-        to: caption.colonFrom,
-        line: caption.line,
-        label: String(caption.number),
-        captionKind: caption.kind,
-      });
-    }
+  for (const caption of numberedCaptions) {
+    if (selectionTouchesRange(caption.lineFrom, caption.lineTo, options.noteSelections)) continue;
+    const binding = bindings.get(caption.line);
+    const displayLabel = captionDisplayLabel(caption, options.showCaptionNumbers);
+    const replacementText = binding?.object.replacementText ?? "";
+    const tooltipBody = normalizedTooltipPart(replacementText) === normalizedTooltipPart(caption.title)
+      ? ""
+      : replacementText;
+    decorations.push({
+      kind: "caption",
+      from: caption.colonFrom,
+      to: caption.colonFrom,
+      pillFrom: caption.lineFrom,
+      pillTo: caption.lineTo,
+      line: caption.line,
+      label: options.showCaptionNumbers ? String(caption.number) : "",
+      displayLabel,
+      captionKind: caption.kind,
+      captionCentered: options.centeredCaptionKinds.includes(caption.kind),
+      ...(binding == null ? {} : {
+        sourcePlacement: binding.sourcePlacement,
+        displayPlacement: options.captionPlacements?.[caption.kind] ?? "above",
+        objectFrom: binding.object.visualFrom,
+        objectTo: binding.object.visualTo,
+        objectKind: binding.object.kind,
+      }),
+      ...(options.showImageCaptionTooltips === true && caption.kind === "Figure" && binding != null ? {
+        tooltipTitle: displayLabel,
+        tooltipBody,
+      } : {}),
+    });
   }
   for (const caption of numberedCaptions) {
+    if (selectionTouchesRange(caption.lineFrom, caption.lineTo, options.noteSelections)) continue;
     if (!options.centeredCaptionKinds.includes(caption.kind)) continue;
     decorations.push({
       kind: "caption-alignment",
@@ -166,22 +265,44 @@ export function createSemanticDisplayPlan(
   if (!options.showCrossReferences) return decorations;
 
   const visibleHeadings = visibleHeadingLabels(headings, options);
-  for (const [line, label] of visibleHeadings) labelsByLine.set(line, label);
-  const headingTargets = uniqueHeadingTargets(headings);
+  const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
+  const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
 
   for (const reference of semantics.references) {
-    const targetLine = reference.kind === "heading"
-      ? headingTargets.get(headingTargetKey(reference.target))
-      : semantics.blockOwners.get(blockTargetKey(reference.target));
-    const label = targetLine == null ? null : labelsByLine.get(targetLine) ?? null;
-    if (label == null || label.trim().length === 0) continue;
+    if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
+    const resolved = reference.kind === "title"
+      ? resolveUniqueSemanticTitleTarget(reference.target, headings, semantics.captions)
+      : null;
+    const targetLine = reference.kind === "block"
+      ? semantics.blockOwners.get(blockTargetKey(reference.target))
+      : resolved?.line;
+    if (targetLine == null) continue;
+    const heading = headingsByLine.get(targetLine);
+    const caption = captionsByLine.get(targetLine);
+    const targetKind = resolved?.kind ?? (heading != null ? "heading" : caption != null ? "caption" : null);
+    if (targetKind == null) continue;
+    let label: string;
+    if (targetKind === "caption" && caption != null) {
+      label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);
+    } else if (targetKind === "heading" && heading != null) {
+      const number = visibleHeadings.get(targetLine) ?? null;
+      const title = reference.alias ?? headingTitle(heading, number, options.templateSources);
+      label = number == null || title === number || title.startsWith(`${number} `)
+        ? title
+        : `${number} ${title}`;
+    } else {
+      continue;
+    }
+    if (label.trim().length === 0) continue;
     decorations.push({
       kind: "reference",
       from: reference.from,
-      to: reference.from + 1,
+      to: reference.to,
       line: reference.line,
       label,
       target: reference.kind === "block" ? `^${reference.target}` : reference.target,
+      targetLine,
+      targetKind,
     });
   }
   return decorations;

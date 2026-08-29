@@ -15,6 +15,13 @@ function renderExample(
   example.createEl("p", { text: result });
 }
 
+function renderReferencePreview(container: HTMLElement, text: string): void {
+  const preview = container.createDiv({ cls: "number-suite-settings-rendered-example" });
+  const pill = preview.createSpan({ cls: "number-suite-reference-pill", text });
+  pill.removeAttribute("tabindex");
+  pill.removeAttribute("role");
+}
+
 export function renderSameFileReferenceGuide(container: HTMLElement, t: Translate): void {
   const guide = container.createDiv({
     cls: "number-suite-settings-guide number-suite-reference-guide",
@@ -39,25 +46,38 @@ export function renderSameFileReferenceGuide(container: HTMLElement, t: Translat
     t("settings.references.guide.heading.source"),
     t("settings.references.guide.heading.result"),
   );
+  renderReferencePreview(body, t("settings.references.guide.heading.preview"));
   renderExample(
     body,
     t("settings.references.guide.caption.title"),
     t("settings.references.guide.caption.source"),
     t("settings.references.guide.caption.result"),
   );
+  renderReferencePreview(body, t("settings.references.guide.caption.preview"));
+
+  body.createEl("strong", {
+    cls: "number-suite-reference-guide-section-title",
+    text: t("settings.references.guide.methods.title"),
+  });
+  const requirements = body.createEl("ul", { cls: "number-suite-reference-guide-list" });
+  for (const key of [
+    "settings.references.guide.methods.manual",
+    "settings.references.guide.methods.copy",
+    "settings.references.guide.methods.captionId",
+  ] as const) {
+    requirements.createEl("li", { text: t(key) });
+  }
 
   body.createEl("strong", {
     cls: "number-suite-reference-guide-section-title",
     text: t("settings.references.guide.requirements.title"),
   });
-  const requirements = body.createEl("ul", { cls: "number-suite-reference-guide-list" });
+  const resolution = body.createEl("ul", { cls: "number-suite-reference-guide-list" });
   for (const key of [
     "settings.references.guide.requirements.heading",
     "settings.references.guide.requirements.caption",
     "settings.references.guide.requirements.sameFile",
-  ] as const) {
-    requirements.createEl("li", { text: t(key) });
-  }
+  ] as const) resolution.createEl("li", { text: t(key) });
 
   body.createEl("strong", {
     cls: "number-suite-reference-guide-section-title",

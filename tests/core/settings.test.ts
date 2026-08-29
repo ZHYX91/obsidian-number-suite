@@ -34,9 +34,15 @@ describe("settings", () => {
       centerEquationCaptions: false,
       centerCodeCaptions: true,
       noteDisplayMode: "source",
+      figureCaptionPlacement: "below",
+      tableCaptionPlacement: "sideways",
+      showImageCaptionTooltips: false,
     });
     expect(centeredCaptionKinds(settings)).toEqual(["Table", "Code"]);
     expect(settings.noteDisplayMode).toBe("source");
+    expect(settings.figureCaptionPlacement).toBe("below");
+    expect(settings.tableCaptionPlacement).toBe("above");
+    expect(settings.showImageCaptionTooltips).toBe(false);
   });
 
   it("accepts only the versioned persisted-data envelope", () => {

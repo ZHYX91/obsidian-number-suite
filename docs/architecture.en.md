@@ -50,9 +50,9 @@ before a custom scheme can be saved.
 `document-semantics.ts` is the pure scanner for the four fixed caption declarations and explicit
 same-file `@` references. It skips protected Markdown regions, creates no IDs, treats duplicate
 targets as ambiguous, and restarts all four independent caption counters for each source document.
-`semantic-display-plan.ts` combines those results with the heading display plan. A heading reference
-receives a label only from a number that will actually remain visible; a caption reference receives
-its fixed type label only when caption display is enabled.
+`semantic-display-plan.ts` combines those results with the heading display plan. Heading and complete
+typed caption names share one candidate set, so exactly one target must remain. Reference labels use
+the alias or target title and include a heading/caption number only when it is visible.
 
 `note-semantics.ts` parses default/explicit footnotes and endnotes, numbers each kind separately in
 first-reference order, and reuses numbers for repeated references.
@@ -76,6 +76,16 @@ classes and performs no file write. The snapshot shares the parsers and numberin
 the display plan, so consumers do not re-infer numbers. If a stored prefix must be concealed but a
 consumer cannot express removal of that stored prefix, the affected heading is not presented as
 losslessly materializable; the consumer must fail closed or use its own safe fallback.
+
+A fully ignored note returns `disabled: true` with empty heading, caption, and reference arrays.
+Every exported target range covers its complete physical source line in UTF-16, excluding the line
+ending. `authoredText` excludes a trailing block-ID token and may therefore be empty for a legal
+ID-only caption such as `Equation: ^energy`. `targetId` reports exactly one unambiguous authored ID,
+whether inline or on the supported following standalone line; duplicate or multiple candidate IDs
+fail closed to `null`, and references through a duplicated ID are omitted. Display literals retain Number Suite's
+general template boundary, including percent characters and literals longer than 32 characters.
+A narrower consumer format must validate that boundary in its own adapter. Caption visual
+placement, alignment, pills, and tooltips never change these source facts.
 
 <!-- section: display-adapters -->
 ## Display adapters
@@ -104,11 +114,24 @@ never passed to `innerHTML`. An H7-H9 line must map to a standalone paragraph wh
 still contains the exact extension marker; otherwise the section fails closed.
 
 Caption and reference widgets use the same CodeMirror lifecycle and full-source Reading View cache,
-but never enter `TransformPlan` or any Editor/Vault mutation path. Reading View preserves the native
-Obsidian link element and replaces only the explicit leading `@` while enhanced. Cleanup restores
-that marker. Embedded Markdown is keyed by `context.sourcePath`, so counters and targets never leak
-between the embedding file and embedded source. Caption alignment is emitted as a separate line or
-paragraph decoration, so it remains independent from whether a virtual caption number is present.
+but never enter `TransformPlan` or a display-triggered Editor/Vault mutation path. `caption-objects.ts`
+authenticates standalone images, Markdown tables, display equations, and fenced code blocks. Caption
+type and carrier type are independent. A candidate graph accepts zero or one intervening blank line
+and emits only one-to-one bindings; two blank lines and either-side ambiguity fail closed. Owned
+object ranges may include following block IDs, while separate visual ranges stop at the rendered
+carrier boundary. Image replacement text remains separate from filename suggestions.
+Caption replacements render the whole authored line as one widget; a selection touching the line
+removes that replacement so exact source is editable. A direct CodeMirror `StateField`, rather than
+a view-plugin decoration callback, supplies every bound caption as a block widget above or below the
+carrier visual range. Widget-internal padding owns the compact gap; source and object ranges remain
+unchanged. Unbound captions remain line widgets. Reference
+decorations replace the complete visual source with a focusable pill and exact source-line target.
+Reading View preserves the native Obsidian link element while storing its original text, ARIA, and
+removed `@`; cleanup restores all of them. Embedded Markdown is keyed by `context.sourcePath`, so counters and targets never leak
+between the embedding file and embedded source. Caption alignment and visual placement remain
+independent from whether a virtual caption number is present. Reading View locates carriers by their
+actual object kind and records stable comment anchors for display-only movement and cleanup. Image and caption tooltip metadata feeds one document-level
+structured tooltip controller and is removed during cleanup.
 
 Footnotes and endnotes also enter only the display decoration plan. CodeMirror replaces visible
 reference and definition labels, but drops a replacement whenever the selection touches its source
@@ -126,6 +149,29 @@ when the action starts from a focused sidebar. Batch work saves open editors, pl
 file, shows an aggregate preview, revalidates all sources, persists a bounded recovery snapshot,
 then performs exact-content conditional replacements. Failure rolls back only files that still
 contain plugin output. Concurrent edits are preserved and recovery remains available.
+
+Caption context actions use a separate pure `CaptionInsertionPlan`. The scanner accepts only
+standalone image syntax, a validated top-level Markdown table, a display equation, or a fenced code
+block at the actual context-menu position (with cursor fallback), excludes inline/table-cell and
+protected containers, and suppresses adjacent captions of every semantic type. A case-only adjacent keyword becomes
+a bounded normalization plan; a legacy Figure below its image becomes a bounded relocation plan.
+The modal collects and previews one
+single-line title; confirmation revalidates the file path, entire editor source, and original target
+before applying exactly one editor change.
+
+`StructuralTableCaptionMenuBridge` observes only Structural Tables' public rendered host class and
+`data-structural-source-table-index` marker. It contributes the same action to `Menu.forEvent`, maps
+that index through Number Suite's independent Markdown table scanner, preserves multi-row headers,
+and fails closed if the host, Markdown view, index, or source table cannot be resolved. Number Suite
+does not import Structural Tables code and remains independently installable.
+
+Stable-reference context actions use a separate pure `StableReferencePlan`. Target recognition is
+limited to the heading or fixed caption at the actual context-menu position. Existing inline or immediately
+following IDs produce no write. Otherwise the plan generates a collision-safe ID at the valid target
+position (inline on captions, following line for headings), exact
+before/after preview, and readable aliased `@[[#^id|title]]` link. Confirmation revalidates the file,
+full source, target, and generated ID before one editor transaction; clipboard output follows the
+explicit user action.
 
 <!-- section: persistence -->
 ## Persistence

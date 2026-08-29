@@ -46,12 +46,18 @@ Markdown.
 - Open a Number Suite document outline for H1-H9 headings and Figure, Table, Equation, and Code
   captions; select an item to navigate to its source line.
 - Exclude an exact heading or its whole subtree without consuming a number.
-- Show display-only numbers for `Figure:`, `Table:`, `Equation:`, and `Code:` captions; each type
-  starts at 1 in every Markdown file and captions do not require IDs.
+- Show `Figure:`, `Table:`, `Equation:`, and `Code:` captions as filled pills, with optional
+  display-only numbers that restart independently in every Markdown file.
 - Center each caption type independently; Figure and Equation captions are centered by default,
   while Table and Code captions follow the current theme.
-- Enhance explicit same-file `@[[#Heading]]` and `@[[#^block-id]]` references, including aliases,
-  only when the existing target has a visible valid number.
+- Place each bound caption above or below its object in Live Preview and Reading View without
+  rewriting Markdown; newly created captions are stored above their object.
+- Show a structured hover card on an image or its Figure caption, with the rendered caption as the
+  title and meaningful image replacement text as the content.
+- Show explicit same-file heading, caption-title, and stable block references as interactive outline
+  pills; include a target number when available, but do not require one.
+- Copy a stable cross-reference from a heading or caption context menu, reusing an existing block ID
+  or previewing one new ID before it is created.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
 - Override display, concealment, scheme, cleanup scope, starting counters, or full opt-out per note.
@@ -111,18 +117,53 @@ each extended heading in its own paragraph, with a blank line around it, when Re
 enhancement is required. The Markdown source remains canonical and unchanged by display-only use.
 
 Caption and cross-reference display never writes Markdown. A caption is a top-level paragraph that
-starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. The
-plugin consumes only user-authored Obsidian heading links and block IDs; it never creates, validates,
-migrates, repairs, or otherwise manages anchors. Normal `[[#...]]` links remain entirely Obsidian's.
+starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. A
+recognized caption is displayed as one filled pill; its optional number is part of that pill. Normal
+`[[#...]]` links remain entirely Obsidian's.
+The caption keyword controls its semantic label and counter, while the adjacent standalone block is
+its visual carrier. Any caption type may bind an image, Markdown table, display equation, or fenced
+code block, so a `Figure:` caption can label a table that lays out a composite figure. Zero or one
+blank line may separate the pair; two blank lines separate them. A caption with candidates on both
+sides, or an object with multiple candidate captions, stays unbound. An unbound caption remains a
+numbered, referenceable caption pill but has no object placement or object hover behavior.
 Caption alignment is independent from caption numbering. Figure and Equation captions are centered
 by default; the four fixed caption types can each be changed independently in the Captions tab.
+Each type also has an independent visual **Above the object** or **Below the object** setting; all
+four default to above. Every bound caption is anchored to the carrier block with the same compact,
+theme-independent gap; changing position never rewrites the file. When the cursor enters a caption
+in Live Preview, its pill disappears and the exact authored `Figure: ... ^id`-style source returns
+at its stored location. Source Mode always shows the authored Markdown. An individual
+cross-reference likewise reveals only its own `@[[...]]` source while it is being edited.
+
+In editing mode, right-click a standalone `![[image.png]]` or `![alt](image.png)` image to add its
+Figure caption; right-click any row of a top-level Markdown table for Table, a standalone `$$...$$`
+display equation for Equation, or a top-level fenced code block for Code. The action follows the
+actual right-click target, so an image does not need to be selected first. The same Table action is
+contributed to the rendered context menu when Structural Tables owns a table in Live Preview,
+including ordinary-table takeover and multi-row structural headers. Either plugin also continues
+to work normally when the other is absent.
+
+The dialog previews the exact Markdown line before one bounded editor transaction. All newly
+created captions are stored above their objects. A legacy Figure caption found immediately below
+its image offers a bounded move-above action. If the adjacent keyword differs only in case, such as
+`figure:`, the same action corrects it instead of adding a duplicate. An existing adjacent caption
+of any type suppresses a second caption action. Existing exact captions, note
+embeds, inline images, inline math, inline code, and images/math/code inside table cells do not offer
+an independent caption action. Cross-references may still be written inside table cells. Creating a
+caption never creates a block ID.
+
+**Show image and Figure-caption hover details** is on by default. Hovering either member of a bound
+Figure pair shows the rendered caption and non-size wiki replacement text or Markdown alt text.
+Equal caption and replacement text is shown once; filename-only and `500`/`500x300` size values are
+suppressed. An inline or table-cell image may show replacement text only, but remains ineligible for
+its own Figure caption.
 
 ### Same-file cross references
 
-Open **Settings → Number Suite → Cross references** and enable **Show same-file
-cross-reference numbers**. Prefix an Obsidian same-file heading or block link with `@`. The target
-must already have a visible valid number: enable virtual heading numbers, leave a reliably recognized
-stored heading number visible, or enable caption numbering for a caption block target.
+Open **Settings → Number Suite → Cross references** and enable **Show same-file cross references**.
+Prefix a same-file target link with `@`. A unique heading can be referenced by heading name, and a
+unique caption can be referenced by its complete typed name. A number is included when the target
+has one, but heading and caption numbering can both be off.
 
 ```markdown
 ## Installation
@@ -131,16 +172,26 @@ See @[[#Installation]] or @[[#Installation|installation section]].
 
 Figure: Architecture ^fig-architecture
 
-See @[[#^fig-architecture]] or @[[#^fig-architecture|architecture diagram]].
+See @[[#Figure: Architecture]] or @[[#^fig-architecture|architecture diagram]].
 ```
 
-If the heading displays as `1` and the caption displays as `Figure 1`, the references display as
-`1 Installation`, `1 installation section`, `Figure 1 fig-architecture`, and `Figure 1 architecture
-diagram`. The leading `@` is replaced only in the visual presentation; the native Obsidian link,
-alias, navigation target, block ID, and Markdown source remain unchanged.
+If the heading displays as `1` and the caption displays as `Figure 1: Architecture`, the reference
+pills display as `1 Installation`, `1 installation section`, `Figure 1: Architecture`, and
+`Figure 1: architecture diagram`. With numbering off, the same references remain pills but omit the
+number. Heading virtual numbers use compact filled pills; caption targets use filled pills; references
+use an interactive outline treatment so targets and links remain distinguishable.
 
-Ordinary `[[#...]]` links, cross-file links, missing or duplicate targets, and targets without a
-visible valid number remain unchanged. The reference and target must be in the same Markdown file.
+For a readable manual reference, use `@[[#Heading]]` or a complete caption name such as
+`@[[#Figure: Architecture]]`. Heading and caption names share one same-file lookup space; zero or
+multiple exact targets fail closed. Untyped names resolve only as headings. Number Suite never
+auto-rewrites an existing title reference if a later edit introduces ambiguity.
+
+For a stable reference, right-click a heading or caption and choose **Copy cross-reference**. If the
+target already has a block ID, Number Suite reuses it and copies immediately. Otherwise it previews
+one bounded Markdown change and creates an ID only after confirmation. Caption IDs are appended to
+the caption line; heading IDs use the valid following block-ID line. It then copies a reference with
+a readable alias. This explicit command is the only caption/reference workflow that creates an ID.
+Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged.
 
 ### Footnotes and endnotes
 
@@ -162,7 +213,7 @@ scanning.
 Settings use one accessible seven-tab surface on every supported Obsidian version: General,
 Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
 and batch. The tab itself identifies the current section, so its content starts directly with the
-first control or guide. Headings are reserved for genuine subgroups such as caption alignment,
+first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
 appearance, and batch operations.
 
 ### Numbering schemes
@@ -219,6 +270,11 @@ number-suite-start:
   supported.
 - Caption counters and semantic-reference resolution are also scoped to one Markdown file. Embedded
   files use their own source and counters; cross-file semantic references are not recognized.
+- Number Suite keeps caption semantics separate from carrier structure during DocWen handoff. The
+  current exact-two contract preserves all four caption labels on any supported carrier; for
+  example, `Figure:` on a Markdown table remains a native table while using the Figure counter and
+  cross-reference label. Release acceptance still validates this against the exact DocWen candidate
+  instead of inferring conversion support from display behavior alone.
 - Footnote and endnote counters are independent and file-scoped. Obsidian still owns note anchors,
   navigation, layout, and definition rendering; the plugin changes only validated visible labels.
 - Top-level ATX H1-H6 plus Number Suite/DocWen H7-H9 extension headings are handled. Setext

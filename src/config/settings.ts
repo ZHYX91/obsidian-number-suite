@@ -16,6 +16,8 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
 import type { CaptionKind } from "../core/document-semantics";
 
+export type CaptionPlacement = "above" | "below";
+
 export interface NumberSuiteSettings {
   language: "auto" | "en" | "zh";
   showVirtualNumbers: boolean;
@@ -25,6 +27,11 @@ export interface NumberSuiteSettings {
   centerTableCaptions: boolean;
   centerEquationCaptions: boolean;
   centerCodeCaptions: boolean;
+  figureCaptionPlacement: CaptionPlacement;
+  tableCaptionPlacement: CaptionPlacement;
+  equationCaptionPlacement: CaptionPlacement;
+  codeCaptionPlacement: CaptionPlacement;
+  showImageCaptionTooltips: boolean;
   showCrossReferences: boolean;
   showNoteNumbers: boolean;
   noteDisplayMode: "formatted" | "source";
@@ -88,6 +95,11 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   centerTableCaptions: false,
   centerEquationCaptions: true,
   centerCodeCaptions: false,
+  figureCaptionPlacement: "above",
+  tableCaptionPlacement: "above",
+  equationCaptionPlacement: "above",
+  codeCaptionPlacement: "above",
+  showImageCaptionTooltips: true,
   showCrossReferences: true,
   showNoteNumbers: true,
   noteDisplayMode: "formatted",
@@ -250,6 +262,30 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
       DEFAULT_SETTINGS.centerEquationCaptions,
     ),
     centerCodeCaptions: booleanOr(raw.centerCodeCaptions, DEFAULT_SETTINGS.centerCodeCaptions),
+    figureCaptionPlacement: oneOf(
+      raw.figureCaptionPlacement,
+      ["above", "below"] as const,
+      DEFAULT_SETTINGS.figureCaptionPlacement,
+    ),
+    tableCaptionPlacement: oneOf(
+      raw.tableCaptionPlacement,
+      ["above", "below"] as const,
+      DEFAULT_SETTINGS.tableCaptionPlacement,
+    ),
+    equationCaptionPlacement: oneOf(
+      raw.equationCaptionPlacement,
+      ["above", "below"] as const,
+      DEFAULT_SETTINGS.equationCaptionPlacement,
+    ),
+    codeCaptionPlacement: oneOf(
+      raw.codeCaptionPlacement,
+      ["above", "below"] as const,
+      DEFAULT_SETTINGS.codeCaptionPlacement,
+    ),
+    showImageCaptionTooltips: booleanOr(
+      raw.showImageCaptionTooltips,
+      DEFAULT_SETTINGS.showImageCaptionTooltips,
+    ),
     showCrossReferences: booleanOr(raw.showCrossReferences, DEFAULT_SETTINGS.showCrossReferences),
     showNoteNumbers: booleanOr(raw.showNoteNumbers, DEFAULT_SETTINGS.showNoteNumbers),
     noteDisplayMode: oneOf(
@@ -359,6 +395,17 @@ export function centeredCaptionKinds(
   if (settings.centerEquationCaptions) kinds.push("Equation");
   if (settings.centerCodeCaptions) kinds.push("Code");
   return kinds;
+}
+
+export function captionPlacements(
+  settings: NumberSuiteSettings,
+): Readonly<Record<CaptionKind, CaptionPlacement>> {
+  return {
+    Figure: settings.figureCaptionPlacement,
+    Table: settings.tableCaptionPlacement,
+    Equation: settings.equationCaptionPlacement,
+    Code: settings.codeCaptionPlacement,
+  };
 }
 
 export function toNumberingOptions(

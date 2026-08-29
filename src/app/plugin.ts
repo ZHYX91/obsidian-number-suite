@@ -12,6 +12,8 @@ import {
 } from "../application/display-preferences";
 import { BatchController } from "../commands/batch";
 import { runCurrentNoteOperation } from "../commands/current-note";
+import { addCaptionContextMenuItem } from "../commands/caption-insertion";
+import { addStableReferenceContextMenuItem } from "../commands/stable-reference";
 import { createTranslator, type Translate } from "../config/i18n";
 import {
   DEFAULT_SETTINGS,
@@ -43,6 +45,8 @@ import {
   createNumberSuiteInteropApiV2,
   type NumberSuiteInteropApiV2,
 } from "../integration/semantic-export";
+import { StructuralTableCaptionMenuBridge } from "../integration/structural-table-caption-menu";
+import { SemanticTooltipController } from "../ui/semantic-tooltip";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = { ...DEFAULT_SETTINGS };
@@ -94,6 +98,13 @@ export default class NumberSuitePlugin extends Plugin {
       openGlobalSettings: () => this.openGlobalSettings(),
     }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
+    this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
+      const contextOffset = this.displayController?.consumeContextMenuOffset(editor) ?? undefined;
+      addCaptionContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset);
+      addStableReferenceContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset);
+    }));
+    new StructuralTableCaptionMenuBridge(this.app, () => this.translate()).register(this);
+    new SemanticTooltipController(this.app).register(this);
     this.registerCommands();
     this.addRibbon();
     this.applyAppearance();

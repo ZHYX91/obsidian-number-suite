@@ -14,6 +14,15 @@ All notable changes to Number Suite are documented here.
 - Added a persistent right sidebar with Document outline and Current note tabs. The outline nests
   H1-H9 headings and fixed captions, supports collapse and source-line navigation, and shares the
   effective Number Suite display plan.
+- Added previewed editor context actions for placing Figure, Table, Equation, and Code captions
+  above standalone objects, using the actual right-click target, including case-only keyword repair,
+  legacy below-image Figure migration, and stale-source checks.
+- Added fail-closed Table-caption menu interoperability for Structural Tables-owned Live Preview
+  widgets, including ordinary-table takeover and consecutive structural header rows.
+- Added one **Copy cross-reference** context action for headings and captions. It reuses an existing
+  block ID or previews one bounded valid-position ID insertion before copying a readable stable link.
+- Added per-type display-only caption placement and a default-on structured image/Figure hover card
+  with replacement-text deduplication and size/filename suppression.
 
 ### Changed
 
@@ -21,6 +30,13 @@ All notable changes to Number Suite are documented here.
   new numbering into old notes.
 - The ribbon icon now opens the sidebar; current-note Markdown actions keep their separate preview
   and stale-source checks.
+- Heading virtual numbers, whole captions, and explicit same-file references now use a related pill
+  system with filled target treatments and interactive outlined reference treatments.
+- Same-file references no longer require a visible target number. Unique full caption names such as
+  `@[[#Figure: Architecture]]` resolve without a block ID; ambiguous heading/caption names fail closed.
+- Caption and cross-reference settings now include visual source-to-result examples and explain
+  manual readable links, stable right-click links, ambiguity, ID creation boundaries, visual
+  placement, and image hover behavior.
 
 ## 0.2.0 - 2026-08-28
 

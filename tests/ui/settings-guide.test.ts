@@ -107,8 +107,8 @@ describe("settings guide", () => {
       expect(imperative).toContain(`${renderer}(container, t)`);
       expect(declarative).toContain(`${renderer}(container, t)`);
     }
-    expect(messages).toContain("Figure: Architecture\\nTable: Results");
-    expect(messages).toContain("Figure: 系统架构\\nTable: 结果");
+    expect(messages).toContain("Figure: Architecture\\n\\n![[architecture.png]]");
+    expect(messages).toContain("Figure: 系统架构\\n\\n![[architecture.png]]");
     expect(messages).toContain("Open current note controls");
     expect(messages).toContain("打开当前笔记控制面板");
     expect(messages).toContain("Undo the most recent batch");
