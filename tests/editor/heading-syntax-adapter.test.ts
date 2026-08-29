@@ -98,7 +98,7 @@ describe("Live Preview note widgets", () => {
 });
 
 describe("isHeadingCompositionActive", () => {
-  it("suppresses decorations as soon as the DOM composition event starts", () => {
+  it("marks composition active as soon as the DOM composition event starts", () => {
     expect(isHeadingCompositionActive(false, true)).toBe(true);
     expect(isHeadingCompositionActive(true, false)).toBe(true);
     expect(isHeadingCompositionActive(false, false)).toBe(false);
@@ -127,7 +127,7 @@ describe("isHeadingCompositionActive", () => {
     });
   });
 
-  it("keeps decorations suppressed across consecutive touch IME compositions", () => {
+  it("keeps composition state active across consecutive touch IME compositions", () => {
     const touch = transitionHeadingTouchEditing(false, "prepare");
     const firstStart = transitionHeadingComposition(false, "start");
     const firstEnd = transitionHeadingComposition(firstStart.eventCompositionActive, "end");

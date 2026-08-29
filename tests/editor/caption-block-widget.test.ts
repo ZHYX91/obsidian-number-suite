@@ -394,6 +394,43 @@ describe("anchored caption block widgets", () => {
     expect(view.dom.querySelector(".number-suite-caption-widget")?.textContent).toBe("Figure 1: Miao");
   });
 
+  it("keeps inactive anchored captions visible while another block is edited", () => {
+    const source = [
+      "Figure: First",
+      "",
+      "![[first.png]]",
+      "",
+      "Ordinary paragraph",
+      "",
+      "Figure: Second",
+      "",
+      "![[second.png]]",
+    ].join("\n");
+    const controller = new HeadingDisplayController(() => DEFAULT_SETTINGS);
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: source,
+        selection: { anchor: source.indexOf("Ordinary") },
+        extensions: [editorLivePreviewField, controller.createExtension()],
+      }),
+    });
+    views.push(view);
+
+    expect(Array.from(view.dom.querySelectorAll(".number-suite-caption-widget"))
+      .map((widget) => widget.textContent)).toEqual([
+      "Figure 1: First",
+      "Figure 2: Second",
+    ]);
+
+    view.dispatch({ selection: { anchor: source.indexOf("First") } });
+    expect(Array.from(view.dom.querySelectorAll(".number-suite-caption-widget"))
+      .map((widget) => widget.textContent)).toEqual(["Figure 2: Second"]);
+    expect(view.dom.textContent).toContain("Figure: First");
+  });
+
   it("keeps the anchored caption visible when carrier DOM lookup fails", () => {
     const view = createView("below");
     const widget = view.dom.querySelector<HTMLElement>(".number-suite-caption-widget");

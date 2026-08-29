@@ -50,13 +50,16 @@ export function createDisplayPlan(
   headings: readonly ParsedHeading[],
   options: DisplayPlanOptions,
 ): DisplayDecorationPlan[] {
-  if ((!options.showVirtualNumbers && !options.concealStoredNumbers) || options.composing) {
+  if (!options.showVirtualNumbers && !options.concealStoredNumbers) {
     return [];
   }
   const numbered = numberHeadings(headings, options.numbering);
   const decorations: DisplayDecorationPlan[] = [];
   for (const item of numbered) {
     const { heading } = item;
+    if (options.composing && selectionTouchesHeading(heading, options.selections)) {
+      continue;
+    }
     if (heading.content.trim().length === 0) {
       continue;
     }

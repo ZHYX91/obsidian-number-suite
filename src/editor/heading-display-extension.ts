@@ -51,7 +51,6 @@ import {
 import { applySemanticTooltip, clearSemanticTooltip } from "../ui/semantic-tooltip";
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
-const suppressAnchoredCaptionDisplay = StateEffect.define<boolean>();
 
 export type HeadingCompositionEvent = "start" | "end";
 export type HeadingTouchEditingEvent = "prepare" | "finish";
@@ -512,19 +511,13 @@ function parseOverrides(source: string): NoteOverrides | null {
   }
 }
 
-interface AnchoredCaptionDecorationState {
-  readonly suppressed: boolean;
-  readonly decorations: DecorationSet;
-}
-
 function buildAnchoredCaptionDecorations(
   state: EditorState,
   settingsProvider: () => NumberSuiteSettings,
-  suppressed: boolean,
 ): DecorationSet {
   const settings = settingsProvider();
   const livePreview = state.field(editorLivePreviewField, false) ?? false;
-  if (suppressed || !livePreview || !settings.enableLivePreview) return Decoration.none;
+  if (!livePreview || !settings.enableLivePreview) return Decoration.none;
   const source = state.doc.toString();
   const overrides = parseOverrides(source) ?? parseNoteOverrides(null);
   const effective = resolveNoteSettings(settings, overrides);
@@ -609,16 +602,9 @@ export class HeadingDisplayController {
       filePath: string | null,
       timerWindow: Window | null,
     ): void => this.recordContextMenuOffset(editor, offset, filePath, timerWindow);
-    const anchoredCaptionField = StateField.define<AnchoredCaptionDecorationState>({
-      create: (state) => ({
-        suppressed: false,
-        decorations: buildAnchoredCaptionDecorations(state, settingsProvider, false),
-      }),
+    const anchoredCaptionField = StateField.define<DecorationSet>({
+      create: (state) => buildAnchoredCaptionDecorations(state, settingsProvider),
       update: (value, transaction) => {
-        const suppression = transaction.effects.find((effect) => (
-          effect.is(suppressAnchoredCaptionDisplay)
-        ));
-        const suppressed = suppression?.value ?? value.suppressed;
         const refreshed = transaction.effects.some((effect) => effect.is(refreshHeadingDisplay));
         const modeChanged = transaction.startState.field(editorLivePreviewField, false)
           !== transaction.state.field(editorLivePreviewField, false);
@@ -627,16 +613,12 @@ export class HeadingDisplayController {
           && transaction.selection == null
           && !refreshed
           && !modeChanged
-          && suppression == null
         ) {
           return value;
         }
-        return {
-          suppressed,
-          decorations: buildAnchoredCaptionDecorations(transaction.state, settingsProvider, suppressed),
-        };
+        return buildAnchoredCaptionDecorations(transaction.state, settingsProvider);
       },
-      provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
+      provide: (field) => EditorView.decorations.from(field),
     });
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
@@ -936,10 +918,7 @@ export class HeadingDisplayController {
           ) {
             // Let CodeMirror place the cursor first, then remove virtual widgets
             // before Android opens an IME composition session.
-            view.dispatch({ effects: [
-              refreshHeadingDisplay.of(undefined),
-              suppressAnchoredCaptionDisplay.of(true),
-            ] });
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
           }
         }, 0);
         return false;
@@ -958,10 +937,7 @@ export class HeadingDisplayController {
           if (view.dom.isConnected) {
             // Restore virtual display once, after CodeMirror and the IME finish
             // their composition-end bookkeeping.
-            view.dispatch({ effects: [
-              refreshHeadingDisplay.of(undefined),
-              suppressAnchoredCaptionDisplay.of(false),
-            ] });
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
           }
         }, 0);
         return false;
@@ -971,10 +947,7 @@ export class HeadingDisplayController {
         const timerWindow = view.dom.ownerDocument.defaultView;
         if (requestRefresh) timerWindow?.setTimeout(() => {
           if (view.dom.isConnected && !view.composing) {
-            view.dispatch({ effects: [
-              refreshHeadingDisplay.of(undefined),
-              suppressAnchoredCaptionDisplay.of(false),
-            ] });
+            view.dispatch({ effects: refreshHeadingDisplay.of(undefined) });
           }
         }, 0);
         return false;

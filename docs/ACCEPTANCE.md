@@ -179,7 +179,9 @@ Source markers are disabled by default. Before enabling them for a release claim
   and verify tab, row, and collapse controls have at least 44-pixel touch height with no clipping or
   horizontal drift at phone width.
 - [ ] In Live Preview, verify virtual numbers, stored-number concealment, cursor reveal, selection,
-  copy, and Chinese IME composition. Switch to Reading View and confirm the same numbering model.
+  copy, and Chinese IME composition. While editing, confirm only the active heading, caption, or
+  reference reveals source and unrelated virtual decorations remain visible. Switch to Reading View
+  and confirm the same numbering model.
 - [ ] Preview and apply a current-note write, then undo and redo once. Run cleanup and confirm the
   original Markdown is restored without changing unrelated content.
 - [ ] Open all seven settings tabs at phone width, change one setting, reload the plugin, and confirm

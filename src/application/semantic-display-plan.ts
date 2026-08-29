@@ -182,7 +182,6 @@ export function createSemanticDisplayPlan(
   headings: readonly ParsedHeading[],
   options: SemanticDisplayPlanOptions,
 ): SemanticDisplayDecoration[] {
-  if (options.composing) return [];
   const semantics = parseDocumentSemantics(source);
   const numberedCaptions = numberCaptions(semantics.captions);
   const bindings = new Map(bindCaptionObjects(source).map((binding) => (

@@ -60,19 +60,21 @@ describe("display plan", () => {
     expect(plan.map((item) => source.slice(item.from, item.to))).toEqual(["1 ", "2 "]);
   });
 
-  it("reveals the active line and all decorations during composition", () => {
-    const source = "# 1.1 Stored";
-    const heading = parseAtxHeadings(source)[0];
+  it("reveals only the active heading while composing", () => {
+    const source = "# 1.1 Stored\n# Next";
+    const headings = parseAtxHeadings(source);
+    const heading = headings[0];
     expect(createDisplayPlan([heading!], options({
       showVirtualNumbers: true,
       concealStoredNumbers: true,
       selections: [{ from: heading!.lineFrom, to: heading!.lineFrom }],
     }))).toEqual([]);
-    expect(createDisplayPlan([heading!], options({
+    expect(createDisplayPlan(headings, options({
       showVirtualNumbers: true,
       concealStoredNumbers: true,
+      selections: [{ from: heading!.lineFrom, to: heading!.lineFrom }],
       composing: true,
-    }))).toEqual([]);
+    }))).toMatchObject([{ kind: "virtual", line: 1, label: "2" }]);
   });
 
   it("conceals a recognized stored prefix and replaces it with one virtual number", () => {

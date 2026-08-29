@@ -44,6 +44,8 @@ All notable changes to Number Suite are documented here.
   guessed from a wider document-wide matching.
 - Attached captions remain visible and aligned with their carrier in Live Preview and Reading View,
   including safe zero-gap image paragraphs that Obsidian renders as one shared block.
+- Touch and IME editing reveal source only for the active heading, caption, or reference while
+  unrelated virtual numbers and pills remain visible.
 
 ## 0.2.0 - 2026-08-28
 

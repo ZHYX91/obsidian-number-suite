@@ -97,8 +97,9 @@ warn about heading-link risk.
 
 Virtual numbers appear before heading text but do not enter copied text or editable source ranges.
 When stored numbers are concealed, a cursor or selection touching the heading line reveals source;
-decorations are removed during IME composition. Reading View does not partially guess when source
-and rendered heading count or levels differ.
+during IME composition only the active heading reveals source, while unrelated heading decorations
+remain visible. Reading View does not partially guess when source and rendered heading count or
+levels differ.
 
 In Live Preview, authenticated H7-H9 extension lines receive heading styling and hide their hash
 marker only while the line is not selected and no IME composition is active. Reading View treats
@@ -118,7 +119,8 @@ fixed type also has an independent above/below visual placement, defaulting abov
 caption uses the same carrier anchor and compact theme-independent gap. New captions are authored
 above their carriers, but display never rewrites existing source. An active caption reveals its exact
 source at its authored location; Source Mode always shows Markdown. An active reference reveals only
-its own source token.
+its own source token. Touch and IME editing use the same local reveal rule, so inactive captions and
+references remain as pills.
 
 In editing mode, the context menu offers Figure on a standalone image, Table on any row of a
 top-level Markdown table, Equation on a standalone display equation, and Code on a top-level fenced
@@ -141,8 +143,8 @@ The pill contains the alias or target title plus a visible target number when on
 a pill when numbering is off. Heading and complete typed caption names share one same-file ambiguity
 space, and missing, duplicate, ambiguous, or cross-file targets stay unchanged. A pill click or
 keyboard activation navigates to the exact source target. Composition and a selection touching the
-reference restore editable source. Plugin cleanup restores the leading `@`, native link text, ARIA,
-and target metadata.
+reference restore that reference's editable source without hiding unrelated pills. Plugin cleanup
+restores the leading `@`, native link text, ARIA, and target metadata.
 
 The heading/caption context menu contains one **Copy cross-reference** item. An existing target block
 ID copies immediately. A missing ID opens a focused before/after preview; confirmation performs one

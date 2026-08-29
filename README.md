@@ -133,7 +133,9 @@ four default to above. Every bound caption is anchored to the carrier block with
 theme-independent gap; changing position never rewrites the file. When the cursor enters a caption
 in Live Preview, its pill disappears and the exact authored `Figure: ... ^id`-style source returns
 at its stored location. Source Mode always shows the authored Markdown. An individual
-cross-reference likewise reveals only its own `@[[...]]` source while it is being edited.
+cross-reference likewise reveals only its own `@[[...]]` source while it is being edited. Touch and
+IME editing follow the same local rule: only the active heading, caption, or reference reveals its
+source, while unrelated virtual numbers and pills remain visible.
 
 In editing mode, right-click a standalone `![[image.png]]` or `![alt](image.png)` image to add its
 Figure caption; right-click any row of a top-level Markdown table for Table, a standalone `$$...$$`

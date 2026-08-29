@@ -223,19 +223,22 @@ describe("semantic display plan", () => {
     ]);
   });
 
-  it("never produces decorations while composing", () => {
-    const source = "Figure: One\n@[[#^one]]";
-    expect(createSemanticDisplayPlan(source, [], {
+  it("keeps inactive semantic pills while composing", () => {
+    const source = "Figure: Active\n\nParagraph\n\nFigure: Inactive";
+    const active = source.indexOf("Active");
+    const items = createSemanticDisplayPlan(source, [], {
       showCaptionNumbers: true,
       centeredCaptionKinds: ["Figure", "Equation"],
-      showCrossReferences: true,
-      showNoteNumbers: true,
-      noteSelections: [],
+      showCrossReferences: false,
+      showNoteNumbers: false,
+      noteSelections: [{ from: active, to: active }],
       numbering,
       templateSources,
       headingDisplayPlan: [],
       composing: true,
-    })).toEqual([]);
+    }).filter((item) => item.kind === "caption");
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ line: 4, displayLabel: "Figure 2: Inactive" });
   });
 
   it("reveals an active caption line and keeps inactive captions as full pills", () => {

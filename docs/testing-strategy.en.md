@@ -82,7 +82,8 @@ Footnote/endnote acceptance additionally covers default, explicit, and endnote s
 independent per-kind counters, repeated-reference reuse, fail-closed missing/duplicate/canonical
 conflicts, two-space continuation protection, unchanged render-count mismatches, and Markdown byte
 identity. Live Preview checks cover `1` versus `E1`, original-marker mode, click/cursor reveal, and
-Reading View navigation preservation.
+Reading View navigation preservation. Touch and IME regressions must also confirm that only the
+active heading, caption, or reference reveals source while unrelated virtual decorations stay visible.
 
 IME, mobile, pop-out windows, third-party themes, and long-document latency require real host
 environments; automated DOM tests cannot replace them. Detailed steps remain in the

@@ -100,8 +100,9 @@ possible and otherwise opens the file at the projected source line.
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
 `Decoration.replace` for virtual display and concealment. Concealment is removed when selection
-touches a heading or during IME composition. Each view caches its effective Properties. Invalid YAML
-may retain the last valid display configuration, but file operations fail closed.
+touches a heading. During IME composition, only the selected heading loses its decoration; unrelated
+decorations remain visible. Each view caches its effective Properties. Invalid YAML may retain the
+last valid display configuration, but file operations fail closed.
 
 For extension levels 7-9, the syntax-tree adapter trusts only candidates authenticated by the same
 protected-region scanner because CommonMark has no native H7-H9 node. Live Preview adds a line
@@ -124,7 +125,8 @@ Caption replacements render the whole authored line as one widget; a selection t
 removes that replacement so exact source is editable. A direct CodeMirror `StateField`, rather than
 a view-plugin decoration callback, supplies every bound caption as a block widget above or below the
 carrier visual range. Widget-internal padding owns the compact gap; source and object ranges remain
-unchanged. Unbound captions remain line widgets. Reference
+unchanged. Composition state never suppresses the whole semantic layer: selection filtering reveals
+only the active caption or reference, and inactive pills remain. Unbound captions remain line widgets. Reference
 decorations replace the complete visual source with a focusable pill and exact source-line target.
 Reading View preserves the native Obsidian link element while storing its original text, ARIA, and
 removed `@`; cleanup restores all of them. Embedded Markdown is keyed by `context.sourcePath`, so counters and targets never leak
