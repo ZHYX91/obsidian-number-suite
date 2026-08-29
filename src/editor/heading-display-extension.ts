@@ -222,10 +222,37 @@ function captionCarrierSelector(kind: CaptionKind): string {
   return "pre, .HyperMD-codeblock";
 }
 
-function normalizedCaptionCarrier(target: HTMLElement): HTMLElement {
-  return target.matches(".image-embed, .internal-embed.image-embed")
-    ? target.querySelector<HTMLElement>("img:not(.cm-widgetBuffer)") ?? target
-    : target;
+function visibleCodeCarrier(
+  target: HTMLElement,
+  placement: "above" | "below",
+): HTMLElement {
+  const pre = target.matches("pre") ? target : target.querySelector<HTMLElement>("pre");
+  if (pre != null) return pre;
+  let edge = target.matches(".HyperMD-codeblock")
+    ? target
+    : target.querySelector<HTMLElement>(".HyperMD-codeblock") ?? target;
+  let sibling = placement === "below" ? edge.nextElementSibling : edge.previousElementSibling;
+  while (sibling?.matches(".HyperMD-codeblock") === true) {
+    edge = sibling as HTMLElement;
+    sibling = placement === "below" ? edge.nextElementSibling : edge.previousElementSibling;
+  }
+  return edge;
+}
+
+function visibleCaptionCarrier(
+  kind: CaptionKind,
+  target: HTMLElement,
+  placement: "above" | "below",
+): HTMLElement {
+  if (kind === "Code") return visibleCodeCarrier(target, placement);
+  const selector = kind === "Figure"
+    ? "img:not(.cm-widgetBuffer)"
+    : kind === "Table"
+      ? "table"
+      : "mjx-container[display='true']";
+  return target.matches(selector)
+    ? target
+    : target.querySelector<HTMLElement>(selector) ?? target;
 }
 
 function usableCaptionCarrier(target: HTMLElement): boolean {
@@ -233,13 +260,18 @@ function usableCaptionCarrier(target: HTMLElement): boolean {
   return rect.width > 0 && rect.height > 0;
 }
 
-function firstUsableCaptionCarrier(root: HTMLElement, selector: string): HTMLElement | null {
+function firstUsableCaptionCarrier(
+  kind: CaptionKind,
+  root: HTMLElement,
+  selector: string,
+  placement: "above" | "below",
+): HTMLElement | null {
   const candidates = root.matches(selector)
     ? [root, ...root.querySelectorAll<HTMLElement>(selector)]
     : [...root.querySelectorAll<HTMLElement>(selector)];
   const seen = new Set<HTMLElement>();
   for (const candidate of candidates) {
-    const normalized = normalizedCaptionCarrier(candidate);
+    const normalized = visibleCaptionCarrier(kind, candidate, placement);
     if (seen.has(normalized)) continue;
     seen.add(normalized);
     if (usableCaptionCarrier(normalized)) return normalized;
@@ -250,7 +282,9 @@ function firstUsableCaptionCarrier(root: HTMLElement, selector: string): HTMLEle
 function targetNearSourcePosition(
   view: EditorView,
   sourceOffset: number,
+  kind: CaptionKind,
   selector: string,
+  placement: "above" | "below",
 ): HTMLElement | null {
   try {
     const point = view.domAtPos(sourceOffset);
@@ -262,7 +296,9 @@ function targetNearSourcePosition(
       ? node as HTMLElement
       : node.parentElement;
     const sourceRoot = element?.closest<HTMLElement>(".cm-line, .cm-block-widget") ?? element;
-    const direct = sourceRoot == null ? null : firstUsableCaptionCarrier(sourceRoot, selector);
+    const direct = sourceRoot == null
+      ? null
+      : firstUsableCaptionCarrier(kind, sourceRoot, selector, placement);
     if (direct != null) return direct;
   } catch {
     // A replacement decoration may not expose a stable DOM position; use coordinates below.
@@ -279,7 +315,7 @@ function targetNearSourcePosition(
   let nearestDistance = Number.POSITIVE_INFINITY;
   for (const candidate of view.contentDOM.querySelectorAll<HTMLElement>(selector)) {
     if (candidate.closest(".number-suite-caption-widget") != null) continue;
-    const normalized = normalizedCaptionCarrier(candidate);
+    const normalized = visibleCaptionCarrier(kind, candidate, placement);
     if (!usableCaptionCarrier(normalized)) continue;
     const rect = normalized.getBoundingClientRect();
     const distance = sourceY < rect.top
@@ -300,14 +336,14 @@ function nearbyCaptionCarrier(
   sourceOffset: number,
 ): HTMLElement | null {
   const selector = captionCarrierSelector(kind);
-  const positioned = targetNearSourcePosition(view, sourceOffset, selector);
+  const placement = wrapper.dataset.numberSuiteCaptionPlacement === "below" ? "below" : "above";
+  const positioned = targetNearSourcePosition(view, sourceOffset, kind, selector, placement);
   if (positioned != null) return positioned;
-  const placement = wrapper.dataset.numberSuiteCaptionPlacement;
   const block = wrapper.closest<HTMLElement>(".cm-block-widget") ?? wrapper;
   let sibling = placement === "below" ? block.previousElementSibling : block.nextElementSibling;
   for (let distance = 0; sibling != null && distance < 8; distance += 1) {
     if (sibling.querySelector(".number-suite-caption-widget") == null) {
-      const target = firstUsableCaptionCarrier(sibling as HTMLElement, selector);
+      const target = firstUsableCaptionCarrier(kind, sibling as HTMLElement, selector, placement);
       if (target != null) return target;
     }
     sibling = placement === "below" ? sibling.previousElementSibling : sibling.nextElementSibling;

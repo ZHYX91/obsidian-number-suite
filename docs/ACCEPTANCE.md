@@ -51,6 +51,37 @@ first acceptance.
 
 ## Captions and same-file references
 
+For attachment-gap checks, use a square-corner `square-edge.svg` (or another image with an explicit
+visible border) and keep the pairs unambiguous. The two blank lines between pairs below are part of
+the fixture:
+
+````md
+Figure: Sample image
+
+![[square-edge.svg|Alternate image]]
+
+
+Table: Sample table
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+
+
+Equation: Energy
+
+$$
+E=mc^2
+$$
+
+
+Code: Example
+
+```js
+const value = 1;
+```
+````
+
 - [ ] Verify `Figure:`, `Table:`, `Equation:`, and `Code:` each start at 1 and increment independently; `Listing:` remains unchanged.
 - [ ] Verify captions without IDs are numbered and captions with inline or immediately following user-authored block IDs receive the same behavior.
 - [ ] Confirm Live Preview and Reading View show whole-caption filled pills and `Figure 1:`-style labels while display-only use leaves Markdown bytes, mtime, and IDs unchanged; long captions must wrap.
@@ -62,7 +93,7 @@ first acceptance.
 - [ ] Enable Structural Tables Live Preview ownership for an ordinary table and a structural table with consecutive header rows. Right-click rendered cells and confirm the same `Table:` action appears in the owned menu and inserts above the complete source table. Verify above/below caption block widgets coexist with the owned table with both plugin load orders; disable or remove either plugin and confirm the other continues normally.
 - [ ] Put lowercase caption keywords next to each target and confirm the menu repairs the existing keyword instead of duplicating it. Put a legacy Figure immediately below its carrier and confirm the menu moves it above without changing the carrier or its object ID. An adjacent caption of any type suppresses a second action, and an editor change while the dialog is open cancels confirmation without writing.
 - [ ] Confirm caption creation never creates a block ID.
-- [ ] For each caption type, switch visual placement above/below in Live Preview and Reading View. Confirm every bound caption is anchored directly to the carrier boundary with one compact theme-independent gap, including carriers followed by inline or standalone block IDs. Markdown bytes/hash/mtime must remain unchanged. Enter the caption with pointer and keyboard; the pill must disappear and exact source must reappear at its authored location. Source Mode must show exact Markdown.
+- [ ] For each caption type, switch visual placement above/below in Live Preview and Reading View. Confirm every bound caption is anchored directly to the visible carrier DOM boundary with one compact theme-independent gap, including carriers followed by inline or standalone block IDs. Keep each caption-carrier pair isolated from the next pair by at least two blank lines or ordinary non-candidate content; a chain such as caption, carrier, caption, carrier with only zero/one blank line between every item is intentionally ambiguous and must remain unbound. A numbered caption pill alone does not prove that object binding succeeded. Measure Figure captions against the `img` element rectangle, Table captions against the inner `table`, Equation captions against `mjx-container[display="true"]` when present, and Code captions against an inner `pre` when present (otherwise the host's rendered code block). Do not treat transparent pixels or rounded corners inside an image as CSS spacing; use a square-corner image or an image with a visible edge when judging the gap from a screenshot. Markdown bytes/hash/mtime must remain unchanged. Enter the caption with pointer and keyboard; the pill must disappear and exact source must reappear at its authored location. Source Mode must show exact Markdown.
 - [ ] Enable the default image/Figure hover setting. Hover both the image and its caption and confirm the same structured title/content appears. Check wiki replacement text, Markdown alt, equal caption/alt deduplication, size-only aliases, filename-only fallbacks, caption-only, replacement-only inline/cell images, right-click dismissal, and the disabled state.
 - [ ] Verify `@[[#Heading]]`, `@[[#Figure: Caption]]`, `@[[#^block-id]]`, and alias forms render as keyboard-focusable outline pills and navigate to the exact target line. With numbering off, the pill remains and omits only the number.
 - [ ] Create a heading named `Figure: Same` and a caption `Figure: Same`; confirm the title reference fails closed. Repeat for duplicate headings and duplicate captions. Remove all but one candidate and confirm it resolves.

@@ -179,33 +179,65 @@ describe("anchored caption block widgets", () => {
     )).toBe(16);
   });
 
-  it("skips CodeMirror's zero-width image buffer and writes the final visible attachment shift", () => {
+  it.each(CAPTION_PLACEMENT_CASES.flatMap(({ captionKind }) => (
+    (["above", "below"] as const).map((placement) => ({ captionKind, placement }))
+  )))("uses the visible $captionKind block edge when attaching $placement", ({ captionKind, placement }) => {
     const content = document.createElement("div");
     content.className = "cm-content";
     content.getBoundingClientRect = () => rect(100, 0, 800, 900);
 
     const wrapper = document.createElement("span");
     wrapper.className = "number-suite-caption-widget";
-    wrapper.dataset.numberSuiteCaptionObjectKind = "Figure";
-    wrapper.dataset.numberSuiteCaptionPlacement = "above";
+    wrapper.dataset.numberSuiteCaptionObjectKind = captionKind;
+    wrapper.dataset.numberSuiteCaptionPlacement = placement;
     const pill = document.createElement("span");
     pill.className = "number-suite-caption-pill";
-    pill.getBoundingClientRect = () => rect(250, 250, 180, 33);
+    const pillRect = placement === "above"
+      ? rect(250, 250, 180, 33)
+      : rect(250, 623, 180, 33);
+    pill.getBoundingClientRect = () => pillRect;
     wrapper.append(pill);
 
     const sourceLine = document.createElement("div");
     sourceLine.className = "cm-line";
-    const buffer = document.createElement("img");
-    buffer.className = "cm-widgetBuffer";
-    buffer.getBoundingClientRect = () => rect(220, 283, 0, 20);
-    const zeroSizeImage = document.createElement("img");
-    zeroSizeImage.getBoundingClientRect = () => rect(220, 283, 0, 0);
-    const embed = document.createElement("span");
-    embed.className = "image-embed";
-    const carrier = document.createElement("img");
+    let outer: HTMLElement;
+    let carrier: HTMLElement;
+    if (captionKind === "Figure") {
+      const buffer = document.createElement("img");
+      buffer.className = "cm-widgetBuffer";
+      buffer.getBoundingClientRect = () => rect(220, 283, 0, 20);
+      const zeroSizeImage = document.createElement("img");
+      zeroSizeImage.getBoundingClientRect = () => rect(220, 283, 0, 0);
+      outer = document.createElement("div");
+      outer.className = "image-embed";
+      const imageWrapper = document.createElement("span");
+      imageWrapper.className = "image-wrapper";
+      carrier = document.createElement("img");
+      // The img DOM box is the contract; intrinsic transparent pixels or rounded SVG paint are not.
+      carrier.style.border = "1px solid currentColor";
+      imageWrapper.append(carrier);
+      outer.append(imageWrapper);
+      sourceLine.append(buffer, zeroSizeImage);
+    } else if (captionKind === "Table") {
+      outer = document.createElement("div");
+      outer.className = "structural-tables-container";
+      carrier = document.createElement("table");
+      outer.append(carrier);
+    } else if (captionKind === "Equation") {
+      outer = document.createElement("div");
+      outer.className = "math-block";
+      carrier = document.createElement("mjx-container");
+      carrier.setAttribute("display", "true");
+      outer.append(carrier);
+    } else {
+      outer = document.createElement("div");
+      outer.className = "HyperMD-codeblock";
+      carrier = document.createElement("pre");
+      outer.append(carrier);
+    }
+    outer.getBoundingClientRect = () => rect(204, 287, 432, 332);
     carrier.getBoundingClientRect = () => rect(220, 303, 400, 300);
-    embed.append(carrier);
-    sourceLine.append(buffer, zeroSizeImage, embed);
+    sourceLine.append(outer);
     content.append(wrapper, sourceLine);
     document.body.append(content);
 
@@ -223,11 +255,76 @@ describe("anchored caption block widgets", () => {
 
     scheduleCaptionTrackMeasurement(fakeView, wrapper, 10);
 
+    const expectedCarrierTag = captionKind === "Figure"
+      ? "IMG"
+      : captionKind === "Table"
+        ? "TABLE"
+        : captionKind === "Equation" ? "MJX-CONTAINER" : "PRE";
+    expect(carrier.tagName).toBe(expectedCarrierTag);
     expect(wrapper.style.inlineSize).toBe("400px");
     expect(wrapper.style.marginInlineStart).toBe("120px");
-    expect(wrapper.style.transform).toBe("translateY(16px)");
-    expect(wrapper.dataset.numberSuiteCaptionBlockShift).toBe("16");
+    const expectedShift = placement === "above" ? 16 : -16;
+    expect(wrapper.style.transform).toBe(`translateY(${expectedShift}px)`);
+    expect(wrapper.dataset.numberSuiteCaptionBlockShift).toBe(String(expectedShift));
+    const finalVisibleGap = placement === "above"
+      ? 303 - (pillRect.bottom + expectedShift)
+      : pillRect.top + expectedShift - 603;
+    expect(finalVisibleGap).toBe(4);
   });
+
+  it.each(["above", "below"] as const)(
+    "uses the complete host-rendered code line group when attaching %s",
+    (placement) => {
+      const content = document.createElement("div");
+      content.className = "cm-content";
+      content.getBoundingClientRect = () => rect(100, 0, 800, 900);
+      const wrapper = document.createElement("span");
+      wrapper.className = "number-suite-caption-widget";
+      wrapper.dataset.numberSuiteCaptionObjectKind = "Code";
+      wrapper.dataset.numberSuiteCaptionPlacement = placement;
+      const pill = document.createElement("span");
+      pill.className = "number-suite-caption-pill";
+      const pillRect = placement === "above"
+        ? rect(250, 250, 180, 33)
+        : rect(250, 623, 180, 33);
+      pill.getBoundingClientRect = () => pillRect;
+      wrapper.append(pill);
+
+      const lines = [
+        rect(220, 303, 400, 100),
+        rect(220, 403, 400, 100),
+        rect(220, 503, 400, 100),
+      ].map((lineRect) => {
+        const line = document.createElement("div");
+        line.className = "cm-line HyperMD-codeblock";
+        line.getBoundingClientRect = () => lineRect;
+        return line;
+      });
+      content.append(wrapper, ...lines);
+      document.body.append(content);
+
+      const fakeView = {
+        contentDOM: content,
+        domAtPos: () => ({ node: lines[1], offset: 0 }),
+        coordsAtPos: () => null,
+        requestMeasure: (request?: Readonly<{
+          read: () => unknown;
+          write: (measurement: unknown) => void;
+        }>) => {
+          if (request != null) request.write(request.read());
+        },
+      } as unknown as EditorView;
+
+      scheduleCaptionTrackMeasurement(fakeView, wrapper, 10);
+
+      const expectedShift = placement === "above" ? 16 : -16;
+      expect(wrapper.style.transform).toBe(`translateY(${expectedShift}px)`);
+      const finalVisibleGap = placement === "above"
+        ? 303 - (pillRect.bottom + expectedShift)
+        : pillRect.top + expectedShift - 603;
+      expect(finalVisibleGap).toBe(4);
+    },
+  );
 
   it("sizes and offsets the centered track from the carrier box", () => {
     expect(captionTrackGeometry(
