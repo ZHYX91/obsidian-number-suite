@@ -12,6 +12,7 @@ import {
   captionAttachmentShiftFromRects,
   captionTrackGeometry,
   HeadingDisplayController,
+  scheduleCaptionTrackMeasurement,
 } from "../../src/editor/heading-display-extension";
 
 const views: EditorView[] = [];
@@ -33,6 +34,20 @@ afterEach(() => {
 
 function createView(placement: "above" | "below"): EditorView {
   return createCaptionView("Figure", "![[miao.png]]", placement, "Miao");
+}
+
+function rect(left: number, top: number, width: number, height: number): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  } as DOMRect;
 }
 
 function createCaptionView(
@@ -162,6 +177,56 @@ describe("anchored caption block widgets", () => {
       { top: 303, bottom: 603 },
       16,
     )).toBe(16);
+  });
+
+  it("skips CodeMirror's zero-width image buffer and writes the final visible attachment shift", () => {
+    const content = document.createElement("div");
+    content.className = "cm-content";
+    content.getBoundingClientRect = () => rect(100, 0, 800, 900);
+
+    const wrapper = document.createElement("span");
+    wrapper.className = "number-suite-caption-widget";
+    wrapper.dataset.numberSuiteCaptionObjectKind = "Figure";
+    wrapper.dataset.numberSuiteCaptionPlacement = "above";
+    const pill = document.createElement("span");
+    pill.className = "number-suite-caption-pill";
+    pill.getBoundingClientRect = () => rect(250, 250, 180, 33);
+    wrapper.append(pill);
+
+    const sourceLine = document.createElement("div");
+    sourceLine.className = "cm-line";
+    const buffer = document.createElement("img");
+    buffer.className = "cm-widgetBuffer";
+    buffer.getBoundingClientRect = () => rect(220, 283, 0, 20);
+    const zeroSizeImage = document.createElement("img");
+    zeroSizeImage.getBoundingClientRect = () => rect(220, 283, 0, 0);
+    const embed = document.createElement("span");
+    embed.className = "image-embed";
+    const carrier = document.createElement("img");
+    carrier.getBoundingClientRect = () => rect(220, 303, 400, 300);
+    embed.append(carrier);
+    sourceLine.append(buffer, zeroSizeImage, embed);
+    content.append(wrapper, sourceLine);
+    document.body.append(content);
+
+    const fakeView = {
+      contentDOM: content,
+      domAtPos: () => ({ node: sourceLine, offset: 0 }),
+      coordsAtPos: () => null,
+      requestMeasure: (request?: Readonly<{
+        read: () => unknown;
+        write: (measurement: unknown) => void;
+      }>) => {
+        if (request != null) request.write(request.read());
+      },
+    } as unknown as EditorView;
+
+    scheduleCaptionTrackMeasurement(fakeView, wrapper, 10);
+
+    expect(wrapper.style.inlineSize).toBe("400px");
+    expect(wrapper.style.marginInlineStart).toBe("120px");
+    expect(wrapper.style.transform).toBe("translateY(16px)");
+    expect(wrapper.dataset.numberSuiteCaptionBlockShift).toBe("16");
   });
 
   it("sizes and offsets the centered track from the carrier box", () => {

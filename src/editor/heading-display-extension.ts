@@ -212,7 +212,9 @@ class CaptionWidget extends WidgetType {
 }
 
 function captionCarrierSelector(kind: CaptionKind): string {
-  if (kind === "Figure") return "img, .image-embed, .internal-embed.image-embed";
+  if (kind === "Figure") {
+    return "img:not(.cm-widgetBuffer), .image-embed, .internal-embed.image-embed";
+  }
   if (kind === "Table") {
     return "table, .structural-tables-live-preview, .structural-tables-container";
   }
@@ -222,8 +224,27 @@ function captionCarrierSelector(kind: CaptionKind): string {
 
 function normalizedCaptionCarrier(target: HTMLElement): HTMLElement {
   return target.matches(".image-embed, .internal-embed.image-embed")
-    ? target.querySelector<HTMLElement>("img") ?? target
+    ? target.querySelector<HTMLElement>("img:not(.cm-widgetBuffer)") ?? target
     : target;
+}
+
+function usableCaptionCarrier(target: HTMLElement): boolean {
+  const rect = target.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function firstUsableCaptionCarrier(root: HTMLElement, selector: string): HTMLElement | null {
+  const candidates = root.matches(selector)
+    ? [root, ...root.querySelectorAll<HTMLElement>(selector)]
+    : [...root.querySelectorAll<HTMLElement>(selector)];
+  const seen = new Set<HTMLElement>();
+  for (const candidate of candidates) {
+    const normalized = normalizedCaptionCarrier(candidate);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    if (usableCaptionCarrier(normalized)) return normalized;
+  }
+  return null;
 }
 
 function targetNearSourcePosition(
@@ -241,10 +262,8 @@ function targetNearSourcePosition(
       ? node as HTMLElement
       : node.parentElement;
     const sourceRoot = element?.closest<HTMLElement>(".cm-line, .cm-block-widget") ?? element;
-    const direct = sourceRoot?.matches(selector) === true
-      ? sourceRoot
-      : sourceRoot?.querySelector<HTMLElement>(selector) ?? null;
-    if (direct != null) return normalizedCaptionCarrier(direct);
+    const direct = sourceRoot == null ? null : firstUsableCaptionCarrier(sourceRoot, selector);
+    if (direct != null) return direct;
   } catch {
     // A replacement decoration may not expose a stable DOM position; use coordinates below.
   }
@@ -260,16 +279,18 @@ function targetNearSourcePosition(
   let nearestDistance = Number.POSITIVE_INFINITY;
   for (const candidate of view.contentDOM.querySelectorAll<HTMLElement>(selector)) {
     if (candidate.closest(".number-suite-caption-widget") != null) continue;
-    const rect = candidate.getBoundingClientRect();
+    const normalized = normalizedCaptionCarrier(candidate);
+    if (!usableCaptionCarrier(normalized)) continue;
+    const rect = normalized.getBoundingClientRect();
     const distance = sourceY < rect.top
       ? rect.top - sourceY
       : sourceY > rect.bottom ? sourceY - rect.bottom : 0;
     if (distance < nearestDistance) {
-      nearest = candidate;
+      nearest = normalized;
       nearestDistance = distance;
     }
   }
-  return nearest == null ? null : normalizedCaptionCarrier(nearest);
+  return nearest;
 }
 
 function nearbyCaptionCarrier(
@@ -286,17 +307,15 @@ function nearbyCaptionCarrier(
   let sibling = placement === "below" ? block.previousElementSibling : block.nextElementSibling;
   for (let distance = 0; sibling != null && distance < 8; distance += 1) {
     if (sibling.querySelector(".number-suite-caption-widget") == null) {
-      const target = sibling.matches(selector)
-        ? sibling as HTMLElement
-        : sibling.querySelector<HTMLElement>(selector);
-      if (target != null) return normalizedCaptionCarrier(target);
+      const target = firstUsableCaptionCarrier(sibling as HTMLElement, selector);
+      if (target != null) return target;
     }
     sibling = placement === "below" ? sibling.previousElementSibling : sibling.nextElementSibling;
   }
   return null;
 }
 
-function scheduleCaptionTrackMeasurement(
+export function scheduleCaptionTrackMeasurement(
   view: EditorView,
   wrapper: HTMLElement,
   sourceOffset: number | null,
