@@ -310,16 +310,17 @@ function scheduleCaptionTrackMeasurement(
       if (carrier == null || !wrapper.isConnected) return null;
       const contentRect = view.contentDOM.getBoundingClientRect();
       const carrierRect = carrier.getBoundingClientRect();
-      const wrapperRect = wrapper.getBoundingClientRect();
+      const pill = wrapper.querySelector<HTMLElement>(".number-suite-caption-pill");
+      if (pill == null) return null;
+      const pillRect = pill.getBoundingClientRect();
       const track = captionTrackGeometry(contentRect, carrierRect);
       if (track == null) return null;
       const previousShift = Number(wrapper.dataset.numberSuiteCaptionBlockShift ?? "0");
-      const baseGap = wrapper.dataset.numberSuiteCaptionPlacement === "below"
-        ? wrapperRect.top - carrierRect.bottom - previousShift
-        : carrierRect.top - wrapperRect.bottom + previousShift;
-      const shift = captionAttachmentShift(
+      const shift = captionAttachmentShiftFromRects(
         wrapper.dataset.numberSuiteCaptionPlacement === "below" ? "below" : "above",
-        baseGap,
+        pillRect,
+        carrierRect,
+        previousShift,
       );
       return { ...track, shift };
     },
@@ -351,6 +352,22 @@ export function captionAttachmentShift(
 ): number {
   const excess = Math.max(0, unshiftedGap - desiredGap);
   return placement === "below" ? -excess : excess;
+}
+
+export function captionAttachmentShiftFromRects(
+  placement: "above" | "below",
+  pill: Readonly<Pick<DOMRect, "top" | "bottom">>,
+  carrier: Readonly<Pick<DOMRect, "top" | "bottom">>,
+  previousShift: number,
+  desiredGap = 4,
+): number {
+  const shiftedGap = placement === "below"
+    ? pill.top - carrier.bottom
+    : carrier.top - pill.bottom;
+  const unshiftedGap = placement === "below"
+    ? shiftedGap - previousShift
+    : shiftedGap + previousShift;
+  return captionAttachmentShift(placement, unshiftedGap, desiredGap);
 }
 
 function scheduleCaptionTrackMeasurements(view: EditorView): void {
@@ -519,14 +536,24 @@ function buildAnchoredCaptionDecorations(
 
 export class HeadingDisplayController {
   private readonly views = new Set<EditorView>();
-  private readonly contextMenuOffsets = new WeakMap<Editor, number>();
+  private readonly contextMenuOffsets = new WeakMap<Editor, Readonly<{
+    offset: number | null;
+    source: string;
+    filePath: string | null;
+    token: object;
+  }>>();
 
   constructor(private readonly getSettings: () => NumberSuiteSettings) {}
 
   createExtension(): Extension {
     const views = this.views;
-    const contextMenuOffsets = this.contextMenuOffsets;
     const settingsProvider = this.getSettings;
+    const recordContextMenuOffset = (
+      editor: Editor,
+      offset: number | null,
+      filePath: string | null,
+      timerWindow: Window | null,
+    ): void => this.recordContextMenuOffset(editor, offset, filePath, timerWindow);
     const anchoredCaptionField = StateField.define<AnchoredCaptionDecorationState>({
       create: (state) => ({
         suppressed: false,
@@ -832,7 +859,14 @@ export class HeadingDisplayController {
         const offset = Number.isSafeInteger(sourceOffset)
           ? sourceOffset
           : view.posAtCoords({ x: event.clientX, y: event.clientY });
-        if (offset != null) contextMenuOffsets.set(editor, offset);
+        if (offset != null) {
+          recordContextMenuOffset(
+            editor,
+            offset,
+            info?.file?.path ?? null,
+            view.dom.ownerDocument.defaultView,
+          );
+        }
         return false;
       },
       pointerdown: (_event, view) => {
@@ -901,9 +935,38 @@ export class HeadingDisplayController {
     }
   }
 
-  consumeContextMenuOffset(editor: Editor): number | null {
-    const offset = this.contextMenuOffsets.get(editor) ?? null;
+  recordContextMenuOffset(
+    editor: Editor,
+    offset: number | null,
+    filePath: string | null,
+    timerWindow: Window | null,
+  ): void {
+    if (offset != null && (
+      !Number.isSafeInteger(offset) || offset < 0 || offset > editor.getValue().length
+    )) {
+      return;
+    }
+    const token = {};
+    this.contextMenuOffsets.set(editor, {
+      offset,
+      source: editor.getValue(),
+      filePath,
+      token,
+    });
+    timerWindow?.setTimeout(() => {
+      if (this.contextMenuOffsets.get(editor)?.token === token) {
+        this.contextMenuOffsets.delete(editor);
+      }
+    }, 0);
+  }
+
+  consumeContextMenuOffset(editor: Editor, filePath: string | null): number | null | undefined {
+    const context = this.contextMenuOffsets.get(editor) ?? null;
+    if (context == null) return undefined;
     this.contextMenuOffsets.delete(editor);
-    return offset;
+    return context.source === editor.getValue()
+      && context.filePath === filePath
+      ? context.offset
+      : null;
   }
 }

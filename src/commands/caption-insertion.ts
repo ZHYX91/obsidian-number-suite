@@ -17,6 +17,8 @@ import {
 } from "../core/caption-insertion";
 import { CaptionInsertionModal } from "../ui/caption-insertion-modal";
 
+const contributedCaptionMenus = new WeakSet<Menu>();
+
 function sameTarget(left: CaptionInsertionTarget, right: CaptionInsertionTarget): boolean {
   return left.kind === right.kind
     && left.action === right.action
@@ -92,6 +94,8 @@ function addResolvedCaptionContextMenuItem(
   const source = editor.getValue();
   const target = resolveTarget(source);
   if (target == null) return;
+  if (contributedCaptionMenus.has(menu)) return;
+  contributedCaptionMenus.add(menu);
   const path = file.path;
 
   menu.addItem((item) => item

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
+import type { Editor } from "obsidian";
 
 import {
   captionBlockWidgetAnchor,
+  HeadingDisplayController,
   isHeadingCompositionActive,
   NumeralWidget,
   shouldShowNoteWidgets,
@@ -56,6 +58,27 @@ describe("captionBlockWidgetAnchor", () => {
       position: state.doc.line(5).to,
       side: 10_000,
     });
+  });
+
+  it("binds a captured carrier offset to the exact editor, file, and source snapshot", () => {
+    let source = "![[sample.png]]";
+    const editor = { getValue: () => source } as unknown as Editor;
+    const controller = new HeadingDisplayController(() => DEFAULT_SETTINGS);
+
+    controller.recordContextMenuOffset(editor, 3, "note.md", null);
+    expect(controller.consumeContextMenuOffset(editor, "other.md")).toBeNull();
+
+    controller.recordContextMenuOffset(editor, 3, "note.md", null);
+    source = "changed";
+    expect(controller.consumeContextMenuOffset(editor, "note.md")).toBeNull();
+
+    source = "![[sample.png]]";
+    controller.recordContextMenuOffset(editor, null, "note.md", null);
+    expect(controller.consumeContextMenuOffset(editor, "note.md")).toBeNull();
+
+    controller.recordContextMenuOffset(editor, 3, "note.md", null);
+    expect(controller.consumeContextMenuOffset(editor, "note.md")).toBe(3);
+    expect(controller.consumeContextMenuOffset(editor, "note.md")).toBeUndefined();
   });
 });
 

@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import type { CaptionKind } from "../../src/core/document-semantics";
 import {
   captionAttachmentShift,
+  captionAttachmentShiftFromRects,
   captionTrackGeometry,
   HeadingDisplayController,
 } from "../../src/editor/heading-display-extension";
@@ -140,6 +141,27 @@ describe("anchored caption block widgets", () => {
     expect(captionAttachmentShift("above", 58)).toBe(54);
     expect(captionAttachmentShift("below", 28)).toBe(-24);
     expect(captionAttachmentShift("above", 3)).toBe(0);
+  });
+
+  it("measures the visible pill edge instead of the taller CodeMirror widget box", () => {
+    expect(captionAttachmentShiftFromRects(
+      "above",
+      { top: 250, bottom: 283 },
+      { top: 303, bottom: 603 },
+      0,
+    )).toBe(16);
+    expect(captionAttachmentShiftFromRects(
+      "below",
+      { top: 323, bottom: 356 },
+      { top: 20, bottom: 303 },
+      0,
+    )).toBe(-16);
+    expect(captionAttachmentShiftFromRects(
+      "above",
+      { top: 266, bottom: 299 },
+      { top: 303, bottom: 603 },
+      16,
+    )).toBe(16);
   });
 
   it("sizes and offsets the centered track from the carrier box", () => {

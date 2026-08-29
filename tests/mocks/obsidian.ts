@@ -12,6 +12,52 @@ export const editorInfoField = StateField.define<unknown>({
 
 export class App {}
 
+export class MenuItem {
+  title = "";
+  icon: unknown = null;
+  callback: (() => void) | null = null;
+
+  setTitle(title: string): this {
+    this.title = title;
+    return this;
+  }
+
+  setIcon(icon: unknown): this {
+    this.icon = icon;
+    return this;
+  }
+
+  setSection(_section: string): this {
+    return this;
+  }
+
+  onClick(callback: () => void): this {
+    this.callback = callback;
+    return this;
+  }
+}
+
+const eventMenus = new WeakMap<Event, Menu>();
+
+export class Menu {
+  readonly items: MenuItem[] = [];
+
+  static forEvent(event: Event): Menu {
+    const existing = eventMenus.get(event);
+    if (existing != null) return existing;
+    const menu = new Menu();
+    eventMenus.set(event, menu);
+    return menu;
+  }
+
+  addItem(configure: (item: MenuItem) => unknown): this {
+    const item = new MenuItem();
+    configure(item);
+    this.items.push(item);
+    return this;
+  }
+}
+
 export class MarkdownView {
   file: TFile | null = null;
 
