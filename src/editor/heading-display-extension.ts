@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder, StateEffect, type EditorState, type Extension } from "@codemirror/state";
+import { StateEffect, type EditorState, type Extension, type Range } from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -125,6 +125,9 @@ export function isHeadingCompositionActive(
 }
 
 function syntaxConfirmsHeading(state: EditorState, heading: ParsedHeading): boolean {
+  // CommonMark and Obsidian stop at H6. H7-H9 are Number Suite source
+  // extensions already authenticated by the fence/comment-aware scanner.
+  if (heading.level >= 7) return true;
   let node: ReturnType<ReturnType<typeof syntaxTree>["resolveInner"]> | null = syntaxTree(state).resolveInner(
     heading.markerFrom,
     1,
@@ -148,6 +151,15 @@ export function syntaxNodeConfirmsHeading(nodeName: string, level: number): bool
   // Obsidian mobile 1.12 uses duplicated CSS-style node names such as
   // `HyperMD-header_HyperMD-header-2`, while newer desktop builds use `_H2`.
   return nodeName === `HyperMD-header_HyperMD-header-${level}`;
+}
+
+export function selectionTouchesHeadingLine(
+  heading: ParsedHeading,
+  selections: readonly Readonly<{ from: number; to: number }>[],
+): boolean {
+  return selections.some((selection) => (
+    selection.from <= heading.lineTo && selection.to >= heading.lineFrom
+  ));
 }
 
 function parseOverrides(source: string): NoteOverrides | null {
@@ -271,7 +283,7 @@ export class HeadingDisplayController {
           headingDisplayPlan: plan,
           composing,
         });
-        const builder = new RangeSetBuilder<Decoration>();
+        const ranges: Range<Decoration>[] = [];
         const t = createTranslator(settings.language);
         const decorations = [
           ...plan.map((item) => ({ ...item, semanticKind: null })),
@@ -279,21 +291,22 @@ export class HeadingDisplayController {
         ].sort((left, right) => left.from - right.from || left.to - right.to);
         for (const item of decorations) {
           if (item.semanticKind === "caption" || item.semanticKind === "reference") {
-            builder.add(item.from, item.to, item.semanticKind === "reference"
+            ranges.push((item.semanticKind === "reference"
               ? Decoration.replace({ widget: new NumeralWidget(item.label, "reference"), inclusive: false })
-              : Decoration.widget({ widget: new NumeralWidget(item.label, "caption"), side: -1 }));
+              : Decoration.widget({ widget: new NumeralWidget(item.label, "caption"), side: -1 }))
+              .range(item.from, item.to));
           } else if (item.semanticKind === "caption-alignment" && item.captionKind != null) {
-            builder.add(item.from, item.to, Decoration.line({
+            ranges.push(Decoration.line({
               attributes: {
                 class: "number-suite-caption-centered",
                 "data-number-suite-caption-kind": item.captionKind,
               },
-            }));
+            }).range(item.from));
           } else if (item.semanticKind === "note-reference" || item.semanticKind === "note-definition") {
             const accessibleLabel = item.noteKind === "endnote"
               ? t("display.note.endnote", { number: item.label })
               : t("display.note.footnote", { number: item.label });
-            builder.add(item.from, item.to, Decoration.replace({
+            ranges.push(Decoration.replace({
               widget: new NumeralWidget(
                 item.label,
                 item.semanticKind,
@@ -302,17 +315,34 @@ export class HeadingDisplayController {
                 t("display.note.editHint"),
               ),
               inclusive: false,
-            }));
+            }).range(item.from, item.to));
           } else if (item.kind === "virtual") {
-            builder.add(item.from, item.to, Decoration.widget({
+            ranges.push(Decoration.widget({
               widget: new NumeralWidget(item.label),
               side: -1,
-            }));
+            }).range(item.from));
           } else {
-            builder.add(item.from, item.to, Decoration.replace({ inclusive: false }));
+            ranges.push(Decoration.replace({ inclusive: false }).range(item.from, item.to));
           }
         }
-        return builder.finish();
+        if (livePreview) {
+          for (const heading of headings) {
+            if (heading.level < 7) continue;
+            ranges.push(Decoration.line({
+              attributes: {
+                class: `number-suite-extended-heading number-suite-extended-heading-h${heading.level}`,
+                "data-number-suite-heading-level": String(heading.level),
+              },
+            }).range(heading.lineFrom));
+            if (!composing && !selectionTouchesHeadingLine(heading, selections)) {
+              ranges.push(Decoration.replace({ inclusive: false }).range(
+                heading.markerFrom,
+                heading.contentFrom,
+              ));
+            }
+          }
+        }
+        return Decoration.set(ranges, true);
       }
     }, {
       decorations: (instance) => instance.decorations,

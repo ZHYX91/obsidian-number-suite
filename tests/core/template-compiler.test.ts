@@ -6,7 +6,7 @@ import {
   templatePrefixPattern,
 } from "../../src/core/template-compiler";
 
-const counters = [2, 3, 4, 5, 6, 7] as const;
+const counters = [2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 describe("template compiler", () => {
   it("compiles readable placeholders and renders mixed formats", () => {
@@ -17,7 +17,7 @@ describe("template compiler", () => {
 
   it.each([
     ["{1.arabic", "unclosed-token"],
-    ["{7.arabic}", "invalid-token"],
+    ["{10.arabic}", "invalid-token"],
     ["{1.unknown}", "invalid-token"],
     ["1}", "unexpected-closing-brace"],
   ])("reports %s without interpreting it", (source, code) => {
@@ -29,6 +29,10 @@ describe("template compiler", () => {
     const pattern = templatePrefixPattern("第{2.chinese_lower}章");
     expect(pattern?.exec("第三章 范围")?.[1]).toBe("第三章");
     expect(pattern?.test("前言 第三章 范围")).toBe(false);
+  });
+
+  it("compiles and renders an H9 counter", () => {
+    expect(renderTemplate("{9.arabic}.", [...counters])).toBe("10.");
   });
 
   it.each([

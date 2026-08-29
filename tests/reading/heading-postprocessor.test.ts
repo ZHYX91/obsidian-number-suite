@@ -95,6 +95,38 @@ describe("HeadingReadingProcessor", () => {
     expect(container.children[1]?.textContent).toBe("1.1 Second");
   });
 
+  it("renders H7-H9 extension paragraphs as numbered headings and restores their markers", async () => {
+    const source = "####### Seven\n\n######## Eight\n\n######### Nine";
+    const { processor, context, container } = harness(
+      source,
+      settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical" }),
+    );
+    for (const text of ["####### Seven", "######## Eight", "######### Nine"]) {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = text;
+      container.append(paragraph);
+    }
+
+    await processor.process(container, context);
+
+    expect([...container.children].map((element) => element.classList.contains(
+      "number-suite-extended-heading",
+    ))).toEqual([true, true, true]);
+    expect([...container.querySelectorAll(".number-suite-virtual")].map((item) => item.textContent))
+      .toEqual([
+        "1.1.1.1.1.1.1 ",
+        "1.1.1.1.1.1.1.1 ",
+        "1.1.1.1.1.1.1.1.1 ",
+      ]);
+
+    cleanupNumberSuiteReadingDom(container);
+    expect([...container.children].map((element) => element.textContent)).toEqual([
+      "####### Seven",
+      "######## Eight",
+      "######### Nine",
+    ]);
+  });
+
   it("numbers headings with closed inline comments using their visible titles", async () => {
     const { processor, context, container } = harness(
       "# <!-- lead --> Title\n# Ti<!-- middle -->tle\n# Tail <!-- tail -->",

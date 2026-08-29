@@ -1,6 +1,8 @@
 import type { NumberSuiteSettings } from "./settings";
 import {
   type CleanupScope,
+  HEADING_LEVEL_COUNT,
+  type HeadingLevel,
 } from "../core/types";
 import { isBuiltInSchemeId } from "../core/schemes";
 
@@ -10,7 +12,7 @@ export interface NoteOverrides {
   concealStoredNumbers: boolean | null;
   schemeId: string | null;
   cleanupScope: CleanupScope | null;
-  starts: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>>;
+  starts: Partial<Record<HeadingLevel, number>>;
 }
 
 export interface EffectiveNoteSettings {
@@ -19,7 +21,7 @@ export interface EffectiveNoteSettings {
   concealStoredNumbers: boolean;
   schemeId: string;
   cleanupScope: CleanupScope;
-  starts: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>>;
+  starts: Partial<Record<HeadingLevel, number>>;
 }
 
 const EMPTY_OVERRIDES: NoteOverrides = {
@@ -62,12 +64,12 @@ export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
     ? scopeValue
     : null;
   const startsData = record(data["number-suite-start"]);
-  const starts: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>> = {};
+  const starts: Partial<Record<HeadingLevel, number>> = {};
   if (startsData != null) {
-    for (let level = 1; level <= 6; level += 1) {
+    for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
       const value = positiveInteger(startsData[`h${level}`]);
       if (value != null) {
-        starts[level as 1 | 2 | 3 | 4 | 5 | 6] = value;
+        starts[level as HeadingLevel] = value;
       }
     }
   }

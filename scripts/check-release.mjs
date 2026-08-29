@@ -77,6 +77,7 @@ const HostClass = class {};
 const obsidianStub = {
   App: HostClass,
   FuzzySuggestModal: HostClass,
+  ItemView: HostClass,
   MarkdownView: HostClass,
   Menu: HostClass,
   Modal: HostClass,

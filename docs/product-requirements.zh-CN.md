@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-29
 ---
 
 # Number Suite — 产品需求
@@ -36,9 +36,10 @@ Number Suite 让用户分别控制“标题序号是否写入 Markdown”和“�
 <!-- section: scope -->
 ## 范围
 
-产品处理顶层 ATX H1-H6 标题，支持实时预览、阅读视图、当前笔记写入操作、批处理、内置及
-自定义方案、精确标题排除、按笔记 Properties 覆盖、纯显示题注编号、脚注/尾注编号、同文件
-语义交叉引用和中英文界面。标题方案、每种题注计数、脚注/尾注计数和引用解析都以单个
+产品处理顶层原生 ATX H1-H6 标题及精确的 Number Suite/DocWen H7-H9 扩展，并支持实时预览、
+阅读视图、当前笔记写入操作、批处理、内置及自定义方案、精确标题排除、按笔记 Properties
+覆盖、纯显示题注编号、脚注/尾注编号、同文件
+语义交叉引用、Number Suite 自有的 H1-H9 与题注侧栏大纲，以及中英文界面。标题方案、每种题注计数、脚注/尾注计数和引用解析都以单个
 Markdown 文件为作用域；嵌入文件仍按自己的源码与设置处理。
 
 <!-- section: functional-requirements -->
@@ -67,6 +68,15 @@ Markdown 文件为作用域；嵌入文件仍按自己的源码与设置处理�
     的两空格或 Tab 缩进续行属于受保护容器，不得被扫描为标题、题注或语义引用。Live Preview
     可显示格式化编号或原始标记；单击格式化编号或把光标移到编号处会展开可编辑标记，阅读
     模式保留原生跳转。
+14. H7-H9 只识别顶层、行首精确 7、8 或 9 个井号且随后有空白的源码行；10 个及以上井号
+    仍是普通文本。扩展标题共用九级解析、计数器、模板、Properties 起始值、变换和
+    `number-suite.interop.v2` 语义。已有六项模板的自定义方案升级后 H7-H9 保持为空。
+    不承诺 Obsidian 原生大纲、反向链接、标题路径导航或其他宿主标题索引能识别扩展层级；
+    互通目标建议使用用户已有的稳定块 ID。
+15. 功能区图标打开常驻右侧栏，侧栏含“文档大纲”和“当前笔记”两个选项卡。大纲跟随活动
+    Markdown 文件，嵌套显示 H1-H9 与固定题注，使用当前最终生效的 Number Suite 显示标签，
+    支持折叠和源码行跳转，并且从不修改 Markdown。“当前笔记”发起的 Markdown 修改仍必须
+    经过既有预览和源码过期校验。
 
 <!-- section: safety-requirements -->
 ## 安全要求
@@ -82,11 +92,12 @@ Markdown 文件为作用域；嵌入文件仍按自己的源码与设置处理�
 <!-- section: non-goals -->
 ## 非目标
 
-- 不支持正文内局部方案切换，也不支持已冻结题注、脚注/尾注和显式语义引用声明之外的用户
-  自定义控制语法。
+- 不支持正文内局部方案切换，也不支持已冻结 H7-H9、题注、脚注/尾注和显式语义引用声明
+  之外的用户自定义控制语法。
 - 不自动重写标题链接、嵌入或外部锚点。
 - 不解析跨文件语义引用。
-- 不承诺 Setext、Canvas、Outline、Backlinks、Search Results 或 PDF 导出集成。
+- 不承诺 Setext、Canvas、Obsidian 内置大纲、Backlinks、Search Results 或 PDF 导出集成；
+  插件自有侧栏大纲属于范围内功能。
 - 不把自动测试、模拟器记录或构建成功表述为所有宿主平台验收。
 
 <!-- section: acceptance -->

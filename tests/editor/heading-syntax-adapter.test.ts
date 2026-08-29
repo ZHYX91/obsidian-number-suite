@@ -5,6 +5,7 @@ import {
   NumeralWidget,
   shouldShowNoteWidgets,
   syntaxNodeConfirmsHeading,
+  selectionTouchesHeadingLine,
   transitionHeadingComposition,
   transitionHeadingTouchEditing,
 } from "../../src/editor/heading-display-extension";
@@ -26,6 +27,17 @@ describe("syntaxNodeConfirmsHeading", () => {
     expect(syntaxNodeConfirmsHeading("HyperMD-header_HyperMD-header-3", 2)).toBe(false);
     expect(syntaxNodeConfirmsHeading("formatting-header-2", 2)).toBe(false);
     expect(syntaxNodeConfirmsHeading("HyperMD-codeblock", 2)).toBe(false);
+  });
+});
+
+describe("selectionTouchesHeadingLine", () => {
+  it("reveals an extended marker only while its source line is being edited", () => {
+    const heading = {
+      lineFrom: 10,
+      lineTo: 30,
+    } as Parameters<typeof selectionTouchesHeadingLine>[0];
+    expect(selectionTouchesHeadingLine(heading, [{ from: 20, to: 20 }])).toBe(true);
+    expect(selectionTouchesHeadingLine(heading, [{ from: 31, to: 31 }])).toBe(false);
   });
 });
 

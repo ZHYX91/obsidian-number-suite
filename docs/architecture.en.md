@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-29
 ---
 
 # Number Suite — Architecture
@@ -36,13 +36,14 @@ only in adapters. Virtual display and file operations cannot implement separate 
 <!-- section: core -->
 ## Core and configuration boundaries
 
-`heading-parser.ts` returns ATX headings and source offsets while skipping frontmatter, fenced code,
-HTML/Obsidian comments, and blocks. `template-compiler.ts` compiles placeholders into an AST used for
+`heading-parser.ts` returns native ATX H1-H6 plus exact H7-H9 extension headings and source offsets
+while skipping frontmatter, fenced code, HTML/Obsidian comments, and blocks. Ten or more hashes are
+not headings. `template-compiler.ts` compiles placeholders into an AST used for
 rendering, validation, and template-prefix recognition. `number-parser.ts` supplies provenance,
 style, rule, and confidence for plugin, template, and manual prefixes; `prefix-analysis.ts` is the
 shared display/write entry point.
 
-`numbering-engine.ts` owns H1-H6 counters, starts, resets, empty-template structural semantics,
+`numbering-engine.ts` owns H1-H9 counters, starts, resets, empty-template structural semantics,
 exclusions, and skipped-level strategy. `scheme-template-validation.ts` enforces template semantics
 before a custom scheme can be saved.
 
@@ -59,8 +60,32 @@ It marks definition continuations indented by two spaces or a tab as protected c
 heading, caption, and semantic-reference scanners cannot consume note content. Missing, duplicate,
 or canonically conflicting definitions do not enter the display plan.
 
+`document-outline.ts` is a pure projection over the authenticated H1-H9 parser, caption scanner,
+and heading display plan. It nests headings by source level, attaches captions to the deepest
+preceding heading, removes only the final authored block-ID token from display labels, and emits
+source lines for navigation. It neither reads the Vault nor writes Markdown.
+
+<!-- section: interop-api -->
+## Consumer interoperability API
+
+The plugin exposes a read-only `number-suite.interop.v2` API. Given source Markdown and
+sanitized note overrides, it returns a JSON-serializable consumer-neutral snapshot: UTF-16 source
+ranges, heading and caption targets, resolved same-file references, and the effective enabled
+display segments and counters. It exposes no Obsidian, CodeMirror, DOM, or private Number Suite
+classes and performs no file write. The snapshot shares the parsers and numbering engine used by
+the display plan, so consumers do not re-infer numbers. If a stored prefix must be concealed but a
+consumer cannot express removal of that stored prefix, the affected heading is not presented as
+losslessly materializable; the consumer must fail closed or use its own safe fallback.
+
 <!-- section: display-adapters -->
 ## Display adapters
+
+`NumberSuiteSidebarView` is one persistent right-side `ItemView` with two internal tabs. The outline
+tab reads the active editor when uniquely available and otherwise uses a cached Vault read, then
+renders the pure outline projection. The current-note tab owns a reusable controls pane instead of
+a modal. Workspace file, leaf, editor, and Vault-modify events refresh only the relevant active tab;
+the selected tab is stored as view state. Navigation resolves an existing Markdown leaf when
+possible and otherwise opens the file at the projected source line.
 
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
@@ -68,10 +93,15 @@ syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.w
 touches a heading or during IME composition. Each view caches its effective Properties. Invalid YAML
 may retain the last valid display configuration, but file operations fail closed.
 
+For extension levels 7-9, the syntax-tree adapter trusts only candidates authenticated by the same
+protected-region scanner because CommonMark has no native H7-H9 node. Live Preview adds a line
+style and conceals the marker outside active editing or composition; Source Mode keeps it visible.
+
 The Reading View postprocessor reads the full source and creates one document numbering plan before
 mapping `MarkdownSectionInformation` ranges. DOM changes occur only when source and rendered heading
 counts and levels match exactly; concealment also validates exact leading text. Heading content is
-never passed to `innerHTML`.
+never passed to `innerHTML`. An H7-H9 line must map to a standalone paragraph whose visible prefix
+still contains the exact extension marker; otherwise the section fails closed.
 
 Caption and reference widgets use the same CodeMirror lifecycle and full-source Reading View cache,
 but never enter `TransformPlan` or any Editor/Vault mutation path. Reading View preserves the native
@@ -90,8 +120,9 @@ labels, and list values on reprocessing, view changes, and plugin disable.
 <!-- section: file-mutations -->
 ## File mutations
 
-Current-note work creates an immutable `TransformPlan`, then revalidates file, view, and source at
-confirmation before applying one editor transaction. Batch work saves open editors, plans every
+Current-note work creates an immutable `TransformPlan`, then revalidates file, the uniquely matching
+editor view, and source at confirmation before applying one editor transaction. This remains true
+when the action starts from a focused sidebar. Batch work saves open editors, plans every
 file, shows an aggregate preview, revalidates all sources, persists a bounded recovery snapshot,
 then performs exact-content conditional replacements. Failure rolls back only files that still
 contain plugin output. Concurrent edits are preserved and recovery remains available.
@@ -118,4 +149,5 @@ do not replace isolated-vault host acceptance. See the [release policy](release.
 - File writes consume only immutable plans that passed preview and stale-content validation.
 - Broader cleanup recognition requires false-positive tests first.
 - New settings need sanitization, cloning, persistence, and a UI contract.
+- Interoperability schema changes require a version bump and host-neutral plain-data results.
 - Changes to Chinese architecture, product, or UX sources synchronize English and pass docs checks.

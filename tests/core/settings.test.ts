@@ -62,8 +62,22 @@ describe("settings", () => {
       concealStoredNumbers: true,
       schemeId: "legal",
       cleanupScope: "common",
-      starts: { 2: 3 },
+      starts: { 2: 3, 7: 9 },
     });
+  });
+
+  it("pads legacy six-level custom templates without enabling H7-H9", () => {
+    const configured = sanitizeSettings({
+      customSchemes: [{
+        id: "custom-legacy",
+        name: "Legacy",
+        revision: 1,
+        baseLevel: 1,
+        templates: ["{1.arabic}", "{2.arabic}", "", "", "", ""],
+      }],
+    });
+    expect(configured.customSchemes[0]?.templates).toHaveLength(9);
+    expect(configured.customSchemes[0]?.templates.slice(6)).toEqual(["", "", ""]);
   });
 
   it("ignores properties that are not part of the new project contract", () => {

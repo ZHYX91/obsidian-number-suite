@@ -121,6 +121,20 @@ describe("heading transforms", () => {
     expect(cleaned.result).toBe(source);
   });
 
+  it("round-trips stored numbering for H7-H9 extension headings", () => {
+    const source = "####### Seven\n######## Eight\n######### Nine\n";
+    const written = planHeadingTransform(source, "write", options({ writeMarkers: true }));
+    expect(written.changes).toHaveLength(3);
+    expect(written.result).toContain("1.1.1.1.1.1.1");
+    expect(written.result).toContain("1.1.1.1.1.1.1.1.1");
+    const cleaned = planHeadingTransform(
+      written.result,
+      "remove",
+      options({ writeMarkers: true, cleanupScope: "plugin" }),
+    );
+    expect(cleaned.result).toBe(source);
+  });
+
   it.each([false, true])(
     "round-trips punctuation-only titles with writeMarkers=%s",
     (writeMarkers) => {

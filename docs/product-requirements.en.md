@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-29
 ---
 
 # Number Suite — Product requirements
@@ -40,10 +40,10 @@ file change remains previewable, explainable, and recoverable where practical.
 <!-- section: scope -->
 ## Scope
 
-The product handles top-level ATX H1-H6 headings and supports Live Preview, Reading View,
-current-note writes, batch operations, built-in and custom schemes, exact-title exclusions,
+The product handles top-level native ATX H1-H6 headings plus the exact Number Suite/DocWen H7-H9
+extension and supports Live Preview, Reading View, current-note writes, batch operations, built-in and custom schemes, exact-title exclusions,
 per-note Properties, display-only caption numbers, footnote/endnote numbers, same-file semantic
-cross references, and English/Chinese UI. One Markdown file is the scope for heading schemes, each
+cross references, a Number Suite H1-H9-and-caption sidebar outline, and English/Chinese UI. One Markdown file is the scope for heading schemes, each
 caption-type counter, footnote/endnote counters, and reference resolution; embedded files remain
 governed by their own source and settings.
 
@@ -81,6 +81,17 @@ governed by their own source and settings.
     headings, captions, or semantic references. Live Preview can show formatted numbers or original
     markers; clicking or moving the cursor to a formatted number reveals the editable marker, while
     Reading View preserves native navigation.
+14. H7-H9 are recognized only on top-level lines with exactly 7, 8, or 9 leading hashes followed
+    by whitespace; 10 or more hashes remain ordinary text. The extension uses the same nine-level
+    parser, counter, template, Properties-start, transformation, and `number-suite.interop.v2`
+    semantics. Existing six-template custom schemes migrate with H7-H9 empty. Native Obsidian
+    Outline, Backlinks, heading-path navigation, and other host heading indexes are not claimed;
+    stable authored block IDs are the recommended interoperation target.
+15. The ribbon opens a persistent right sidebar with Document outline and Current note tabs. The
+    outline follows the active Markdown file, nests H1-H9 and fixed captions, uses effective
+    Number Suite display labels, supports collapse and source-line navigation, and never modifies
+    Markdown. Markdown-changing actions from Current note still require the normal preview and
+    stale-source checks.
 
 <!-- section: safety-requirements -->
 ## Safety requirements
@@ -97,11 +108,12 @@ governed by their own source and settings.
 <!-- section: non-goals -->
 ## Non-goals
 
-- No section-local scheme switching or user-defined control syntax beyond the frozen caption,
-  footnote/endnote, and explicit semantic-reference declarations.
+- No section-local scheme switching or user-defined control syntax beyond the frozen H7-H9,
+  caption, footnote/endnote, and explicit semantic-reference declarations.
 - No automatic rewriting of heading links, embeds, or external anchors.
 - No cross-file semantic-reference resolution.
-- No commitment to Setext, Canvas, Outline, Backlinks, Search Results, or PDF export integration.
+- No commitment to Setext, Canvas, Obsidian's built-in Outline, Backlinks, Search Results, or PDF
+  export integration. The plugin-owned sidebar outline is in scope.
 - No claim that automated tests, emulator records, or a successful build accept every host platform.
 
 <!-- section: acceptance -->

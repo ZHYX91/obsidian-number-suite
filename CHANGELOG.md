@@ -2,6 +2,26 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+### Added
+
+- Added the explicit Number Suite/DocWen H7-H9 source extension across parsing, nine-level
+  counters and templates, Properties starts, transformations, Live Preview, Reading View, and
+  stable-ID reference export.
+- Added the strict read-only `number-suite.interop.v2` consumer contract with H1-H9 display
+  segments and exactly nine counter values.
+- Added a persistent right sidebar with Document outline and Current note tabs. The outline nests
+  H1-H9 headings and fixed captions, supports collapse and source-line navigation, and shares the
+  effective Number Suite display plan.
+
+### Changed
+
+- Existing six-template custom schemes migrate with H7-H9 empty so upgrading does not introduce
+  new numbering into old notes.
+- The ribbon icon now opens the sidebar; current-note Markdown actions keep their separate preview
+  and stale-source checks.
+
 ## 0.2.0 - 2026-08-28
 
 ### Added

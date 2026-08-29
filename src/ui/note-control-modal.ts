@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Setting, type TFile } from "obsidian";
+import { App, Notice, Setting, type TFile } from "obsidian";
 
 import {
   applyNoteOverrideChange,
@@ -29,38 +29,57 @@ function booleanLabel(value: boolean, t: Translate): string {
   return t(value ? "panel.value.on" : "panel.value.off");
 }
 
-export class NoteControlModal extends Modal {
+export class NoteControlPane {
   private busy = false;
   private frontmatter: Record<string, unknown> | null = null;
+  private file: TFile | null = null;
+  private request = 0;
 
   constructor(
-    app: App,
-    private readonly file: TFile,
+    private readonly app: App,
+    private readonly contentEl: HTMLElement,
     private readonly getSettings: () => NumberSuiteSettings,
-    private readonly t: Translate,
+    private readonly getTranslate: () => Translate,
     private readonly actions: NoteControlActions,
-  ) {
-    super(app);
+  ) {}
+
+  private get t(): Translate {
+    return this.getTranslate();
   }
 
-  override onOpen(): void {
-    this.modalEl.addClass("number-suite-note-control-modal");
-    this.setTitle(this.t("panel.title"));
+  setFile(file: TFile | null, reload = true): void {
+    if (this.file?.path === file?.path) {
+      if (reload) void this.reload();
+      return;
+    }
+    this.file = file;
+    this.frontmatter = null;
+    this.request += 1;
+    if (reload) void this.reload();
+    else this.renderUnavailable();
+  }
+
+  refresh(): void {
     void this.reload();
   }
 
-  override onClose(): void {
-    this.contentEl.empty();
-  }
-
   private async reload(): Promise<void> {
+    const file = this.file;
+    const request = this.request + 1;
+    this.request = request;
+    if (file == null) {
+      this.renderUnavailable();
+      return;
+    }
     this.busy = true;
     this.renderLoading();
     try {
-      const source = await this.app.vault.cachedRead(this.file);
+      const source = await this.app.vault.cachedRead(file);
+      if (request !== this.request || file.path !== this.file?.path) return;
       this.frontmatter = parseFrontmatterRecordFromSource(source);
     } catch (error: unknown) {
       console.error("Number Suite: failed to read current note Properties", error);
+      if (request !== this.request || file.path !== this.file?.path) return;
       this.frontmatter = null;
     }
     this.busy = false;
@@ -70,17 +89,37 @@ export class NoteControlModal extends Modal {
 
   private renderLoading(): void {
     this.contentEl.empty();
+    const status = this.contentEl.createDiv({
+      cls: "number-suite-note-control-loading",
+    });
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.createSpan({
+      cls: "number-suite-note-control-loading-indicator",
+      attr: { "aria-hidden": "true" },
+    });
+    status.createEl("p", { text: this.t("panel.loading") });
+  }
+
+  private renderUnavailable(): void {
+    this.busy = false;
+    this.contentEl.empty();
     this.contentEl.createEl("p", {
-      cls: "setting-item-description",
-      text: this.t("panel.loading"),
+      cls: "number-suite-sidebar-empty",
+      text: this.t("notice.noActiveNote"),
     });
   }
 
   private render(): void {
+    const file = this.file;
+    if (file == null) {
+      this.renderUnavailable();
+      return;
+    }
     this.contentEl.empty();
     const header = this.contentEl.createDiv({ cls: "number-suite-note-control-header" });
-    header.createEl("h3", { text: this.file.basename });
-    header.createEl("p", { text: this.file.path });
+    header.createEl("h3", { text: file.basename });
+    header.createEl("p", { text: file.path });
 
     if (this.frontmatter == null) {
       const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
@@ -234,32 +273,30 @@ export class NoteControlModal extends Modal {
     ] as const) {
       const button = actions.createEl("button", { text: this.t(key) });
       button.addEventListener("click", () => {
-        this.close();
         this.actions.runCurrent(operation);
       });
     }
     const navigation = section.createDiv({ cls: "number-suite-note-control-navigation" });
     const batch = navigation.createEl("button", { text: this.t("command.batch.folder") });
     batch.addEventListener("click", () => {
-      this.close();
       this.actions.openBatch();
     });
     const settings = navigation.createEl("button", { text: this.t("panel.openSettings") });
     settings.addClass("mod-cta");
     settings.addEventListener("click", () => {
-      this.close();
       this.actions.openGlobalSettings();
     });
   }
 
   private async applyChange(change: NoteOverrideChange): Promise<void> {
-    if (this.busy || this.frontmatter == null) return;
+    const file = this.file;
+    if (this.busy || this.frontmatter == null || file == null) return;
     const preview = { ...this.frontmatter };
     if (!applyNoteOverrideChange(preview, change)) return;
     this.busy = true;
     this.contentEl.addClass("is-loading");
     try {
-      await this.app.fileManager.processFrontMatter(this.file, (frontmatter) => {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
         applyNoteOverrideChange(frontmatter as Record<string, unknown>, change);
       });
       this.actions.refreshDisplay();

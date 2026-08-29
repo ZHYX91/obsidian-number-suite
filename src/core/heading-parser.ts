@@ -1,4 +1,4 @@
-import type { HeadingContentSpan, ParsedHeading } from "./types";
+import type { HeadingContentSpan, HeadingLevel, ParsedHeading } from "./types";
 import { noteContainerLines } from "./note-semantics";
 
 const BLOCK_TAGS = new Set([
@@ -112,18 +112,19 @@ function projectVisibleContent(
 }
 
 function parseAtxLine(line: SourceLine): ParsedHeading | null {
-  const match = /^( {0,3})(#{1,6})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
+  const match = /^( {0,3})(#{1,9})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
   if (match == null) return null;
   const indent = match[1] ?? "";
   const hashes = match[2] ?? "";
   const spacing = match[3] ?? "";
+  if (hashes.length >= 7 && spacing.length === 0) return null;
   const rawContent = match[4] ?? "";
   const closing = /^(.*?)(?:[ \t]+#+[ \t]*)$/.exec(rawContent);
   const sourceContent = closing?.[1] ?? (/^#+[ \t]*$/u.test(rawContent) ? "" : rawContent);
   const rawContentFrom = line.from + indent.length + hashes.length + spacing.length;
   return {
     line: line.number,
-    level: hashes.length,
+    level: hashes.length as HeadingLevel,
     lineFrom: line.from,
     lineTo: line.to,
     markerFrom: line.from + indent.length,

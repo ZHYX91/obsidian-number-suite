@@ -32,9 +32,17 @@ import {
   cleanupNumberSuiteReadingDom,
   HeadingReadingProcessor,
 } from "../reading/heading-postprocessor";
-import { NoteControlModal } from "../ui/note-control-modal";
+import {
+  NUMBER_SUITE_SIDEBAR_VIEW,
+  NumberSuiteSidebarView,
+  type NumberSuiteSidebarTab,
+} from "../ui/sidebar-view";
 import { NumberSuiteSettingTab } from "./settings-tab";
 import type { SettingsImpact } from "./settings-impact";
+import {
+  createNumberSuiteInteropApiV2,
+  type NumberSuiteInteropApiV2,
+} from "../integration/semantic-export";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = { ...DEFAULT_SETTINGS };
@@ -44,6 +52,11 @@ export default class NumberSuitePlugin extends Plugin {
   private recoveryStore: RecoveryStore | null = null;
   private settingsCoordinator: SettingsSaveCoordinator<NumberSuiteSettings> | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
+  private readonly interopApi = createNumberSuiteInteropApiV2(() => this.settings);
+
+  getInteropApi(): NumberSuiteInteropApiV2 {
+    return this.interopApi;
+  }
 
   override async onload(): Promise<void> {
     const data = sanitizePluginData(await this.loadData());
@@ -72,6 +85,14 @@ export default class NumberSuitePlugin extends Plugin {
       },
     );
 
+    this.registerView(NUMBER_SUITE_SIDEBAR_VIEW, (leaf) => new NumberSuiteSidebarView(leaf, {
+      getSettings: () => this.settings,
+      getTranslate: () => this.translate(),
+      refreshDisplay: () => this.refreshDisplay(),
+      runCurrent: (operation, path) => this.runCurrent(operation, path),
+      openBatch: () => this.batchController?.open(this.translate()),
+      openGlobalSettings: () => this.openGlobalSettings(),
+    }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
     this.registerCommands();
     this.addRibbon();
@@ -181,43 +202,53 @@ export default class NumberSuitePlugin extends Plugin {
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
-        if (!checking && available) this.openCurrentNotePanel();
+        if (!checking && available) void this.openSidebar("note");
         return available;
       },
+    });
+    this.addCommand({
+      id: "open-outline",
+      name: this.translate()("command.sidebar.outline"),
+      callback: () => void this.openSidebar("outline"),
     });
   }
 
   private addRibbon(): void {
-    this.addRibbonIcon("list-ordered", this.translate()("panel.ribbon"), () => {
-      this.openCurrentNotePanel();
+    this.addRibbonIcon("list-tree", this.translate()("panel.ribbon"), () => {
+      void this.openSidebar();
     });
   }
 
-  private openCurrentNotePanel(): void {
-    const file = this.app.workspace.getActiveFile();
-    if (file == null || file.extension.toLowerCase() !== "md") {
-      new Notice(this.translate()("notice.noActiveNote"));
-      return;
-    }
-    const t = this.translate();
-    new NoteControlModal(this.app, file, () => this.settings, t, {
-      refreshDisplay: () => {
-        this.readingProcessor?.invalidate();
-        this.displayController?.refreshAll();
-        this.rerenderReadingViews();
+  private async openSidebar(tab?: NumberSuiteSidebarTab): Promise<void> {
+    const leaf = await this.app.workspace.ensureSideLeaf(
+      NUMBER_SUITE_SIDEBAR_VIEW,
+      "right",
+      {
+        active: true,
+        reveal: true,
+        state: tab == null ? undefined : { tab },
       },
-      runCurrent: (operation) => this.runCurrent(operation),
-      openBatch: () => this.batchController?.open(this.translate()),
-      openGlobalSettings: () => {
-        if (!openObsidianPluginSettings(this.app, this.manifest.id)) {
-          new Notice(t("panel.settingsUnavailable"));
-        }
-      },
-    }).open();
+    );
+    if (leaf.view instanceof NumberSuiteSidebarView && tab != null) leaf.view.selectTab(tab);
+    await this.app.workspace.revealLeaf(leaf);
   }
 
-  private runCurrent(operation: TransformOperation): void {
-    runCurrentNoteOperation(this.app, this.settings, operation, this.translate());
+  private openGlobalSettings(): void {
+    const t = this.translate();
+    if (!openObsidianPluginSettings(this.app, this.manifest.id)) {
+      new Notice(t("panel.settingsUnavailable"));
+    }
+  }
+
+  private refreshDisplay(): void {
+    this.readingProcessor?.invalidate();
+    this.displayController?.refreshAll();
+    this.rerenderReadingViews();
+    this.refreshSidebarViews();
+  }
+
+  private runCurrent(operation: TransformOperation, path?: string): void {
+    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path);
   }
 
   private async updateDisplayPreference(mode: DisplayPreferenceAction): Promise<void> {
@@ -240,9 +271,14 @@ export default class NumberSuitePlugin extends Plugin {
   private applySettingsImpact(impact: SettingsImpact): void {
     if (impact === "appearance" || impact === "all") this.applyAppearance();
     if (impact === "display" || impact === "all") {
-      this.readingProcessor?.invalidate();
-      this.displayController?.refreshAll();
-      this.rerenderReadingViews();
+      this.refreshDisplay();
+    }
+    if (impact !== "display" && impact !== "all") this.refreshSidebarViews();
+  }
+
+  private refreshSidebarViews(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(NUMBER_SUITE_SIDEBAR_VIEW)) {
+      if (leaf.view instanceof NumberSuiteSidebarView) leaf.view.refresh();
     }
   }
 

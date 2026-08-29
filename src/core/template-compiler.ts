@@ -1,5 +1,5 @@
 import { formatCounter, NUMBER_FORMAT_PATTERNS } from "./number-formats";
-import type { Counters, NumberFormat } from "./types";
+import type { Counters, HeadingLevel, NumberFormat } from "./types";
 
 export const NUMBER_FORMATS = [
   "arabic",
@@ -15,7 +15,7 @@ export const NUMBER_FORMATS = [
 
 export type TemplateNode =
   | Readonly<{ kind: "literal"; value: string }>
-  | Readonly<{ kind: "counter"; level: 1 | 2 | 3 | 4 | 5 | 6; format: NumberFormat }>;
+  | Readonly<{ kind: "counter"; level: HeadingLevel; format: NumberFormat }>;
 
 export interface TemplateDiagnostic {
   readonly from: number;
@@ -38,11 +38,11 @@ export interface CompiledTemplate {
 }
 
 function counterNode(content: string): TemplateNode | null {
-  const match = /^([1-6])\.([a-z_]+)$/u.exec(content);
+  const match = /^([1-9])\.([a-z_]+)$/u.exec(content);
   if (match == null || !NUMBER_FORMATS.includes(match[2] as NumberFormat)) return null;
   return {
     kind: "counter",
-    level: Number(match[1]) as 1 | 2 | 3 | 4 | 5 | 6,
+    level: Number(match[1]) as HeadingLevel,
     format: match[2] as NumberFormat,
   };
 }

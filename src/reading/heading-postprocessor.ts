@@ -34,6 +34,12 @@ interface ReadingPlanCacheEntry extends CachedReadingPlan {
   readonly fingerprint: string;
 }
 
+interface RenderedHeading {
+  readonly element: HTMLElement;
+  readonly level: number;
+  readonly extendedMarker: string | null;
+}
+
 function headingElements(container: HTMLElement): HTMLHeadingElement[] {
   const output: HTMLHeadingElement[] = [];
   if (/^H[1-6]$/u.test(container.tagName)) {
@@ -43,7 +49,7 @@ function headingElements(container: HTMLElement): HTMLHeadingElement[] {
   return output;
 }
 
-function cleanupHeading(element: HTMLHeadingElement): void {
+function cleanupHeading(element: HTMLElement): void {
   for (const virtual of element.querySelectorAll<HTMLElement>(VIRTUAL_NUMERAL_SELECTOR)) {
     const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);
@@ -54,6 +60,42 @@ function cleanupHeading(element: HTMLHeadingElement): void {
   }
   element.normalize();
   element.removeAttribute("data-number-suite-mode");
+  element.removeAttribute("data-number-suite-heading-level");
+  element.classList.remove(
+    "number-suite-extended-heading",
+    "number-suite-extended-heading-h7",
+    "number-suite-extended-heading-h8",
+    "number-suite-extended-heading-h9",
+  );
+}
+
+function leadingExtendedMarker(element: HTMLElement): string | null {
+  const text = leadingTextNodes(element).map((node) => node.data).join("");
+  return /^(?: {0,3})(#{7,9})[ \t]+/u.exec(text)?.[0] ?? null;
+}
+
+function renderedHeadingElements(container: HTMLElement): RenderedHeading[] {
+  const native = headingElements(container).map((element) => ({
+    element,
+    level: Number(element.tagName.slice(1)),
+    extendedMarker: null,
+  }));
+  const paragraphs: HTMLElement[] = [];
+  if (container.matches("p")) paragraphs.push(container);
+  paragraphs.push(...container.querySelectorAll<HTMLElement>("p"));
+  const extended = paragraphs.flatMap((element): RenderedHeading[] => {
+    const marker = leadingExtendedMarker(element);
+    if (marker == null) return [];
+    return [{
+      element,
+      level: marker.trimStart().match(/^#+/u)?.[0].length ?? 0,
+      extendedMarker: marker,
+    }];
+  });
+  return [...native, ...extended].sort((left, right) => {
+    if (left.element === right.element) return 0;
+    return left.element.compareDocumentPosition(right.element) & 4 ? -1 : 1;
+  });
 }
 
 function cleanupSemantic(container: HTMLElement): void {
@@ -98,7 +140,12 @@ function cleanupSemantic(container: HTMLElement): void {
 
 export function cleanupNumberSuiteReadingDom(container: HTMLElement): void {
   cleanupSemantic(container);
-  for (const heading of headingElements(container)) cleanupHeading(heading);
+  const headings = new Set<HTMLElement>([
+    ...headingElements(container),
+    ...container.querySelectorAll<HTMLElement>(".number-suite-extended-heading"),
+  ]);
+  if (container.classList.contains("number-suite-extended-heading")) headings.add(container);
+  for (const heading of headings) cleanupHeading(heading);
 }
 
 function captionRoots(container: HTMLElement): HTMLElement[] {
@@ -259,11 +306,11 @@ function enhanceNoteDefinitions(
   return true;
 }
 
-function prependVirtualNumber(element: HTMLHeadingElement, label: string): void {
+function prependVirtualNumber(element: HTMLElement, label: string): void {
   element.prepend(createVirtualNumeralElement(element.ownerDocument, label));
 }
 
-function leadingTextNodes(element: HTMLHeadingElement): Text[] {
+function leadingTextNodes(element: HTMLElement): Text[] {
   const view = element.ownerDocument.defaultView;
   const showText = view?.NodeFilter.SHOW_TEXT ?? 4;
   const walker = element.ownerDocument.createTreeWalker(element, showText);
@@ -283,7 +330,7 @@ function leadingTextNodes(element: HTMLHeadingElement): Text[] {
   return nodes;
 }
 
-function concealPrefix(element: HTMLHeadingElement, sourcePrefix: string): boolean {
+function concealPrefix(element: HTMLElement, sourcePrefix: string): boolean {
   const nodes = leadingTextNodes(element);
   const fullText = nodes.map((node) => node.data).join("");
   const withoutMarkers = sourcePrefix.replace(new RegExp(WORD_JOINER, "gu"), "");
@@ -338,23 +385,13 @@ export class HeadingReadingProcessor {
     const generation = this.generation;
     this.containerRequests.set(container, request);
     cleanupNumberSuiteReadingDom(container);
-    const rendered = headingElements(container);
-
     const settings = this.getSettings();
     if (!settings.enableReadingView) {
       return;
     }
     const effective = resolveNoteSettings(settings, parseNoteOverrides(context.frontmatter));
     const captionCentering = centeredCaptionKinds(settings);
-    if (
-      effective.disabled
-      || (!effective.showVirtualNumbers
-        && !effective.concealStoredNumbers
-        && !settings.showCaptionNumbers
-        && captionCentering.length === 0
-        && !settings.showCrossReferences
-        && !settings.showNoteNumbers)
-    ) {
+    if (effective.disabled) {
       return;
     }
     const file = this.app.vault.getAbstractFileByPath(normalizePath(context.sourcePath));
@@ -387,13 +424,26 @@ export class HeadingReadingProcessor {
     const sectionHeadings = headings.filter((heading) => (
       heading.line >= section.lineStart && heading.line <= section.lineEnd
     ));
+    const rendered = renderedHeadingElements(container);
+    const hasExtendedHeadings = sectionHeadings.some((heading) => heading.level >= 7);
+    if (
+      !hasExtendedHeadings
+      && !effective.showVirtualNumbers
+      && !effective.concealStoredNumbers
+      && !settings.showCaptionNumbers
+      && captionCentering.length === 0
+      && !settings.showCrossReferences
+      && !settings.showNoteNumbers
+    ) {
+      return;
+    }
     if (
       rendered.length > 0
       && (
       rendered.length !== sectionHeadings.length
-      || rendered.some((element, index) => {
+      || rendered.some((item, index) => {
         const sourceHeading = sectionHeadings[index];
-        return sourceHeading == null || Number(element.tagName.slice(1)) !== sourceHeading.level;
+        return sourceHeading == null || item.level !== sourceHeading.level;
       })
       )
     ) {
@@ -406,10 +456,19 @@ export class HeadingReadingProcessor {
       planByLine.set(item.line, items);
     }
     for (let index = 0; index < rendered.length; index += 1) {
-      const element = rendered[index];
+      const renderedHeading = rendered[index];
       const sourceHeading = sectionHeadings[index];
-      if (element == null || sourceHeading == null) {
+      if (renderedHeading == null || sourceHeading == null) {
         continue;
+      }
+      const element = renderedHeading.element;
+      if (renderedHeading.extendedMarker != null) {
+        if (!concealPrefix(element, renderedHeading.extendedMarker)) continue;
+        element.classList.add(
+          "number-suite-extended-heading",
+          `number-suite-extended-heading-h${sourceHeading.level}`,
+        );
+        element.dataset.numberSuiteHeadingLevel = String(sourceHeading.level);
       }
       const items = planByLine.get(sourceHeading.line) ?? [];
       const conceal = items.find((item) => item.kind === "conceal");

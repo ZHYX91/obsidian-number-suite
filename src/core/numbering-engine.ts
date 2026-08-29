@@ -1,15 +1,17 @@
 import { renderCurrentLevel, renderTemplate } from "./schemes";
 import { matchHeadingExclusion } from "./heading-exclusions";
 import { inspectSchemeTemplates } from "./scheme-template-validation";
+import { HEADING_LEVEL_COUNT } from "./types";
 import type {
   Counters,
+  HeadingLevel,
   NumberedHeading,
   NumberingOptions,
   ParsedHeading,
 } from "./types";
 
 function normalizedStart(options: NumberingOptions, level: number): number {
-  const key = level as 1 | 2 | 3 | 4 | 5 | 6;
+  const key = level as HeadingLevel;
   const value = options.starts[key];
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : 1;
 }
@@ -27,15 +29,15 @@ export function numberHeadings(
     return headings.map((heading) => ({
       heading,
       label: null,
-      counters: [0, 0, 0, 0, 0, 0],
+      counters: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       warning: null,
       exclusion: null,
     }));
   }
-  const starts = Array.from({ length: 6 }, (_unused, index) => normalizedStart(options, index + 1));
+  const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
   const counters = starts.map((start) => start - 1) as Counters;
-  const initialized = [false, false, false, false, false, false];
-  const active = [false, false, false, false, false, false];
+  const initialized = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
+  const active = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const output: NumberedHeading[] = [];
   let excludedSubtreeLevel: number | null = null;
 
@@ -66,7 +68,7 @@ export function numberHeadings(
     const exclusion = matchHeadingExclusion(heading, scheme);
     if (exclusion != null) {
       active[index] = false;
-      for (let lower = index + 1; lower < 6; lower += 1) {
+      for (let lower = index + 1; lower < HEADING_LEVEL_COUNT; lower += 1) {
         counters[lower] = (starts[lower] ?? 1) - 1;
         initialized[lower] = false;
         active[lower] = false;
@@ -86,7 +88,7 @@ export function numberHeadings(
     counters[index] = currentCounter + 1;
     initialized[index] = true;
     active[index] = true;
-    for (let lower = index + 1; lower < 6; lower += 1) {
+    for (let lower = index + 1; lower < HEADING_LEVEL_COUNT; lower += 1) {
       counters[lower] = (starts[lower] ?? 1) - 1;
       initialized[lower] = false;
       active[lower] = false;

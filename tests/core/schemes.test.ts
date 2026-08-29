@@ -13,6 +13,9 @@ describe("numbering schemes", () => {
         "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}",
         "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}",
         "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}",
+        "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}",
+        "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}.{8.arabic}",
+        "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}.{8.arabic}.{9.arabic}",
       ],
     })).toBe("hierarchical");
   });

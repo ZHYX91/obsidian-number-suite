@@ -1,4 +1,5 @@
 import { compileTemplate } from "./template-compiler";
+import { HEADING_LEVEL_COUNT, type HeadingLevel } from "./types";
 
 export type SchemeTemplateIssueCode =
   | "invalid-placeholder"
@@ -6,15 +7,15 @@ export type SchemeTemplateIssueCode =
   | "descendant-level-reference";
 
 export interface SchemeTemplateIssue {
-  readonly headingLevel: 1 | 2 | 3 | 4 | 5 | 6;
+  readonly headingLevel: HeadingLevel;
   readonly code: SchemeTemplateIssueCode;
-  readonly referencedLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  readonly referencedLevel?: HeadingLevel;
 }
 
 export function inspectSchemeTemplates(templates: readonly string[]): SchemeTemplateIssue[] {
   const issues: SchemeTemplateIssue[] = [];
-  for (let index = 0; index < 6; index += 1) {
-    const headingLevel = (index + 1) as 1 | 2 | 3 | 4 | 5 | 6;
+  for (let index = 0; index < HEADING_LEVEL_COUNT; index += 1) {
+    const headingLevel = (index + 1) as HeadingLevel;
     const source = templates[index] ?? "";
     if (source.trim().length === 0) continue;
     const compiled = compileTemplate(source);

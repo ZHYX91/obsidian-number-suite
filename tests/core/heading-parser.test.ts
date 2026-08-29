@@ -29,6 +29,21 @@ describe("parseAtxHeadings", () => {
     expect(source.slice(headings[1]?.contentFrom, headings[1]?.contentTo)).toBe("Two");
   });
 
+  it("parses Number Suite H7-H9 extensions and leaves ten hashes as text", () => {
+    const source = [
+      "####### Seven",
+      " ######## Eight ##",
+      "  ######### Nine",
+      "#######",
+      "########## Not a heading",
+    ].join("\n");
+    expect(parseAtxHeadings(source).map(({ level, content }) => ({ level, content }))).toEqual([
+      { level: 7, content: "Seven" },
+      { level: 8, content: "Eight" },
+      { level: 9, content: "Nine" },
+    ]);
+  });
+
   it("skips frontmatter, fenced code, comments, and HTML blocks", () => {
     const source = [
       "\uFEFF---",

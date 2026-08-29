@@ -11,8 +11,27 @@ export function runCurrentNoteOperation(
   settings: NumberSuiteSettings,
   operation: TransformOperation,
   translate: Translate,
+  targetPath?: string,
 ): void {
-  const view = app.workspace.getActiveViewOfType(MarkdownView);
+  const matchingViews = (): MarkdownView[] => {
+    if (targetPath == null) {
+      const active = app.workspace.getActiveViewOfType(MarkdownView);
+      return active == null ? [] : [active];
+    }
+    const matches: MarkdownView[] = [];
+    app.workspace.iterateAllLeaves((leaf) => {
+      if (leaf.view instanceof MarkdownView && leaf.view.file?.path === targetPath) {
+        matches.push(leaf.view);
+      }
+    });
+    return matches;
+  };
+  const matches = matchingViews();
+  if (matches.length > 1) {
+    new Notice(translate("notice.uniqueEditorRequired"));
+    return;
+  }
+  const view = matches[0] ?? null;
   if (view?.file == null) {
     new Notice(translate("notice.noActiveNote"));
     return;
@@ -43,8 +62,13 @@ export function runCurrentNoteOperation(
     documents: [{ path, plan }],
     translate,
     onConfirm: async () => {
-      const active = app.workspace.getActiveViewOfType(MarkdownView);
-      if (active !== view || active.file?.path !== path || view.editor.getValue() !== source) {
+      const currentMatches = matchingViews();
+      if (
+        currentMatches.length !== 1
+        || currentMatches[0] !== view
+        || view.file?.path !== path
+        || view.editor.getValue() !== source
+      ) {
         new Notice(translate("notice.stalePreview"));
         return;
       }

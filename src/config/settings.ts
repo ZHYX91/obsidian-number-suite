@@ -1,10 +1,12 @@
 import {
   CONFIDENCES,
+  HEADING_LEVEL_COUNT,
   type CleanupScope,
   type CleanupTemplateHistory,
   type CleanupTemplateSource,
   type CustomNumberingScheme,
   type HeadingExclusionRule,
+  type HeadingLevel,
   type MissingLevelStrategy,
   type NumberingOptions,
   type SchemeId,
@@ -72,6 +74,9 @@ export const DEFAULT_CUSTOM_TEMPLATES = [
   "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}",
   "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}",
   "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}",
+  "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}",
+  "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}.{8.arabic}",
+  "{1.arabic}.{2.arabic}.{3.arabic}.{4.arabic}.{5.arabic}.{6.arabic}.{7.arabic}.{8.arabic}.{9.arabic}",
 ];
 
 export const DEFAULT_SETTINGS: NumberSuiteSettings = {
@@ -126,10 +131,13 @@ function boundedNumber(value: unknown, fallback: number, minimum: number, maximu
 }
 
 function templates(value: unknown, fallback: readonly string[]): string[] {
-  const source: readonly unknown[] = Array.isArray(value) ? value as unknown[] : fallback;
-  return Array.from({ length: 6 }, (_unused, index) => {
+  const supplied = Array.isArray(value);
+  const source: readonly unknown[] = supplied ? value as unknown[] : fallback;
+  return Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => {
     const template = source[index];
-    const bounded = typeof template === "string" ? template.slice(0, 300) : fallback[index] ?? "";
+    const bounded = typeof template === "string"
+      ? template.slice(0, 300)
+      : supplied ? "" : fallback[index] ?? "";
     return bounded.trim().length === 0 ? "" : bounded;
   });
 }
@@ -173,7 +181,7 @@ function sanitizeCustomSchemes(value: unknown): CustomNumberingScheme[] {
         ? item.name.trim().slice(0, 80)
         : "Custom scheme",
       revision: Math.max(1, Math.trunc(boundedNumber(item.revision, 1, 1, Number.MAX_SAFE_INTEGER))),
-      baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, 6)),
+      baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, HEADING_LEVEL_COUNT)),
       templates: nextTemplates,
       exclusions: sanitizeExclusions(item.exclusions),
     });
@@ -198,7 +206,7 @@ function sanitizeCleanupHistory(value: unknown): CleanupTemplateHistory[] {
       schemeId: item.schemeId.slice(0, 64),
       schemeName: typeof item.schemeName === "string" ? item.schemeName.slice(0, 80) : item.schemeId,
       revision,
-      baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, 6)),
+      baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, HEADING_LEVEL_COUNT)),
       templates: nextTemplates,
     });
   }
@@ -357,7 +365,7 @@ export function toNumberingOptions(
   settings: NumberSuiteSettings,
   overrides: Readonly<{
     schemeId?: SchemeId;
-    starts?: Readonly<Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>>>;
+    starts?: Readonly<Partial<Record<HeadingLevel, number>>>;
   }> = {},
 ): NumberingOptions {
   const scheme = resolveScheme(overrides.schemeId ?? settings.selectedSchemeId, settings.customSchemes);

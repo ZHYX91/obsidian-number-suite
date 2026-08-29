@@ -28,6 +28,15 @@ describe("numberHeadings", () => {
     expect(labels).toEqual([null, "1", "1.1", "2"]);
   });
 
+  it("numbers the complete H1-H9 extension hierarchy", () => {
+    const source = Array.from({ length: 9 }, (_unused, index) => (
+      `${"#".repeat(index + 1)} Level ${index + 1}`
+    )).join("\n");
+    const result = numberHeadings(parseAtxHeadings(source), options());
+    expect(result[result.length - 1]?.label).toBe("1.1.1.1.1.1.1.1.1");
+    expect(result[result.length - 1]?.counters).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+  });
+
   it("implements all skipped-level strategies", () => {
     const headings = parseAtxHeadings("### Deep");
     expect(numberHeadings(headings, options({ missingLevelStrategy: "fill-one" }))[0]?.label).toBe("1.1.1");
@@ -67,8 +76,8 @@ describe("numberHeadings", () => {
     );
 
     expect(result.map((item) => item.label)).toEqual(["1", null, "1.1.1", null, "1.2.1"]);
-    expect(result[1]?.counters).toEqual([1, 1, 0, 0, 0, 0]);
-    expect(result[3]?.counters).toEqual([1, 2, 0, 0, 0, 0]);
+    expect(result[1]?.counters).toEqual([1, 1, 0, 0, 0, 0, 0, 0, 0]);
+    expect(result[3]?.counters).toEqual([1, 2, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it("does not report a missing parent for a structural empty-template level", () => {
@@ -88,7 +97,7 @@ describe("numberHeadings", () => {
     expect(result[1]).toMatchObject({
       label: null,
       warning: null,
-      counters: [1, 0, 1, 0, 0, 0],
+      counters: [1, 0, 1, 0, 0, 0, 0, 0, 0],
     });
   });
 

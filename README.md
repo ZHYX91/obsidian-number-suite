@@ -17,10 +17,10 @@ without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-### Current note controls
+### Sidebar current-note controls
 
-Compare global defaults, per-note overrides, and the effective values before changing the current
-note.
+Use the Current note tab in the Number Suite sidebar to compare global defaults, per-note
+overrides, and effective values before changing the note.
 
 ![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
 
@@ -41,7 +41,10 @@ Markdown.
 - Process a folder or vault with stale-content guards, bounded recovery data, and conflict-safe
   rollback.
 - Use built-in hierarchical, Chinese official-document, and legal-document schemes.
-- Create multiple custom schemes with validated H1-H6 templates and retained cleanup history.
+- Create multiple custom schemes with validated H1-H9 templates and retained cleanup history.
+- Use exact seven-, eight-, or nine-hash source lines as DocWen-compatible H7-H9 extensions.
+- Open a Number Suite document outline for H1-H9 headings and Figure, Table, Equation, and Code
+  captions; select an item to navigate to its source line.
 - Exclude an exact heading or its whole subtree without consuming a number.
 - Show display-only numbers for `Figure:`, `Table:`, `Equation:`, and `Code:` captions; each type
   starts at 1 in every Markdown file and captions do not require IDs.
@@ -86,10 +89,26 @@ Do not mix files from different versions.
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
 
-Use the ribbon icon or **Open current note controls** command for note-level display and scheme
-choices. File-changing commands always show a preview. Writing or removing a number changes the
-heading text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the
-plugin does not guess and rewrite those links.
+The ribbon icon opens a persistent right sidebar. Its **Document outline** tab shows Number Suite
+H1-H9 headings and captions; its **Current note** tab contains note-level display, scheme, and file
+actions. **Open current note controls** selects that tab directly. File-changing commands still
+open a separate preview before applying anything. Writing or removing a number changes the heading
+text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin
+does not guess and rewrite those links.
+
+### Extended H7-H9 headings
+
+Number Suite and DocWen share an explicit extension for Word heading levels 7 through 9. Write
+exactly 7, 8, or 9 leading `#` characters, followed by whitespace. Ten or more hashes remain
+ordinary text. The extension participates in numbering, starts, resets, exclusions, writes,
+Live Preview, Reading View, and the read-only `number-suite.interop.v2` consumer snapshot.
+
+H7-H9 are not native Obsidian/CommonMark heading levels, so Obsidian's built-in Outline, Backlinks,
+heading-path navigation, and other native heading indexes may not recognize them. Number Suite's
+own sidebar outline does include them and its navigation uses source lines. Use an authored stable
+block ID such as `######## Deep topic ^deep-topic` for reliable interoperation and references. Put
+each extended heading in its own paragraph, with a blank line around it, when Reading View
+enhancement is required. The Markdown source remains canonical and unchanged by display-only use.
 
 Caption and cross-reference display never writes Markdown. A caption is a top-level paragraph that
 starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. The
@@ -176,7 +195,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-The current-note panel exposes global, override, and effective values. Untouched notes receive no
+The sidebar's Current note tab exposes global, override, and effective values. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 
@@ -202,9 +221,11 @@ number-suite-start:
   files use their own source and counters; cross-file semantic references are not recognized.
 - Footnote and endnote counters are independent and file-scoped. Obsidian still owns note anchors,
   navigation, layout, and definition rendering; the plugin changes only validated visible labels.
-- Only top-level ATX H1-H6 headings are handled. Setext headings, blockquotes, lists, comments,
-  frontmatter, fenced code, and HTML blocks are not numbering targets.
-- Canvas, Outline, Backlinks, Search Results, and PDF export integration are not supported.
+- Top-level ATX H1-H6 plus Number Suite/DocWen H7-H9 extension headings are handled. Setext
+  headings, blockquotes, lists, comments, frontmatter, fenced code, and HTML blocks are not
+  numbering targets. Native Obsidian heading indexes remain limited to their own supported syntax.
+- Canvas, Obsidian's built-in Outline, Backlinks, Search Results, and PDF export integration are not
+  supported. Number Suite provides its own H1-H9-and-caption sidebar outline.
 - Source Mode decorations are disabled by default so stored Markdown remains directly visible.
 - Reading View concealment changes visible text, not the heading DOM `id`; anchors still follow the
   stored heading.

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Notice, TFile, type App, type EditorChange, type MarkdownView } from "obsidian";
+import { MarkdownView, Notice, TFile, type App, type EditorChange } from "obsidian";
 
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 
@@ -38,19 +38,25 @@ function harness(source = "# A") {
       transactions.push(transaction);
     },
   };
-  const view = {
-    file: new FileConstructor("note.md"),
-    editor,
-    getMode: () => mode,
-  } as unknown as MarkdownView;
+  const view = new MarkdownView({} as never);
+  view.file = new FileConstructor("note.md");
+  Object.assign(view, { editor, getMode: () => mode });
   let active: MarkdownView | null = view;
+  let openViews: MarkdownView[] = [view];
   const app = {
-    workspace: { getActiveViewOfType: () => active },
+    workspace: {
+      getActiveViewOfType: () => active,
+      iterateAllLeaves: (callback: (leaf: { readonly view: MarkdownView }) => void) => {
+        for (const openView of openViews) callback({ view: openView });
+      },
+    },
   } as unknown as App;
   return {
     app,
     transactions,
+    view,
     setActive: (next: MarkdownView | null) => { active = next; },
+    setOpenViews: (next: MarkdownView[]) => { openViews = next; },
     setMode: (next: string) => { mode = next; },
     setValue: (next: string) => { value = next; },
   };
@@ -94,5 +100,30 @@ describe("current-note operations", () => {
 
     expect(test.transactions).toHaveLength(0);
     expect(notices()).toContain("notice.stalePreview");
+  });
+
+  it("can target the sidebar note while focus is outside the editor", async () => {
+    const test = harness();
+    test.setActive(null);
+
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key, "note.md");
+    expect(preview.options).not.toBeNull();
+
+    await preview.options?.onConfirm();
+
+    expect(test.transactions).toHaveLength(1);
+  });
+
+  it("refuses a sidebar write when the same note has multiple editor views", () => {
+    const test = harness();
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const duplicate = new MarkdownView({} as never);
+    duplicate.file = new FileConstructor("note.md");
+    test.setOpenViews([test.view, duplicate]);
+
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key, "note.md");
+
+    expect(preview.options).toBeNull();
+    expect(notices()).toContain("notice.uniqueEditorRequired");
   });
 });

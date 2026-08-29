@@ -12,13 +12,15 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { matchHeadingExclusion, normalizeExclusionTitle } from "../core/heading-exclusions";
 import {
   BUILT_IN_SCHEME_IDS,
+  HEADING_LEVEL_COUNT,
+  type Counters,
   type CustomNumberingScheme,
   type HeadingExclusionRule,
   type ParsedHeading,
 } from "../core/types";
 import type { SettingsImpact } from "./settings-impact";
 
-const PREVIEW_COUNTERS = [2, 3, 4, 5, 6, 7] as [number, number, number, number, number, number];
+const PREVIEW_COUNTERS = [2, 3, 4, 5, 6, 7, 8, 9, 10] as Counters;
 
 type EditableScheme = Omit<CustomNumberingScheme, "templates" | "exclusions"> & {
   templates: string[];
@@ -107,7 +109,7 @@ export class SchemeSettingsRenderer {
             name: `${t("settings.scheme.custom")} ${next.customSchemes.length + 1}`,
             revision: 1,
             baseLevel: 1,
-            templates: ["{1.arabic}", "{1.arabic}.{2.arabic}", "", "", "", ""],
+            templates: ["{1.arabic}", "{1.arabic}.{2.arabic}", "", "", "", "", "", "", ""],
             exclusions: [],
           };
           next.customSchemes.push(scheme);
@@ -214,7 +216,7 @@ export class SchemeSettingsRenderer {
   private renderReadOnlyTemplates(container: HTMLElement, templates: readonly string[]): void {
     const t = this.t;
     const list = container.createDiv({ cls: "number-suite-readonly-templates" });
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < HEADING_LEVEL_COUNT; index += 1) {
       const template = templates[index] ?? "";
       const row = list.createDiv({ cls: "number-suite-readonly-template" });
       row.createSpan({ cls: "number-suite-readonly-level", text: `H${index + 1}` });
@@ -255,7 +257,9 @@ export class SchemeSettingsRenderer {
       .setValue(draft.name)
       .onChange((value) => { draft.name = value.slice(0, 80); }));
     new Setting(details).setName(t("settings.scheme.base")).addDropdown((dropdown) => {
-      for (let level = 1; level <= 6; level += 1) dropdown.addOption(String(level), `H${level}`);
+      for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
+        dropdown.addOption(String(level), `H${level}`);
+      }
       return dropdown.setValue(String(draft.baseLevel)).onChange((value) => {
         draft.baseLevel = Number(value);
       });
@@ -280,7 +284,7 @@ export class SchemeSettingsRenderer {
       });
       return !invalidTemplate && !invalidExclusions && draft.name.trim().length > 0;
     };
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < HEADING_LEVEL_COUNT; index += 1) {
       const preview = details.createDiv({ cls: "number-suite-template-preview" });
       previewElements.push(preview);
       new Setting(details).setName(`H${index + 1}`).addText((text) => text

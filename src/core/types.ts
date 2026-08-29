@@ -37,7 +37,21 @@ export type NumberFormat =
   | "roman_upper"
   | "roman_lower";
 
-export type Counters = [number, number, number, number, number, number];
+export const HEADING_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export const HEADING_LEVEL_COUNT = HEADING_LEVELS.length;
+export type HeadingLevel = (typeof HEADING_LEVELS)[number];
+
+export type Counters = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
 
 export type HeadingExclusionScope = "heading" | "subtree";
 
@@ -55,7 +69,7 @@ export interface HeadingExclusionRule {
 
 export interface ParsedHeading {
   line: number;
-  level: number;
+  level: HeadingLevel;
   lineFrom: number;
   lineTo: number;
   markerFrom: number;
@@ -109,7 +123,7 @@ export interface CleanupTemplateSource {
 export interface NumberingOptions {
   scheme: NumberingScheme;
   missingLevelStrategy: MissingLevelStrategy;
-  starts: Readonly<Partial<Record<1 | 2 | 3 | 4 | 5 | 6, number>>>;
+  starts: Readonly<Partial<Record<HeadingLevel, number>>>;
 }
 
 export interface NumberedHeading {

@@ -17,8 +17,11 @@ first acceptance.
 
 ## Highest-value loop
 
-- [ ] Click the ribbon icon and confirm it opens the current-note panel without changing the note or global settings.
-- [ ] Confirm the panel names the active note and shows global, current-note override, and effective values.
+- [ ] Click the ribbon icon and confirm it opens the persistent right sidebar on Document outline
+  without changing the note or global settings; close and reopen it and verify the selected tab is
+  preserved.
+- [ ] Select Current note and confirm it names the active note and shows global, current-note
+  override, and effective values. The command Open current note controls must select this tab.
 - [ ] Set virtual display and concealment independently through Follow global / On / Off; re-open the panel and verify persistence and effective display.
 - [ ] Choose a built-in and a custom scheme from the panel without typing an ID; Follow global must delete the scheme property.
 - [ ] Enable note ignore, then restore all to Follow global; verify all plugin Properties are removed and unrelated Properties remain byte-for-byte equivalent.
@@ -28,6 +31,23 @@ first acceptance.
 - [ ] Conceal the stored numbers, move the cursor into each heading, select across a prefix, copy, and use a Chinese IME.
 - [ ] Enable virtual numbers and concealment together; each recognized stored prefix must be replaced by exactly one virtual number in Live Preview and Reading View.
 - [ ] Reload and disable the plugin; confirm source text remains accessible and Reading View DOM decoration disappears.
+
+## Number Suite outline
+
+- [ ] Build one note containing H1-H9 plus Figure, Table, Equation, and Code captions before and
+  within sections. Confirm nesting follows source heading levels and captions attach to the deepest
+  preceding heading.
+- [ ] Confirm displayed heading numbers match Live Preview, concealed stored prefixes are not
+  duplicated, caption numbering follows its setting, and trailing authored block IDs do not appear
+  in labels.
+- [ ] Collapse and expand nested sections using pointer and keyboard. Confirm the selected state,
+  focus ring, indentation, toggle position, row height, and label alignment remain consistent.
+- [ ] Select every heading level and caption; confirm navigation reaches the exact source line in an
+  existing editor or opens the note there without modifying Markdown.
+- [ ] Edit headings and captions, switch notes and panes, save externally, and change per-note/global
+  settings. Confirm the outline refreshes without stale entries or cross-file state.
+- [ ] Open the same note in two editor panes. A Markdown-changing action from Current note must fail
+  closed with a clear notice; closing one pane must restore the previewed action path.
 
 ## Captions and same-file references
 
@@ -108,8 +128,12 @@ Source markers are disabled by default. Before enabling them for a release claim
 ## Android baseline
 
 - [ ] Use an isolated Android 15 / API 35 emulator Vault and hash-verify the installed candidate.
-- [ ] Open the current-note panel from the ribbon, change an override, close and reopen the panel,
-  and confirm the effective values persist without changing unrelated Properties.
+- [ ] Open the sidebar from the ribbon, switch between Document outline and Current note, close and
+  reopen it, change an override, and confirm tab/effective-value persistence without changing
+  unrelated Properties.
+- [ ] In Document outline, navigate H1-H9 and all four caption types, collapse and expand sections,
+  and verify tab, row, and collapse controls have at least 44-pixel touch height with no clipping or
+  horizontal drift at phone width.
 - [ ] In Live Preview, verify virtual numbers, stored-number concealment, cursor reveal, selection,
   copy, and Chinese IME composition. Switch to Reading View and confirm the same numbering model.
 - [ ] Preview and apply a current-note write, then undo and redo once. Run cleanup and confirm the
