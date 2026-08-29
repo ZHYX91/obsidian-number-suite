@@ -4,6 +4,8 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-30
+
 ### Added
 
 - Added the explicit Number Suite/DocWen H7-H9 source extension across parsing, nine-level
@@ -37,6 +39,11 @@ All notable changes to Number Suite are documented here.
 - Caption and cross-reference settings now include visual source-to-result examples and explain
   manual readable links, stable right-click links, ambiguity, ID creation boundaries, visual
   placement, and image hover behavior.
+- Figure, Table, Equation, and Code caption semantics can bind to any supported standalone carrier
+  above or below them across zero or one blank line. Local ambiguity stays unbound instead of being
+  guessed from a wider document-wide matching.
+- Attached captions remain visible and aligned with their carrier in Live Preview and Reading View,
+  including safe zero-gap image paragraphs that Obsidian renders as one shared block.
 
 ## 0.2.0 - 2026-08-28
 
