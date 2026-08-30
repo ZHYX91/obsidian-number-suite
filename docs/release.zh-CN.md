@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-31
 ---
 
 # Number Suite — 发布流程
@@ -34,12 +34,12 @@ last_synced: 2026-08-26
 
 1. 明确版本范围、用户可见变化、破坏性变化和已知限制。
 2. 更新中英文稳定文档及 changelog，并通过双语与格式检查。
-3. 在固定 Node.js/npm 下运行 `npm ci` 和 `npm run release:check`。
+3. 在固定 Node.js/npm 下运行 `npm ci`、`npm run check` 和 `npm run release:check`。
 4. 使用最终候选资产在隔离 Vault 中验收所声明的每个平台，并记录环境与结果。
 5. 记录候选提交和三个运行时资产的 SHA-256。
-6. 提交预期源码，确认工作树没有未跟踪或未提交文件，从当前远端默认分支 HEAD 手动运行只读
-   Release preflight，并输入计划版本；preflight 要求同版本远端 tag 与 Release 尚不存在。
-7. preflight 通过后再创建并推送 tag。
+6. 提交预期源码，确认工作树没有未跟踪或未提交文件，构建一次确定性 core handoff，并分别记录
+   candidate envelope 与通过的 acceptance closure。
+7. 获得明确授权后，在该已验收 commit 上创建精确数值 tag；创建或推送 tag 不触发发布。
 
 自动门禁通过只证明源码和候选包合约，不得写成真实 Obsidian 或所有平台通过。
 
@@ -48,18 +48,21 @@ last_synced: 2026-08-26
 
 公开 Release 只包含 `main.js`、`manifest.json`、`styles.css` 和确定性的
 `number-suite-x.y.z.zip`。ZIP 内使用 `number-suite/` 目录并包含同一组三个资产。
-工作流交接可额外包含 `SHA256SUMS`，但它不属于公开资产集合。
+工作流交接还包含 `candidate.json` 和 `SHA256SUMS`，二者都不属于公开资产集合。
 
 <!-- section: publication -->
 ## 自动发布
 
-推送数值 tag 后，GitHub Actions 在只读阶段验证 tag、默认分支祖先关系、固定工具链、依赖和
-标准门禁，生成确定性资产并上传具有明确身份的交接 artifact。独立写权限阶段下载并验证同一
-artifact、签发 provenance、创建 Release，再下载所有公开资产进行字节和 attestation 验证。
+手动 workflow 默认只读 `verify`，tag push 事件不会发布。Workspace 只有在提供精确 candidate
+commit、candidate / envelope / closure / authorization 摘要、原始可移植 closure 与
+authorization 字节，以及精确 core 授权短语时，才派发 `publish`。验证任务证明 tag 与默认
+分支身份，运行固定门禁，重建 `candidate.json` 并上传唯一固定 artifact。
 
-失败的 tag workflow 可以安全重跑。既有同 tag Release 只有在稳定、不可变、精确包含四个公共
-资产、与当前候选逐字节一致，且四项 provenance 均绑定同一 tag 和 commit 时，才作为成功
-no-op 接受。任何差异都会失败；workflow 不覆盖、编辑或追加同 tag 资产。
+写权限任务只下载该 artifact，严格解码并校验两份证据文档，运行 core publication boundary。
+任何远端写入前，只读 GitHub 预检只在 Release 不存在时才允许暂存、签发 provenance 和创建；
+既有 Release 只有字节与 provenance 全部精确通过时才作为零写入安全重跑，任何冲突都在这些
+写入前失败。`publish-github` 重复边界与既有状态检查。独立 post-verification 任务校验 hosted
+bytes、元数据、tag 身份与 provenance；workflow 不覆盖、编辑或追加同 tag 资产。
 
 流程失败不等于 Release 成功；只有远端 Release 存在且最终验证完成后，才能报告公开发布。
 
