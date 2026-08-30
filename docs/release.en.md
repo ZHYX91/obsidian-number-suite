@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: release.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-26
+last_synced: 2026-08-31
 ---
 
 # Number Suite — Release procedure
@@ -38,14 +38,14 @@ release problem with a new version.
 
 1. Define version scope, user-visible changes, breaking changes, and known limitations.
 2. Update synchronized stable documents and changelog; pass bilingual and format checks.
-3. Run `npm ci` and `npm run release:check` under pinned Node.js/npm.
+3. Run `npm ci`, `npm run check`, and `npm run release:check` under pinned Node.js/npm.
 4. Use final candidate assets in an isolated Vault to accept every claimed platform, and record the
    environment and result.
 5. Record candidate commit and SHA-256 for all three runtime assets.
-6. Commit intended source, confirm no modified or untracked files, then manually run the read-only
-   Release preflight from the current remote default-branch HEAD with the proposed version. The
-   preflight requires the same-version remote tag and Release to be absent.
-7. Create and push the tag only after preflight passes.
+6. Commit intended source, confirm no modified or untracked files, and create one deterministic
+   core handoff. Record the separate candidate envelope and passing acceptance closure.
+7. After explicit authorization, create the exact numeric tag at that accepted commit. Tag creation
+   and push do not trigger publication.
 
 Automated gates prove source and candidate contracts only, not real Obsidian or every platform.
 
@@ -54,21 +54,25 @@ Automated gates prove source and candidate contracts only, not real Obsidian or 
 
 The public Release contains only `main.js`, `manifest.json`, `styles.css`, and deterministic
 `number-suite-x.y.z.zip`. The ZIP contains the same three assets under `number-suite/`.
-Workflow handoff may additionally contain `SHA256SUMS`, but it is not a public release asset.
+Workflow handoff additionally contains `candidate.json` and `SHA256SUMS`; neither is a public
+release asset.
 
 <!-- section: publication -->
 ## Automated publication
 
-After a numeric tag push, GitHub Actions verifies tag, default-branch ancestry, pinned toolchain,
-dependencies, and canonical gates in a read-only phase. It builds deterministic assets and uploads
-one identified handoff artifact. A separate write-enabled phase downloads and verifies that exact
-artifact, issues provenance, creates the Release, then downloads every public asset for byte and
-attestation verification.
+The manual workflow defaults to read-only `verify`; no tag-push event publishes. The workspace
+dispatches `publish` only with the exact candidate commit and candidate/envelope/closure/
+authorization digests, the original portable closure and authorization bytes, and the exact core
+authorization phrase. The verification job proves the tag and default-branch identity, runs the
+pinned gate, reproduces `candidate.json`, and uploads one fixed artifact.
 
-A failed tag workflow is safely rerunnable. An existing same-tag Release is accepted as a successful
-no-op only when it is stable, immutable, contains exactly the four public assets, matches the current
-candidate byte for byte, and all four provenance records bind the same tag and commit. Any
-difference fails; the workflow never overwrites, edits, or appends same-tag assets.
+The write-enabled job downloads only that artifact, strictly decodes and validates both evidence
+documents, and runs the core publication boundary. Before any remote write, a read-only GitHub
+preflight permits staging, attestation, and creation only when the Release is missing. An exact
+existing Release whose bytes and provenance pass every check is a zero-write safe rerun; any
+conflict fails before those writes. `publish-github` repeats the boundary and existing-state
+check. A separate post-verification job checks hosted bytes, metadata, tag identity, and
+provenance. The workflow never overwrites, edits, or appends same-tag assets.
 
 A failed workflow is not a successful Release. Report publication only after the remote Release
 exists and final verification completes.
