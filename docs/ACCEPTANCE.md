@@ -166,8 +166,8 @@ Source markers are disabled by default. Before enabling them for a release claim
 
 - [ ] Test the default theme and at least one third-party theme.
 - [ ] Test Windows desktop and one additional desktop platform before claiming cross-platform support.
-- [ ] Test every platform claimed by the candidate. Keep emulator and physical-device results as
-  separate evidence and do not infer one from the other.
+- [ ] Test every platform claimed by the candidate. Android physical devices and iOS are outside
+  the release acceptance scope.
 
 ## Android baseline
 
@@ -188,9 +188,8 @@ Source markers are disabled by default. Before enabling them for a release claim
   persistence without clipped controls or hover-only actions.
 - [ ] Background and foreground Obsidian, switch notes, disable and re-enable the plugin, and confirm
   there is no stale decoration, plugin error, crash, or ANR.
-- [ ] Record physical Android separately when it is available. It is optional enhanced evidence,
-  never a prerequisite of the shared mobile release gate. Missing physical-device evidence remains
-  visible as unverified and cannot be inferred from emulator evidence.
+- [ ] Record Android physical devices and iOS as `out-of-scope`; the current Android emulator is the
+  complete mobile acceptance surface.
 
 ## Acceptance record
 

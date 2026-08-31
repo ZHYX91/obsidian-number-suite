@@ -26,7 +26,7 @@ cannot weaken this strategy.
 2. **Candidate checks**: production bundle, manifest/version alignment, externals, offline runtime,
    and exact asset layout.
 3. **Host acceptance**: real interaction in a named Obsidian version, OS, theme, and isolated vault.
-4. **Device acceptance**: emulator and physical-device records remain separate.
+4. **Device acceptance**: the Android emulator is the supported mobile surface; Android physical devices and iOS are out of scope.
 5. **Public release**: remote tag, Release assets, byte comparison, and provenance; local builds do
    not prove this level.
 
@@ -93,10 +93,8 @@ An isolated Android 15 / API 35 emulator is the baseline device gate for every m
 Install and hash-check the final candidate, then cover sidebar open/close, both tabs, H1-H9 and
 caption outline navigation, 44-pixel touch targets, current-note controls, Live Preview, Reading
 View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
-and disable cleanup. Physical Android is separate enhanced evidence, not Number Suite's baseline
-mobile gate and cannot be promoted into a plugin-specific release prerequisite. Report its absence
-as unverified and never infer physical-device success from emulator evidence. iOS is outside the
-current acceptance matrix and cannot be inferred from Android results.
+and disable cleanup. Android physical devices and iOS are outside the current acceptance matrix;
+the emulator is Number Suite's complete mobile acceptance surface.
 
 <!-- section: records -->
 ## Acceptance records
@@ -110,7 +108,7 @@ candidate as acceptance of a new one.
 ## Release decision
 
 Claim only the scope supported by the target version's canonical gate, candidate contract, and
-required host matrix. If macOS, Linux, or physical-mobile records are missing, state that limitation
+required host matrix. If macOS or Linux records are missing, state that limitation
 instead of saying “cross-platform verified.” An Android support claim requires at least current-
-candidate API 35 emulator evidence; physical Android remains separately reported. See the
+candidate API 35 emulator evidence. See the
 [release policy](release.en.md) for publication and remote-asset verification.

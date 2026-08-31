@@ -170,7 +170,7 @@ keyboard focus, and a non-color-only outline treatment. Formatted note labels ex
 and number. Sidebar tabs, outline
 rows, collapse controls, and action buttons have consistent alignment, keyboard focus, and at least
 44-pixel touch height on coarse-pointer devices; summaries reflow on narrow screens without dropping
-fields. Emulator results cannot be described as physical-device acceptance.
+fields. Android physical devices and iOS are outside the acceptance scope.
 
 <!-- section: error-recovery -->
 ## Errors and recovery

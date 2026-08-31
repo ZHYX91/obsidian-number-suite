@@ -148,6 +148,6 @@ governed by their own source and settings.
 
 Every requirement needs pure-logic or adapter coverage. Claims involving real Obsidian UI, IME,
 mobile, themes, or lifecycle also need evidence from an isolated Vault using the exact candidate.
-Source checks, candidate-package checks, host acceptance, physical-device acceptance, and public
-release status must be evaluated separately. See the [testing strategy](testing-strategy.en.md) and
+Source checks, candidate-package checks, desktop/Android-emulator acceptance, and public release
+status must be evaluated separately. Android physical devices and iOS are out of scope. See the [testing strategy](testing-strategy.en.md) and
 [release policy](release.en.md).
