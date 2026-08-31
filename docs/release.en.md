@@ -12,90 +12,61 @@ last_synced: 2026-08-31
 
 [中文规范源](release.zh-CN.md)
 
-<!-- section: authority -->
-## Document authority
+This document defines the repeatable Number Suite release process. Source, the Candidate Bundle,
+real Obsidian acceptance, GitHub publication, and production-Vault deployment are independent
+states.
 
-The Chinese document is the normative source for version and publication governance. This file is
-its synchronized English translation.
-Workflow implementation may change but cannot weaken this policy's gates or evidence boundaries.
+<!-- section: boundaries -->
+## Boundaries
 
-<!-- section: release-units -->
-## Independent states
+An ordinary tag push does not trigger publication. Commit, push, tag, workflow dispatch, GitHub
+Release, and production-Vault deployment are separately authorized; DocWen delivery does not alter
+this plugin's release boundary.
 
-Report these states separately: local changes, local commit, default-branch push, immutable tag,
-GitHub Release, Community Plugins status, and vault deployment. Completing one neither authorizes
-nor proves the next.
+<!-- section: version-source -->
+## Version and source
 
-<!-- section: versioning -->
-## Version and metadata
+`manifest.json`, `package.json`, `package-lock.json`, and `versions.json` bind one canonical version
+and exact commit/tree. A clean worktree must pass `npm run release:check`; a same-version tag must be
+absent or already point at that commit.
 
-Stable versions use `x.y.z` without a `v` prefix. `package.json`, `package-lock.json`,
-`manifest.json`, and `versions.json` must agree. Never move or recreate a published tag; correct a
-release problem with a new version.
+<!-- section: candidate-bundle -->
+## Candidate Bundle v3
 
-<!-- section: preflight -->
-## Release preflight
+The vendored release-core `2.0.0` and thin adapter create the sole Candidate Bundle v3 containing
+`main.js`, `manifest.json`, `styles.css`, `number-suite-x.y.z.zip`, `SHA256SUMS`, and
+`candidate-bundle.json`. It binds the toolchain, core/config/workflow, product payload, scenario
+contract, and fixture hashes; there is no receipt or envelope dual stack.
 
-1. Define version scope, user-visible changes, breaking changes, and known limitations.
-2. Update synchronized stable documents and changelog; pass bilingual and format checks.
-3. Run `npm ci`, `npm run check`, and `npm run release:check` under pinned Node.js/npm.
-4. Use final candidate assets in an isolated Vault to accept every claimed platform, and record the
-   environment and result.
-5. Record candidate commit and SHA-256 for all three runtime assets.
-6. Commit intended source, confirm no modified or untracked files, and create one deterministic
-   core handoff. Record the separate candidate envelope and passing acceptance closure.
-7. After explicit authorization, create the exact numeric tag at that accepted commit. Tag creation
-   and push do not trigger publication.
+<!-- section: product-acceptance -->
+## Product acceptance
 
-Automated gates prove source and candidate contracts only, not real Obsidian or every platform.
+The same Bundle requires desktop and Android-emulator acceptance covering virtual numbering,
+preview-first Write/Cleanup, captions, stable cross-references, reveal of only the selected source
+among multiple same-line references, selection boundaries, and IME composition. Android physical
+devices and iOS are out of scope.
 
-<!-- section: artifacts -->
-## Release assets
+<!-- section: standalone-workflow -->
+## Standalone workflow
 
-The public Release contains only `main.js`, `manifest.json`, `styles.css`, and deterministic
-`number-suite-x.y.z.zip`. The ZIP contains the same three assets under `number-suite/`.
-Workflow handoff additionally contains `candidate.json` and `SHA256SUMS`; neither is a public
-release asset.
+The generated, checked-in standalone workflow accepts only explicit `workflow_dispatch`. Its
+read-only verify job performs one independent install and one complete `release:check` at the exact
+commit, rebuilds the Bundle, and source-verifies it. The publish job downloads the fixed artifact
+and performs transport verification without restoring `dist`.
 
-<!-- section: publication -->
-## Automated publication
+<!-- section: publication-verification -->
+## Publication and verification
 
-The manual workflow defaults to read-only `verify`; no tag-push event publishes. The workspace
-dispatches `publish` only with the exact candidate commit and candidate/envelope/closure/
-authorization digests, the original portable closure and authorization bytes, and the exact core
-authorization phrase. The verification job proves the tag and default-branch identity, runs the
-pinned gate, reproduces `candidate.json`, and uploads one fixed artifact.
+The acceptance closure does not authorize publication; separate authorization binds the same
+Bundle and closure. Before the first mutation, the workflow deeply validates the records, tag, and
+read-only preflight. The public Release contains exactly the three loose assets and versioned ZIP;
+`SHA256SUMS` and `candidate-bundle.json` remain in the private Bundle. Post-verification reads back
+hosted bytes and provenance.
 
-The write-enabled job downloads only that artifact, strictly decodes and validates both evidence
-documents, and runs the core publication boundary. Before any remote write, a read-only GitHub
-preflight permits staging, attestation, and creation only when the Release is missing. An exact
-existing Release whose bytes and provenance pass every check is a zero-write safe rerun; any
-conflict fails before those writes. `publish-github` repeats the boundary and existing-state
-check. A separate post-verification job checks hosted bytes, metadata, tag identity, and
-provenance. The workflow never overwrites, edits, or appends same-tag assets.
+<!-- section: failure-deployment -->
+## Failure, rollback, and deployment
 
-A failed workflow is not a successful Release. Report publication only after the remote Release
-exists and final verification completes.
-
-<!-- section: deployment -->
-## Vault deployment
-
-Vault deployment is not part of GitHub publication. Only explicit authorization for an exact target
-vault permits replacing its three runtime assets. Record or back up old assets first, preserve
-`data.json`, and verify every deployed hash. Never use an ordinary or production vault for first
-candidate acceptance.
-
-<!-- section: rollback -->
-## Failure and rollback
-
-Before publication, fix source or candidate and rerun gates. After tag publication, never move it;
-publish a new version. Vault rollback uses recorded prior runtime assets without resetting user
-settings. If remote, marketplace, or deployment state cannot be verified live, report it as
-unverified instead of inferring from old records.
-
-<!-- section: evidence-reporting -->
-## Delivery reporting
-
-Report version, commit, push/tag/Release state, asset hashes, automated gate, real host matrix,
-device type, marketplace state, Vault target, and known limitations. Keep run-specific evidence
-outside the stable documentation and do not infer one evidence layer from another.
+An existing same-tag Release is a zero-write no-op only when exact; any difference fails without
+overwrite and fixes use a new version. Production-Vault deployment requires separate authorization
+for the exact Vault and preserves `data.json`; candidate, host, publication, and deployment verdicts
+are reported separately.

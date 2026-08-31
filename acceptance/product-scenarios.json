@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "obsidian-plugin/product-scenarios-v1",
+  "pluginId": "number-suite",
+  "materializer": {
+    "kind": "copy-v1",
+    "roots": [
+      {
+        "source": "acceptance/fixtures",
+        "target": ""
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "virtual-write-cleanup-and-live-preview",
+      "title": "Virtual numbering, previewed writes, cleanup, captions, and references",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "steps": [
+        "Verify virtual numbering and caption rendering without changing fixture bytes",
+        "Place the selection in one of several references and verify only that source syntax is revealed",
+        "Preview Write, confirm it, then preview and confirm Cleanup"
+      ],
+      "expected": [
+        "Virtual display and IME composition never invoke Editor or Vault writes",
+        "Only the selected reference source is revealed in Live Preview",
+        "Write and Cleanup are preview-first and preserve fenced pseudo-headings and unrelated frontmatter"
+      ]
+    }
+  ]
+}
