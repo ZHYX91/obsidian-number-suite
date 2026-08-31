@@ -21,12 +21,12 @@
       ],
       "steps": [
         "Verify virtual numbering and caption rendering without changing fixture bytes",
-        "Place the selection in one of several references and verify only that source syntax is revealed",
+        "Place the selection in either of the two explicit same-file references and verify only that source syntax is revealed",
         "Preview Write, confirm it, then preview and confirm Cleanup"
       ],
       "expected": [
         "Virtual display and IME composition never invoke Editor or Vault writes",
-        "Only the selected reference source is revealed in Live Preview",
+        "Only the selected explicit reference source is revealed in Live Preview",
         "Write and Cleanup are preview-first and preserve fenced pseudo-headings and unrelated frontmatter"
       ]
     }

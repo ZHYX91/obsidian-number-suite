@@ -22,7 +22,7 @@ Figure: Square edge
 
 ![[square-edge.svg]]
 
-See [[#Figure: Square edge]] and [[#Figure: Square edge|the square edge]].
+See @[[#Figure: Square edge]] and @[[#Figure: Square edge|the square edge]].
 
 Table: Results
 
