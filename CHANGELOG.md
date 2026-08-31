@@ -4,6 +4,13 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.3.1 - 2026-08-31
+
+### Fixed
+
+- Protected settings that use a newer data schema from being overwritten, and kept serialized save
+  failures visible with an explicit retry path.
+
 ## 0.3.0 - 2026-08-30
 
 ### Added
