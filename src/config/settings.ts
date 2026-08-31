@@ -72,6 +72,18 @@ export interface PersistedPluginData {
   settings: NumberSuiteSettings;
 }
 
+export type NormalizedPluginData = Readonly<
+  | {
+    state: "writable";
+    data: PersistedPluginData;
+  }
+  | {
+    state: "incompatible";
+    schemaVersion: number;
+    settings: NumberSuiteSettings;
+  }
+>;
+
 export const PERSISTENCE_SCHEMA_VERSION = 1 as const;
 
 export const DEFAULT_CUSTOM_TEMPLATES = [
@@ -359,13 +371,31 @@ export function sanitizeLastBatch(value: unknown): LastBatchSnapshot | null {
   };
 }
 
-export function sanitizePluginData(value: unknown): PersistedPluginData {
+export function normalizePluginData(value: unknown): NormalizedPluginData {
+  if (
+    isRecord(value)
+    && typeof value.schemaVersion === "number"
+    && Number.isSafeInteger(value.schemaVersion)
+    && value.schemaVersion > PERSISTENCE_SCHEMA_VERSION
+  ) {
+    return {
+      state: "incompatible",
+      schemaVersion: value.schemaVersion,
+      settings: cloneSettings(DEFAULT_SETTINGS),
+    };
+  }
+  // Schema 1 is the first supported persisted envelope. Unversioned, older,
+  // and malformed input therefore has no migration path and keeps the existing
+  // safe-default behavior.
   const validEnvelope = isRecord(value)
     && value.schemaVersion === PERSISTENCE_SCHEMA_VERSION
     && isRecord(value.settings);
   return {
-    schemaVersion: PERSISTENCE_SCHEMA_VERSION,
-    settings: validEnvelope ? sanitizeSettings(value.settings) : cloneSettings(DEFAULT_SETTINGS),
+    state: "writable",
+    data: {
+      schemaVersion: PERSISTENCE_SCHEMA_VERSION,
+      settings: validEnvelope ? sanitizeSettings(value.settings) : cloneSettings(DEFAULT_SETTINGS),
+    },
   };
 }
 

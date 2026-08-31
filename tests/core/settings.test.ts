@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { parseNoteOverrides, resolveNoteSettings } from "../../src/config/frontmatter";
+import type { HeadingExclusionRule } from "../../src/core/types";
 import {
   DEFAULT_SETTINGS,
   centeredCaptionKinds,
   cleanupTemplateSources,
   sanitizeLastBatch,
-  sanitizePluginData,
+  normalizePluginData,
   sanitizeSettings,
 } from "../../src/config/settings";
 
@@ -24,7 +25,10 @@ describe("settings", () => {
     expect(settings.centerFigureCaptions).toBe(true);
     expect(settings.noteDisplayMode).toBe("formatted");
     expect(settings.excludedFolders).toEqual(["Private"]);
-    expect(sanitizePluginData(null)).toEqual({ schemaVersion: 1, settings: DEFAULT_SETTINGS });
+    expect(normalizePluginData(null)).toEqual({
+      state: "writable",
+      data: { schemaVersion: 1, settings: DEFAULT_SETTINGS },
+    });
   });
 
   it("sanitizes independent caption alignment and Live Preview note display settings", () => {
@@ -45,13 +49,70 @@ describe("settings", () => {
     expect(settings.showImageCaptionTooltips).toBe(false);
   });
 
-  it("accepts only the versioned persisted-data envelope", () => {
-    expect(sanitizePluginData({ showVirtualNumbers: true }).settings.showVirtualNumbers).toBe(false);
-    expect(sanitizePluginData({ settings: { showVirtualNumbers: true } }).settings.showVirtualNumbers).toBe(false);
-    expect(sanitizePluginData({ schemaVersion: 2, settings: { showVirtualNumbers: true } })
-      .settings.showVirtualNumbers).toBe(false);
-    expect(sanitizePluginData({ schemaVersion: 1, settings: { showVirtualNumbers: true } })
-      .settings.showVirtualNumbers).toBe(true);
+  it("normalizes schema 1 and explicitly leaves unsupported unversioned data at defaults", () => {
+    expect(normalizePluginData({ showVirtualNumbers: true })).toEqual({
+      state: "writable",
+      data: { schemaVersion: 1, settings: DEFAULT_SETTINGS },
+    });
+    expect(normalizePluginData({ settings: { showVirtualNumbers: true } })).toEqual({
+      state: "writable",
+      data: { schemaVersion: 1, settings: DEFAULT_SETTINGS },
+    });
+    const current = normalizePluginData({
+      schemaVersion: 1,
+      settings: { showVirtualNumbers: true },
+    });
+    expect(current).toMatchObject({
+      state: "writable",
+      data: { schemaVersion: 1, settings: { showVirtualNumbers: true } },
+    });
+    expect(current.state).toBe("writable");
+    if (current.state === "writable") expect(normalizePluginData(current.data)).toEqual(current);
+  });
+
+  it("classifies future schemas as incompatible without mutating their data", () => {
+    const stored = {
+      schemaVersion: 2,
+      settings: {
+        showVirtualNumbers: true,
+        futureField: { enabled: true },
+      },
+      futureEnvelopeField: ["keep-me"],
+    };
+    const before = structuredClone(stored);
+
+    expect(normalizePluginData(stored)).toEqual({
+      state: "incompatible",
+      schemaVersion: 2,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(stored).toEqual(before);
+  });
+
+  it("keeps settings normalization pure, idempotent, and deeply detached", () => {
+    const stored = {
+      excludedFolders: ["Private"],
+      customSchemes: [{
+        id: "custom-guide",
+        name: "Guide",
+        revision: 1,
+        baseLevel: 1,
+        templates: ["{1.arabic}", "", "", "", "", ""],
+        exclusions: [{ title: "Appendix", scope: "subtree" }],
+      }],
+    };
+    const before = structuredClone(stored);
+    const first = sanitizeSettings(stored);
+    const second = sanitizeSettings(first);
+
+    expect(second).toEqual(first);
+    first.excludedFolders.push("Archive");
+    const custom = first.customSchemes[0];
+    if (custom != null) {
+      (custom.templates as string[]).push("future mutation");
+      (custom.exclusions as HeadingExclusionRule[]).push({ title: "Notes", scope: "heading" });
+    }
+    expect(stored).toEqual(before);
   });
 
   it("parses and resolves independent per-note overrides", () => {

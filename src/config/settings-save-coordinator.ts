@@ -1,9 +1,17 @@
-export type SettingsSaveState = "saved" | "scheduled" | "saving" | "pending";
+export type WritableSettingsSaveState = "saved" | "scheduled" | "saving" | "pending";
 
-export interface SettingsSaveStatus {
-  readonly state: SettingsSaveState;
+export interface WritableSettingsSaveStatus {
+  readonly state: WritableSettingsSaveState;
   readonly error: unknown;
 }
+
+export interface IncompatibleSettingsSaveStatus {
+  readonly state: "incompatible";
+  readonly error: null;
+  readonly schemaVersion: number;
+}
+
+export type SettingsSaveStatus = WritableSettingsSaveStatus | IncompatibleSettingsSaveStatus;
 
 interface TimerHost {
   setTimeout(handler: () => void, delay: number): ReturnType<typeof setTimeout>;
@@ -24,7 +32,7 @@ export class SettingsSaveCoordinator<T> {
   private pending: T | null = null;
   private queue: Promise<void> = Promise.resolve();
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private status: SettingsSaveStatus = { state: "saved", error: null };
+  private status: WritableSettingsSaveStatus = { state: "saved", error: null };
 
   constructor(
     private readonly persist: (snapshot: T) => Promise<void>,
@@ -93,7 +101,7 @@ export class SettingsSaveCoordinator<T> {
     this.timer = null;
   }
 
-  private setStatus(state: SettingsSaveState, error: unknown): void {
+  private setStatus(state: WritableSettingsSaveState, error: unknown): void {
     this.status = { state, error };
     for (const listener of this.listeners) listener(this.status);
   }

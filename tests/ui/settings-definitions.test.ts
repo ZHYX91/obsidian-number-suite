@@ -5,9 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 import { App } from "obsidian";
 
 import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
+import { createTranslator } from "../../src/config/i18n";
+import type { SettingsSaveStatus } from "../../src/config/settings-save-coordinator";
 import { cloneSettings, DEFAULT_SETTINGS } from "../../src/config/settings";
 
-function createHost() {
+function createHost(
+  status: SettingsSaveStatus = { state: "saved", error: null },
+) {
   const host = {
     settings: cloneSettings(DEFAULT_SETTINGS),
     saveSettings: vi.fn(async (next) => {
@@ -16,8 +20,11 @@ function createHost() {
     scheduleSettings: vi.fn((next) => {
       host.settings = cloneSettings(next);
     }),
-    settingsSaveStatus: () => ({ state: "saved" as const, error: null }),
-    subscribeSettingsSaveStatus: vi.fn(() => () => undefined),
+    settingsSaveStatus: () => status,
+    subscribeSettingsSaveStatus: vi.fn((listener: (next: SettingsSaveStatus) => void) => {
+      listener(status);
+      return () => undefined;
+    }),
     retrySettingsSave: vi.fn(async () => undefined),
   };
   return host;
@@ -127,4 +134,52 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(host.saveSettings).not.toHaveBeenCalled();
     expect(host.scheduleSettings).not.toHaveBeenCalled();
   });
+
+  it("shows a future-schema warning and disables imperative setting controls", () => {
+    const host = createHost({ state: "incompatible", error: null, schemaVersion: 2 });
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    const container = document.createElement("div");
+    installDomHelpers(container);
+    const surface = tab as unknown as {
+      renderSaveStatus: (target: HTMLElement, t: ReturnType<typeof createTranslator>) => () => void;
+      applyReadOnlyState: (target: HTMLElement) => void;
+    };
+
+    const cleanup = surface.renderSaveStatus(container, createTranslator("en"));
+    const row = container.querySelector<HTMLElement>(".number-suite-settings-save-status");
+    const editable = container.createEl("input");
+    surface.applyReadOnlyState(container);
+
+    expect(row?.hidden).toBe(false);
+    expect(row?.getAttribute("role")).toBe("alert");
+    expect(row?.textContent).toContain("newer data schema 2");
+    expect(row?.querySelector("button")?.hidden).toBe(true);
+    expect(editable.disabled).toBe(true);
+    expect(container.classList.contains("number-suite-settings-read-only")).toBe(true);
+    cleanup();
+  });
 });
+
+function installDomHelpers(element: HTMLElement): void {
+  const append = <K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    options?: string | DomElementInfo,
+  ): HTMLElementTagNameMap[K] => {
+    const child = document.createElement(tag);
+    installDomHelpers(child);
+    if (typeof options === "string") child.className = options;
+    else if (options != null) {
+      if (options.cls != null) {
+        child.className = Array.isArray(options.cls) ? options.cls.join(" ") : options.cls;
+      }
+      if (typeof options.text === "string") child.textContent = options.text;
+      else if (options.text != null) child.append(options.text);
+    }
+    element.append(child);
+    return child;
+  };
+  element.createDiv = (options) => append("div", options);
+  element.createSpan = (options) => append("span", options);
+  element.createEl = ((tag, options) => append(tag, options)) as HTMLElement["createEl"];
+  element.addClass = (...classes) => element.classList.add(...classes);
+}

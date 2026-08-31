@@ -172,6 +172,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     else if (this.activeTab === "notes") this.renderNotes(layout.panel, t);
     else if (this.activeTab === "cleanup") this.renderCleanup(layout.panel, t);
     else this.renderViews(layout.panel, t);
+    this.applyReadOnlyState(layout.panel);
     this.cleanup = () => {
       layout.cleanup();
       statusCleanup();
@@ -210,15 +211,17 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const update = (status: SettingsSaveStatus): void => {
       row.hidden = status.state === "saved";
       if (hideContainer) container.hidden = status.state === "saved";
-      row.setAttribute("role", status.state === "pending" ? "alert" : "status");
-      row.setAttribute("aria-live", status.state === "pending" ? "assertive" : "polite");
+      const alert = status.state === "pending" || status.state === "incompatible";
+      row.setAttribute("role", alert ? "alert" : "status");
+      row.setAttribute("aria-live", alert ? "assertive" : "polite");
       const errorDetail = status.state === "pending" ? settingsErrorMessage(status.error) : "";
-      message.textContent = status.state === "scheduled"
-        ? t("settings.save.scheduled")
-        : status.state === "saving" ? t("settings.save.saving")
-          : errorDetail.length === 0
-            ? t("settings.save.pending")
-            : `${t("settings.save.pending")} ${errorDetail}`;
+      message.textContent = status.state === "incompatible"
+        ? t("settings.save.incompatible", { version: status.schemaVersion })
+        : status.state === "scheduled" ? t("settings.save.scheduled")
+          : status.state === "saving" ? t("settings.save.saving")
+            : errorDetail.length === 0
+              ? t("settings.save.pending")
+              : `${t("settings.save.pending")} ${errorDetail}`;
       retry.hidden = status.state !== "pending";
       retry.disabled = status.state !== "pending";
     };
@@ -229,6 +232,16 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       retry.replaceWith(retry.cloneNode(true));
       row.remove();
     };
+  }
+
+  private applyReadOnlyState(container: HTMLElement): void {
+    if (this.plugin.settingsSaveStatus().state !== "incompatible") return;
+    container.addClass("number-suite-settings-read-only");
+    for (const control of container.querySelectorAll<
+      HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("button, input, select, textarea")) {
+      if (control.closest(".number-suite-settings-save-status") == null) control.disabled = true;
+    }
   }
 
   private commit(

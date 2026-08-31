@@ -19,15 +19,15 @@ import {
   DEFAULT_SETTINGS,
   PERSISTENCE_SCHEMA_VERSION,
   cloneSettings,
-  sanitizePluginData,
+  normalizePluginData,
   sanitizeSettings,
   type NumberSuiteSettings,
   type LastBatchSnapshot,
 } from "../config/settings";
 import {
-  SettingsSaveCoordinator,
   type SettingsSaveStatus,
 } from "../config/settings-save-coordinator";
+import { SettingsPersistenceSession } from "../config/settings-persistence-session";
 import { type TransformOperation } from "../core/types";
 import { HeadingDisplayController } from "../editor/heading-display-extension";
 import {
@@ -49,12 +49,12 @@ import { CaptionCarrierMenuBridge } from "../integration/structural-table-captio
 import { SemanticTooltipController } from "../ui/semantic-tooltip";
 
 export default class NumberSuitePlugin extends Plugin {
-  override settings: NumberSuiteSettings = { ...DEFAULT_SETTINGS };
+  override settings: NumberSuiteSettings = cloneSettings(DEFAULT_SETTINGS);
   private lastBatch: LastBatchSnapshot | null = null;
   private displayController: HeadingDisplayController | null = null;
   private batchController: BatchController | null = null;
   private recoveryStore: RecoveryStore | null = null;
-  private settingsCoordinator: SettingsSaveCoordinator<NumberSuiteSettings> | null = null;
+  private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
   private readonly interopApi = createNumberSuiteInteropApiV2(() => this.settings);
 
@@ -63,13 +63,13 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override async onload(): Promise<void> {
-    const data = sanitizePluginData(await this.loadData());
-    this.settings = data.settings;
-    this.recoveryStore = new RecoveryStore(this.app, this.manifest);
-    this.lastBatch = await this.recoveryStore.load();
-    this.settingsCoordinator = new SettingsSaveCoordinator(async (snapshot) => {
+    const data = normalizePluginData(await this.loadData());
+    this.settingsPersistence = new SettingsPersistenceSession(data, async (snapshot) => {
       await this.saveData({ schemaVersion: PERSISTENCE_SCHEMA_VERSION, settings: snapshot });
     });
+    this.settings = this.settingsPersistence.initialSettings();
+    this.recoveryStore = new RecoveryStore(this.app, this.manifest);
+    this.lastBatch = await this.recoveryStore.load();
 
     this.displayController = new HeadingDisplayController(() => this.settings);
     this.registerEditorExtension(this.displayController.createExtension());
@@ -118,7 +118,7 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override onunload(): void {
-    void this.settingsCoordinator?.flush().catch((error: unknown) => {
+    void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
     this.readingProcessor?.invalidate();
@@ -127,31 +127,38 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   scheduleSettings(settings: NumberSuiteSettings, impact: SettingsImpact = "all"): void {
+    if (this.settingsPersistence == null) {
+      throw new Error("Settings persistence is unavailable.");
+    }
+    this.settingsPersistence.assertWritable();
     this.settings = sanitizeSettings(settings);
     this.applySettingsImpact(impact);
-    this.settingsCoordinator?.schedule(cloneSettings(this.settings));
+    this.settingsPersistence.schedule(this.settings);
   }
 
   async saveSettings(
     settings: NumberSuiteSettings = this.settings,
     impact: SettingsImpact = "all",
   ): Promise<void> {
+    if (this.settingsPersistence == null) {
+      throw new Error("Settings persistence is unavailable.");
+    }
+    this.settingsPersistence.assertWritable();
     this.settings = sanitizeSettings(settings);
     this.applySettingsImpact(impact);
-    if (this.settingsCoordinator == null) throw new Error("Settings coordinator is unavailable.");
-    await this.settingsCoordinator.save(cloneSettings(this.settings));
+    await this.settingsPersistence.save(this.settings);
   }
 
   settingsSaveStatus(): SettingsSaveStatus {
-    return this.settingsCoordinator?.snapshot() ?? { state: "saved", error: null };
+    return this.settingsPersistence?.status() ?? { state: "saved", error: null };
   }
 
   subscribeSettingsSaveStatus(listener: (status: SettingsSaveStatus) => void): () => void {
-    return this.settingsCoordinator?.subscribe(listener) ?? (() => undefined);
+    return this.settingsPersistence?.subscribe(listener) ?? (() => undefined);
   }
 
   retrySettingsSave(): Promise<void> {
-    return this.settingsCoordinator?.retry() ?? Promise.resolve();
+    return this.settingsPersistence?.retry() ?? Promise.resolve();
   }
 
   private translate(): Translate {
