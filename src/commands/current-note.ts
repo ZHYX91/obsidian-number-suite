@@ -13,21 +13,20 @@ export function runCurrentNoteOperation(
   translate: Translate,
   targetPath?: string,
 ): void {
-  const matchingViewsForPath = (path: string): MarkdownView[] => {
+  const matchingViews = (): MarkdownView[] => {
+    if (targetPath == null) {
+      const active = app.workspace.getActiveViewOfType(MarkdownView);
+      return active == null ? [] : [active];
+    }
     const matches: MarkdownView[] = [];
     app.workspace.iterateAllLeaves((leaf) => {
-      if (leaf.view instanceof MarkdownView && leaf.view.file?.path === path) {
+      if (leaf.view instanceof MarkdownView && leaf.view.file?.path === targetPath) {
         matches.push(leaf.view);
       }
     });
     return matches;
   };
-  const matches = targetPath == null
-    ? (() => {
-        const active = app.workspace.getActiveViewOfType(MarkdownView);
-        return active == null ? [] : [active];
-      })()
-    : matchingViewsForPath(targetPath);
+  const matches = matchingViews();
   if (matches.length > 1) {
     new Notice(translate("notice.uniqueEditorRequired"));
     return;
@@ -74,10 +73,7 @@ export function runCurrentNoteOperation(
       },
     } : {}),
     onConfirm: async (documents = [{ path, plan }]) => {
-      // A modal may temporarily clear Obsidian's active-view lookup. Validate the
-      // originally previewed file and editor directly instead of treating focus
-      // moving into the confirmation modal as a stale preview.
-      const currentMatches = matchingViewsForPath(path);
+      const currentMatches = matchingViews();
       if (
         currentMatches.length !== 1
         || currentMatches[0] !== view

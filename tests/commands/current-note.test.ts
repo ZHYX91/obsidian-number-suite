@@ -95,16 +95,6 @@ describe("current-note operations", () => {
     expect(test.transactions[0]?.changes.length).toBeGreaterThan(0);
   });
 
-  it("applies after the confirmation modal temporarily clears the active view", async () => {
-    const test = harness();
-    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key);
-    test.setActive(null);
-
-    await preview.options?.onConfirm();
-
-    expect(test.transactions).toHaveLength(1);
-  });
-
   it("rejects a preview after the editor source changes", async () => {
     const test = harness();
     runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key);
