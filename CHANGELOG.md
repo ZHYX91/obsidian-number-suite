@@ -4,7 +4,7 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
-## 0.3.1 - 2026-09-02
+## 0.3.1 - 2026-09-03
 
 ### Added
 
@@ -25,6 +25,8 @@ All notable changes to Number Suite are documented here.
 
 ### Fixed
 
+- Kept current-note write and cleanup confirmations bound to the originally previewed editor when
+  focus moves into the preview modal.
 - Protected settings that use a newer data schema from being overwritten, and kept serialized save
   failures visible with an explicit retry path.
 
