@@ -2,6 +2,8 @@ import { App, Notice, Setting, type TFile } from "obsidian";
 
 import {
   applyNoteOverrideChange,
+  headingLevels,
+  NOTE_OVERRIDE_KEYS,
   readNoteControlSnapshot,
   type NoteControlSnapshot,
   type NoteOverrideChange,
@@ -133,6 +135,18 @@ export class NoteControlPane {
 
     const settings = this.getSettings();
     const snapshot = readNoteControlSnapshot(this.frontmatter, settings);
+    if (!snapshot.valid) {
+      const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
+      error.setAttribute("role", "alert");
+      error.createEl("strong", { text: this.t("panel.properties.invalid") });
+      const list = error.createEl("ul");
+      for (const entry of snapshot.issues) list.createEl("li", { text: entry.message });
+    } else if (snapshot.hasLegacy) {
+      this.contentEl.createEl("p", {
+        cls: "number-suite-note-control-migration",
+        text: this.t("panel.properties.legacy"),
+      });
+    }
     this.renderSummary(snapshot, settings);
     this.renderOverrides(snapshot, settings);
     this.renderActions();
@@ -237,6 +251,29 @@ export class NoteControlPane {
       .addToggle((toggle) => toggle.setValue(snapshot.ignore).onChange((value) => {
         void this.applyChange({ kind: "ignore", value });
       }));
+    section.createEl("h5", { text: this.t("panel.numberingByLevel") });
+    section.createEl("p", { text: this.t("panel.numberingByLevel.desc") });
+    for (const level of headingLevels()) {
+      const row = new Setting(section).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
+      row.addText((text) => {
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.step = "1";
+        text.setPlaceholder(this.t("panel.state.inherit"));
+        text.setValue(snapshot.firstNumbers[level]?.toString() ?? "");
+        text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
+        text.onChange((raw) => this.applyLevelNumber("first-number", level, raw));
+      });
+      row.addText((text) => {
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.step = "1";
+        text.setPlaceholder("0");
+        text.setValue(snapshot.skipFirst[level]?.toString() ?? "");
+        text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
+        text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw));
+      });
+    }
     new Setting(section)
       .setName(this.t("panel.reset"))
       .setDesc(this.t("panel.reset.desc"))
@@ -244,6 +281,14 @@ export class NoteControlPane {
         .setButtonText(this.t("panel.reset.button"))
         .setDisabled(!snapshot.hasAnyOverride)
         .onClick(() => void this.applyChange({ kind: "reset" })));
+    if (snapshot.hasLegacy) {
+      new Setting(section)
+        .setName(this.t("panel.migrate"))
+        .setDesc(this.t("panel.migrate.desc"))
+        .addButton((button) => button
+          .setButtonText(this.t("panel.migrate.button"))
+          .onClick(() => void this.applyChange({ kind: "migrate" })));
+    }
   }
 
   private addTriStateSetting(
@@ -259,6 +304,21 @@ export class NoteControlPane {
       .addOption("off", this.t("panel.state.off"))
       .setValue(value)
       .onChange((next) => void this.applyChange(change(next as TriState))));
+  }
+
+  private applyLevelNumber(
+    kind: "first-number" | "skip-first",
+    level: ReturnType<typeof headingLevels>[number],
+    raw: string,
+  ): void {
+    const trimmed = raw.trim();
+    const value = trimmed === "" ? null : Number(trimmed);
+    const valid = value == null || (Number.isSafeInteger(value) && value >= (kind === "first-number" ? 1 : 0));
+    if (!valid) {
+      new Notice(this.t(kind === "first-number" ? "panel.firstNumber.invalid" : "panel.skipFirst.invalid"));
+      return;
+    }
+    void this.applyChange({ kind, level, value });
   }
 
   private renderActions(): void {
@@ -291,12 +351,26 @@ export class NoteControlPane {
   private async applyChange(change: NoteOverrideChange): Promise<void> {
     const file = this.file;
     if (this.busy || this.frontmatter == null || file == null) return;
-    const preview = { ...this.frontmatter };
-    if (!applyNoteOverrideChange(preview, change)) return;
+    const preview = structuredClone(this.frontmatter);
+    try {
+      if (!applyNoteOverrideChange(preview, change)) return;
+    } catch (error: unknown) {
+      console.error("Number Suite: unsafe current note Properties change", error);
+      new Notice(this.t("panel.saveFailed"));
+      return;
+    }
+    const expected = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
+      .filter((key) => Object.prototype.hasOwnProperty.call(this.frontmatter ?? {}, key))
+      .map((key) => [key, this.frontmatter?.[key]])));
     this.busy = true;
     this.contentEl.addClass("is-loading");
     try {
       await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        const current = frontmatter as Record<string, unknown>;
+        const actual = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
+          .filter((key) => Object.prototype.hasOwnProperty.call(current, key))
+          .map((key) => [key, current[key]])));
+        if (actual !== expected) throw new Error("Number Suite Properties changed after the control was rendered");
         applyNoteOverrideChange(frontmatter as Record<string, unknown>, change);
       });
       this.actions.refreshDisplay();

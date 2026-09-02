@@ -40,8 +40,10 @@ frontmatter、围栏代码、HTML/Obsidian 注释和块；10 个及以上井号�
 `number-parser.ts` 对插件、模板和人工前缀提供来源、样式、规则及置信度；
 `prefix-analysis.ts` 是显示与写入共享入口。
 
-`numbering-engine.ts` 管理 H1-H9 计数、起始值、重置、空模板结构语义、排除和跨级策略。
-`scheme-template-validation.ts` 在自定义方案保存前强制执行模板语义。
+`numbering-engine.ts` 管理 H1-H9 计数、首个显示数字、整篇文件逐级 skip-first 顺序、重置、
+空模板结构语义、排除和跨级策略。`frontmatter.ts` 把单一 `number-suite` 指令列表与只读兼容的
+旧字段一起解析；它保持 first-number 与 skip-first 的语义独立，报告冲突或无效指令，并在明确
+请求的方案不可用时失败关闭。`scheme-template-validation.ts` 在自定义方案保存前强制执行模板语义。
 
 `document-semantics.ts` 是四种固定题注声明和显式同文件 `@` 引用的纯逻辑扫描器。它跳过受
 保护 Markdown 区域，不创建 ID，把重复目标视为歧义，并为每份源文档重新开始四个独立题注
@@ -86,8 +88,8 @@ literal；更窄的消费格式必须在自己的适配层校验。题注视觉�
 每个 CodeMirror `EditorView` 拥有一个 `ViewPlugin`，确认扫描器候选与语法树一致，区分实时
 预览和 Source Mode，并以 `Decoration.widget`/`Decoration.replace` 实现虚拟显示和隐藏。
 选择触及标题时移除该标题的隐藏装饰；IME composition 期间也只恢复所选标题，其他装饰继续
-显示。每个视图缓存自己的有效 Properties；无效 YAML 可保留最后一次有效显示设置，但文件修改
-必须失败关闭。
+显示。每个视图缓存自己的有效 Properties；无效 YAML 或无效 Number Suite 指令对显示效果和
+文件修改都会失败关闭。
 
 对于扩展的 7～9 级，CommonMark 不提供原生语法树节点，因此语法树适配器只信任经过同一
 受保护区域扫描器认证的候选。Live Preview 添加行样式，并在非活动编辑、非 composition 状态

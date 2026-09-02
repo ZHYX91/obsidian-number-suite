@@ -5,6 +5,7 @@ export type SettingsControlKey =
   | "general.language"
   | "general.showVirtualNumbers"
   | "general.concealStoredNumbers"
+  | "general.concealScope"
   | "captions.showCaptionNumbers"
   | "captions.centerFigure"
   | "captions.centerTable"
@@ -43,6 +44,7 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "general.language",
   "general.showVirtualNumbers",
   "general.concealStoredNumbers",
+  "general.concealScope",
   "captions.showCaptionNumbers",
   "captions.centerFigure",
   "captions.centerTable",
@@ -83,6 +85,7 @@ export function getSettingsControlValue(
     case "general.language": return settings.language;
     case "general.showVirtualNumbers": return settings.showVirtualNumbers;
     case "general.concealStoredNumbers": return settings.concealStoredNumbers;
+    case "general.concealScope": return settings.concealScope;
     case "captions.showCaptionNumbers": return settings.showCaptionNumbers;
     case "captions.centerFigure": return settings.centerFigureCaptions;
     case "captions.centerTable": return settings.centerTableCaptions;
@@ -133,6 +136,11 @@ export function applySettingsControlValue(
       break;
     case "general.concealStoredNumbers":
       next.concealStoredNumbers = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "general.concealScope":
+      if (value !== "plugin" && value !== "templates") throw invalidControlValue(key);
+      next.concealScope = value;
       impact = "display";
       break;
     case "captions.showCaptionNumbers":
@@ -204,7 +212,6 @@ export function applySettingsControlValue(
     case "cleanup.cleanupScope":
       if (value !== "plugin" && value !== "templates" && value !== "common") throw invalidControlValue(key);
       next.cleanupScope = value;
-      impact = "display";
       break;
     case "cleanup.removeMultiplePrefixes": next.removeMultiplePrefixes = controlBoolean(key, value); break;
     case "cleanup.normalizeManualOnRenumber":

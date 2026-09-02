@@ -32,8 +32,7 @@ describe("current note overrides", () => {
     expect(applyNoteOverrideChange(values, { kind: "conceal-stored", value: "off" })).toBe(true);
 
     expect(values).toEqual({
-      "number-suite-show-virtual": true,
-      "number-suite-conceal-stored": false,
+      "number-suite": ["heading.virtual=true", "heading.hide-stored=false"],
     });
     expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS)).toMatchObject({
       showVirtual: "on",
@@ -57,24 +56,25 @@ describe("current note overrides", () => {
     const values: Record<string, unknown> = {};
     expect(applyNoteOverrideChange(values, { kind: "ignore", value: true })).toBe(true);
     expect(applyNoteOverrideChange(values, { kind: "ignore", value: true })).toBe(false);
-    expect(values).toEqual({ "number-suite-ignore": true });
+    expect(values).toEqual({ "number-suite": ["disabled=true"] });
   });
 
   it("uses only selectable scheme IDs and restores inheritance by deletion", () => {
     const values: Record<string, unknown> = {};
     applyNoteOverrideChange(values, { kind: "scheme", value: "legal" });
-    expect(values).toEqual({ "number-suite-scheme": "legal" });
+    expect(values).toEqual({ "number-suite": ["heading.scheme=legal"] });
     applyNoteOverrideChange(values, { kind: "scheme", value: null });
     expect(values).toEqual({});
   });
 
-  it("falls back to the global scheme when a stored scheme is unavailable", () => {
+  it("fails closed when a stored scheme is unavailable", () => {
     const snapshot = readNoteControlSnapshot(
       { "number-suite-scheme": "missing-scheme" },
       DEFAULT_SETTINGS,
     );
     expect(snapshot.schemeId).toBe("missing-scheme");
     expect(snapshot.effectiveSchemeId).toBe(DEFAULT_SETTINGS.selectedSchemeId);
+    expect(snapshot.valid).toBe(false);
   });
 
   it("uses an available custom scheme as the effective note scheme", () => {
@@ -104,5 +104,34 @@ describe("current note overrides", () => {
 
     expect(applyNoteOverrideChange(values, { kind: "reset" })).toBe(true);
     expect(values).toEqual({ tags: ["keep"] });
+  });
+
+  it("writes first-number and skip-first separately and migrates legacy fields", () => {
+    const values: Record<string, unknown> = {
+      "number-suite-start": { h2: 3 },
+      "number-suite-clean-scope": "common",
+      tags: ["keep"],
+    };
+    expect(applyNoteOverrideChange(values, { kind: "skip-first", level: 2, value: 2 })).toBe(true);
+    expect(values).toEqual({
+      "number-suite": ["heading.first-number.h2=3", "heading.skip-first.h2=2"],
+      tags: ["keep"],
+    });
+  });
+
+  it("can migrate equivalent legacy values without changing their meaning", () => {
+    const values: Record<string, unknown> = {
+      "number-suite-show-virtual": true,
+      "number-suite-conceal-stored": false,
+      "number-suite-scheme": "legal",
+    };
+    expect(applyNoteOverrideChange(values, { kind: "migrate" })).toBe(true);
+    expect(values).toEqual({
+      "number-suite": [
+        "heading.virtual=true",
+        "heading.hide-stored=false",
+        "heading.scheme=legal",
+      ],
+    });
   });
 });

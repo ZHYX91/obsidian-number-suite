@@ -145,8 +145,7 @@ export function planHeadingTransform(
         if (!options.removeMultiplePrefixes && index > 0) {
           return false;
         }
-        return meetsCleanupScope(match, options.cleanupScope)
-          || (index === 0 && expectedUnmarked);
+        return meetsCleanupScope(match, options.cleanupScope);
       });
       if (removable.length === 0 || removable[0]?.from !== 0) {
         warnings.push({
@@ -175,8 +174,8 @@ export function planHeadingTransform(
         after: previewAfter(content, 0, contiguousTo, ""),
         ruleId: matches.length > 1
           ? "remove-multiple-prefixes"
-          : expectedUnmarked ? "remove-computed-unmarked" : last.ruleId,
-        confidence: expectedUnmarked ? "high" : last.confidence,
+          : last.ruleId,
+        confidence: last.confidence,
         provenance: first.provenance === "plugin"
           ? "plugin"
           : first.provenance === "template" ? "template" : "manual",
@@ -289,6 +288,7 @@ export function planHeadingTransform(
       operation === "renumber"
       && options.normalizeManualOnRenumber
       && first.confidence === "high"
+      && meetsCleanupScope(first, options.cleanupScope)
     ) {
       if (content.slice(0, first.to) === insert) {
         continue;

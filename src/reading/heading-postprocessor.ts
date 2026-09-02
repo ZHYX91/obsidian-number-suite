@@ -695,7 +695,7 @@ export class HeadingReadingProcessor {
     }
     const effective = resolveNoteSettings(settings, parseNoteOverrides(context.frontmatter));
     const captionCentering = centeredCaptionKinds(settings);
-    if (effective.disabled) {
+    if (effective.disabled || !effective.valid) {
       return;
     }
     const file = this.app.vault.getAbstractFileByPath(normalizePath(context.sourcePath));
@@ -954,8 +954,9 @@ export class HeadingReadingProcessor {
       numbering: toNumberingOptions(settings, {
         schemeId: effective.schemeId,
         starts: effective.starts,
+        skipFirst: effective.skipFirst,
       }),
-      cleanupScope: effective.cleanupScope,
+      cleanupScope: settings.concealScope,
       templateSources: cleanupTemplateSources(settings),
       revealOnActiveLine: false,
       selections: [],
@@ -964,6 +965,7 @@ export class HeadingReadingProcessor {
     const numbering = toNumberingOptions(settings, {
       schemeId: effective.schemeId,
       starts: effective.starts,
+      skipFirst: effective.skipFirst,
     });
     const templateSources = cleanupTemplateSources(settings);
     return {

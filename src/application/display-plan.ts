@@ -64,7 +64,7 @@ export function createDisplayPlan(
       continue;
     }
     const analysis = analyzeHeadingPrefix(heading, item.label, options.templateSources);
-    const { matches, expectedUnmarked } = analysis;
+    const { matches } = analysis;
     const revealStored = options.concealStoredNumbers
       && options.revealOnActiveLine
       && selectionTouchesHeading(heading, options.selections);
@@ -95,8 +95,7 @@ export function createDisplayPlan(
       for (const match of matches) {
         if (
           match.from !== concealTo
-          || (!meetsCleanupScope(match, options.cleanupScope)
-            && !(concealTo === 0 && expectedUnmarked))
+          || !meetsCleanupScope(match, options.cleanupScope)
         ) {
           break;
         }

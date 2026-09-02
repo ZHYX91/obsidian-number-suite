@@ -22,7 +22,7 @@ import {
   type Editor,
 } from "obsidian";
 
-import { parseNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
+import { invalidNoteOverrides, parseNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
 import { createTranslator } from "../config/i18n";
 import {
   centeredCaptionKinds,
@@ -519,9 +519,9 @@ function buildAnchoredCaptionDecorations(
   const livePreview = state.field(editorLivePreviewField, false) ?? false;
   if (!livePreview || !settings.enableLivePreview) return Decoration.none;
   const source = state.doc.toString();
-  const overrides = parseOverrides(source) ?? parseNoteOverrides(null);
+  const overrides = parseOverrides(source) ?? invalidNoteOverrides();
   const effective = resolveNoteSettings(settings, overrides);
-  if (effective.disabled) return Decoration.none;
+  if (effective.disabled || !effective.valid) return Decoration.none;
   const selections = state.selection.ranges.map((range) => ({ from: range.from, to: range.to }));
   const semanticPlan = createSemanticDisplayPlan(source, [], {
     showCaptionNumbers: settings.showCaptionNumbers,
@@ -534,6 +534,7 @@ function buildAnchoredCaptionDecorations(
     numbering: toNumberingOptions(settings, {
       schemeId: effective.schemeId,
       starts: effective.starts,
+      skipFirst: effective.skipFirst,
     }),
     templateSources: cleanupTemplateSources(settings),
     headingDisplayPlan: [],
@@ -628,7 +629,7 @@ export class HeadingDisplayController {
       private imageTooltipGeneration = 0;
 
       constructor(private readonly view: EditorView) {
-        this.overrides = parseOverrides(view.state.doc.toString()) ?? parseNoteOverrides(null);
+        this.overrides = parseOverrides(view.state.doc.toString()) ?? invalidNoteOverrides();
         views.add(view);
         this.decorations = this.buildDecorations();
         this.scheduleImageTooltips();
@@ -649,9 +650,7 @@ export class HeadingDisplayController {
       update(update: ViewUpdate): void {
         if (update.docChanged) {
           const nextOverrides = parseOverrides(update.state.doc.toString());
-          if (nextOverrides != null) {
-            this.overrides = nextOverrides;
-          }
+          this.overrides = nextOverrides ?? invalidNoteOverrides();
         }
         const livePreviewChanged = update.startState.field(editorLivePreviewField, false)
           !== update.state.field(editorLivePreviewField, false);
@@ -731,7 +730,7 @@ export class HeadingDisplayController {
           return Decoration.none;
         }
         const effective = resolveNoteSettings(settings, this.overrides);
-        if (effective.disabled) {
+        if (effective.disabled || !effective.valid) {
           return Decoration.none;
         }
         const source = this.view.state.doc.toString();
@@ -750,12 +749,13 @@ export class HeadingDisplayController {
         const numbering = toNumberingOptions(settings, {
           schemeId: effective.schemeId,
           starts: effective.starts,
+          skipFirst: effective.skipFirst,
         });
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
           concealStoredNumbers: effective.concealStoredNumbers,
           numbering,
-          cleanupScope: effective.cleanupScope,
+          cleanupScope: settings.concealScope,
           templateSources,
           revealOnActiveLine: settings.revealOnActiveLine,
           selections,

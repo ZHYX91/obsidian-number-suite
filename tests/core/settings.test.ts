@@ -128,7 +128,7 @@ describe("settings", () => {
       showVirtualNumbers: true,
       concealStoredNumbers: true,
       schemeId: "legal",
-      cleanupScope: "common",
+      cleanupScope: DEFAULT_SETTINGS.cleanupScope,
       starts: { 2: 3, 7: 9 },
     });
   });
@@ -155,9 +155,42 @@ describe("settings", () => {
       disabled: false,
       showVirtualNumbers: null,
       concealStoredNumbers: null,
-      cleanupScope: null,
     });
     expect(parseNoteOverrides({ "number-suite-ignore": true }).disabled).toBe(true);
+  });
+
+  it("parses the Properties-friendly number-suite directive list", () => {
+    const overrides = parseNoteOverrides({
+      "number-suite": [
+        "heading.virtual=true",
+        "heading.hide-stored=false",
+        "heading.scheme=hierarchical-h2",
+        "heading.first-number.h2=3",
+        "heading.skip-first.h1=1",
+        "heading.skip-first.h2=2",
+      ],
+    });
+    expect(overrides).toMatchObject({
+      showVirtualNumbers: true,
+      concealStoredNumbers: false,
+      schemeId: "hierarchical-h2",
+      starts: { 2: 3 },
+      skipFirst: { 1: 1, 2: 2 },
+      issues: [],
+    });
+  });
+
+  it("blocks duplicate, unknown, invalid, and conflicting directives", () => {
+    expect(parseNoteOverrides({
+      "number-suite": ["heading.virtual=true", "heading.virtual=false", "future=value"],
+    }).issues.map(({ code }) => code)).toEqual(["duplicate-directive", "unknown-directive"]);
+    expect(parseNoteOverrides({
+      "number-suite": ["heading.skip-first.h2=-1"],
+    }).issues[0]?.code).toBe("invalid-value");
+    expect(parseNoteOverrides({
+      "number-suite": ["heading.virtual=true"],
+      "number-suite-show-virtual": false,
+    }).issues[0]?.code).toBe("conflict");
   });
 
   it("keeps current and retired custom templates available to cleanup", () => {

@@ -291,6 +291,14 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.concealStored.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.concealStoredNumbers)
         .onChange((value) => this.updateControl("general.concealStoredNumbers", value)));
+    new Setting(container)
+      .setName(t("settings.concealScope"))
+      .setDesc(t("settings.concealScope.desc"))
+      .addDropdown((dropdown) => dropdown
+        .addOption("plugin", t("conceal.plugin"))
+        .addOption("templates", t("conceal.templates"))
+        .setValue(this.plugin.settings.concealScope)
+        .onChange((value) => this.updateControl("general.concealScope", value)));
     renderHeadingDisplayGuide(container, t);
     renderNoteOverridesGuide(container, t, "settings");
     new Setting(container)

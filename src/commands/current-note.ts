@@ -46,11 +46,13 @@ export function runCurrentNoteOperation(
     new Notice(translate("notice.noteDisabled"));
     return;
   }
-  if (result.status === "invalid-frontmatter") {
-    new Notice(translate("notice.invalidFrontmatter"));
+  if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
+    new Notice(translate(result.status === "invalid-frontmatter"
+      ? "notice.invalidFrontmatter"
+      : "notice.invalidProperties"));
     return;
   }
-  if (result.plan == null || result.plan.changes.length === 0) {
+  if (result.plan == null || (result.plan.changes.length === 0 && operation !== "remove" && operation !== "renumber")) {
     new Notice(translate("notice.noChanges"));
     return;
   }
@@ -61,7 +63,16 @@ export function runCurrentNoteOperation(
     operation,
     documents: [{ path, plan }],
     translate,
-    onConfirm: async () => {
+    ...(operation === "remove" || operation === "renumber" ? {
+      cleanupScope: settings.cleanupScope,
+      onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => {
+        const replanned = createSourcePlan(source, operation, settings, scope);
+        return replanned.status === "ready" && replanned.plan != null
+          ? [{ path, plan: replanned.plan }]
+          : [];
+      },
+    } : {}),
+    onConfirm: async (documents = [{ path, plan }]) => {
       const currentMatches = matchingViews();
       if (
         currentMatches.length !== 1
@@ -72,8 +83,10 @@ export function runCurrentNoteOperation(
         new Notice(translate("notice.stalePreview"));
         return;
       }
-      applyEditorPlan(view.editor, plan.changes);
-      new Notice(translate("notice.applied", { count: plan.changes.length }));
+      const selected = documents[0]?.plan;
+      if (selected == null) return;
+      applyEditorPlan(view.editor, selected.changes);
+      new Notice(translate("notice.applied", { count: selected.changes.length }));
     },
   }).open();
 }

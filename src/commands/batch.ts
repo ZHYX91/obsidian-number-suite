@@ -307,13 +307,15 @@ export class BatchController {
   ): Promise<void> {
     await this.synchronizeOpenMarkdownViews();
     const documents: PreviewDocument[] = [];
+    const candidates: Array<Readonly<{ path: string; source: string }>> = [];
     let invalidFrontmatter = 0;
     for (const file of this.filesForScope(scope)) {
       const source = await this.app.vault.cachedRead(file);
       const result = createSourcePlan(source, operation, this.getSettings());
-      if (result.status === "invalid-frontmatter") {
+      if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
         invalidFrontmatter += 1;
       }
+      if (result.status === "ready") candidates.push({ path: file.path, source });
       if (result.status === "ready" && result.plan != null && result.plan.changes.length > 0) {
         documents.push({ path: file.path, plan: result.plan });
       }
@@ -321,7 +323,7 @@ export class BatchController {
     if (invalidFrontmatter > 0) {
       new Notice(translate("notice.batchSkippedInvalid", { count: invalidFrontmatter }));
     }
-    if (documents.length === 0) {
+    if (documents.length === 0 && (operation !== "remove" && operation !== "renumber" || candidates.length === 0)) {
       new Notice(translate("notice.batchNone"));
       return;
     }
@@ -330,7 +332,16 @@ export class BatchController {
       operation,
       documents,
       translate,
-      onConfirm: async () => this.apply(documents, operation, translate),
+      ...(operation === "remove" || operation === "renumber" ? {
+        cleanupScope: this.getSettings().cleanupScope,
+        onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => candidates.flatMap((candidate) => {
+          const replanned = createSourcePlan(candidate.source, operation, this.getSettings(), scope);
+          return replanned.status === "ready" && replanned.plan != null && replanned.plan.changes.length > 0
+            ? [{ path: candidate.path, plan: replanned.plan }]
+            : [];
+        }),
+      } : {}),
+      onConfirm: async (selected = documents) => this.apply(selected, operation, translate),
     }).open();
   }
 

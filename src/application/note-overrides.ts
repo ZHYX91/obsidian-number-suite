@@ -1,14 +1,15 @@
+import {
+  canonicalNoteOverrideEntries,
+  LEGACY_NOTE_OVERRIDE_KEYS,
+  NUMBER_SUITE_PROPERTY,
+  parseNoteOverrides,
+  resolveNoteSettings,
+  type NotePropertyIssue,
+} from "../config/frontmatter";
 import type { NumberSuiteSettings } from "../config/settings";
-import { isBuiltInSchemeId } from "../core/schemes";
+import { HEADING_LEVEL_COUNT, type HeadingLevel } from "../core/types";
 
-export const NOTE_OVERRIDE_KEYS = [
-  "number-suite-ignore",
-  "number-suite-show-virtual",
-  "number-suite-conceal-stored",
-  "number-suite-scheme",
-  "number-suite-clean-scope",
-  "number-suite-start",
-] as const;
+export const NOTE_OVERRIDE_KEYS = [NUMBER_SUITE_PROPERTY, ...LEGACY_NOTE_OVERRIDE_KEYS] as const;
 
 export type TriState = "inherit" | "on" | "off";
 
@@ -17,6 +18,9 @@ export type NoteOverrideChange =
   | { readonly kind: "conceal-stored"; readonly value: TriState }
   | { readonly kind: "scheme"; readonly value: string | null }
   | { readonly kind: "ignore"; readonly value: boolean }
+  | { readonly kind: "first-number"; readonly level: HeadingLevel; readonly value: number | null }
+  | { readonly kind: "skip-first"; readonly level: HeadingLevel; readonly value: number | null }
+  | { readonly kind: "migrate" }
   | { readonly kind: "reset" };
 
 export interface NoteControlSnapshot {
@@ -24,58 +28,48 @@ export interface NoteControlSnapshot {
   readonly concealStored: TriState;
   readonly schemeId: string | null;
   readonly ignore: boolean;
+  readonly firstNumbers: Readonly<Partial<Record<HeadingLevel, number>>>;
+  readonly skipFirst: Readonly<Partial<Record<HeadingLevel, number>>>;
   readonly effectiveShowVirtual: boolean;
   readonly effectiveConcealStored: boolean;
   readonly effectiveSchemeId: string;
   readonly effectiveIgnore: boolean;
+  readonly valid: boolean;
+  readonly issues: readonly NotePropertyIssue[];
   readonly hasAnyOverride: boolean;
+  readonly hasLegacy: boolean;
 }
 
 function hasOwn(values: Readonly<Record<string, unknown>>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(values, key);
 }
 
-function explicitTriState(value: unknown): TriState | null {
-  return typeof value === "boolean" ? (value ? "on" : "off") : null;
-}
-
-function stateValue(value: TriState, fallback: boolean): boolean {
-  return value === "inherit" ? fallback : value === "on";
+function triState(value: boolean | null): TriState {
+  return value == null ? "inherit" : value ? "on" : "off";
 }
 
 export function readNoteControlSnapshot(
   values: Readonly<Record<string, unknown>>,
   settings: NumberSuiteSettings,
 ): NoteControlSnapshot {
-  const showVirtual = explicitTriState(values["number-suite-show-virtual"])
-    ?? "inherit";
-  const concealStored = explicitTriState(values["number-suite-conceal-stored"])
-    ?? "inherit";
-  const rawScheme = values["number-suite-scheme"];
-  const schemeId = typeof rawScheme === "string" && rawScheme.length > 0 ? rawScheme : null;
-  const schemeExists = schemeId != null && (
-    settings.customSchemes.some((scheme) => scheme.id === schemeId)
-    || isBuiltInSchemeId(schemeId)
-  );
-  const ignore = values["number-suite-ignore"] === true;
-
+  const overrides = parseNoteOverrides(values);
+  const effective = resolveNoteSettings(settings, overrides);
   return {
-    showVirtual,
-    concealStored,
-    schemeId,
-    ignore,
-    effectiveShowVirtual: stateValue(showVirtual, settings.showVirtualNumbers),
-    effectiveConcealStored: stateValue(concealStored, settings.concealStoredNumbers),
-    effectiveSchemeId: schemeExists && schemeId != null ? schemeId : settings.selectedSchemeId,
-    effectiveIgnore: ignore,
+    showVirtual: triState(overrides.showVirtualNumbers),
+    concealStored: triState(overrides.concealStoredNumbers),
+    schemeId: overrides.schemeId,
+    ignore: overrides.disabled,
+    firstNumbers: { ...overrides.starts },
+    skipFirst: { ...overrides.skipFirst },
+    effectiveShowVirtual: effective.showVirtualNumbers,
+    effectiveConcealStored: effective.concealStoredNumbers,
+    effectiveSchemeId: effective.schemeId,
+    effectiveIgnore: effective.disabled,
+    valid: effective.valid,
+    issues: effective.issues,
     hasAnyOverride: NOTE_OVERRIDE_KEYS.some((key) => hasOwn(values, key)),
+    hasLegacy: overrides.legacyKeysPresent.length > 0,
   };
-}
-
-function assign(values: Record<string, unknown>, key: string, value: unknown): boolean {
-  if (hasOwn(values, key) && Object.is(values[key], value)) return false;
-  values[key] = value;
-  return true;
 }
 
 function remove(values: Record<string, unknown>, key: string): boolean {
@@ -84,38 +78,59 @@ function remove(values: Record<string, unknown>, key: string): boolean {
   return true;
 }
 
-function applyTriState(
-  values: Record<string, unknown>,
-  key: "number-suite-show-virtual" | "number-suite-conceal-stored",
-  value: TriState,
-): boolean {
-  return value === "inherit"
-    ? remove(values, key)
-    : assign(values, key, value === "on");
+function stateValue(value: TriState): boolean | null {
+  return value === "inherit" ? null : value === "on";
 }
 
 export function applyNoteOverrideChange(
   values: Record<string, unknown>,
   change: NoteOverrideChange,
 ): boolean {
-  switch (change.kind) {
-    case "show-virtual":
-      return applyTriState(values, "number-suite-show-virtual", change.value);
-    case "conceal-stored":
-      return applyTriState(values, "number-suite-conceal-stored", change.value);
-    case "scheme":
-      return change.value == null
-        ? remove(values, "number-suite-scheme")
-        : assign(values, "number-suite-scheme", change.value);
-    case "ignore": {
-      return change.value
-        ? assign(values, "number-suite-ignore", true)
-        : remove(values, "number-suite-ignore");
-    }
-    case "reset": {
-      let changed = false;
-      for (const key of NOTE_OVERRIDE_KEYS) changed = remove(values, key) || changed;
-      return changed;
-    }
+  if (change.kind === "reset") {
+    let changed = false;
+    for (const key of NOTE_OVERRIDE_KEYS) changed = remove(values, key) || changed;
+    return changed;
   }
+  const current = parseNoteOverrides(values);
+  if (current.issues.length > 0) {
+    throw new Error(current.issues[0]?.message ?? "Invalid Number Suite Properties");
+  }
+  const next = {
+    disabled: current.disabled,
+    showVirtualNumbers: current.showVirtualNumbers,
+    concealStoredNumbers: current.concealStoredNumbers,
+    schemeId: current.schemeId,
+    starts: { ...current.starts },
+    skipFirst: { ...current.skipFirst },
+  };
+  switch (change.kind) {
+    case "migrate": break;
+    case "show-virtual": next.showVirtualNumbers = stateValue(change.value); break;
+    case "conceal-stored": next.concealStoredNumbers = stateValue(change.value); break;
+    case "scheme": next.schemeId = change.value; break;
+    case "ignore": next.disabled = change.value; break;
+    case "first-number":
+      if (change.value == null) delete next.starts[change.level];
+      else next.starts[change.level] = change.value;
+      break;
+    case "skip-first":
+      if (change.value == null || change.value === 0) delete next.skipFirst[change.level];
+      else next.skipFirst[change.level] = change.value;
+      break;
+  }
+  const entries = canonicalNoteOverrideEntries(next);
+  const before = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
+    .filter((key) => hasOwn(values, key))
+    .map((key) => [key, values[key]])));
+  if (entries.length === 0) delete values[NUMBER_SUITE_PROPERTY];
+  else values[NUMBER_SUITE_PROPERTY] = entries;
+  for (const key of LEGACY_NOTE_OVERRIDE_KEYS) delete values[key];
+  const after = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
+    .filter((key) => hasOwn(values, key))
+    .map((key) => [key, values[key]])));
+  return before !== after;
+}
+
+export function headingLevels(): readonly HeadingLevel[] {
+  return Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => (index + 1) as HeadingLevel);
 }

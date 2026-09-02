@@ -809,6 +809,20 @@
   margin: 0;
 }
 
+.number-suite-note-control-section h5 {
+  font-size: var(--font-ui-small);
+  margin-block: var(--size-4-4) var(--size-2-2);
+}
+
+.number-suite-note-control-section input[type="number"] {
+  inline-size: 5.5em;
+}
+
+.number-suite-note-control-migration {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
 .number-suite-note-control-header h3 {
   font-size: var(--font-ui-medium);
   font-weight: var(--font-semibold);

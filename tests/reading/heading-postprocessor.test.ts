@@ -263,22 +263,22 @@ describe("HeadingReadingProcessor", () => {
 
   it("conceals only the validated source prefix", async () => {
     const { processor, context, container } = harness(
-      "# 1.1 Stored",
+      "# 1 Stored",
       settings({
         concealStoredNumbers: true,
         selectedSchemeId: "hierarchical",
-        cleanupScope: "common",
+        concealScope: "templates",
       }),
     );
     const heading = document.createElement("h1");
-    heading.textContent = "1.1 Stored";
+    heading.textContent = "1 Stored";
     container.appendChild(heading);
 
     await processor.process(container, context);
 
     const concealed = heading.querySelector(".number-suite-concealed");
-    expect(concealed?.textContent).toBe("1.1 ");
-    expect(heading.textContent).toBe("1.1 Stored");
+    expect(concealed?.textContent).toBe("1 ");
+    expect(heading.textContent).toBe("1 Stored");
     expect(heading.getAttribute("data-number-suite-mode")).toBe("conceal");
   });
 

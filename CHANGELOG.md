@@ -4,7 +4,24 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
-## 0.3.1 - 2026-08-31
+## 0.3.1 - 2026-09-02
+
+### Added
+
+- Added a compact, Obsidian-friendly `number-suite` text-list Property contract for per-note
+  heading display, stored-prefix concealment, numbering schemes, H1-H9 first numbers, and H1-H9
+  skipped-heading counts.
+- Added independent H1-H9 skip-first controls. Skipped non-empty headings do not consume counters,
+  while exclusions keep their existing subtree semantics.
+- Added preview-time recognition scope controls for cleanup and renumber actions without persisting
+  a transient cleanup choice into note Properties.
+
+### Changed
+
+- Current-note controls now distinguish global values, note overrides, and effective values, and an
+  explicit edit of legacy Number Suite Properties migrates only those fields to the canonical list.
+- Stored-prefix concealment now uses one global plugin-marked or template-recognized scope for notes
+  that do not override the behavior.
 
 ### Fixed
 

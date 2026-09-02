@@ -2,6 +2,7 @@ import {
   CONFIDENCES,
   HEADING_LEVEL_COUNT,
   type CleanupScope,
+  type ConcealScope,
   type CleanupTemplateHistory,
   type CleanupTemplateSource,
   type CustomNumberingScheme,
@@ -22,6 +23,7 @@ export interface NumberSuiteSettings {
   language: "auto" | "en" | "zh";
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
+  concealScope: ConcealScope;
   showCaptionNumbers: boolean;
   centerFigureCaptions: boolean;
   centerTableCaptions: boolean;
@@ -102,6 +104,7 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   language: "auto",
   showVirtualNumbers: false,
   concealStoredNumbers: false,
+  concealScope: "templates",
   showCaptionNumbers: true,
   centerFigureCaptions: true,
   centerTableCaptions: false,
@@ -263,6 +266,11 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     language: oneOf(raw.language, ["auto", "en", "zh"] as const, DEFAULT_SETTINGS.language),
     showVirtualNumbers: booleanOr(raw.showVirtualNumbers, DEFAULT_SETTINGS.showVirtualNumbers),
     concealStoredNumbers: booleanOr(raw.concealStoredNumbers, DEFAULT_SETTINGS.concealStoredNumbers),
+    concealScope: oneOf(
+      raw.concealScope,
+      ["plugin", "templates"] as const,
+      DEFAULT_SETTINGS.concealScope,
+    ),
     showCaptionNumbers: booleanOr(raw.showCaptionNumbers, DEFAULT_SETTINGS.showCaptionNumbers),
     centerFigureCaptions: booleanOr(
       raw.centerFigureCaptions,
@@ -443,6 +451,7 @@ export function toNumberingOptions(
   overrides: Readonly<{
     schemeId?: SchemeId;
     starts?: Readonly<Partial<Record<HeadingLevel, number>>>;
+    skipFirst?: Readonly<Partial<Record<HeadingLevel, number>>>;
   }> = {},
 ): NumberingOptions {
   const scheme = resolveScheme(overrides.schemeId ?? settings.selectedSchemeId, settings.customSchemes);
@@ -450,6 +459,7 @@ export function toNumberingOptions(
     scheme,
     missingLevelStrategy: settings.missingLevelStrategy,
     starts: overrides.starts ?? {},
+    skipFirst: overrides.skipFirst ?? {},
   };
 }
 

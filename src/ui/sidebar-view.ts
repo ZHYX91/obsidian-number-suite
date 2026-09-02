@@ -273,6 +273,10 @@ export class NumberSuiteSidebarView extends ItemView {
       }
       const settings = this.actions.getSettings();
       const effective = resolveNoteSettings(settings, overrides);
+      if (!effective.valid) {
+        this.renderOutlineEmpty(panel, "notice.invalidProperties");
+        return;
+      }
       const headings = parseAtxHeadings(source);
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
         showVirtualNumbers: effective.showVirtualNumbers,
@@ -280,8 +284,9 @@ export class NumberSuiteSidebarView extends ItemView {
         numbering: toNumberingOptions(settings, {
           schemeId: effective.schemeId,
           starts: effective.starts,
+          skipFirst: effective.skipFirst,
         }),
-        cleanupScope: effective.cleanupScope,
+        cleanupScope: settings.concealScope,
         templateSources: cleanupTemplateSources(settings),
         revealOnActiveLine: false,
         selections: [],
@@ -378,7 +383,7 @@ export class NumberSuiteSidebarView extends ItemView {
 
   private renderOutlineEmpty(
     panel: HTMLElement,
-    key: "notice.noActiveNote" | "notice.invalidFrontmatter" | "sidebar.outline.readFailed",
+    key: "notice.noActiveNote" | "notice.invalidFrontmatter" | "notice.invalidProperties" | "sidebar.outline.readFailed",
   ): void {
     this.outlineRoots = [];
     panel.empty();

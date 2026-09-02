@@ -95,6 +95,10 @@ Do not mix files from different versions.
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
 
+Concealment has one global recognition rule: either only numbers carrying Number Suite source
+markers, or numbers matching known built-in/current/retired scheme templates. A note can override
+hide/show/inherit, but cannot silently broaden that recognition rule.
+
 The ribbon icon opens a persistent right sidebar. Its **Document outline** tab shows Number Suite
 H1-H9 headings and captions; its **Current note** tab contains note-level display, scheme, and file
 actions. **Open current note controls** selects that tab directly. File-changing commands still
@@ -238,8 +242,8 @@ skipped-level strategy. Exclusions do not use fuzzy matching or regular expressi
 
 ### Cleanup and source markers
 
-The default cleanup scope recognizes source markers plus current and retired built-in/custom
-templates. The broader common-manual-number scope is opt-in and previewed. Ambiguous decimals,
+The cleanup preview starts from the saved default scope and lets you choose source markers, known
+templates, or the broader common-manual-number scope for that operation. Ambiguous decimals,
 versions, years, dates, and measurement-like prefixes are preserved by default.
 
 Optional U+2060 source markers make plugin-written numbers exact to identify. They are experimental
@@ -254,16 +258,24 @@ removes every Number Suite override and preserves unrelated Properties.
 
 ```yaml
 ---
-number-suite-show-virtual: true
-number-suite-conceal-stored: true
-number-suite-scheme: hierarchical-h2
-number-suite-clean-scope: templates
-number-suite-start:
-  h2: 3
+number-suite:
+  - heading.virtual=true
+  - heading.hide-stored=true
+  - heading.scheme=hierarchical-h2
+  - heading.first-number.h2=3
+  - heading.skip-first.h2=2
 ---
 ```
 
-`number-suite-ignore: true` opts the note out of display and file operations.
+`heading.first-number.h2=3` means the first participating H2 displays 3. It does not skip headings.
+`heading.skip-first.h2=2` skips the first two non-empty H2 headings without consuming their counter.
+Use `number-suite: [disabled=true]` to opt the note out of display and file operations. Cleanup
+scope is deliberately not note metadata; choose it in each cleanup or renumber preview.
+
+Legacy Number Suite Properties remain readable. An explicit change in Current note migrates that
+note to the canonical list and removes only the old Number Suite fields. Equivalent old/new values
+are accepted; conflicts, duplicate directives, unknown directives, invalid values, and unavailable
+schemes fail closed.
 
 <!-- section: limitations -->
 ## Limitations

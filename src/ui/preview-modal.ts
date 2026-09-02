@@ -2,7 +2,7 @@ import { App, Modal, Setting } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
-import type { TransformOperation, TransformPlan } from "../core/types";
+import type { CleanupScope, TransformOperation, TransformPlan } from "../core/types";
 
 export interface PreviewDocument {
   path: string;
@@ -14,7 +14,9 @@ export interface PreviewModalOptions {
   operation: TransformOperation;
   documents: readonly PreviewDocument[];
   translate: Translate;
-  onConfirm: () => Promise<void>;
+  cleanupScope?: CleanupScope;
+  onCleanupScopeChange?: (scope: CleanupScope) => readonly PreviewDocument[] | Promise<readonly PreviewDocument[]>;
+  onConfirm: (documents: readonly PreviewDocument[]) => Promise<void>;
 }
 
 function visibleMarkers(value: string): string {
@@ -23,19 +25,39 @@ function visibleMarkers(value: string): string {
 
 export class ChangePreviewModal extends Modal {
   private applying = false;
+  private documents: readonly PreviewDocument[];
+  private cleanupScope: CleanupScope | null;
 
   constructor(private readonly options: PreviewModalOptions) {
     super(options.app);
+    this.documents = options.documents;
+    this.cleanupScope = options.cleanupScope ?? null;
   }
 
   override onOpen(): void {
+    this.render();
+  }
+
+  private render(): void {
     const { contentEl, titleEl } = this;
     const t = this.options.translate;
+    contentEl.empty();
     this.modalEl.addClass("number-suite-preview-modal");
     titleEl.setText(t(`preview.title.${this.options.operation}`));
     contentEl.addClass("number-suite-preview");
-    const changes = this.options.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
-    const warnings = this.options.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
+    if (this.cleanupScope != null && this.options.onCleanupScopeChange != null) {
+      new Setting(contentEl)
+        .setName(t("preview.cleanupScope"))
+        .setDesc(t("preview.cleanupScope.desc"))
+        .addDropdown((dropdown) => dropdown
+          .addOption("plugin", t("cleanup.plugin"))
+          .addOption("templates", t("cleanup.templates"))
+          .addOption("common", t("cleanup.common"))
+          .setValue(this.cleanupScope ?? "templates")
+          .onChange((value) => void this.changeCleanupScope(value as CleanupScope)));
+    }
+    const changes = this.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
+    const warnings = this.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
     contentEl.createEl("p", {
       cls: "number-suite-preview-summary",
       text: t("preview.summary", { changes, warnings }),
@@ -46,8 +68,8 @@ export class ChangePreviewModal extends Modal {
     });
 
     let renderedChanges = 0;
-    for (const document of this.options.documents) {
-      if (this.options.documents.length > 1) {
+    for (const document of this.documents) {
+      if (this.documents.length > 1) {
         contentEl.createEl("h3", { text: document.path });
       }
       for (const change of document.plan.changes) {
@@ -78,7 +100,7 @@ export class ChangePreviewModal extends Modal {
       });
     }
 
-    const warningEntries = this.options.documents.flatMap((document) => (
+    const warningEntries = this.documents.flatMap((document) => (
       document.plan.warnings.map((warning) => ({ path: document.path, warning }))
     ));
     if (warningEntries.length > 0) {
@@ -97,6 +119,7 @@ export class ChangePreviewModal extends Modal {
       .onClick(() => this.close()));
     actions.addButton((button) => {
       button.setButtonText(t("preview.confirm")).setCta();
+      button.setDisabled(changes === 0);
       if (this.options.operation === "remove") {
         button.setWarning();
       }
@@ -106,7 +129,7 @@ export class ChangePreviewModal extends Modal {
         }
         this.applying = true;
         button.setDisabled(true);
-        void this.options.onConfirm()
+        void this.options.onConfirm(this.documents)
           .then(() => this.close())
           .catch((error: unknown) => {
             this.applying = false;
@@ -115,6 +138,20 @@ export class ChangePreviewModal extends Modal {
           });
       });
     });
+  }
+
+  private async changeCleanupScope(scope: CleanupScope): Promise<void> {
+    if (this.applying || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
+    this.applying = true;
+    try {
+      this.documents = await this.options.onCleanupScopeChange(scope);
+      this.cleanupScope = scope;
+      this.applying = false;
+      this.render();
+    } catch (error: unknown) {
+      this.applying = false;
+      console.error("Number Suite preview replanning failed", error);
+    }
   }
 
   override onClose(): void {

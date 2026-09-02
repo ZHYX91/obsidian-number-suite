@@ -55,6 +55,40 @@ describe("numberHeadings", () => {
     expect(result.map((item) => item.label)).toEqual(["2", "2.3", "2.3.1"]);
   });
 
+  it("skips the first non-empty headings per level without consuming counters", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Preface\n# Chapter\n## Lead\n## Topic\n# Next"),
+      options({ starts: { 1: 3, 2: 2 }, skipFirst: { 1: 1, 2: 1 } }),
+    );
+    expect(result.map((item) => item.label)).toEqual([null, "3", null, "3.2", "4"]);
+  });
+
+  it("does not spend skip quota on empty headings and does not skip descendants as a subtree", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("#\n# Preface\n## Detail\n# Chapter"),
+      options({ skipFirst: { 1: 1 } }),
+    );
+    expect(result.map((item) => item.label)).toEqual([null, null, "1.1", "2"]);
+  });
+
+  it("lets excluded headings occupy their source-order skip position while retaining exclusion behavior", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# References\n# Preface\n# Chapter"),
+      options({
+        skipFirst: { 1: 2 },
+        scheme: {
+          ...BUILT_IN_SCHEMES.hierarchical,
+          exclusions: [{ title: "References", scope: "heading" }],
+        },
+      }),
+    );
+    expect(result.map((item) => ({ label: item.label, exclusion: item.exclusion }))).toEqual([
+      { label: null, exclusion: "heading" },
+      { label: null, exclusion: null },
+      { label: "1", exclusion: null },
+    ]);
+  });
+
   it("keeps an empty-template level structural for descendant counters and resets", () => {
     const result = numberHeadings(
       parseAtxHeadings("# A\n## Hidden B\n### C\n## Hidden D\n### E"),

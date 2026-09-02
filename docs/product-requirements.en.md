@@ -59,9 +59,17 @@ governed by their own source and settings.
 6. Templates retired by custom-scheme edits or deletion must remain available for recognizing old
    plugin numbers until the user explicitly clears history.
 7. Exact exclusions cannot use fuzzy or regular-expression matching and cannot consume counters.
-8. Untouched notes must receive no plugin Properties; returning to inheritance must delete the
-   relevant property.
-9. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
+8. Untouched notes must receive no plugin Properties. Note overrides use one `number-suite` text
+   list with canonical `path=value` directives for disabled state, virtual display, stored-number
+   hiding, scheme, H1-H9 first displayed numbers, and H1-H9 skipped-heading counts. Returning to
+   inheritance removes the directive. Legacy fields remain read-compatible; equivalent dual values
+   are accepted, while conflicts, duplicates, unknown directives, invalid values, and unavailable
+   schemes fail closed. An explicit Current note edit may migrate that note without touching
+   unrelated Properties; cleanup scope is an operation-preview choice, not note metadata.
+9. First displayed number and skipped-heading count are independent per-level semantics. Skip-first
+   counts non-empty headings in whole-file source order at each level, including headings excluded
+   by the scheme; skipped headings do not consume counters and do not implicitly skip descendants.
+10. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
     `Listing:` is not compatible. Each type counts independently from 1 per Markdown file, with or
     without a block ID, and display must never write a stored caption number. A recognized caption
     uses one filled pill whether numbering is on or off. Each fixed type has an
@@ -74,38 +82,38 @@ governed by their own source and settings.
     defaulting above, without rewriting source; the carrier anchor owns one compact visual gap.
     Image/Figure hover details are enabled by default and separate the rendered caption from
     meaningful replacement text while suppressing duplicates, sizes, and filename-only noise.
-10. Only explicit `@[[#target]]` and `@[[#^block-id]]` forms, with optional Obsidian aliases, request
+11. Only explicit `@[[#target]]` and `@[[#^block-id]]` forms, with optional Obsidian aliases, request
     same-file enhancement. A target may be one unique heading name or one unique complete typed
     caption name such as `Figure: Architecture`. Heading and caption names share one ambiguity
     space; zero or multiple matches fail closed. A number is included when visible but is not required.
-11. Display and caption insertion must never create or rewrite IDs. The explicit **Copy
+12. Display and caption insertion must never create or rewrite IDs. The explicit **Copy
     cross-reference** context action may reuse an existing target block ID or, after exact preview
     and stale-source validation, create one block ID at the target's valid Markdown position in one
     editor transaction. Caption IDs are inline; heading IDs may use a following standalone line. Existing
     title references are never migrated or auto-rewritten when later edits introduce ambiguity.
-12. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
+13. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
     order, and repeated references reuse the first number. Footnotes display plain numbers and
     endnotes display an `E` prefix.
-13. Footnote/endnote display must not create, rename, or rewrite definitions, references, IDs, or
+14. Footnote/endnote display must not create, rename, or rewrite definitions, references, IDs, or
     other Markdown. Missing definitions, duplicate definitions, canonical ID conflicts between
     default and explicit footnotes, and source/render count mismatches fail closed. Definition
     continuations indented by two spaces or a tab are protected containers and cannot be scanned as
     headings, captions, or semantic references. Live Preview can show formatted numbers or original
     markers; clicking or moving the cursor to a formatted number reveals the editable marker, while
     Reading View preserves native navigation.
-14. H7-H9 are recognized only on top-level lines with exactly 7, 8, or 9 leading hashes followed
+15. H7-H9 are recognized only on top-level lines with exactly 7, 8, or 9 leading hashes followed
     by whitespace; 10 or more hashes remain ordinary text. The extension uses the same nine-level
     parser, counter, template, Properties-start, transformation, and `number-suite.interop.v2`
     semantics. Existing six-template custom schemes migrate with H7-H9 empty. Native Obsidian
     Outline, Backlinks, heading-path navigation, and other host heading indexes are not claimed;
     stable authored block IDs are the recommended interoperation target.
-15. The ribbon opens a persistent right sidebar with Document outline and Current note tabs. The
+16. The ribbon opens a persistent right sidebar with Document outline and Current note tabs. The
     outline follows the active Markdown file, nests H1-H9 and fixed captions, uses effective
     Number Suite display labels, supports collapse and source-line navigation, and never modifies
     Markdown. Markdown-changing actions from Current note still require the normal preview and
     stale-source checks.
-16. The editor context menu offers caption insertion only on standalone image embeds, top-level
+17. The editor context menu offers caption insertion only on standalone image embeds, top-level
     Markdown tables, standalone display equations, and top-level fenced code blocks. Figure, Table,
     Equation, and Code captions are stored above their objects; an adjacent legacy Figure caption
     below its image offers a bounded migration. The actual context-menu target takes precedence over
@@ -116,7 +124,7 @@ governed by their own source and settings.
     requires a title preview, an immutable bounded plan, exact source revalidation, and one editor
     transaction; unsupported, protected, stale, ambiguous, or already captioned targets fail closed.
     An adjacent caption of any semantic type makes the carrier already captioned.
-17. Heading virtual numbers use compact filled pills, whole captions use wrapping filled pills, and
+18. Heading virtual numbers use compact filled pills, whole captions use wrapping filled pills, and
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
 

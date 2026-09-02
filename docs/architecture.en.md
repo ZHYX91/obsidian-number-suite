@@ -43,8 +43,11 @@ rendering, validation, and template-prefix recognition. `number-parser.ts` suppl
 style, rule, and confidence for plugin, template, and manual prefixes; `prefix-analysis.ts` is the
 shared display/write entry point.
 
-`numbering-engine.ts` owns H1-H9 counters, starts, resets, empty-template structural semantics,
-exclusions, and skipped-level strategy. `scheme-template-validation.ts` enforces template semantics
+`numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level skip-first
+ordinals, resets, empty-template structural semantics, exclusions, and skipped-level strategy.
+`frontmatter.ts` resolves the single `number-suite` directive list together with read-compatible
+legacy fields. It keeps first-number and skip-first distinct, reports conflicts or invalid tokens,
+and fails closed when an explicitly requested scheme is unavailable. `scheme-template-validation.ts` enforces template semantics
 before a custom scheme can be saved.
 
 `document-semantics.ts` is the pure scanner for the four fixed caption declarations and explicit
@@ -101,8 +104,8 @@ Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candida
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
 `Decoration.replace` for virtual display and concealment. Concealment is removed when selection
 touches a heading. During IME composition, only the selected heading loses its decoration; unrelated
-decorations remain visible. Each view caches its effective Properties. Invalid YAML may retain the
-last valid display configuration, but file operations fail closed.
+decorations remain visible. Each view caches its effective Properties. Invalid YAML or invalid
+Number Suite directives fail closed for both display effects and file operations.
 
 For extension levels 7-9, the syntax-tree adapter trusts only candidates authenticated by the same
 protected-region scanner because CommonMark has no native H7-H9 node. Live Preview adds a line

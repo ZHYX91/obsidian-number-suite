@@ -120,7 +120,10 @@ const value = 1;
 - [ ] Open different notes in two panes with different Properties view modes.
 - [ ] Open a pop-out window and verify styling and independent view state.
 - [ ] Edit a heading to another heading of the same character length; decorations must update.
-- [ ] Toggle `number-suite-show-virtual` and `number-suite-conceal-stored` without changing file length; both independent states must update immediately.
+- [ ] Toggle `heading.virtual` and `heading.hide-stored` through Current note; verify the single `number-suite` text list updates and both independent states refresh immediately.
+- [ ] Set H1-H9 first-number and skip-first values; verify `heading.first-number.hN` and `heading.skip-first.hN` remain distinct and skipped headings do not consume counters.
+- [ ] Open an old-field note, make one explicit Current note change, and verify only legacy Number Suite fields migrate while unrelated Properties remain byte-semantically unchanged.
+- [ ] Change recognition scope inside cleanup and renumber previews; verify the preview is rebuilt and no cleanup scope is written to note Properties.
 - [ ] Scroll a note with at least 2,000 headings and record editing latency.
 
 ## Parser safety

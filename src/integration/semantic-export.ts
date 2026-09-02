@@ -159,13 +159,14 @@ function headingTargets(
   const numbering = toNumberingOptions(settings, {
     schemeId: effective.schemeId,
     starts: effective.starts,
+    skipFirst: effective.skipFirst,
   });
   const numbered = numberHeadings(headings, numbering);
   const decorations = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,
     concealStoredNumbers: effective.concealStoredNumbers,
     numbering,
-    cleanupScope: effective.cleanupScope,
+    cleanupScope: settings.concealScope,
     templateSources: cleanupTemplateSources(settings),
     revealOnActiveLine: false,
     selections: [],
@@ -263,7 +264,8 @@ export function exportSemanticSnapshotV2(
     throw new Error("Unsupported Number Suite interoperability schema.");
   }
   const overrides = parseNoteOverrides(request.frontmatter);
-  const disabled = resolveNoteSettings(settings, overrides).disabled;
+  const effective = resolveNoteSettings(settings, overrides);
+  const disabled = effective.disabled || !effective.valid;
   if (disabled) {
     return {
       schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,

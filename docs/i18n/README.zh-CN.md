@@ -87,6 +87,10 @@ Number Suite 写入 Markdown 前，逐项检查修改前后内容和全部警告
 | 已有实体序号 | 替换为计算显示序号 | 同时开启虚拟序号和隐藏 | 否 |
 | 已有实体序号 | 从文件移除 | 清理标题序号 | 是 |
 
+隐藏功能只有一套全局识别规则：可以仅识别带 Number Suite 来源标记的序号，也可以识别匹配
+已知内置、当前自定义及历史方案模板的序号。单篇笔记只能覆盖隐藏、显示或跟随全局，不能
+暗中扩大识别范围。
+
 功能区图标打开常驻右侧栏。“文档大纲”选项卡显示 Number Suite 的 H1-H9 标题和题注；
 “当前笔记”选项卡提供按笔记显示、方案和文件操作。“打开当前笔记控制面板”命令会直接
 选中后一个选项卡。文件修改仍会另外弹出预览，确认前不会应用。写入或移除序号会改变标题
@@ -199,8 +203,8 @@ ID 使用合法的下一行独立块 ID，然后复制带可读别名的链接�
 
 ### 清理与来源标记
 
-默认清理范围识别来源标记、当前及已停用的内置/自定义历史模板。更宽的常见人工序号范围
-需要主动选择并经过预览。默认会保留有歧义的小数、版本号、年份、日期和单位数量前缀。
+清理预览先采用已保存的默认范围，并允许为本次操作选择来源标记、已知模板或更宽的常见
+人工序号范围。默认会保留有歧义的小数、版本号、年份、日期和单位数量前缀。
 
 可选的 U+2060 来源标记可精确标识插件写入的序号。它属于实验功能且默认关闭，因为不可见
 字符可能影响互操作、复制文本和标题链接。专用命令可以移除标记而保留可见序号。
@@ -213,16 +217,23 @@ ID 使用合法的下一行独立块 ID，然后复制带可读别名的链接�
 
 ```yaml
 ---
-number-suite-show-virtual: true
-number-suite-conceal-stored: true
-number-suite-scheme: hierarchical-h2
-number-suite-clean-scope: templates
-number-suite-start:
-  h2: 3
+number-suite:
+  - heading.virtual=true
+  - heading.hide-stored=true
+  - heading.scheme=hierarchical-h2
+  - heading.first-number.h2=3
+  - heading.skip-first.h2=2
 ---
 ```
 
-`number-suite-ignore: true` 让当前笔记退出显示和文件操作。
+`heading.first-number.h2=3` 表示第一个参与编号的 H2 显示 3，并不是跳过标题。
+`heading.skip-first.h2=2` 表示前两个非空 H2 不参与编号，且不消耗计数器。
+使用 `number-suite: [disabled=true]` 可让当前笔记退出显示和文件操作。清理范围不属于笔记
+元数据，应在每次清理或重编号预览中选择。
+
+旧版 Number Suite Properties 仍可读取。在“当前笔记”中明确修改一次时，插件才会把该笔记
+迁移为规范列表，并且只移除旧版 Number Suite 字段。新旧等价值可同时读取；冲突、重复指令、
+未知指令、无效值或不可用方案都会安全阻止显示和写入。
 
 <!-- section: limitations -->
 ## 限制

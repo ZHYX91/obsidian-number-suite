@@ -42,13 +42,28 @@ describe("heading transforms", () => {
     }
   });
 
+  it("uses skip-first and first-number together for stored writes", () => {
+    const source = "# Preface\n# Chapter\n## Lead\n## Topic";
+    const plan = planHeadingTransform(source, "write", options({
+      numbering: {
+        scheme: BUILT_IN_SCHEMES.hierarchical,
+        missingLevelStrategy: "fill-one",
+        starts: { 1: 3, 2: 2 },
+        skipFirst: { 1: 1, 2: 1 },
+      },
+    }));
+    expect(plan.result).toBe("# Preface\n# 3 Chapter\n## Lead\n## 3.2 Topic");
+  });
+
   it("skips manual prefixes on write and only normalizes high confidence on renumber", () => {
     const source = "# 9.2 Existing\n# 3.14 Pi\n# Plain";
     const write = planHeadingTransform(source, "write", options());
     expect(write.result).toBe("# 9.2 Existing\n# 3.14 Pi\n# 3 Plain");
     expect(write.warnings).toHaveLength(2);
-    const renumber = planHeadingTransform(source, "renumber", options());
+    const renumber = planHeadingTransform(source, "renumber", options({ cleanupScope: "common" }));
     expect(renumber.result).toBe("# 1 Existing\n# 3.14 Pi\n# 3 Plain");
+    expect(planHeadingTransform(source, "renumber", options({ cleanupScope: "plugin" })).result)
+      .toBe("# 9.2 Existing\n# 3.14 Pi\n# 3 Plain");
   });
 
   it("removes high-confidence and chained prefixes but preserves risky text", () => {

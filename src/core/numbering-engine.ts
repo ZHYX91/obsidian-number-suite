@@ -16,6 +16,12 @@ function normalizedStart(options: NumberingOptions, level: number): number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : 1;
 }
 
+function normalizedSkip(options: NumberingOptions, level: number): number {
+  const key = level as HeadingLevel;
+  const value = options.skipFirst?.[key];
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
 function cloneCounters(counters: Counters): Counters {
   return [...counters] as Counters;
 }
@@ -35,6 +41,8 @@ export function numberHeadings(
     }));
   }
   const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
+  const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options, index + 1));
+  const seenNonEmpty = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
   const counters = starts.map((start) => start - 1) as Counters;
   const initialized = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const active = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
@@ -53,6 +61,8 @@ export function numberHeadings(
       continue;
     }
     const index = heading.level - 1;
+    seenNonEmpty[index] = (seenNonEmpty[index] ?? 0) + 1;
+    const skippedByOrdinal = (seenNonEmpty[index] ?? 0) <= (skipFirst[index] ?? 0);
     if (excludedSubtreeLevel != null && heading.level > excludedSubtreeLevel) {
       output.push({
         heading,
@@ -80,6 +90,17 @@ export function numberHeadings(
         counters: cloneCounters(counters),
         warning: null,
         exclusion: exclusion.scope,
+      });
+      continue;
+    }
+
+    if (skippedByOrdinal) {
+      output.push({
+        heading,
+        label: null,
+        counters: cloneCounters(counters),
+        warning: null,
+        exclusion: null,
       });
       continue;
     }

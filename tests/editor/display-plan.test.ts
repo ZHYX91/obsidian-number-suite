@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+import { WORD_JOINER } from "../../src/core/markers";
 import type { NumberingOptions } from "../../src/core/types";
 import { createDisplayPlan, type DisplayPlanOptions } from "../../src/application/display-plan";
 
@@ -40,6 +41,21 @@ describe("display plan", () => {
     ]);
   });
 
+  it("uses the same skip-first and first-number semantics for virtual display", () => {
+    const source = "# Preface\n# Chapter\n## Lead\n## Topic";
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      numbering: {
+        ...numbering,
+        starts: { 1: 3, 2: 2 },
+        skipFirst: { 1: 1, 2: 1 },
+      },
+    }));
+    expect(plan.map((item) => ({ line: item.line, label: item.label }))).toEqual([
+      { line: 1, label: "3" },
+      { line: 3, label: "3.2" },
+    ]);
+  });
+
   it("conceals high-confidence prefixes", () => {
     const source = "# 1.1 Stored\n# 1. Medium\n# 3.14 Pi";
     const plan = createDisplayPlan(parseAtxHeadings(source), options({
@@ -58,6 +74,18 @@ describe("display plan", () => {
       concealStoredNumbers: true,
     }));
     expect(plan.map((item) => source.slice(item.from, item.to))).toEqual(["1 ", "2 "]);
+  });
+
+  it("keeps unmarked matches visible in source-marked-only concealment mode", () => {
+    const source = `# 1 Manual\n# ${WORD_JOINER}2${WORD_JOINER} Stored`;
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      showVirtualNumbers: false,
+      concealStoredNumbers: true,
+      cleanupScope: "plugin",
+    }));
+    expect(plan.map((item) => source.slice(item.from, item.to))).toEqual([
+      `${WORD_JOINER}2${WORD_JOINER} `,
+    ]);
   });
 
   it("reveals only the active heading while composing", () => {

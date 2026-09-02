@@ -196,6 +196,16 @@ function headingDefinitions(
       t("settings.concealStored.desc"),
       DEFAULT_SETTINGS.concealStoredNumbers,
     ),
+    dropdownDefinition(
+      "general.concealScope",
+      t("settings.concealScope"),
+      t("settings.concealScope.desc"),
+      {
+        plugin: t("conceal.plugin"),
+        templates: t("conceal.templates"),
+      },
+      DEFAULT_SETTINGS.concealScope,
+    ),
     customDefinition(
       t("settings.headings.guide.title"),
       (container) => renderHeadingDisplayGuide(container, t),

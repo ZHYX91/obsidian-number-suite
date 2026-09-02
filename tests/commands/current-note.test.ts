@@ -5,7 +5,11 @@ import { MarkdownView, Notice, TFile, type App, type EditorChange } from "obsidi
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 
 const preview = vi.hoisted(() => ({
-  options: null as null | { readonly onConfirm: () => Promise<void> },
+  options: null as null | {
+    readonly cleanupScope?: string;
+    readonly onCleanupScopeChange?: (scope: "plugin" | "templates" | "common") => unknown;
+    readonly onConfirm: () => Promise<void>;
+  },
 }));
 
 vi.mock("../../src/ui/preview-modal", () => ({
@@ -125,5 +129,16 @@ describe("current-note operations", () => {
 
     expect(preview.options).toBeNull();
     expect(notices()).toContain("notice.uniqueEditorRequired");
+  });
+
+  it("opens a zero-change cleanup preview so its recognition scope can be broadened", async () => {
+    const test = harness("# 9.2 Existing");
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "remove", (key) => key);
+
+    expect(preview.options?.cleanupScope).toBe("templates");
+    const replanned = await preview.options?.onCleanupScopeChange?.("common") as
+      | Array<{ readonly plan: { readonly result: string } }>
+      | undefined;
+    expect(replanned?.[0]?.plan.result).toBe("# Existing");
   });
 });
