@@ -158,7 +158,7 @@ Markdown 表格、块公式和围栏代码块，并将题注类型与承载对�
 
 构建将 Obsidian 和 CodeMirror 宿主模块 externalize，只产生 `dist/main.js`、
 `dist/manifest.json` 和 `dist/styles.css`。源码门禁、候选包契约和版本契约不能替代隔离 Vault
-中的宿主验收。发布流程见[发布策略](release.zh-CN.md)。
+中的宿主验收。公开发布需要单独授权，由本仓库工作流完成。
 
 <!-- section: change-rules -->
 ## 变更规则

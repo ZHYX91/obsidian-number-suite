@@ -3,9 +3,9 @@
 This is a non-authoritative execution checklist. The normative evidence rules are in the stable
 [testing strategy](testing-strategy.en.md) and its [Chinese source](testing-strategy.zh-CN.md).
 
-Automated checks are necessary but do not prove Obsidian runtime behavior. Complete this checklist
-in a disposable acceptance Vault before publishing a release. Do not use a production Vault for
-first acceptance.
+Automated checks are necessary but do not prove Obsidian runtime behavior. When host acceptance is selected, run the relevant scenarios in a disposable Vault using the exact
+packaged candidate. Record incomplete, skipped, or failed checks honestly; host acceptance does not
+block explicitly authorized publication. Never use a production Vault for these scenarios.
 
 ## Test setup
 

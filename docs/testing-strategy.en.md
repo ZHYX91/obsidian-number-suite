@@ -60,8 +60,7 @@ npm ci
 npm run check
 ```
 
-The gate verifies runtime contract, real formatting, bilingual README structure, five stable
-document pairs, lint, strict TypeScript, thresholded coverage, production bundle, and release-asset
+The gate verifies runtime contract, real formatting, bilingual README structure, the existing product-document translations, lint, strict TypeScript, thresholded coverage, production bundle, and release-asset
 contract. `release:check` adds version, tag, and clean-worktree checks.
 
 <!-- section: host-acceptance -->
@@ -89,7 +88,8 @@ IME, mobile, pop-out windows, third-party themes, and long-document latency requ
 environments; automated DOM tests cannot replace them. Detailed steps remain in the
 [runtime checklist](ACCEPTANCE.md).
 
-An isolated Android 15 / API 35 emulator is the baseline device gate for every mobile candidate.
+Host acceptance is an optional quality check and does not gate authorized publication.
+When mobile acceptance is selected, use an isolated Android 15 / API 35 emulator.
 Install and hash-check the final candidate, then cover sidebar open/close, both tabs, H1-H9 and
 caption outline navigation, 44-pixel touch targets, current-note controls, Live Preview, Reading
 View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
@@ -108,7 +108,7 @@ candidate as acceptance of a new one.
 ## Release decision
 
 Claim only the scope supported by the target version's canonical gate, candidate contract, and
-required host matrix. If macOS or Linux records are missing, state that limitation
+selected host matrix. If macOS or Linux records are missing, state that limitation
 instead of saying “cross-platform verified.” An Android support claim requires at least current-
 candidate API 35 emulator evidence. See the
-[release policy](release.en.md) for publication and remote-asset verification.
+repository-owned release workflow for publication and remote-asset verification.

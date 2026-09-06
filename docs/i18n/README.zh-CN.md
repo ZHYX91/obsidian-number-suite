@@ -284,7 +284,6 @@ npm run check
 - [UX 规格](../ux-spec.zh-CN.md)
 - [架构](../architecture.zh-CN.md)
 - [测试策略](../testing-strategy.zh-CN.md)
-- [发布流程](../release.zh-CN.md)
 
 项目链接：
 

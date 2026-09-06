@@ -191,7 +191,7 @@ deletion enter cleanup history until explicitly cleared.
 
 The build externalizes Obsidian and CodeMirror host modules and emits only `dist/main.js`,
 `dist/manifest.json`, and `dist/styles.css`. Source gates, candidate contracts, and version contracts
-do not replace isolated-vault host acceptance. See the [release policy](release.en.md).
+do not replace isolated-vault host acceptance. Publication requires separate authorization and uses this repository's workflow.
 
 <!-- section: change-rules -->
 ## Change rules
