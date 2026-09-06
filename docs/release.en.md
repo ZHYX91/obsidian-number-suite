@@ -31,7 +31,7 @@ absent or already point at that commit.
 <!-- section: candidate-bundle -->
 ## Candidate Bundle v3
 
-The vendored release-core `3.0.0` and thin adapter create the sole Candidate Bundle v3 containing
+The vendored release-core `3.0.1` and thin adapter create the sole Candidate Bundle v3 containing
 `main.js`, `manifest.json`, `styles.css`, `number-suite-x.y.z.zip`, `SHA256SUMS`, and
 `candidate-bundle.json`. It binds the toolchain, core/config/workflow, product payload, scenario
 contract, and fixture hashes; there is no receipt or envelope dual stack.

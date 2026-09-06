@@ -28,7 +28,7 @@ commit/tree。干净工作树必须通过 `npm run release:check`，同名 tag �
 <!-- section: candidate-bundle -->
 ## Candidate Bundle v3
 
-vendored release-core `3.0.0` 与薄 adapter 创建唯一 Candidate Bundle v3，包含 `main.js`、
+vendored release-core `3.0.1` 与薄 adapter 创建唯一 Candidate Bundle v3，包含 `main.js`、
 `manifest.json`、`styles.css`、`number-suite-x.y.z.zip`、`SHA256SUMS` 与
 `candidate-bundle.json`。Bundle 绑定工具链、core/config/workflow、产品 payload、场景合同及
 fixture 哈希，不存在 receipt 或 envelope 双栈。
