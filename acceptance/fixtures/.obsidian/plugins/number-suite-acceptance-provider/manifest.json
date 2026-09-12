@@ -1,0 +1,9 @@
+{
+  "id": "number-suite-acceptance-provider",
+  "name": "Number Suite acceptance provider",
+  "version": "1.0.0",
+  "minAppVersion": "1.8.0",
+  "description": "Explicit isolated-fixture controls for pending preview acceptance.",
+  "author": "Number Suite",
+  "isDesktopOnly": false
+}

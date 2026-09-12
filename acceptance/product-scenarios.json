@@ -82,7 +82,8 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Long document, edit a heading and inspect image tooltips. Navigate outline entries and expand/collapse sections using the available input method. On desktop open the same file twice and navigate from the second pane. Preview Write; inspect applying state and attempt dismissal while it is pending."
+        "Open Long document, edit a heading and inspect image tooltips. Navigate outline entries and expand/collapse sections using the available input method. On desktop open the same file twice and navigate from the second pane.",
+        "Open Controls in one pane. Run the fixture command Delay next preview apply for 20 seconds, then preview Write and confirm. Inspect Applying and attempt dismissal during the delay; wait for normal completion. The provider is inert until explicitly armed and is excluded from release assets."
       ],
       "expected": [
         "Navigation reaches the intended heading and retains the originating desktop pane. Outline buttons keep usable focus. Tooltip content updates without visible interaction stalls. Dismissal cannot imply cancellation after applying begins."

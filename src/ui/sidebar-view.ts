@@ -144,9 +144,7 @@ export class NumberSuiteSidebarView extends ItemView {
       },
     );
     this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
-    this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
-      this.setFile(this.app.workspace.getActiveFile());
-    }));
+    this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
     this.registerEvent(this.app.workspace.on("editor-change", (editor, info) => {
       if (
         this.activeTab === "outline"
@@ -241,6 +239,13 @@ export class NumberSuiteSidebarView extends ItemView {
     }, 120);
   }
 
+  private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
+    if (!(leaf?.view instanceof MarkdownView)) return;
+    this.sourceLeaf = leaf;
+    this.setFile(leaf.view.file);
+    if (this.activeTab === "outline") void this.refreshOutline(leaf.view.editor.getValue());
+  }
+
   private async sourceForFile(file: TFile): Promise<string> {
     const active = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (active?.file?.path === file.path) {
@@ -253,9 +258,13 @@ export class NumberSuiteSidebarView extends ItemView {
         matching.push(leaf.view);
       }
     });
-    return matching.length === 1
-      ? matching[0]?.editor.getValue() ?? this.app.vault.cachedRead(file)
-      : this.app.vault.cachedRead(file);
+    const source = matching.find((view) => view.leaf === this.sourceLeaf)
+      ?? (matching.length === 1 ? matching[0] : null);
+    if (source != null) {
+      this.sourceLeaf = source.leaf;
+      return source.editor.getValue();
+    }
+    return this.app.vault.cachedRead(file);
   }
 
   private async refreshOutline(sourceOverride?: string): Promise<void> {
