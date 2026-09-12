@@ -1,7 +1,7 @@
+import { NoteSaveCoordinator, type NoteSaveState } from "../application/note-save-coordinator";
 import { App, Notice, Setting, type TFile } from "obsidian";
 
 import {
-  applyNoteOverrideChange,
   headingLevels,
   NOTE_OVERRIDE_KEYS,
   readNoteControlSnapshot,
@@ -33,6 +33,11 @@ function booleanLabel(value: boolean, t: Translate): string {
 
 export class NoteControlPane {
   private busy = false;
+  private coordinator: NoteSaveCoordinator | null = null;
+  private saveTimer: number | null = null;
+  private summaryHost: HTMLElement | null = null;
+  private saveStatus: HTMLElement | null = null;
+  private saveState: NoteSaveState = "saved";
   private frontmatter: Record<string, unknown> | null = null;
   private file: TFile | null = null;
   private request = 0;
@@ -54,6 +59,8 @@ export class NoteControlPane {
       if (reload) void this.reload();
       return;
     }
+    this.flushDraft();
+    this.coordinator = null;
     this.file = file;
     this.frontmatter = null;
     this.request += 1;
@@ -66,6 +73,7 @@ export class NoteControlPane {
   }
 
   private async reload(): Promise<void> {
+    if (this.coordinator != null && (this.coordinator.pending || this.contentEl.contains(this.contentEl.ownerDocument.activeElement))) return;
     const file = this.file;
     const request = this.request + 1;
     this.request = request;
@@ -79,6 +87,7 @@ export class NoteControlPane {
       const source = await this.app.vault.cachedRead(file);
       if (request !== this.request || file.path !== this.file?.path) return;
       this.frontmatter = parseFrontmatterRecordFromSource(source);
+      this.createCoordinator(file);
     } catch (error: unknown) {
       console.error("Number Suite: failed to read current note Properties", error);
       if (request !== this.request || file.path !== this.file?.path) return;
@@ -147,13 +156,18 @@ export class NoteControlPane {
         text: this.t("panel.properties.legacy"),
       });
     }
-    this.renderSummary(snapshot, settings);
+    this.saveStatus = this.contentEl.createDiv({ cls: "number-suite-note-save-status" });
+    this.saveStatus.setAttribute("role", "status");
+    this.saveStatus.setAttribute("aria-live", "polite");
+    this.renderSaveStatus();
+    this.summaryHost = this.contentEl.createDiv();
+    this.renderSummary(snapshot, settings, this.summaryHost);
     this.renderOverrides(snapshot, settings);
     this.renderActions();
   }
 
-  private renderSummary(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
-    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
+  private renderSummary(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings, host: HTMLElement): void {
+    const section = host.createDiv({ cls: "number-suite-note-control-section" });
     section.createEl("h4", { text: this.t("panel.summary") });
     const grid = section.createDiv({ cls: "number-suite-note-control-summary" });
     grid.setAttribute("role", "table");
@@ -262,6 +276,8 @@ export class NoteControlPane {
         text.setPlaceholder(this.t("panel.state.inherit"));
         text.setValue(snapshot.firstNumbers[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
+        text.inputEl.addEventListener("blur", () => this.flushDraft());
+        text.inputEl.addEventListener("keydown", (event) => { if (event.key === "Enter") this.flushDraft(); });
         text.onChange((raw) => this.applyLevelNumber("first-number", level, raw));
       });
       row.addText((text) => {
@@ -271,6 +287,8 @@ export class NoteControlPane {
         text.setPlaceholder("0");
         text.setValue(snapshot.skipFirst[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
+        text.inputEl.addEventListener("blur", () => this.flushDraft());
+        text.inputEl.addEventListener("keydown", (event) => { if (event.key === "Enter") this.flushDraft(); });
         text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw));
       });
     }
@@ -318,7 +336,7 @@ export class NoteControlPane {
       new Notice(this.t(kind === "first-number" ? "panel.firstNumber.invalid" : "panel.skipFirst.invalid"));
       return;
     }
-    void this.applyChange({ kind, level, value });
+    void this.applyChange({ kind, level, value }, true);
   }
 
   private renderActions(): void {
@@ -348,38 +366,74 @@ export class NoteControlPane {
     });
   }
 
-  private async applyChange(change: NoteOverrideChange): Promise<void> {
-    const file = this.file;
-    if (this.busy || this.frontmatter == null || file == null) return;
-    const preview = structuredClone(this.frontmatter);
+  private createCoordinator(file: TFile): void {
+    if (this.frontmatter == null) return;
+    const coordinator = new NoteSaveCoordinator(this.frontmatter, async (expected, desired) => {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        const current = frontmatter as Record<string, unknown>;
+        const pick = (values: Record<string, unknown>): string => JSON.stringify(Object.fromEntries(
+          NOTE_OVERRIDE_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(values, key))
+            .map((key) => [key, values[key]]),
+        ));
+        if (pick(current) !== pick(expected)) throw new Error("Number Suite Properties changed after the control was rendered");
+        for (const key of NOTE_OVERRIDE_KEYS) {
+          if (Object.prototype.hasOwnProperty.call(desired, key)) current[key] = structuredClone(desired[key]);
+          else delete current[key];
+        }
+      });
+      this.actions.refreshDisplay();
+    }, (state) => {
+      if (this.coordinator !== coordinator) return;
+      this.saveState = state;
+      this.frontmatter = coordinator.snapshot;
+      this.renderSaveStatus();
+      if (this.summaryHost != null) {
+        this.summaryHost.empty();
+        const settings = this.getSettings();
+        this.renderSummary(readNoteControlSnapshot(this.frontmatter, settings), settings, this.summaryHost);
+      }
+    });
+    this.coordinator = coordinator;
+    this.saveState = "saved";
+  }
+
+  private renderSaveStatus(): void {
+    const status = this.saveStatus;
+    if (status == null) return;
+    status.empty();
+    status.createSpan({ text: this.t(`panel.save.${this.saveState}`) });
+    if (this.saveState === "error") {
+      const retry = status.createEl("button", { text: this.t("panel.retry") });
+      retry.addEventListener("click", () => this.flushDraft());
+    }
+  }
+
+  private flushDraft(): void {
+    if (this.saveTimer != null) this.contentEl.win.clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    void this.coordinator?.flush();
+  }
+
+  destroy(): void {
+    this.flushDraft();
+    this.coordinator = null;
+    this.request += 1;
+  }
+
+  private applyChange(change: NoteOverrideChange, debounce = false): void {
+    if (this.busy || this.coordinator == null) return;
     try {
-      if (!applyNoteOverrideChange(preview, change)) return;
+      this.coordinator.update(change);
+      if (change.kind === "reset" || change.kind === "migrate") this.render();
+      if (debounce) {
+        if (this.saveTimer != null) this.contentEl.win.clearTimeout(this.saveTimer);
+        this.saveTimer = this.contentEl.win.setTimeout(() => this.flushDraft(), 300);
+      } else {
+        this.flushDraft();
+      }
     } catch (error: unknown) {
       console.error("Number Suite: unsafe current note Properties change", error);
       new Notice(this.t("panel.saveFailed"));
-      return;
-    }
-    const expected = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
-      .filter((key) => Object.prototype.hasOwnProperty.call(this.frontmatter ?? {}, key))
-      .map((key) => [key, this.frontmatter?.[key]])));
-    this.busy = true;
-    this.contentEl.addClass("is-loading");
-    try {
-      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-        const current = frontmatter as Record<string, unknown>;
-        const actual = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
-          .filter((key) => Object.prototype.hasOwnProperty.call(current, key))
-          .map((key) => [key, current[key]])));
-        if (actual !== expected) throw new Error("Number Suite Properties changed after the control was rendered");
-        applyNoteOverrideChange(frontmatter as Record<string, unknown>, change);
-      });
-      this.actions.refreshDisplay();
-      await this.reload();
-    } catch (error: unknown) {
-      console.error("Number Suite: failed to update current note Properties", error);
-      new Notice(this.t("panel.saveFailed"));
-      this.busy = false;
-      this.contentEl.removeClass("is-loading");
     }
   }
 }

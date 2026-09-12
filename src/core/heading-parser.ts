@@ -1,3 +1,4 @@
+import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 import type { HeadingContentSpan, HeadingLevel, ParsedHeading } from "./types";
 import { noteContainerLines } from "./note-semantics";
 
@@ -11,34 +12,6 @@ const BLOCK_TAGS = new Set([
   "search", "section", "summary", "table", "tbody", "td", "tfoot", "th",
   "thead", "title", "tr", "track", "ul",
 ]);
-
-interface SourceLine {
-  text: string;
-  from: number;
-  to: number;
-  number: number;
-}
-
-function sourceLines(source: string): SourceLine[] {
-  const lines: SourceLine[] = [];
-  let from = 0;
-  let number = 0;
-  while (from < source.length) {
-    const newline = source.indexOf("\n", from);
-    const rawTo = newline < 0 ? source.length : newline;
-    const to = rawTo > from && source.charCodeAt(rawTo - 1) === 13 ? rawTo - 1 : rawTo;
-    lines.push({ text: source.slice(from, to), from, to, number });
-    number += 1;
-    if (newline < 0) {
-      return lines;
-    }
-    from = newline + 1;
-  }
-  if (source.length === 0 || source.endsWith("\n")) {
-    lines.push({ text: "", from: source.length, to: source.length, number });
-  }
-  return lines;
-}
 
 function rawHtmlTag(line: string): string | null {
   const match = /^ {0,3}<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/>)/.exec(line);
@@ -111,7 +84,7 @@ function projectVisibleContent(
   };
 }
 
-function parseAtxLine(line: SourceLine): ParsedHeading | null {
+function parseAtxLine(line: PhysicalSourceLine): ParsedHeading | null {
   const match = /^( {0,3})(#{1,9})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
   if (match == null) return null;
   const indent = match[1] ?? "";
@@ -150,10 +123,8 @@ export function sourceOffsetForHeadingContent(
 
 export function parseAtxHeadings(source: string): ParsedHeading[] {
   const headings: ParsedHeading[] = [];
-  const lines = sourceLines(source);
+  const lines = scanPhysicalLines(source);
   const noteLines = noteContainerLines(source);
-  let inFrontmatter = false;
-  let frontmatterFinished = false;
   let fenceCharacter: "`" | "~" | null = null;
   let fenceLength = 0;
   let inComment = false;
@@ -168,20 +139,7 @@ export function parseAtxHeadings(source: string): ParsedHeading[] {
       continue;
     }
 
-    if (line.number === 0 && line.text.replace(/^\uFEFF/, "").trim() === "---") {
-      inFrontmatter = true;
-      continue;
-    }
-    if (inFrontmatter) {
-      if (line.number > 0 && (trimmed === "---" || trimmed === "...")) {
-        inFrontmatter = false;
-        frontmatterFinished = true;
-      }
-      continue;
-    }
-    if (!frontmatterFinished && line.number > 0) {
-      frontmatterFinished = true;
-    }
+    if (line.frontmatter) continue;
 
     if (fenceCharacter != null) {
       const escaped = fenceCharacter === "`" ? "`" : "~";

@@ -378,6 +378,11 @@ const EN = {
   "panel.reset.button": "Restore all",
   "panel.actions": "Quick actions",
   "panel.openSettings": "Open global settings",
+  "panel.save.saved": "Saved",
+  "panel.save.pending": "Unsaved changes",
+  "panel.save.saving": "Saving…",
+  "panel.save.error": "Could not save. Your input is retained; retry or reopen the note if its Properties changed elsewhere.",
+  "preview.applying": "Applying changes…",
   "panel.saveFailed": "Could not update the current note Properties.",
   "panel.settingsUnavailable": "Open Obsidian Settings, then choose Number Suite.",
 } as const;
@@ -762,6 +767,11 @@ const ZH: Record<MessageKey, string> = {
   "panel.reset.button": "全部恢复",
   "panel.actions": "快速操作",
   "panel.openSettings": "打开全局设置",
+  "panel.save.saved": "已保存",
+  "panel.save.pending": "有未保存更改",
+  "panel.save.saving": "正在保存…",
+  "panel.save.error": "保存失败，已保留输入；可重试，若 Properties 已在别处改变，请重新打开笔记。",
+  "preview.applying": "正在应用变更…",
   "panel.saveFailed": "无法更新当前笔记的 Properties。",
   "panel.settingsUnavailable": "请打开 Obsidian 设置，然后选择 Number Suite。",
 };

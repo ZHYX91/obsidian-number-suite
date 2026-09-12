@@ -18,7 +18,7 @@ function escapePattern(value: string): string {
 export function notePropertySourceIssues(frontmatter: string): NotePropertyIssue[] {
   const counts = new Map<string, number>();
   const issues: NotePropertyIssue[] = [];
-  for (const line of frontmatter.split(/\r?\n/u)) {
+  for (const line of frontmatter.split(/\r\n|\r|\n/u)) {
     if (/^\s/u.test(line)) continue;
     for (const key of KNOWN_KEYS) {
       const pattern = escapePattern(key);

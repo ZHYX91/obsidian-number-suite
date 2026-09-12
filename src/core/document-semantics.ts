@@ -1,3 +1,4 @@
+import { scanPhysicalLines } from "./source-lines";
 import { WORD_JOINER } from "./markers";
 import { noteContainerLines } from "./note-semantics";
 import type { ParsedHeading } from "./types";
@@ -60,24 +61,8 @@ const BLOCK_HTML_TAGS = new Set([
 ]);
 
 function sourceLines(source: string): SemanticSourceLine[] {
-  const raw: Array<Omit<SemanticSourceLine, "available">> = [];
-  let from = 0;
-  let number = 0;
-  while (from < source.length) {
-    const newline = source.indexOf("\n", from);
-    const rawTo = newline < 0 ? source.length : newline;
-    const to = rawTo > from && source.charCodeAt(rawTo - 1) === 13 ? rawTo - 1 : rawTo;
-    raw.push({ text: source.slice(from, to), from, to, number });
-    number += 1;
-    if (newline < 0) break;
-    from = newline + 1;
-  }
-  if (source.length === 0 || source.endsWith("\n")) {
-    raw.push({ text: "", from: source.length, to: source.length, number });
-  }
+  const raw = scanPhysicalLines(source);
 
-  let inFrontmatter = false;
-  let frontmatterFinished = false;
   let fenceCharacter: "`" | "~" | null = null;
   let fenceLength = 0;
   let inHtmlComment = false;
@@ -87,17 +72,9 @@ function sourceLines(source: string): SemanticSourceLine[] {
   return raw.map((line) => {
     const trimmed = line.text.trim();
     let available = true;
-    if (line.number === 0 && line.text.replace(/^\uFEFF/u, "").trim() === "---") {
-      inFrontmatter = true;
+    if (line.frontmatter) {
       available = false;
-    } else if (inFrontmatter) {
-      available = false;
-      if (trimmed === "---" || trimmed === "...") {
-        inFrontmatter = false;
-        frontmatterFinished = true;
-      }
     } else {
-      if (!frontmatterFinished && line.number > 0) frontmatterFinished = true;
       if (/^(?: {4}|\t)/u.test(line.text)) {
         available = false;
       } else if (fenceCharacter != null) {

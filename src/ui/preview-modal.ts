@@ -128,12 +128,15 @@ export class ChangePreviewModal extends Modal {
           return;
         }
         this.applying = true;
-        button.setDisabled(true);
+        for (const control of this.contentEl.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>("input, button, select")) {
+          control.disabled = true;
+        }
+        button.setButtonText(t("preview.applying"));
         void this.options.onConfirm(this.documents)
-          .then(() => this.close())
+          .then(() => { this.applying = false; this.close(); })
           .catch((error: unknown) => {
             this.applying = false;
-            button.setDisabled(false);
+            this.render();
             console.error("Number Suite preview apply failed", error);
           });
       });
@@ -152,6 +155,11 @@ export class ChangePreviewModal extends Modal {
       this.applying = false;
       console.error("Number Suite preview replanning failed", error);
     }
+  }
+
+  override close(): void {
+    if (this.applying) return;
+    super.close();
   }
 
   override onClose(): void {

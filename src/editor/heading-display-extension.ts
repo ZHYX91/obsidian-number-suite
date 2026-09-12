@@ -31,7 +31,7 @@ import {
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
-import { parseAtxHeadings } from "../core/heading-parser";
+import { SemanticSnapshotCache } from "../application/semantic-snapshot";
 import { meaningfulImageReplacementText } from "../core/caption-objects";
 import type { CaptionKind } from "../core/document-semantics";
 import type { NoteKind } from "../core/note-semantics";
@@ -511,6 +511,8 @@ function parseOverrides(source: string): NoteOverrides | null {
   }
 }
 
+const semanticSnapshots = new SemanticSnapshotCache();
+
 function buildAnchoredCaptionDecorations(
   state: EditorState,
   settingsProvider: () => NumberSuiteSettings,
@@ -518,7 +520,8 @@ function buildAnchoredCaptionDecorations(
   const settings = settingsProvider();
   const livePreview = state.field(editorLivePreviewField, false) ?? false;
   if (!livePreview || !settings.enableLivePreview) return Decoration.none;
-  const source = state.doc.toString();
+  const snapshot = semanticSnapshots.get(state.doc, () => state.doc.toString());
+  const source = snapshot.source;
   const overrides = parseOverrides(source) ?? invalidNoteOverrides();
   const effective = resolveNoteSettings(settings, overrides);
   if (effective.disabled || !effective.valid) return Decoration.none;
@@ -539,7 +542,7 @@ function buildAnchoredCaptionDecorations(
     templateSources: cleanupTemplateSources(settings),
     headingDisplayPlan: [],
     composing: false,
-  });
+  }, snapshot);
   const ranges: Range<Decoration>[] = [];
   for (const item of semanticPlan) {
     if (
@@ -696,7 +699,8 @@ export class HeadingDisplayController {
 
       private annotateImageTooltips(): void {
         const settings = settingsProvider();
-        const source = this.view.state.doc.toString();
+        const snapshot = semanticSnapshots.get(this.view.state.doc, () => this.view.state.doc.toString());
+        const source = snapshot.source;
         for (const image of this.view.dom.querySelectorAll<HTMLImageElement>("img")) {
           clearSemanticTooltip(image);
           if (!settings.showImageCaptionTooltips) continue;
@@ -713,7 +717,7 @@ export class HeadingDisplayController {
           }
           const tooltip = offset == null
             ? null
-            : imageTooltipContentAtOffset(source, offset, settings.showCaptionNumbers);
+            : imageTooltipContentAtOffset(source, offset, settings.showCaptionNumbers, snapshot);
           const fallback = meaningfulImageReplacementText(image.alt);
           if (tooltip != null) {
             applySemanticTooltip(image, tooltip.title, tooltip.body);
@@ -733,8 +737,9 @@ export class HeadingDisplayController {
         if (effective.disabled || !effective.valid) {
           return Decoration.none;
         }
-        const source = this.view.state.doc.toString();
-        const headings = parseAtxHeadings(source).filter((heading) => (
+        const snapshot = semanticSnapshots.get(this.view.state.doc, () => this.view.state.doc.toString());
+        const source = snapshot.source;
+        const headings = snapshot.headings.filter((heading) => (
           syntaxConfirmsHeading(this.view.state, heading)
         ));
         const selections = this.view.state.selection.ranges.map((range) => ({
@@ -773,7 +778,7 @@ export class HeadingDisplayController {
           templateSources,
           headingDisplayPlan: plan,
           composing,
-        });
+        }, snapshot);
         const ranges: Range<Decoration>[] = [];
         const t = createTranslator(settings.language);
         const decorations = [

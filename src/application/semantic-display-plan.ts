@@ -1,24 +1,19 @@
+import { createSemanticSnapshot, type SemanticSnapshot } from "./semantic-snapshot";
 import type { DisplayDecorationPlan, SelectionSpan } from "./display-plan";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import { numberHeadings } from "../core/numbering-engine";
 import {
   blockTargetKey,
-  numberCaptions,
-  parseDocumentSemantics,
   resolveUniqueSemanticTitleTarget,
   withoutTrailingBlockId,
 } from "../core/document-semantics";
 import type { CaptionKind, NumberedCaption } from "../core/document-semantics";
 import {
-  bindCaptionObjects,
-  imageTextAtOffset,
-  scanCaptionObjects,
+  imageTextAtLineOffset,
   type CaptionSourcePlacement,
 } from "../core/caption-objects";
 import type { CaptionPlacement } from "../config/settings";
 import {
-  numberDocumentNotes,
-  parseDocumentNotes,
   type NoteKind,
 } from "../core/note-semantics";
 import type {
@@ -155,14 +150,14 @@ export function imageTooltipContentAtOffset(
   source: string,
   offset: number,
   showCaptionNumbers: boolean,
+  snapshot: SemanticSnapshot = createSemanticSnapshot(source),
 ): ImageTooltipContent | null {
-  const semantics = parseDocumentSemantics(source);
-  const numbered = numberCaptions(semantics.captions);
-  const object = scanCaptionObjects(source).find((candidate) => (
+  const numbered = snapshot.numberedCaptions;
+  const object = snapshot.objects.find((candidate) => (
     candidate.kind === "Figure" && offset >= candidate.from && offset <= candidate.to
   ));
   if (object != null) {
-    const binding = bindCaptionObjects(source).find((candidate) => candidate.object.from === object.from);
+    const binding = snapshot.bindings.find((candidate) => candidate.object.from === object.from);
     const caption = binding == null
       ? null
       : numbered.find((candidate) => candidate.line === binding.caption.line) ?? null;
@@ -173,7 +168,16 @@ export function imageTooltipContentAtOffset(
       : object.replacementText;
     return title.length === 0 && body.length === 0 ? null : { title, body };
   }
-  const image = imageTextAtOffset(source, offset);
+  let low = 0;
+  let high = snapshot.lines.length - 1;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if ((snapshot.lines[middle]?.from ?? Infinity) <= offset) low = middle;
+    else high = middle - 1;
+  }
+  const line = snapshot.lines[low];
+  const image = line?.available && offset >= line.from && offset <= line.to
+    ? imageTextAtLineOffset(line.text, offset - line.from) : null;
   return image?.replacementText ? { title: "", body: image.replacementText } : null;
 }
 
@@ -181,10 +185,11 @@ export function createSemanticDisplayPlan(
   source: string,
   headings: readonly ParsedHeading[],
   options: SemanticDisplayPlanOptions,
+  snapshot: SemanticSnapshot = createSemanticSnapshot(source),
 ): SemanticDisplayDecoration[] {
-  const semantics = parseDocumentSemantics(source);
-  const numberedCaptions = numberCaptions(semantics.captions);
-  const bindings = new Map(bindCaptionObjects(source).map((binding) => (
+  const semantics = snapshot.semantics;
+  const numberedCaptions = snapshot.numberedCaptions;
+  const bindings = new Map(snapshot.bindings.map((binding) => (
     [binding.caption.line, binding] as const
   )));
   const decorations: SemanticDisplayDecoration[] = [];
@@ -233,7 +238,7 @@ export function createSemanticDisplayPlan(
     });
   }
   if (options.showNoteNumbers) {
-    const notes = numberDocumentNotes(parseDocumentNotes(source));
+    const notes = snapshot.notes;
     for (const reference of notes.references) {
       if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
       decorations.push({

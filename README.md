@@ -353,3 +353,6 @@ Markdown, the selected scheme, and the exact action taken. Do not attach private
 ## License
 
 [MIT](LICENSE)
+
+Current note number fields save after a short typing pause, on Enter, or when leaving the field.
+The save status retains failed input for Retry. Outline navigation stays in the originating pane.

@@ -4,6 +4,22 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.3.2 - 2026-09-12
+
+### Fixed
+
+- Keep YAML block scalar contents out of headings, captions, notes and references, and preserve
+  source offsets for LF, CRLF and CR line endings.
+- Retain rapid Current note edits during asynchronous saves, with a visible save state and retry.
+- Keep preview dialogs open and disable controls until applying changes finishes.
+- Keep outline and reading reference navigation in the originating pane when a note is open twice.
+- Use nested list semantics for outline buttons and retain keyboard focus after expansion.
+
+### Changed
+
+- Reuse semantic source snapshots across editor selections, caption decorations and image tooltips.
+- Upgrade release tooling with bounded read retries and verified draft recovery.
+
 ## 0.3.1 - 2026-09-03
 
 ### Added

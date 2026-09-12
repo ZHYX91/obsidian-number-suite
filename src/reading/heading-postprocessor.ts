@@ -1,10 +1,11 @@
+import { navigateToLine } from "../adapters/navigate-to-line";
 import {
   App,
   MarkdownView,
+  type WorkspaceLeaf,
   normalizePath,
   TFile,
   type MarkdownPostProcessorContext,
-  type WorkspaceLeaf,
 } from "obsidian";
 
 import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
@@ -917,29 +918,12 @@ export class HeadingReadingProcessor {
       const line = Number(anchor.dataset.numberSuiteReferenceLine);
       if (!Number.isSafeInteger(line) || line < 0) return;
       event.preventDefault();
-      void this.navigateToLine(file, line);
+      let origin: WorkspaceLeaf | null = null;
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (leaf.view instanceof MarkdownView && leaf.view.containerEl?.contains(container)) origin = leaf;
+      });
+      void navigateToLine(this.app, file, line, origin);
     });
-  }
-
-  private async navigateToLine(file: TFile, line: number): Promise<void> {
-    let target: WorkspaceLeaf | null = null;
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      if (target == null && leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
-        target = leaf;
-      }
-    });
-    target ??= this.app.workspace.getLeaf("tab");
-    if (!(target.view instanceof MarkdownView) || target.view.file?.path !== file.path) {
-      await target.openFile(file, { active: true, eState: { line } });
-    }
-    target.setEphemeralState({ line });
-    await this.app.workspace.revealLeaf(target);
-    if (target.view instanceof MarkdownView && target.view.getMode() === "source") {
-      const position = { line, ch: 0 };
-      target.view.editor.setCursor(position);
-      target.view.editor.scrollIntoView({ from: position, to: position }, true);
-      target.view.editor.focus();
-    }
   }
 
   private buildPlan(

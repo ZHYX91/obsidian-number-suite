@@ -318,8 +318,7 @@ function codeObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   return output;
 }
 
-export function scanCaptionObjects(source: string): CaptionObject[] {
-  const lines = scanSemanticSourceLines(source);
+export function scanCaptionObjects(source: string, lines = scanSemanticSourceLines(source)): CaptionObject[] {
   return [
     ...imageObjects(lines),
     ...tableObjects(lines),
@@ -362,11 +361,13 @@ interface CaptionBindingCandidate {
   readonly sourcePlacement: CaptionSourcePlacement;
 }
 
-export function bindCaptionObjects(source: string): BoundCaptionObject[] {
-  const lines = scanSemanticSourceLines(source);
-  const captions = parseDocumentSemantics(source).captions;
+export function bindCaptionObjects(
+  source: string,
+  lines = scanSemanticSourceLines(source),
+  captions = parseDocumentSemantics(source).captions,
+  objects = scanCaptionObjects(source, lines),
+): BoundCaptionObject[] {
   const captionsByLine = new Map(captions.map((caption) => [caption.line, caption]));
-  const objects = scanCaptionObjects(source);
   const candidates: CaptionBindingCandidate[] = [];
   for (const object of objects) {
     for (const sourcePlacement of ["above", "below"] as const) {

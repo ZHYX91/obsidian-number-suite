@@ -1,3 +1,4 @@
+import { scanPhysicalLines } from "./source-lines";
 export type NoteKind = "footnote" | "endnote";
 
 export interface ParsedNoteDefinition {
@@ -75,48 +76,19 @@ function noteIdentity(label: string): NoteIdentity | null {
   };
 }
 
-function rawLines(source: string): Array<Omit<SourceLine, "available">> {
-  const lines: Array<Omit<SourceLine, "available">> = [];
-  let from = 0;
-  let number = 0;
-  while (from < source.length) {
-    const newline = source.indexOf("\n", from);
-    const rawTo = newline < 0 ? source.length : newline;
-    const to = rawTo > from && source.charCodeAt(rawTo - 1) === 13 ? rawTo - 1 : rawTo;
-    lines.push({ text: source.slice(from, to), from, to, number });
-    number += 1;
-    if (newline < 0) return lines;
-    from = newline + 1;
-  }
-  if (source.length === 0 || source.endsWith("\n")) {
-    lines.push({ text: "", from: source.length, to: source.length, number });
-  }
-  return lines;
-}
-
 function sourceLines(source: string): SourceLine[] {
-  let inFrontmatter = false;
-  let frontmatterFinished = false;
   let fenceCharacter: "`" | "~" | null = null;
   let fenceLength = 0;
   let inHtmlComment = false;
   let inObsidianComment = false;
   let rawHtmlTag: string | null = null;
   let genericHtmlBlock = false;
-  return rawLines(source).map((line) => {
+  return scanPhysicalLines(source).map((line) => {
     const trimmed = line.text.trim();
     let available = true;
-    if (line.number === 0 && line.text.replace(/^\uFEFF/u, "").trim() === "---") {
-      inFrontmatter = true;
+    if (line.frontmatter) {
       available = false;
-    } else if (inFrontmatter) {
-      available = false;
-      if (trimmed === "---" || trimmed === "...") {
-        inFrontmatter = false;
-        frontmatterFinished = true;
-      }
     } else {
-      if (!frontmatterFinished && line.number > 0) frontmatterFinished = true;
       if (fenceCharacter != null) {
         available = false;
         const closing = new RegExp(`^ {0,3}${fenceCharacter}{${fenceLength},}[ \\t]*$`, "u");

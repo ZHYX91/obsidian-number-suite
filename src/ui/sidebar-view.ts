@@ -1,3 +1,4 @@
+import { navigateToLine } from "../adapters/navigate-to-line";
 import {
   ItemView,
   MarkdownView,
@@ -56,6 +57,7 @@ const CAPTION_ICONS: Readonly<Record<CaptionKind, string>> = {
 
 export class NumberSuiteSidebarView extends ItemView {
   private activeTab: NumberSuiteSidebarTab = "outline";
+  private sourceLeaf: WorkspaceLeaf | null = null;
   private currentFile: TFile | null = null;
   private outlinePanel: HTMLElement | null = null;
   private notePanel: HTMLElement | null = null;
@@ -169,6 +171,7 @@ export class NumberSuiteSidebarView extends ItemView {
     this.contentEl.empty();
     this.outlinePanel = null;
     this.notePanel = null;
+    this.notePane?.destroy();
     this.notePane = null;
     this.outlineTabButton = null;
     this.noteTabButton = null;
@@ -240,7 +243,10 @@ export class NumberSuiteSidebarView extends ItemView {
 
   private async sourceForFile(file: TFile): Promise<string> {
     const active = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (active?.file?.path === file.path) return active.editor.getValue();
+    if (active?.file?.path === file.path) {
+      this.sourceLeaf = active.leaf;
+      return active.editor.getValue();
+    }
     const matching: MarkdownView[] = [];
     this.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
@@ -264,6 +270,10 @@ export class NumberSuiteSidebarView extends ItemView {
     }
     panel.addClass("is-loading");
     try {
+      if (sourceOverride != null) {
+        const active = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (active?.file?.path === file.path) this.sourceLeaf = active.leaf;
+      }
       const source = sourceOverride ?? await this.sourceForFile(file);
       if (request !== this.outlineRequest || file.path !== this.currentFile?.path) return;
       const overrides = parseNoteOverridesFromSource(source);
@@ -323,7 +333,7 @@ export class NumberSuiteSidebarView extends ItemView {
       return;
     }
     const tree = panel.createDiv({ cls: "number-suite-outline-tree" });
-    tree.setAttribute("role", "tree");
+    tree.setAttribute("role", "list");
     for (const node of outline) this.renderOutlineNode(tree, file, node, 0);
   }
 
@@ -336,22 +346,26 @@ export class NumberSuiteSidebarView extends ItemView {
     const key = `${file.path}:${node.kind}:${node.line}`;
     const collapsed = this.collapsed.has(key);
     const item = container.createDiv({ cls: `number-suite-outline-item is-${node.kind}` });
-    item.setAttribute("role", "treeitem");
-    item.setAttribute("aria-level", String(depth + 1));
+    item.setAttribute("role", "listitem");
     item.style.setProperty("--number-suite-outline-depth", String(depth));
     const row = item.createDiv({ cls: "number-suite-outline-row" });
     const toggle = row.createEl("button", { cls: "number-suite-outline-toggle" });
     toggle.type = "button";
+    toggle.dataset.outlineKey = key;
     if (node.children.length > 0) {
       setIcon(toggle, collapsed ? "chevron-right" : "chevron-down");
       toggle.setAttribute("aria-label", this.actions.getTranslate()(
         collapsed ? "sidebar.outline.expand" : "sidebar.outline.collapse",
       ));
-      item.setAttribute("aria-expanded", String(!collapsed));
+      toggle.setAttribute("aria-expanded", String(!collapsed));
       toggle.addEventListener("click", () => {
         if (collapsed) this.collapsed.delete(key);
         else this.collapsed.add(key);
-        if (this.outlinePanel != null) this.renderOutline(this.outlinePanel, file, this.outlineRoots);
+        if (this.outlinePanel != null) {
+          this.renderOutline(this.outlinePanel, file, this.outlineRoots);
+          const toggles = this.outlinePanel.querySelectorAll<HTMLButtonElement>("button[data-outline-key]");
+          Array.from(toggles).find((button) => button.dataset.outlineKey === key)?.focus();
+        }
       });
     } else {
       toggle.disabled = true;
@@ -376,7 +390,7 @@ export class NumberSuiteSidebarView extends ItemView {
     navigate.addEventListener("click", () => void this.navigateToLine(file, node.line));
     if (node.children.length > 0 && !collapsed) {
       const group = item.createDiv({ cls: "number-suite-outline-children" });
-      group.setAttribute("role", "group");
+      group.setAttribute("role", "list");
       for (const child of node.children) this.renderOutlineNode(group, file, child, depth + 1);
     }
   }
@@ -394,23 +408,6 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   private async navigateToLine(file: TFile, line: number): Promise<void> {
-    let target: WorkspaceLeaf | null = null;
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      if (target == null && leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
-        target = leaf;
-      }
-    });
-    target ??= this.app.workspace.getLeaf("tab");
-    if (!(target.view instanceof MarkdownView) || target.view.file?.path !== file.path) {
-      await target.openFile(file, { active: true, eState: { line } });
-    }
-    target.setEphemeralState({ line });
-    await this.app.workspace.revealLeaf(target);
-    if (target.view instanceof MarkdownView && target.view.getMode() === "source") {
-      const position = { line, ch: 0 };
-      target.view.editor.setCursor(position);
-      target.view.editor.scrollIntoView({ from: position, to: position }, true);
-      target.view.editor.focus();
-    }
+    await navigateToLine(this.app, file, line, this.sourceLeaf);
   }
 }
