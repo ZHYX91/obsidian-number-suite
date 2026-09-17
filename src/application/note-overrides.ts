@@ -131,6 +131,66 @@ export function applyNoteOverrideChange(
   return before !== after;
 }
 
+function sameNumber(
+  values: Readonly<Partial<Record<HeadingLevel, number>>>,
+  other: Readonly<Partial<Record<HeadingLevel, number>>>,
+  level: HeadingLevel,
+): boolean {
+  return (values[level] ?? null) === (other[level] ?? null);
+}
+
+/**
+ * Replay only the semantic fields changed by the pane onto a fresh Properties
+ * record. Concurrent edits to different Number Suite fields are preserved.
+ */
+export function rebaseNoteOverrideDraft(
+  currentValues: Record<string, unknown>,
+  acknowledgedValues: Record<string, unknown>,
+  desiredValues: Record<string, unknown>,
+): Record<string, unknown> {
+  const current = parseNoteOverrides(currentValues);
+  const acknowledged = parseNoteOverrides(acknowledgedValues);
+  const desired = parseNoteOverrides(desiredValues);
+  for (const parsed of [current, acknowledged, desired]) {
+    if (parsed.issues.length > 0) {
+      throw new Error(parsed.issues[0]?.message ?? "Invalid Number Suite Properties");
+    }
+  }
+
+  const next = structuredClone(currentValues);
+  const changes: NoteOverrideChange[] = [];
+  if (acknowledged.disabled !== desired.disabled) {
+    changes.push({ kind: "ignore", value: desired.disabled });
+  }
+  if (acknowledged.showVirtualNumbers !== desired.showVirtualNumbers) {
+    changes.push({ kind: "show-virtual", value: triState(desired.showVirtualNumbers) });
+  }
+  if (acknowledged.concealStoredNumbers !== desired.concealStoredNumbers) {
+    changes.push({ kind: "conceal-stored", value: triState(desired.concealStoredNumbers) });
+  }
+  if (acknowledged.schemeId !== desired.schemeId) {
+    changes.push({ kind: "scheme", value: desired.schemeId });
+  }
+  for (const level of headingLevels()) {
+    if (!sameNumber(acknowledged.starts, desired.starts, level)) {
+      changes.push({ kind: "first-number", level, value: desired.starts[level] ?? null });
+    }
+    if (!sameNumber(acknowledged.skipFirst, desired.skipFirst, level)) {
+      changes.push({ kind: "skip-first", level, value: desired.skipFirst[level] ?? null });
+    }
+  }
+
+  if (
+    changes.length === 0
+    && acknowledged.legacyKeysPresent.length > 0
+    && desired.legacyKeysPresent.length === 0
+  ) {
+    changes.push({ kind: "migrate" });
+  }
+  for (const change of changes) applyNoteOverrideChange(next, change);
+  return next;
+}
+
 export function headingLevels(): readonly HeadingLevel[] {
   return Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => (index + 1) as HeadingLevel);
 }

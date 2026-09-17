@@ -16,7 +16,9 @@ export class RecoveryStore {
     for (const path of [this.temporaryPath, this.path]) {
       if (!await this.app.vault.adapter.exists(path)) continue;
       try {
-        return sanitizeLastBatch(JSON.parse(await this.app.vault.adapter.read(path)));
+        const snapshot = sanitizeLastBatch(JSON.parse(await this.app.vault.adapter.read(path)));
+        if (snapshot != null) return snapshot;
+        console.error(`Number Suite: ignored invalid recovery snapshot ${path}`);
       } catch (error) {
         console.error(`Number Suite: could not read ${path}`, error);
       }

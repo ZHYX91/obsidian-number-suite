@@ -1,4 +1,8 @@
-import { scanPhysicalLines } from "./source-lines";
+import {
+  maskInlineProtectedSyntax,
+  scanMarkdownProtectedLines,
+} from "./markdown-protection";
+
 export type NoteKind = "footnote" | "endnote";
 
 export interface ParsedNoteDefinition {
@@ -49,11 +53,6 @@ interface NoteIdentity {
 
 const DEFINITION = /^ {0,3}\[\^([^\]\r\n]+)\]:/u;
 const REFERENCE = /\[\^([^\]\r\n]+)\]/gu;
-const BLOCK_HTML_TAGS = new Set([
-  "address", "article", "aside", "blockquote", "body", "caption", "center", "details", "dialog",
-  "div", "dl", "fieldset", "figcaption", "figure", "footer", "form", "header", "html", "iframe",
-  "main", "nav", "ol", "pre", "script", "section", "style", "table", "textarea", "ul",
-]);
 
 function normalizeLabel(value: string): string {
   return value.normalize("NFC").trim().toLowerCase();
@@ -77,155 +76,13 @@ function noteIdentity(label: string): NoteIdentity | null {
 }
 
 function sourceLines(source: string): SourceLine[] {
-  let fenceCharacter: "`" | "~" | null = null;
-  let fenceLength = 0;
-  let inHtmlComment = false;
-  let inObsidianComment = false;
-  let rawHtmlTag: string | null = null;
-  let genericHtmlBlock = false;
-  return scanPhysicalLines(source).map((line) => {
-    const trimmed = line.text.trim();
-    let available = true;
-    if (line.frontmatter) {
-      available = false;
-    } else {
-      if (fenceCharacter != null) {
-        available = false;
-        const closing = new RegExp(`^ {0,3}${fenceCharacter}{${fenceLength},}[ \\t]*$`, "u");
-        if (closing.test(line.text)) {
-          fenceCharacter = null;
-          fenceLength = 0;
-        }
-      } else {
-        const fence = /^ {0,3}(`{3,}|~{3,})/u.exec(line.text);
-        if (fence?.[1] != null) {
-          available = false;
-          fenceCharacter = fence[1][0] as "`" | "~";
-          fenceLength = fence[1].length;
-        } else if (rawHtmlTag != null) {
-          available = false;
-          if (new RegExp(`</${rawHtmlTag}[ \\t]*>`, "iu").test(line.text)) rawHtmlTag = null;
-        } else if (genericHtmlBlock) {
-          available = false;
-          if (trimmed.length === 0) genericHtmlBlock = false;
-        } else if (inHtmlComment) {
-          available = false;
-          if (line.text.includes("-->")) inHtmlComment = false;
-        } else if (inObsidianComment) {
-          available = false;
-          if (line.text.includes("%%")) inObsidianComment = false;
-        } else {
-          const htmlStart = line.text.indexOf("<!--");
-          const obsidianStart = line.text.indexOf("%%");
-          const htmlTag = /^ {0,3}<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/>)/u.exec(line.text)?.[1]?.toLowerCase();
-          if (htmlTag != null && BLOCK_HTML_TAGS.has(htmlTag)) {
-            available = false;
-            if (["script", "pre", "style", "textarea"].includes(htmlTag)) {
-              if (!new RegExp(`</${htmlTag}[ \\t]*>`, "iu").test(line.text)) rawHtmlTag = htmlTag;
-            } else {
-              genericHtmlBlock = true;
-            }
-          } else if (htmlStart >= 0) {
-            available = false;
-            if (line.text.indexOf("-->", htmlStart + 4) < 0) inHtmlComment = true;
-          } else if (obsidianStart >= 0) {
-            available = false;
-            if (line.text.indexOf("%%", obsidianStart + 2) < 0) inObsidianComment = true;
-          }
-        }
-      }
-    }
-    return { ...line, available };
-  });
-}
-
-function maskInlineCode(text: string): string {
-  const characters = text.split("");
-  for (let index = 0; index < text.length;) {
-    if (text[index] !== "`") {
-      index += 1;
-      continue;
-    }
-    let ticks = 1;
-    while (text[index + ticks] === "`") ticks += 1;
-    const closing = text.indexOf("`".repeat(ticks), index + ticks);
-    if (closing < 0) break;
-    for (let cursor = index; cursor < closing + ticks; cursor += 1) characters[cursor] = " ";
-    index = closing + ticks;
-  }
-  return characters.join("");
-}
-
-function blankRange(characters: string[], from: number, to: number): void {
-  for (let index = from; index < to; index += 1) characters[index] = " ";
-}
-
-function maskInlineHtml(text: string, characters: string[]): void {
-  for (let index = 0; index < text.length;) {
-    const next = text[index + 1] ?? "";
-    if (text[index] !== "<" || !/[A-Za-z/!?]/u.test(next)) {
-      index += 1;
-      continue;
-    }
-    let quote: "\"" | "'" | null = null;
-    let closed = false;
-    for (let cursor = index + 1; cursor < text.length; cursor += 1) {
-      const character = text[cursor] ?? "";
-      if (quote !== null) {
-        if (character === quote) quote = null;
-        continue;
-      }
-      if (character === "\"" || character === "'") {
-        quote = character;
-      } else if (character === ">") {
-        blankRange(characters, index, cursor + 1);
-        index = cursor + 1;
-        closed = true;
-        break;
-      }
-    }
-    if (!closed) index += 1;
-  }
-}
-
-function maskLinkDestinations(text: string, characters: string[]): void {
-  for (let index = 0; index < text.length - 1; index += 1) {
-    if (text[index] !== "]" || text[index + 1] !== "(") continue;
-    let depth = 1;
-    let escaped = false;
-    let quote: "\"" | "'" | null = null;
-    for (let cursor = index + 2; cursor < text.length; cursor += 1) {
-      const character = text[cursor] ?? "";
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-      } else if (character === "\"" || character === "'") {
-        if (quote === character) quote = null;
-        else if (quote === null) quote = character;
-      } else if (quote !== null) {
-        continue;
-      } else if (character === "(") {
-        depth += 1;
-      } else if (character === ")") {
-        depth -= 1;
-        if (depth === 0) {
-          blankRange(characters, index + 1, cursor + 1);
-          index = cursor;
-          break;
-        }
-      }
-    }
-  }
-}
-
-function maskInlineSyntax(text: string): string {
-  const characters = maskInlineCode(text).split("");
-  maskInlineHtml(text, characters);
-  maskLinkDestinations(text, characters);
-  return characters.join("");
+  return scanMarkdownProtectedLines(source).map((line) => ({
+    text: line.text,
+    from: line.from,
+    to: line.to,
+    number: line.number,
+    available: line.available,
+  }));
 }
 
 function definitionContainerLines(lines: readonly SourceLine[]): Set<number> {
@@ -277,7 +134,7 @@ export function parseDocumentNotes(source: string): DocumentNoteSemantics {
       continue;
     }
     if (containerLines.has(line.number)) continue;
-    const masked = maskInlineSyntax(line.text);
+    const masked = maskInlineProtectedSyntax(line.text);
     for (const match of masked.matchAll(REFERENCE)) {
       if (match.index == null || match[1] == null) continue;
       if (match.index > 0 && line.text[match.index - 1] === "\\") continue;

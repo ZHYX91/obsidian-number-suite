@@ -1,4 +1,12 @@
-import type { App, Component } from "obsidian";
+import { type App, type Component } from "obsidian";
+
+import {
+  parseNoteOverrides,
+  resolveNoteSettings,
+  type NoteOverrides,
+} from "../config/frontmatter";
+import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
+import type { NumberSuiteSettings } from "../config/settings";
 
 const TOOLTIP_TARGET_SELECTOR = "[data-number-suite-tooltip='true']";
 
@@ -27,6 +35,16 @@ export function clearSemanticTooltip(element: HTMLElement): void {
   delete element.dataset.numberSuiteTooltipBody;
 }
 
+/** Pure policy shared by DOM gating and tests. */
+export function semanticTooltipAllowed(
+  settings: NumberSuiteSettings,
+  overrides: NoteOverrides = parseNoteOverrides(null),
+): boolean {
+  if (!settings.showImageCaptionTooltips) return false;
+  const effective = resolveNoteSettings(settings, overrides);
+  return effective.valid && !effective.disabled;
+}
+
 function eventElement(event: Event): Element | null {
   const target = event.target;
   return target != null && "nodeType" in target && target.nodeType === 1
@@ -34,12 +52,29 @@ function eventElement(event: Event): Element | null {
     : null;
 }
 
+function sourceForTarget(app: App, target: HTMLElement): string | null {
+  let source: string | null = null;
+  app.workspace.iterateAllLeaves((leaf) => {
+    if (source != null || !leaf.view.containerEl.contains(target)) return;
+    const candidate = leaf.view as unknown as {
+      readonly editor?: { getValue?: () => string };
+    };
+    if (typeof candidate.editor?.getValue === "function") {
+      source = candidate.editor.getValue();
+    }
+  });
+  return source;
+}
+
 export class SemanticTooltipController {
   private readonly registeredDocuments = new WeakSet<Document>();
   private active: HTMLElement | null = null;
   private tooltip: HTMLElement | null = null;
 
-  constructor(private readonly app: App) {}
+  constructor(
+    private readonly app: App,
+    private readonly getSettings?: () => NumberSuiteSettings,
+  ) {}
 
   register(component: Component): void {
     this.registerDocument(component, document);
@@ -47,6 +82,11 @@ export class SemanticTooltipController {
       this.registerDocument(component, window.document);
     }));
     component.register(() => this.hide());
+  }
+
+  /** Re-evaluate an already-open tooltip after settings or per-note overrides change. */
+  refresh(): void {
+    if (this.active != null && !this.allowed(this.active)) this.hide();
   }
 
   private registerDocument(component: Component, ownerDocument: Document): void {
@@ -63,7 +103,7 @@ export class SemanticTooltipController {
 
   private showFromEvent(event: Event): void {
     const target = eventElement(event)?.closest<HTMLElement>(TOOLTIP_TARGET_SELECTOR) ?? null;
-    if (target == null) return;
+    if (target == null || !this.allowed(target)) return;
     if (this.active === target && this.tooltip?.isConnected === true) return;
     this.show(target);
   }
@@ -78,6 +118,18 @@ export class SemanticTooltipController {
       && this.active.contains(related as Node)
     ) return;
     this.hide();
+  }
+
+  private allowed(target: HTMLElement): boolean {
+    const settings = this.getSettings?.();
+    if (settings == null) return true;
+    if (target.closest(".markdown-source-view") == null) {
+      return semanticTooltipAllowed(settings);
+    }
+    const source = sourceForTarget(this.app, target);
+    if (source == null) return false;
+    const overrides = parseNoteOverridesFromSource(source);
+    return overrides != null && semanticTooltipAllowed(settings, overrides);
   }
 
   private show(target: HTMLElement): void {

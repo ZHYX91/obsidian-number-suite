@@ -1,10 +1,15 @@
-import { NoteSaveCoordinator, type NoteSaveState } from "../application/note-save-coordinator";
+import {
+  NoteSaveConflictError,
+  NoteSaveCoordinator,
+  type NoteSaveState,
+} from "../application/note-save-coordinator";
 import { App, Notice, Setting, type TFile } from "obsidian";
 
 import {
   headingLevels,
   NOTE_OVERRIDE_KEYS,
   readNoteControlSnapshot,
+  rebaseNoteOverrideDraft,
   type NoteControlSnapshot,
   type NoteOverrideChange,
   type TriState,
@@ -31,9 +36,26 @@ function booleanLabel(value: boolean, t: Translate): string {
   return t(value ? "panel.value.on" : "panel.value.off");
 }
 
+const NOTE_SESSIONS = new WeakMap<App, WeakMap<TFile, NoteSaveCoordinator>>();
+
+function sessionsFor(app: App): WeakMap<TFile, NoteSaveCoordinator> {
+  let sessions = NOTE_SESSIONS.get(app);
+  if (sessions == null) {
+    sessions = new WeakMap<TFile, NoteSaveCoordinator>();
+    NOTE_SESSIONS.set(app, sessions);
+  }
+  return sessions;
+}
+
+export function clearNoteControlSessions(app: App): void {
+  NOTE_SESSIONS.delete(app);
+}
+
 export class NoteControlPane {
   private busy = false;
   private coordinator: NoteSaveCoordinator | null = null;
+  private coordinatorUnsubscribe: (() => void) | null = null;
+  private readonly coordinators: WeakMap<TFile, NoteSaveCoordinator>;
   private saveTimer: number | null = null;
   private summaryHost: HTMLElement | null = null;
   private saveStatus: HTMLElement | null = null;
@@ -48,19 +70,31 @@ export class NoteControlPane {
     private readonly getSettings: () => NumberSuiteSettings,
     private readonly getTranslate: () => Translate,
     private readonly actions: NoteControlActions,
-  ) {}
+  ) {
+    this.coordinators = sessionsFor(app);
+  }
 
   private get t(): Translate {
     return this.getTranslate();
   }
 
   setFile(file: TFile | null, reload = true): void {
-    if (this.file?.path === file?.path) {
+    if (this.file === file) {
       if (reload) void this.reload();
       return;
     }
+    const previousFile = this.file;
+    const previousCoordinator = this.coordinator;
     this.flushDraft();
-    this.coordinator = null;
+    if (
+      previousFile != null
+      && previousCoordinator != null
+      && previousCoordinator.state === "saved"
+      && !previousCoordinator.pending
+    ) {
+      this.coordinators.delete(previousFile);
+    }
+    this.detachCoordinator();
     this.file = file;
     this.frontmatter = null;
     this.request += 1;
@@ -73,7 +107,10 @@ export class NoteControlPane {
   }
 
   private async reload(): Promise<void> {
-    if (this.coordinator != null && (this.coordinator.pending || this.contentEl.contains(this.contentEl.ownerDocument.activeElement))) return;
+    if (
+      this.coordinator != null
+      && (this.coordinator.pending || this.contentEl.contains(this.contentEl.ownerDocument.activeElement))
+    ) return;
     const file = this.file;
     const request = this.request + 1;
     this.request = request;
@@ -81,6 +118,16 @@ export class NoteControlPane {
       this.renderUnavailable();
       return;
     }
+
+    const retained = this.coordinators.get(file);
+    if (retained != null && (retained.pending || retained.state !== "saved")) {
+      this.attachCoordinator(file, retained);
+      this.busy = false;
+      this.render();
+      return;
+    }
+    if (retained != null) this.coordinators.delete(file);
+
     this.busy = true;
     this.renderLoading();
     try {
@@ -265,10 +312,15 @@ export class NoteControlPane {
       .addToggle((toggle) => toggle.setValue(snapshot.ignore).onChange((value) => {
         void this.applyChange({ kind: "ignore", value });
       }));
-    section.createEl("h5", { text: this.t("panel.numberingByLevel") });
-    section.createEl("p", { text: this.t("panel.numberingByLevel.desc") });
+
+    const advanced = section.createEl("details", { cls: "number-suite-note-control-levels" });
+    advanced.open = headingLevels().some((level) => (
+      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null
+    ));
+    advanced.createEl("summary", { text: this.t("panel.numberingByLevel") });
+    advanced.createEl("p", { text: this.t("panel.numberingByLevel.desc") });
     for (const level of headingLevels()) {
-      const row = new Setting(section).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
+      const row = new Setting(advanced).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
       row.addText((text) => {
         text.inputEl.type = "number";
         text.inputEl.min = "1";
@@ -276,9 +328,11 @@ export class NoteControlPane {
         text.setPlaceholder(this.t("panel.state.inherit"));
         text.setValue(snapshot.firstNumbers[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
-        text.inputEl.addEventListener("blur", () => this.flushDraft());
-        text.inputEl.addEventListener("keydown", (event) => { if (event.key === "Enter") this.flushDraft(); });
-        text.onChange((raw) => this.applyLevelNumber("first-number", level, raw));
+        text.inputEl.addEventListener("blur", () => this.finishLevelNumber("first-number", text.inputEl));
+        text.inputEl.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") this.finishLevelNumber("first-number", text.inputEl);
+        });
+        text.onChange((raw) => this.applyLevelNumber("first-number", level, raw, text.inputEl));
       });
       row.addText((text) => {
         text.inputEl.type = "number";
@@ -287,9 +341,11 @@ export class NoteControlPane {
         text.setPlaceholder("0");
         text.setValue(snapshot.skipFirst[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
-        text.inputEl.addEventListener("blur", () => this.flushDraft());
-        text.inputEl.addEventListener("keydown", (event) => { if (event.key === "Enter") this.flushDraft(); });
-        text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw));
+        text.inputEl.addEventListener("blur", () => this.finishLevelNumber("skip-first", text.inputEl));
+        text.inputEl.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") this.finishLevelNumber("skip-first", text.inputEl);
+        });
+        text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw, text.inputEl));
       });
     }
     new Setting(section)
@@ -328,15 +384,27 @@ export class NoteControlPane {
     kind: "first-number" | "skip-first",
     level: ReturnType<typeof headingLevels>[number],
     raw: string,
+    input: HTMLInputElement,
   ): void {
     const trimmed = raw.trim();
     const value = trimmed === "" ? null : Number(trimmed);
     const valid = value == null || (Number.isSafeInteger(value) && value >= (kind === "first-number" ? 1 : 0));
-    if (!valid) {
+    const message = this.t(kind === "first-number" ? "panel.firstNumber.invalid" : "panel.skipFirst.invalid");
+    input.setAttribute("aria-invalid", String(!valid));
+    input.title = valid ? "" : message;
+    if (!valid) return;
+    void this.applyChange({ kind, level, value }, true);
+  }
+
+  private finishLevelNumber(
+    kind: "first-number" | "skip-first",
+    input: HTMLInputElement,
+  ): void {
+    if (input.getAttribute("aria-invalid") === "true") {
       new Notice(this.t(kind === "first-number" ? "panel.firstNumber.invalid" : "panel.skipFirst.invalid"));
       return;
     }
-    void this.applyChange({ kind, level, value }, true);
+    this.flushDraft();
   }
 
   private renderActions(): void {
@@ -368,22 +436,36 @@ export class NoteControlPane {
 
   private createCoordinator(file: TFile): void {
     if (this.frontmatter == null) return;
+    const app = this.app;
+    const refreshDisplay = this.actions.refreshDisplay;
     const coordinator = new NoteSaveCoordinator(this.frontmatter, async (expected, desired) => {
-      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      await app.fileManager.processFrontMatter(file, (frontmatter) => {
         const current = frontmatter as Record<string, unknown>;
         const pick = (values: Record<string, unknown>): string => JSON.stringify(Object.fromEntries(
           NOTE_OVERRIDE_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(values, key))
             .map((key) => [key, values[key]]),
         ));
-        if (pick(current) !== pick(expected)) throw new Error("Number Suite Properties changed after the control was rendered");
+        if (pick(current) !== pick(expected)) {
+          throw new NoteSaveConflictError(current);
+        }
         for (const key of NOTE_OVERRIDE_KEYS) {
           if (Object.prototype.hasOwnProperty.call(desired, key)) current[key] = structuredClone(desired[key]);
           else delete current[key];
         }
       });
-      this.actions.refreshDisplay();
-    }, (state) => {
-      if (this.coordinator !== coordinator) return;
+      refreshDisplay();
+    }, () => undefined);
+    this.coordinators.set(file, coordinator);
+    this.attachCoordinator(file, coordinator);
+  }
+
+  private attachCoordinator(file: TFile, coordinator: NoteSaveCoordinator): void {
+    this.detachCoordinator();
+    this.coordinator = coordinator;
+    this.frontmatter = coordinator.snapshot;
+    this.saveState = coordinator.state;
+    this.coordinatorUnsubscribe = coordinator.subscribe((state) => {
+      if (this.coordinator !== coordinator || this.file !== file) return;
       this.saveState = state;
       this.frontmatter = coordinator.snapshot;
       this.renderSaveStatus();
@@ -393,8 +475,12 @@ export class NoteControlPane {
         this.renderSummary(readNoteControlSnapshot(this.frontmatter, settings), settings, this.summaryHost);
       }
     });
-    this.coordinator = coordinator;
-    this.saveState = "saved";
+  }
+
+  private detachCoordinator(): void {
+    this.coordinatorUnsubscribe?.();
+    this.coordinatorUnsubscribe = null;
+    this.coordinator = null;
   }
 
   private renderSaveStatus(): void {
@@ -404,8 +490,23 @@ export class NoteControlPane {
     status.createSpan({ text: this.t(`panel.save.${this.saveState}`) });
     if (this.saveState === "error") {
       const retry = status.createEl("button", { text: this.t("panel.retry") });
-      retry.addEventListener("click", () => this.flushDraft());
+      retry.addEventListener("click", () => this.retryDraft());
     }
+  }
+
+  private retryDraft(): void {
+    try {
+      if (this.coordinator?.rebaseConflict(rebaseNoteOverrideDraft) === true) {
+        this.frontmatter = this.coordinator.snapshot;
+        this.saveState = this.coordinator.state;
+        this.render();
+      }
+    } catch (error: unknown) {
+      console.error("Number Suite: could not rebase current note Properties", error);
+      new Notice(this.t("panel.saveFailed"));
+      return;
+    }
+    this.flushDraft();
   }
 
   private flushDraft(): void {
@@ -415,8 +516,10 @@ export class NoteControlPane {
   }
 
   destroy(): void {
-    this.flushDraft();
-    this.coordinator = null;
+    if (this.saveTimer != null) this.contentEl.win.clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    void this.coordinator?.flush();
+    this.detachCoordinator();
     this.request += 1;
   }
 

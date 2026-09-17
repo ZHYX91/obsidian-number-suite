@@ -24,7 +24,7 @@ describe("sidebar source pane lifecycle", () => {
     };
     subject.onActiveLeafChange(right);
     expect(subject.sourceLeaf).toBe(right);
-    expect(refresh).toHaveBeenLastCalledWith("# Right buffer");
+    expect(refresh).toHaveBeenLastCalledWith("# Right buffer", "Same.md");
     subject.onActiveLeafChange(null);
     expect(subject.sourceLeaf).toBe(right);
     expect(setFile).toHaveBeenCalledTimes(1);
