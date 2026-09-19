@@ -251,7 +251,7 @@ export class NumberSuiteSidebarView extends ItemView {
     this.outlineRequest += 1;
     this.sourceLeaf = leaf;
     const path = leaf.view.file?.path ?? null;
-    this.setFile(leaf.view.file, false);
+    this.setFile(leaf.view.file, this.activeTab === "note");
     if (this.activeTab === "outline") void this.refreshOutline(leaf.view.editor.getValue(), path);
   }
 

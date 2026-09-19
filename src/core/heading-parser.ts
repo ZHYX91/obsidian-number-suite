@@ -105,22 +105,11 @@ export function parseAtxHeadings(source: string): ParsedHeading[] {
   const headings: ParsedHeading[] = [];
   const lines = scanMarkdownProtectedLines(source);
   const noteLines = noteContainerLines(source);
-  let inInlineHtmlComment = false;
 
   for (const line of lines) {
     if (noteLines.has(line.number)) continue;
 
-    if (inInlineHtmlComment) {
-      if (line.text.includes("-->")) inInlineHtmlComment = false;
-      continue;
-    }
-    if (!line.available) continue;
-
-    const comments = analyzeInlineHtmlComments(line.text);
-    if (comments.unclosedFrom != null) {
-      inInlineHtmlComment = true;
-      continue;
-    }
+    if (!line.headingAvailable) continue;
 
     const heading = parseAtxLine(line);
     if (heading != null) headings.push(heading);

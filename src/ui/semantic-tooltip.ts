@@ -39,8 +39,12 @@ export function clearSemanticTooltip(element: HTMLElement): void {
 export function semanticTooltipAllowed(
   settings: NumberSuiteSettings,
   overrides: NoteOverrides = parseNoteOverrides(null),
+  mode?: "live-preview" | "source" | "reading",
 ): boolean {
   if (!settings.showImageCaptionTooltips) return false;
+  if (mode === "live-preview" && !settings.enableLivePreview) return false;
+  if (mode === "source" && !settings.enableSourceMode) return false;
+  if (mode === "reading" && !settings.enableReadingView) return false;
   const effective = resolveNoteSettings(settings, overrides);
   return effective.valid && !effective.disabled;
 }
@@ -86,7 +90,7 @@ export class SemanticTooltipController {
 
   /** Re-evaluate an already-open tooltip after settings or per-note overrides change. */
   refresh(): void {
-    if (this.active != null && !this.allowed(this.active)) this.hide();
+    this.hide();
   }
 
   private registerDocument(component: Component, ownerDocument: Document): void {
@@ -123,13 +127,15 @@ export class SemanticTooltipController {
   private allowed(target: HTMLElement): boolean {
     const settings = this.getSettings?.();
     if (settings == null) return true;
-    if (target.closest(".markdown-source-view") == null) {
-      return semanticTooltipAllowed(settings);
+    const sourceRoot = target.closest(".markdown-source-view");
+    if (sourceRoot == null) {
+      return semanticTooltipAllowed(settings, undefined, "reading");
     }
     const source = sourceForTarget(this.app, target);
     if (source == null) return false;
     const overrides = parseNoteOverridesFromSource(source);
-    return overrides != null && semanticTooltipAllowed(settings, overrides);
+    const mode = sourceRoot.classList.contains("is-live-preview") ? "live-preview" : "source";
+    return overrides != null && semanticTooltipAllowed(settings, overrides, mode);
   }
 
   private show(target: HTMLElement): void {

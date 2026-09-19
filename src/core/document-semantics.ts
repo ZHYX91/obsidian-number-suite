@@ -47,6 +47,7 @@ export interface SemanticDocument {
 
 export interface SemanticSourceLine {
   readonly text: string;
+  readonly commentMaskedText: string;
   readonly from: number;
   readonly to: number;
   readonly number: number;
@@ -62,6 +63,7 @@ export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
   const protectedNoteLines = noteContainerLines(source);
   return scanMarkdownProtectedLines(source, { indentedCode: true }).map((line) => ({
     text: line.text,
+    commentMaskedText: line.commentMaskedText,
     from: line.from,
     to: line.to,
     number: line.number,
@@ -113,14 +115,14 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       interveningBlankLines = 0;
       continue;
     }
-    const masked = maskInlineProtectedSyntax(line.text);
+    const masked = maskInlineProtectedSyntax(line.commentMaskedText);
     const standalone = STANDALONE_BLOCK_ID.exec(masked);
     if (standalone?.[1] != null) {
       if (previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
       continue;
     }
 
-    const captionMatch = CAPTION.exec(masked);
+    const captionMatch = CAPTION.exec(line.commentMaskedText);
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
       const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;

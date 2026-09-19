@@ -77,7 +77,7 @@ function noteIdentity(label: string): NoteIdentity | null {
 
 function sourceLines(source: string): SourceLine[] {
   return scanMarkdownProtectedLines(source).map((line) => ({
-    text: line.text,
+    text: line.commentMaskedText,
     from: line.from,
     to: line.to,
     number: line.number,

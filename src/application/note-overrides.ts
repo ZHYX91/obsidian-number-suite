@@ -139,6 +139,31 @@ function sameNumber(
   return (values[level] ?? null) === (other[level] ?? null);
 }
 
+export interface NoteOverrideFieldConflict {
+  readonly change: NoteOverrideChange;
+  readonly current: string | number | boolean | null;
+  readonly desired: string | number | boolean | null;
+}
+
+export class NoteOverrideFieldConflictError extends Error {
+  constructor(readonly conflicts: readonly NoteOverrideFieldConflict[]) {
+    super("Number Suite settings were changed differently in both places.");
+    this.name = "NoteOverrideFieldConflictError";
+  }
+}
+
+function fieldValue(values: ReturnType<typeof parseNoteOverrides>, change: NoteOverrideChange): string | number | boolean | null {
+  switch (change.kind) {
+    case "ignore": return values.disabled;
+    case "show-virtual": return values.showVirtualNumbers;
+    case "conceal-stored": return values.concealStoredNumbers;
+    case "scheme": return values.schemeId;
+    case "first-number": return values.starts[change.level] ?? null;
+    case "skip-first": return values.skipFirst[change.level] ?? null;
+    case "migrate": case "reset": return null;
+  }
+}
+
 /**
  * Replay only the semantic fields changed by the pane onto a fresh Properties
  * record. Concurrent edits to different Number Suite fields are preserved.
@@ -147,6 +172,7 @@ export function rebaseNoteOverrideDraft(
   currentValues: Record<string, unknown>,
   acknowledgedValues: Record<string, unknown>,
   desiredValues: Record<string, unknown>,
+  overwriteConflicts = false,
 ): Record<string, unknown> {
   const current = parseNoteOverrides(currentValues);
   const acknowledged = parseNoteOverrides(acknowledgedValues);
@@ -187,6 +213,13 @@ export function rebaseNoteOverrideDraft(
   ) {
     changes.push({ kind: "migrate" });
   }
+  const conflicts = changes.flatMap((change): NoteOverrideFieldConflict[] => {
+    const actual = fieldValue(current, change);
+    const wanted = fieldValue(desired, change);
+    return actual !== fieldValue(acknowledged, change) && actual !== wanted
+      ? [{ change, current: actual, desired: wanted }] : [];
+  });
+  if (conflicts.length > 0 && !overwriteConflicts) throw new NoteOverrideFieldConflictError(conflicts);
   for (const change of changes) applyNoteOverrideChange(next, change);
   return next;
 }

@@ -48,6 +48,16 @@ export class NoteSaveCoordinator {
 
   get conflicted(): boolean { return this.conflict != null; }
 
+  /** Explicitly discard a draft; never detach a write that is still in flight. */
+  discard(): boolean {
+    if (this.running != null) return false;
+    this.desired = structuredClone(this.acknowledged);
+    this.conflict = null;
+    this.failed = false;
+    this.emit("saved");
+    return true;
+  }
+
   subscribe(listener: (state: NoteSaveState) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

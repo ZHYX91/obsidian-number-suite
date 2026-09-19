@@ -36,7 +36,7 @@
     },
     {
       "id": "protected-source-regions",
-      "title": "Protected YAML scalar contents",
+      "title": "Protected YAML, HTML and inline comments",
       "surfaces": [
         "desktop",
         "android-emulator"
@@ -46,10 +46,10 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Protected source, inspect outline and display; preview Write and apply, then undo."
+        "Open Protected source, inspect outline, caption code and visible note references; preview Write and apply, then undo."
       ],
       "expected": [
-        "Only Real heading and Child participate in numbering; scalar headings, captions, references and notes remain unchanged in preview and saved source."
+        "Only Real heading and Child participate in heading numbering; YAML scalar and HTML content remain unchanged. The visible Figure title retains foo(), and only the two references outside the multiline comment are numbered."
       ]
     },
     {
@@ -64,10 +64,11 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Current note on Controls; enter H1 first number 123 rapidly and H2 skip first 2, change virtual and conceal overrides, then reopen the panel."
+        "Open Current note on Controls; enter H1 first number 123 rapidly and H2 skip first 2, commit by blur, change virtual and conceal overrides, then reopen the panel.",
+        "Enter an invalid H1 value and verify inline feedback without a save; correct it. Run Simulate concurrent H1 change on next note save, then commit H1 value 3. Retry, inspect saved 7 versus draft 3, and explicitly apply the draft or discard and reload."
       ],
       "expected": [
-        "The final numbers and both overrides persist, the active input remains usable, and the save status settles to Saved without lost input."
+        "The final numbers and both overrides persist, the active input remains usable, and the save status settles to Saved without lost input. Invalid numeric text does not save, and Retry alone never overwrites a divergent same-field edit."
       ]
     },
     {

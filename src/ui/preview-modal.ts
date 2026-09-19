@@ -24,12 +24,14 @@ function visibleMarkers(value: string): string {
 }
 
 const CHANGE_PAGE_SIZE = 500;
+const WARNING_PAGE_SIZE = 200;
 
 export class ChangePreviewModal extends Modal {
   private applying = false;
   private documents: readonly PreviewDocument[];
   private cleanupScope: CleanupScope | null;
   private visibleChangeLimit = CHANGE_PAGE_SIZE;
+  private visibleWarningLimit = WARNING_PAGE_SIZE;
 
   constructor(private readonly options: PreviewModalOptions) {
     super(options.app);
@@ -110,9 +112,19 @@ export class ChangePreviewModal extends Modal {
     if (warningEntries.length > 0) {
       contentEl.createEl("h3", { text: t("preview.warnings") });
       const list = contentEl.createEl("ul", { cls: "number-suite-warning-list" });
-      for (const entry of warningEntries) {
+      for (const entry of warningEntries.slice(0, this.visibleWarningLimit)) {
         list.createEl("li", {
-          text: `${entry.path}:${entry.warning.line + 1} — ${entry.warning.detail}`,
+          text: `${entry.path}:${entry.warning.line + 1} — ${t(`preview.warning.${entry.warning.code}`)}`,
+        });
+      }
+      if (warningEntries.length > this.visibleWarningLimit) {
+        const reveal = contentEl.createEl("button", {
+          text: t("preview.moreWarnings", { count: warningEntries.length - this.visibleWarningLimit }),
+        });
+        reveal.type = "button";
+        reveal.addEventListener("click", () => {
+          this.visibleWarningLimit += WARNING_PAGE_SIZE;
+          this.render();
         });
       }
     }
@@ -152,6 +164,7 @@ export class ChangePreviewModal extends Modal {
       this.documents = await this.options.onCleanupScopeChange(scope);
       this.cleanupScope = scope;
       this.visibleChangeLimit = CHANGE_PAGE_SIZE;
+      this.visibleWarningLimit = WARNING_PAGE_SIZE;
       this.applying = false;
       this.render();
     } catch (error: unknown) {

@@ -16,6 +16,20 @@ function allowed(controller: SemanticTooltipController, target: HTMLElement): bo
 }
 
 describe("semantic tooltip policy", () => {
+  it.each([
+    ["live-preview", "enableLivePreview"], ["source", "enableSourceMode"], ["reading", "enableReadingView"],
+  ] as const)("honors the %s surface toggle", (mode, toggle) => {
+    expect(semanticTooltipAllowed({ ...DEFAULT_SETTINGS, [toggle]: false }, undefined, mode)).toBe(false);
+    expect(semanticTooltipAllowed({ ...DEFAULT_SETTINGS, [toggle]: true }, undefined, mode)).toBe(true);
+  });
+
+  it("closes a displayed tooltip on refresh so stale content cannot remain visible", () => {
+    const controller = new SemanticTooltipController({} as App, () => DEFAULT_SETTINGS);
+    const tooltip = document.body.appendChild(document.createElement("div"));
+    Object.assign(controller, { tooltip, active: document.createElement("img") });
+    controller.refresh();
+    expect(tooltip.isConnected).toBe(false);
+  });
   it("honors the global tooltip toggle even when stale metadata remains on an image", () => {
     const app = { workspace: { iterateAllLeaves: () => undefined } } as unknown as App;
     const controller = new SemanticTooltipController(app, () => ({

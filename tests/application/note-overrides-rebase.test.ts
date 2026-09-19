@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyNoteOverrideChange,
+  NoteOverrideFieldConflictError,
   rebaseNoteOverrideDraft,
 } from "../../src/application/note-overrides";
 import { parseNoteOverrides } from "../../src/config/frontmatter";
@@ -33,7 +34,7 @@ describe("note override conflict rebasing", () => {
     expect(parsed.skipFirst[2]).toBe(2);
   });
 
-  it("lets the retained user draft win when both sides changed the same semantic field", () => {
+  it("requires an explicit decision before replacing divergent edits to the same field", () => {
     const acknowledged: Record<string, unknown> = {
       "number-suite": ["heading.scheme=hierarchical-h2"],
     };
@@ -43,8 +44,25 @@ describe("note override conflict rebasing", () => {
       "number-suite": ["heading.scheme=chinese-official"],
     };
 
-    const parsed = parseNoteOverrides(rebaseNoteOverrideDraft(current, acknowledged, desired));
+    expect(() => rebaseNoteOverrideDraft(current, acknowledged, desired)).toThrow(NoteOverrideFieldConflictError);
+    const parsed = parseNoteOverrides(rebaseNoteOverrideDraft(current, acknowledged, desired, true));
     expect(parsed.schemeId).toBe("legal");
+  });
+
+  it("accepts convergent edits and preserves an unrelated concurrent counter", () => {
+    const current = { "number-suite": ["heading.first-number.h1=3", "heading.skip-first.h2=4"] };
+    const base = { "number-suite": ["heading.first-number.h1=2"] };
+    const draft = { "number-suite": ["heading.first-number.h1=3"] };
+    expect(parseNoteOverrides(rebaseNoteOverrideDraft(current, base, draft)).skipFirst[2]).toBe(4);
+    expect(current["number-suite"]).toHaveLength(2);
+  });
+
+  it("detects reset conflicts and does not mutate invalid or concurrent Properties", () => {
+    const current = { "number-suite": ["heading.first-number.h1=7"] };
+    const base = { "number-suite": ["heading.first-number.h1=2"] };
+    expect(() => rebaseNoteOverrideDraft(current, base, {})).toThrow(NoteOverrideFieldConflictError);
+    expect(current["number-suite"]).toEqual(["heading.first-number.h1=7"]);
+    expect(() => rebaseNoteOverrideDraft({ "number-suite": ["invalid"] }, base, {})).toThrow();
   });
 
   it("can finish an explicit legacy migration against fresh concurrent values", () => {

@@ -48,7 +48,7 @@ import {
   createReferencePillElement,
   createVirtualSemanticElement,
 } from "../ui/virtual-numeral";
-import { applySemanticTooltip, clearSemanticTooltip } from "../ui/semantic-tooltip";
+import { applySemanticTooltip, clearSemanticTooltip, semanticTooltipAllowed } from "../ui/semantic-tooltip";
 
 export const refreshHeadingDisplay = StateEffect.define<void>();
 
@@ -671,7 +671,8 @@ export class HeadingDisplayController {
         ) {
           this.decorations = this.buildDecorations();
         }
-        if (update.docChanged || update.viewportChanged || update.geometryChanged || update.selectionSet) {
+        if (update.docChanged || update.viewportChanged || update.geometryChanged || update.selectionSet
+          || explicitlyRefreshed || livePreviewChanged || previousFile !== currentFile) {
           this.scheduleImageTooltips();
         }
       }
@@ -699,11 +700,13 @@ export class HeadingDisplayController {
 
       private annotateImageTooltips(): void {
         const settings = settingsProvider();
+        const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
+        const allowed = semanticTooltipAllowed(settings, this.overrides, livePreview ? "live-preview" : "source");
         const snapshot = semanticSnapshots.get(this.view.state.doc, () => this.view.state.doc.toString());
         const source = snapshot.source;
         for (const image of this.view.dom.querySelectorAll<HTMLImageElement>("img")) {
           clearSemanticTooltip(image);
-          if (!settings.showImageCaptionTooltips) continue;
+          if (!allowed) continue;
           let offset: number | null = null;
           try {
             const rect = image.getBoundingClientRect();

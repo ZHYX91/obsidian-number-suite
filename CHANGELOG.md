@@ -4,6 +4,25 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.3.3 - 2026-09-20
+
+### Fixed
+
+- Share Markdown protection across headings, captions, references and notes, including closing-tag
+  HTML blocks, custom HTML after completed blocks and mixed inline comments.
+- Preserve authored code and links in caption titles and valid references outside comments.
+- Bind delayed outline updates to their source file and refresh current-note controls on pane changes.
+- Retain failed note-setting drafts across switches, detect same-field conflicts before retrying,
+  and offer explicit conflict resolution or discard and reload.
+- Fall back to valid durable recovery data when a pending snapshot has an invalid structure.
+- Apply note and editor-mode policy to image tooltips and refresh them when settings change.
+
+### Changed
+
+- Commit numeric note overrides on blur or Enter, with visible inline validation.
+- Fold per-level controls and retain warning-only files in previews without writing them.
+- Allow all preview changes and warnings to be expanded, with localized warning explanations.
+
 ## 0.3.2 - 2026-09-12
 
 ### Fixed

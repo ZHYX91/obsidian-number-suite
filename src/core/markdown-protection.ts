@@ -2,6 +2,8 @@ import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 
 export interface MarkdownProtectedLine extends PhysicalSourceLine {
   readonly available: boolean;
+  readonly commentMaskedText: string;
+  readonly headingAvailable: boolean;
 }
 
 export interface MarkdownProtectionOptions {
@@ -24,8 +26,7 @@ type ProtectedBlockState =
   | Readonly<{ kind: "fence"; character: "`" | "~"; length: number }>
   | Readonly<{ kind: "until"; ending: string }>
   | Readonly<{ kind: "raw-html"; tag: string }>
-  | Readonly<{ kind: "blank-html" }>
-  | Readonly<{ kind: "obsidian-comment" }>;
+  | Readonly<{ kind: "blank-html" }>;
 
 function leadingMarkup(text: string): string | null {
   const match = /^ {0,3}(\S.*)$/u.exec(text);
@@ -65,11 +66,14 @@ export function scanMarkdownProtectedLines(
   const lines = scanPhysicalLines(source);
   const output: MarkdownProtectedLine[] = [];
   let state: ProtectedBlockState | null = null;
-  let previousBlank = true;
+  let inParagraph = false;
+  let inlineComment: CommentKind | null = null;
 
   for (const line of lines) {
     const trimmed = line.text.trim();
     let available = true;
+    let commentMaskedText = line.text;
+    let headingAvailable = true;
 
     if (line.frontmatter) {
       available = false;
@@ -85,9 +89,6 @@ export function scanMarkdownProtectedLines(
     } else if (state?.kind === "raw-html") {
       available = false;
       if (closesRawTag(line.text, state.tag)) state = null;
-    } else if (state?.kind === "obsidian-comment") {
-      available = false;
-      if (line.text.includes("%%")) state = null;
     } else if (state?.kind === "blank-html") {
       if (trimmed.length === 0) {
         state = null;
@@ -95,10 +96,17 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
+    } else if (inlineComment != null) {
+      const comments = scanInlineComments(line.text, inlineComment);
+      commentMaskedText = comments.masked;
+      inlineComment = comments.state;
+      headingAvailable = false;
     } else if (options.indentedCode === true && /^(?: {4}|\t)/u.test(line.text)) {
       available = false;
     } else {
-      const fence = /^ {0,3}(`{3,}|~{3,})/u.exec(line.text)?.[1];
+      const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line.text);
+      const fence = fenceMatch?.[1]?.startsWith("`") && fenceMatch[2]?.includes("`")
+        ? null : fenceMatch?.[1];
       if (fence != null) {
         available = false;
         state = {
@@ -108,10 +116,7 @@ export function scanMarkdownProtectedLines(
         };
       } else {
         const markup = leadingMarkup(line.text);
-        if (markup != null && markup.startsWith("%%")) {
-          available = false;
-          if (markup.indexOf("%%", 2) < 0) state = { kind: "obsidian-comment" };
-        } else if (markup != null && markup.startsWith("<!--")) {
+        if (markup != null && markup.startsWith("<!--")) {
           available = false;
           if (!markup.includes("-->", 4)) state = { kind: "until", ending: "-->" };
         } else if (markup != null && markup.startsWith("<?")) {
@@ -131,26 +136,25 @@ export function scanMarkdownProtectedLines(
           } else if (blockHtmlStart(markup)) {
             available = false;
             state = { kind: "blank-html" };
-          } else if (previousBlank && completeCustomHtmlTag(markup)) {
+          } else if (!inParagraph && completeCustomHtmlTag(markup)) {
             available = false;
             state = { kind: "blank-html" };
           }
         }
         if (available) {
-          const htmlComment = analyzeInlineHtmlComments(line.text);
-          if (htmlComment.unclosedFrom != null) {
-            available = false;
-            state = { kind: "until", ending: "-->" };
-          } else if (unclosedObsidianCommentFromOutsideCode(line.text) != null) {
-            available = false;
-            state = { kind: "obsidian-comment" };
-          }
+          const comments = scanInlineComments(line.text);
+          commentMaskedText = comments.masked;
+          inlineComment = comments.state;
+          headingAvailable = inlineComment == null;
         }
       }
     }
 
-    output.push({ ...line, available });
-    previousBlank = trimmed.length === 0;
+    output.push({ ...line, available, commentMaskedText, headingAvailable: available && headingAvailable });
+    // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
+    // heading, fence, thematic break or other block without a blank line.
+    inParagraph = available && trimmed.length > 0
+      && !/^ {0,3}(?:#{1,9}(?:[ \t]|$)|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|(?:-[ \t]*){3,}$|[=-]+[ \t]*$|>|[-+*][ \t]|\d+[.)][ \t])/u.test(line.text);
   }
 
   return output;
@@ -161,33 +165,57 @@ export interface HtmlCommentAnalysis {
   readonly unclosedFrom: number | null;
 }
 
-/** Find HTML comments that are not inside a same-line Markdown code span. */
-export function analyzeInlineHtmlComments(text: string): HtmlCommentAnalysis {
-  const ranges: Array<Readonly<{ from: number; to: number }>> = [];
-  let cursor = 0;
-  while (cursor < text.length) {
-    if (text[cursor] === "`") {
-      let ticks = 1;
-      while (text[cursor + ticks] === "`") ticks += 1;
-      const marker = "`".repeat(ticks);
-      const closing = text.indexOf(marker, cursor + ticks);
-      if (closing >= 0) {
-        cursor = closing + ticks;
+type CommentKind = "html" | "obsidian";
+
+function codeSpanEnd(text: string, from: number): number | null {
+  let length = 1;
+  while (text[from + length] === "`") length += 1;
+  for (let cursor = from + length; cursor < text.length;) {
+    if (text[cursor] !== "`") { cursor += 1; continue; }
+    let closingLength = 1;
+    while (text[cursor + closingLength] === "`") closingLength += 1;
+    if (closingLength === length) return cursor + length;
+    cursor += closingLength;
+  }
+  return null;
+}
+
+function scanInlineComments(text: string, initial: CommentKind | null = null) {
+  const characters = text.split("");
+  const ranges: Array<{ from: number; to: number; kind: CommentKind }> = [];
+  let state = initial;
+  let unclosedFrom: number | null = null;
+  for (let cursor = 0; cursor < text.length;) {
+    if (state == null) {
+      if (text[cursor] === "\\") { cursor += 2; continue; }
+      if (text[cursor] === "`") {
+        const end = codeSpanEnd(text, cursor);
+        if (end != null) { cursor = end; continue; }
+        while (text[cursor] === "`") cursor += 1;
         continue;
       }
-      cursor += ticks;
-      continue;
+      if (text.startsWith("<!--", cursor)) state = "html";
+      else if (text.startsWith("%%", cursor)) state = "obsidian";
+      else { cursor += 1; continue; }
     }
-    if (text.startsWith("<!--", cursor)) {
-      const closing = text.indexOf("-->", cursor + 4);
-      if (closing < 0) return { ranges, unclosedFrom: cursor };
-      ranges.push({ from: cursor, to: closing + 3 });
-      cursor = closing + 3;
-      continue;
-    }
-    cursor += 1;
+    const from = cursor;
+    const ending = state === "html" ? "-->" : "%%";
+    const openingLength = initial != null && cursor === 0 ? 0 : state === "html" ? 4 : 2;
+    const closing = text.indexOf(ending, cursor + openingLength);
+    const to = closing < 0 ? text.length : closing + ending.length;
+    ranges.push({ from, to, kind: state });
+    blankRange(characters, from, to);
+    if (closing < 0) { unclosedFrom = from; break; }
+    state = null;
+    cursor = to;
   }
-  return { ranges, unclosedFrom: null };
+  return { masked: characters.join(""), ranges, state, unclosedFrom };
+}
+
+/** Find HTML comments that are not inside a same-line Markdown code span. */
+export function analyzeInlineHtmlComments(text: string): HtmlCommentAnalysis {
+  const comments = scanInlineComments(text);
+  return { ranges: comments.ranges, unclosedFrom: comments.unclosedFrom };
 }
 
 function blankRange(characters: string[], from: number, to: number): void {
@@ -200,50 +228,20 @@ function maskCodeSpans(text: string, characters: string[]): void {
       index += 1;
       continue;
     }
-    let ticks = 1;
-    while (text[index + ticks] === "`") ticks += 1;
-    const marker = "`".repeat(ticks);
-    const closing = text.indexOf(marker, index + ticks);
-    if (closing < 0) {
-      index += ticks;
+    const end = codeSpanEnd(text, index);
+    if (end == null) {
+      while (text[index] === "`") index += 1;
       continue;
     }
-    blankRange(characters, index, closing + ticks);
-    index = closing + ticks;
+    blankRange(characters, index, end);
+    index = end;
   }
-}
-
-function unclosedObsidianCommentFromOutsideCode(text: string): number | null {
-  const characters = text.split("");
-  maskCodeSpans(text, characters);
-  const scan = characters.join("");
-  const opening = scan.indexOf("%%");
-  if (opening < 0) return null;
-  return scan.indexOf("%%", opening + 2) < 0 ? opening : null;
 }
 
 function workingText(characters: readonly string[]): string {
   return characters.join("");
 }
 
-function maskDelimited(
-  text: string,
-  characters: string[],
-  opening: string,
-  closing: string,
-): void {
-  let scan = workingText(characters);
-  for (let index = 0; index < text.length;) {
-    const start = scan.indexOf(opening, index);
-    if (start < 0) return;
-    const end = scan.indexOf(closing, start + opening.length);
-    const to = end < 0 ? text.length : end + closing.length;
-    blankRange(characters, start, to);
-    scan = workingText(characters);
-    if (end < 0) return;
-    index = to;
-  }
-}
 
 function maskInlineHtml(text: string, characters: string[]): void {
   let scan = workingText(characters);
@@ -312,10 +310,8 @@ function maskLinkDestinations(text: string, characters: string[]): void {
 
 /** Mask inline regions that must not contribute note/reference semantics. */
 export function maskInlineProtectedSyntax(text: string): string {
-  const characters = text.split("");
-  maskCodeSpans(text, characters);
-  maskDelimited(text, characters, "<!--", "-->");
-  maskDelimited(text, characters, "%%", "%%");
+  const characters = scanInlineComments(text).masked.split("");
+  maskCodeSpans(characters.join(""), characters);
   maskInlineHtml(text, characters);
   maskLinkDestinations(text, characters);
   return characters.join("");
