@@ -3,7 +3,7 @@ import {
   NoteSaveCoordinator,
   type NoteSaveState,
 } from "../application/note-save-coordinator";
-import { App, Notice, Setting, type TFile } from "obsidian";
+import { App, Notice, Setting, type ButtonComponent, type TFile } from "obsidian";
 
 import {
   headingLevels,
@@ -64,6 +64,7 @@ export class NoteControlPane {
     coordinator: NoteSaveCoordinator | null;
   }>();
   private summaryHost: HTMLElement | null = null;
+  private resetButton: ButtonComponent | null = null;
   private saveStatus: HTMLElement | null = null;
   private saveState: NoteSaveState = "saved";
   private frontmatter: Record<string, unknown> | null = null;
@@ -177,6 +178,7 @@ export class NoteControlPane {
   }
 
   private render(): void {
+    this.resetButton = null;
     this.numberDrafts.clear();
     const file = this.file;
     if (file == null) {
@@ -360,10 +362,12 @@ export class NoteControlPane {
     new Setting(section)
       .setName(this.t("panel.reset"))
       .setDesc(this.t("panel.reset.desc"))
-      .addButton((button) => button
-        .setButtonText(this.t("panel.reset.button"))
-        .setDisabled(!snapshot.hasAnyOverride)
-        .onClick(() => void this.applyChange({ kind: "reset" })));
+      .addButton((button) => {
+        this.resetButton = button;
+        button.setButtonText(this.t("panel.reset.button"))
+          .setDisabled(!snapshot.hasAnyOverride)
+          .onClick(() => void this.applyChange({ kind: "reset" }));
+      });
     if (snapshot.hasLegacy) {
       new Setting(section)
         .setName(this.t("panel.migrate"))
@@ -487,10 +491,12 @@ export class NoteControlPane {
       this.saveState = state;
       this.frontmatter = coordinator.snapshot;
       this.renderSaveStatus();
+      const settings = this.getSettings();
+      const snapshot = readNoteControlSnapshot(this.frontmatter, settings);
+      this.resetButton?.setDisabled(!snapshot.hasAnyOverride);
       if (this.summaryHost != null) {
         this.summaryHost.empty();
-        const settings = this.getSettings();
-        this.renderSummary(readNoteControlSnapshot(this.frontmatter, settings), settings, this.summaryHost);
+        this.renderSummary(snapshot, settings, this.summaryHost);
       }
     });
   }

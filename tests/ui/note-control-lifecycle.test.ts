@@ -52,6 +52,24 @@ function harness(initial: Record<string, unknown> = {}) {
 }
 
 describe("current-note pane lifecycle", () => {
+  it("enables restore after the first override without rebuilding the active inputs", async () => {
+    const h = harness();
+    const button = document.createElement("button");
+    button.disabled = true;
+    Object.assign(h.pane, { resetButton: { setDisabled: (value: boolean) => { button.disabled = value; } } });
+    const input = h.host.appendChild(document.createElement("input"));
+    h.internal.applyLevelNumber("first-number", 1, "123", input);
+    h.internal.finishLevelNumber("first-number", input);
+    await h.internal.coordinator?.flush();
+    expect(button.disabled).toBe(false);
+    expect(h.host.contains(input)).toBe(true);
+    h.internal.coordinator?.update({ kind: "reset" });
+    await h.internal.coordinator?.flush();
+    expect(button.disabled).toBe(true);
+    expect(h.current()["number-suite"]).toBeUndefined();
+    h.pane.destroy();
+  });
+
   it("keeps numeric text local until valid blur/Enter commit and shows inline errors", async () => {
     const h = harness();
     const input = h.host.appendChild(document.createElement("input"));
