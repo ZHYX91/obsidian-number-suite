@@ -5,7 +5,7 @@ import type {
   NumberSuiteSettings,
   LastBatchSnapshot,
 } from "../config/settings";
-import type { TransformOperation } from "../core/types";
+import type { TransformOperation, TransformPlan } from "../core/types";
 import { digestText } from "../core/text-digest";
 import { ContentConflictError } from "../application/conditional-replace";
 import { BatchOperationModal, FolderScopeModal, type BatchScope } from "../ui/batch-modals";
@@ -54,6 +54,14 @@ function isBatchConflict(error: unknown): boolean {
   return error instanceof BatchChangedError
     || error instanceof ContentConflictError
     || (error instanceof BatchWriteUncertainError && isBatchConflict(error.original));
+}
+
+export function planNeedsPreview(plan: Pick<TransformPlan, "changes" | "warnings">): boolean {
+  return plan.changes.length > 0 || plan.warnings.length > 0;
+}
+
+export function planChangesSource(plan: Pick<TransformPlan, "source" | "result">): boolean {
+  return plan.result !== plan.source;
 }
 
 export class BatchController {
@@ -316,8 +324,9 @@ export class BatchController {
         invalidFrontmatter += 1;
       }
       if (result.status === "ready") candidates.push({ path: file.path, source });
-      if (result.status === "ready" && result.plan != null && result.plan.changes.length > 0) {
-        documents.push({ path: file.path, plan: result.plan });
+      if (result.status === "ready" && result.plan != null) {
+        const document = { path: file.path, plan: result.plan };
+        if (planNeedsPreview(document.plan)) documents.push(document);
       }
     }
     if (invalidFrontmatter > 0) {
@@ -336,9 +345,9 @@ export class BatchController {
         cleanupScope: this.getSettings().cleanupScope,
         onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => candidates.flatMap((candidate) => {
           const replanned = createSourcePlan(candidate.source, operation, this.getSettings(), scope);
-          return replanned.status === "ready" && replanned.plan != null && replanned.plan.changes.length > 0
-            ? [{ path: candidate.path, plan: replanned.plan }]
-            : [];
+          if (replanned.status !== "ready" || replanned.plan == null) return [];
+          const document = { path: candidate.path, plan: replanned.plan };
+          return planNeedsPreview(document.plan) ? [document] : [];
         }),
       } : {}),
       onConfirm: async (selected = documents) => this.apply(selected, operation, translate),
@@ -350,7 +359,9 @@ export class BatchController {
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
-    await this.runExclusive(translate, async () => this.applyExclusive(documents, operation, translate));
+    const changed = documents.filter((document) => planChangesSource(document.plan));
+    if (changed.length === 0) return;
+    await this.runExclusive(translate, async () => this.applyExclusive(changed, operation, translate));
   }
 
   private async applyExclusive(

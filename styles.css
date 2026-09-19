@@ -329,6 +329,28 @@
   margin-block-start: var(--size-4-5);
 }
 
+.number-suite-field-error {
+  color: var(--text-error);
+  font-size: var(--font-ui-small);
+  flex-basis: 100%;
+}
+
+.number-suite-note-control-levels summary {
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  padding-block: var(--size-4-2);
+}
+
+.number-suite-note-control-levels .setting-item-control {
+  flex-wrap: wrap;
+}
+
+.number-suite-note-save-status button {
+  white-space: normal;
+  height: auto;
+  min-height: var(--input-height);
+}
+
 @media (pointer: coarse) {
   .number-suite-settings-tabs > button.number-suite-settings-tab {
     min-block-size: 44px;

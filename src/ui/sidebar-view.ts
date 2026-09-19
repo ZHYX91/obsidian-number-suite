@@ -197,6 +197,8 @@ export class NumberSuiteSidebarView extends ItemView {
   private setFile(file: TFile | null, refresh = true): void {
     const markdown = file?.extension.toLowerCase() === "md" ? file : null;
     if (this.currentFile?.path === markdown?.path) return;
+    this.clearOutlineTimer();
+    this.outlineRequest += 1;
     this.currentFile = markdown;
     this.outlineRoots = [];
     this.collapsed.clear();
@@ -221,29 +223,36 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   private clearOutlineTimer(): void {
+    if (this.outlineTimer == null) return;
     const timerWindow = this.contentEl.ownerDocument.defaultView;
-    if (this.outlineTimer != null) timerWindow?.clearTimeout(this.outlineTimer);
+    timerWindow?.clearTimeout(this.outlineTimer);
     this.outlineTimer = null;
   }
 
   private scheduleOutlineRefresh(source?: string): void {
     this.clearOutlineTimer();
+    const expectedPath = this.currentFile?.path ?? null;
+    const run = (): void => {
+      this.outlineTimer = null;
+      if (expectedPath !== (this.currentFile?.path ?? null)) return;
+      void this.refreshOutline(source, expectedPath);
+    };
     const timerWindow = this.contentEl.ownerDocument.defaultView;
     if (timerWindow == null) {
-      void this.refreshOutline(source);
+      run();
       return;
     }
-    this.outlineTimer = timerWindow.setTimeout(() => {
-      this.outlineTimer = null;
-      void this.refreshOutline(source);
-    }, 120);
+    this.outlineTimer = timerWindow.setTimeout(run, 120);
   }
 
   private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
     if (!(leaf?.view instanceof MarkdownView)) return;
+    this.clearOutlineTimer();
+    this.outlineRequest += 1;
     this.sourceLeaf = leaf;
-    this.setFile(leaf.view.file);
-    if (this.activeTab === "outline") void this.refreshOutline(leaf.view.editor.getValue());
+    const path = leaf.view.file?.path ?? null;
+    this.setFile(leaf.view.file, this.activeTab === "note");
+    if (this.activeTab === "outline") void this.refreshOutline(leaf.view.editor.getValue(), path);
   }
 
   private async sourceForFile(file: TFile): Promise<string> {
@@ -267,7 +276,11 @@ export class NumberSuiteSidebarView extends ItemView {
     return this.app.vault.cachedRead(file);
   }
 
-  private async refreshOutline(sourceOverride?: string): Promise<void> {
+  private async refreshOutline(
+    sourceOverride?: string,
+    expectedPath: string | null = this.currentFile?.path ?? null,
+  ): Promise<void> {
+    if (expectedPath !== (this.currentFile?.path ?? null)) return;
     const panel = this.outlinePanel;
     const file = this.currentFile;
     const request = this.outlineRequest + 1;
@@ -284,7 +297,11 @@ export class NumberSuiteSidebarView extends ItemView {
         if (active?.file?.path === file.path) this.sourceLeaf = active.leaf;
       }
       const source = sourceOverride ?? await this.sourceForFile(file);
-      if (request !== this.outlineRequest || file.path !== this.currentFile?.path) return;
+      if (
+        request !== this.outlineRequest
+        || expectedPath !== this.currentFile?.path
+        || file.path !== this.currentFile?.path
+      ) return;
       const overrides = parseNoteOverridesFromSource(source);
       if (overrides == null) {
         this.renderOutlineEmpty(panel, "notice.invalidFrontmatter");

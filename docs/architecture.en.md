@@ -186,6 +186,13 @@ updates and exposes pending, failure, and retry state. The latest batch snapshot
 in `recovery.json`; settings reset cannot delete it. Templates retired by custom-scheme edits or
 deletion enter cleanup history until explicitly cleared.
 
+Markdown scanners share block protection and offset-preserving inline comment ranges. Caption
+source content remains separate from the masked text used to detect references and block IDs.
+Per-file note-save coordinators retain failed committed drafts across pane lifetimes. A semantic
+three-way merge preserves independent edits and rejects divergent same-field changes unless the
+user explicitly chooses their draft. Structurally invalid pending recovery data falls back to the
+durable snapshot without deleting either candidate.
+
 <!-- section: release-boundary -->
 ## Build and release boundary
 

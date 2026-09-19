@@ -47,6 +47,7 @@ import {
 } from "../integration/semantic-export";
 import { CaptionCarrierMenuBridge } from "../integration/structural-table-caption-menu";
 import { SemanticTooltipController } from "../ui/semantic-tooltip";
+import { clearNoteControlSessions } from "../ui/note-control-modal";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = cloneSettings(DEFAULT_SETTINGS);
@@ -56,6 +57,7 @@ export default class NumberSuitePlugin extends Plugin {
   private recoveryStore: RecoveryStore | null = null;
   private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
+  private tooltipController: SemanticTooltipController | null = null;
   private readonly interopApi = createNumberSuiteInteropApiV2(() => this.settings);
 
   getInteropApi(): NumberSuiteInteropApiV2 {
@@ -111,7 +113,8 @@ export default class NumberSuitePlugin extends Plugin {
       (editor, offset, filePath, timerWindow) => this.displayController
         ?.recordContextMenuOffset(editor, offset, filePath, timerWindow),
     ).register(this);
-    new SemanticTooltipController(this.app).register(this);
+    this.tooltipController = new SemanticTooltipController(this.app, () => this.settings);
+    this.tooltipController.register(this);
     this.registerCommands();
     this.addRibbon();
     this.applyAppearance();
@@ -124,6 +127,8 @@ export default class NumberSuitePlugin extends Plugin {
     this.readingProcessor?.invalidate();
     this.cleanupReadingDom();
     this.clearAppearance();
+    clearNoteControlSessions(this.app);
+    this.tooltipController = null;
   }
 
   scheduleSettings(settings: NumberSuiteSettings, impact: SettingsImpact = "all"): void {
@@ -266,6 +271,7 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private refreshDisplay(): void {
+    this.tooltipController?.refresh();
     this.readingProcessor?.invalidate();
     this.displayController?.refreshAll();
     this.rerenderReadingViews();

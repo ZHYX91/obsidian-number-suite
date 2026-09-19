@@ -1,6 +1,9 @@
-import { scanPhysicalLines } from "./source-lines";
 import { WORD_JOINER } from "./markers";
 import { noteContainerLines } from "./note-semantics";
+import {
+  maskInlineProtectedSyntax,
+  scanMarkdownProtectedLines,
+} from "./markdown-protection";
 import type { ParsedHeading } from "./types";
 
 export const CAPTION_KINDS = ["Figure", "Table", "Equation", "Code"] as const;
@@ -44,6 +47,7 @@ export interface SemanticDocument {
 
 export interface SemanticSourceLine {
   readonly text: string;
+  readonly commentMaskedText: string;
   readonly from: number;
   readonly to: number;
   readonly number: number;
@@ -54,102 +58,17 @@ const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*
 export const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 const SEMANTIC_REFERENCE = /@\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu;
-const BLOCK_HTML_TAGS = new Set([
-  "address", "article", "aside", "blockquote", "body", "caption", "center", "details", "dialog",
-  "div", "dl", "fieldset", "figcaption", "figure", "footer", "form", "header", "html", "iframe",
-  "main", "nav", "ol", "pre", "script", "section", "style", "table", "textarea", "ul",
-]);
-
-function sourceLines(source: string): SemanticSourceLine[] {
-  const raw = scanPhysicalLines(source);
-
-  let fenceCharacter: "`" | "~" | null = null;
-  let fenceLength = 0;
-  let inHtmlComment = false;
-  let inObsidianComment = false;
-  let rawHtmlTag: string | null = null;
-  let genericHtmlBlock = false;
-  return raw.map((line) => {
-    const trimmed = line.text.trim();
-    let available = true;
-    if (line.frontmatter) {
-      available = false;
-    } else {
-      if (/^(?: {4}|\t)/u.test(line.text)) {
-        available = false;
-      } else if (fenceCharacter != null) {
-        available = false;
-        const closing = new RegExp(`^ {0,3}${fenceCharacter === "`" ? "`" : "~"}{${fenceLength},}[ \\t]*$`, "u");
-        if (closing.test(line.text)) {
-          fenceCharacter = null;
-          fenceLength = 0;
-        }
-      } else {
-        const fence = /^ {0,3}(`{3,}|~{3,})/u.exec(line.text);
-        if (fence?.[1] != null) {
-          available = false;
-          fenceCharacter = fence[1][0] as "`" | "~";
-          fenceLength = fence[1].length;
-        } else if (rawHtmlTag != null) {
-          available = false;
-          if (new RegExp(`</${rawHtmlTag}[ \\t]*>`, "iu").test(line.text)) rawHtmlTag = null;
-        } else if (genericHtmlBlock) {
-          available = false;
-          if (trimmed.length === 0) genericHtmlBlock = false;
-        } else if (inHtmlComment) {
-          available = false;
-          if (line.text.includes("-->")) inHtmlComment = false;
-        } else if (inObsidianComment) {
-          available = false;
-          if (line.text.includes("%%")) inObsidianComment = false;
-        } else {
-          const htmlStart = line.text.indexOf("<!--");
-          const obsidianStart = line.text.indexOf("%%");
-          const htmlTag = /^ {0,3}<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/>)/u.exec(line.text)?.[1]?.toLowerCase();
-          if (htmlTag != null && BLOCK_HTML_TAGS.has(htmlTag)) {
-            available = false;
-            if (["script", "pre", "style", "textarea"].includes(htmlTag)) {
-              if (!new RegExp(`</${htmlTag}[ \\t]*>`, "iu").test(line.text)) rawHtmlTag = htmlTag;
-            } else {
-              genericHtmlBlock = true;
-            }
-          } else if (htmlStart >= 0) {
-            available = false;
-            if (line.text.indexOf("-->", htmlStart + 4) < 0) inHtmlComment = true;
-          } else if (obsidianStart >= 0) {
-            available = false;
-            if (line.text.indexOf("%%", obsidianStart + 2) < 0) inObsidianComment = true;
-          }
-        }
-      }
-    }
-    return { ...line, available };
-  });
-}
 
 export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
   const protectedNoteLines = noteContainerLines(source);
-  return sourceLines(source).map((line) => ({
-    ...line,
+  return scanMarkdownProtectedLines(source, { indentedCode: true }).map((line) => ({
+    text: line.text,
+    commentMaskedText: line.commentMaskedText,
+    from: line.from,
+    to: line.to,
+    number: line.number,
     available: line.available && !protectedNoteLines.has(line.number),
   }));
-}
-
-function maskInlineCode(text: string): string {
-  const characters = text.split("");
-  for (let index = 0; index < text.length;) {
-    if (text[index] !== "`") {
-      index += 1;
-      continue;
-    }
-    let ticks = 1;
-    while (text[index + ticks] === "`") ticks += 1;
-    const closing = text.indexOf("`".repeat(ticks), index + ticks);
-    if (closing < 0) break;
-    for (let cursor = index; cursor < closing + ticks; cursor += 1) characters[cursor] = " ";
-    index = closing + ticks;
-  }
-  return characters.join("");
 }
 
 export function withoutTrailingBlockId(value: string): string {
@@ -196,16 +115,17 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       interveningBlankLines = 0;
       continue;
     }
-    const standalone = STANDALONE_BLOCK_ID.exec(line.text);
+    const masked = maskInlineProtectedSyntax(line.commentMaskedText);
+    const standalone = STANDALONE_BLOCK_ID.exec(masked);
     if (standalone?.[1] != null) {
       if (previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
       continue;
     }
 
-    const captionMatch = CAPTION.exec(line.text);
+    const captionMatch = CAPTION.exec(line.commentMaskedText);
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
-      const blockId = TRAILING_BLOCK_ID.exec(line.text)?.[1] ?? null;
+      const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;
       const content = captionMatch[3] ?? "";
       const caption: ParsedCaption = {
         kind,
@@ -227,11 +147,10 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
     } else {
       previousSemanticLine = line.number;
       interveningBlankLines = 0;
-      const blockId = TRAILING_BLOCK_ID.exec(line.text)?.[1];
+      const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1];
       if (blockId != null) recordBlockOwner(blockId, line.number);
     }
 
-    const masked = maskInlineCode(line.text);
     for (const match of masked.matchAll(SEMANTIC_REFERENCE)) {
       if (match.index == null || (match.index > 0 && line.text[match.index - 1] === "\\")) continue;
       const rawTarget = match[1]?.trim();

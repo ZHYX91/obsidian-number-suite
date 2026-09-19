@@ -23,10 +23,15 @@ function visibleMarkers(value: string): string {
   return value.replace(new RegExp(WORD_JOINER, "gu"), "⟪WJ⟫");
 }
 
+const CHANGE_PAGE_SIZE = 500;
+const WARNING_PAGE_SIZE = 200;
+
 export class ChangePreviewModal extends Modal {
   private applying = false;
   private documents: readonly PreviewDocument[];
   private cleanupScope: CleanupScope | null;
+  private visibleChangeLimit = CHANGE_PAGE_SIZE;
+  private visibleWarningLimit = WARNING_PAGE_SIZE;
 
   constructor(private readonly options: PreviewModalOptions) {
     super(options.app);
@@ -69,22 +74,17 @@ export class ChangePreviewModal extends Modal {
 
     let renderedChanges = 0;
     for (const document of this.documents) {
-      if (this.documents.length > 1) {
+      if (this.documents.length > 1 && (document.plan.changes.length > 0 || document.plan.warnings.length > 0)) {
         contentEl.createEl("h3", { text: document.path });
       }
       for (const change of document.plan.changes) {
-        if (renderedChanges >= 500) {
-          break;
-        }
+        if (renderedChanges >= this.visibleChangeLimit) break;
         renderedChanges += 1;
         const card = contentEl.createDiv({ cls: "number-suite-change" });
+        card.dataset.ruleId = change.ruleId;
         card.createDiv({
           cls: "number-suite-change-meta",
           text: t("preview.line", { line: change.line + 1, level: change.level }),
-        });
-        card.createDiv({
-          cls: "number-suite-change-rule",
-          text: t("preview.rule", { rule: change.ruleId }),
         });
         const before = card.createDiv({ cls: "number-suite-diff number-suite-diff-before" });
         before.createEl("strong", { text: `${t("preview.before")}: ` });
@@ -95,8 +95,14 @@ export class ChangePreviewModal extends Modal {
       }
     }
     if (renderedChanges < changes) {
-      contentEl.createEl("p", {
+      const reveal = contentEl.createEl("button", {
+        cls: "number-suite-preview-more",
         text: t("preview.moreChanges", { count: changes - renderedChanges }),
+      });
+      reveal.type = "button";
+      reveal.addEventListener("click", () => {
+        this.visibleChangeLimit = Math.min(changes, this.visibleChangeLimit + CHANGE_PAGE_SIZE);
+        this.render();
       });
     }
 
@@ -106,9 +112,19 @@ export class ChangePreviewModal extends Modal {
     if (warningEntries.length > 0) {
       contentEl.createEl("h3", { text: t("preview.warnings") });
       const list = contentEl.createEl("ul", { cls: "number-suite-warning-list" });
-      for (const entry of warningEntries.slice(0, 200)) {
+      for (const entry of warningEntries.slice(0, this.visibleWarningLimit)) {
         list.createEl("li", {
-          text: `${entry.path}:${entry.warning.line + 1} — ${entry.warning.detail}`,
+          text: `${entry.path}:${entry.warning.line + 1} — ${t(`preview.warning.${entry.warning.code}`)}`,
+        });
+      }
+      if (warningEntries.length > this.visibleWarningLimit) {
+        const reveal = contentEl.createEl("button", {
+          text: t("preview.moreWarnings", { count: warningEntries.length - this.visibleWarningLimit }),
+        });
+        reveal.type = "button";
+        reveal.addEventListener("click", () => {
+          this.visibleWarningLimit += WARNING_PAGE_SIZE;
+          this.render();
         });
       }
     }
@@ -124,9 +140,7 @@ export class ChangePreviewModal extends Modal {
         button.setWarning();
       }
       button.onClick(() => {
-        if (this.applying) {
-          return;
-        }
+        if (this.applying) return;
         this.applying = true;
         for (const control of this.contentEl.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>("input, button, select")) {
           control.disabled = true;
@@ -149,6 +163,8 @@ export class ChangePreviewModal extends Modal {
     try {
       this.documents = await this.options.onCleanupScopeChange(scope);
       this.cleanupScope = scope;
+      this.visibleChangeLimit = CHANGE_PAGE_SIZE;
+      this.visibleWarningLimit = WARNING_PAGE_SIZE;
       this.applying = false;
       this.render();
     } catch (error: unknown) {

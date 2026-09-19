@@ -84,6 +84,12 @@ non-empty semantics block save with a comprehensible constraint message.
 Frequent changes may be coalesced, but the UI exposes saving, failure reason, and retry. It cannot
 present an unpersisted value as saved.
 
+Current-note numeric fields retain input locally until blur or Enter commits a valid value. Invalid
+input has a visible inline explanation and never schedules a write. Per-level controls are expandable.
+Failed committed drafts survive note and pane switches. Retry merges independent setting edits;
+divergent edits to one setting show both values and require an explicit decision to apply the draft.
+Discard and reload remains available even when external Properties are invalid.
+
 <!-- section: previews-and-warnings -->
 ## Previews and warnings
 
@@ -91,6 +97,10 @@ Current-note and batch previews identify file, line, before/after text, recognit
 warnings. A stale preview cancels as a whole. Ambiguous or multiple prefixes, empty headings,
 missing parents, and unsupported prefixes explain why no modification occurs. Stored operations
 warn about heading-link risk.
+
+Warning-only files appear in the preview but never enter the write or recovery set. Changes and
+warnings can be expanded until every result is visible. Normal diagnostics use localized reasons,
+not internal rule identifiers.
 
 <!-- section: display-behavior -->
 ## Display behavior
