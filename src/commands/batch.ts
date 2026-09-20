@@ -271,16 +271,39 @@ export class BatchController {
     return files.every((item) => this.fileBindingIsCurrent(item.file, item.path));
   }
 
+  private openMarkdownViewsCompatible(
+    item: BoundBatchFile,
+    expected: string,
+    replacement: string,
+  ): boolean {
+    return this.openMarkdownViews().every((view) => {
+      if (view.file?.path !== item.path) return true;
+      if (view.file !== item.file) return false;
+      const current = view.editor.getValue();
+      return current === expected || current === replacement;
+    });
+  }
+
   private async replaceBoundExactly(
     item: BoundBatchFile,
     expected: string,
     replacement: string,
   ): Promise<void> {
-    if (!this.fileBindingIsCurrent(item.file, item.path)) throw new BatchChangedError();
+    if (
+      !this.fileBindingIsCurrent(item.file, item.path)
+      || !this.openMarkdownViewsCompatible(item, expected, replacement)
+    ) {
+      throw new BatchChangedError();
+    }
     let replacementAccepted = false;
     try {
       await this.app.vault.process(item.file, (current) => {
-        if (!this.fileBindingIsCurrent(item.file, item.path)) throw new BatchChangedError();
+        if (
+          !this.fileBindingIsCurrent(item.file, item.path)
+          || !this.openMarkdownViewsCompatible(item, expected, replacement)
+        ) {
+          throw new BatchChangedError();
+        }
         if (current !== expected) throw new ContentConflictError(item.path);
         replacementAccepted = true;
         return replacement;
@@ -289,7 +312,10 @@ export class BatchController {
       if (replacementAccepted) throw new BatchWriteUncertainError(error);
       throw error;
     }
-    if (!this.fileBindingIsCurrent(item.file, item.path)) {
+    if (
+      !this.fileBindingIsCurrent(item.file, item.path)
+      || !this.openMarkdownViewsCompatible(item, expected, replacement)
+    ) {
       throw new BatchWriteUncertainError(new BatchChangedError(true));
     }
   }
