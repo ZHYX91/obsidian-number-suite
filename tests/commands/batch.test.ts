@@ -361,6 +361,39 @@ describe("BatchController apply", () => {
       .toContain("notice.batchChanged");
   });
 
+  it("rejects an editor change that arrives after preflight but before the process callback", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before" }, previous);
+    const open = test.addView("a.md", "before");
+    test.setProcessHook((_path, call) => {
+      if (call === 1) open.setBuffer("unsaved during process");
+    });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.contents.get("a.md")).toBe("before");
+    expect(test.getStored()).toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
+  it("keeps pending recovery when an editor changes after a guarded write", async () => {
+    const previous = await snapshot({ "old.md": "old-after" });
+    const test = harness({ "a.md": "before" }, previous);
+    const open = test.addView("a.md", "before");
+    test.setProcessAfterHook((_path, call) => {
+      if (call === 1) open.setBuffer("unsaved after process");
+    });
+
+    await applyPreview(test.controller, previewDocument("before", "after"));
+
+    expect(test.contents.get("a.md")).toBe("after");
+    expect(test.getStored()).toMatchObject({ status: "pending" });
+    expect(test.getStored()).not.toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+
   it("retains the pending recovery snapshot when a file is renamed as its write completes", async () => {
     const previous = await snapshot({ "old.md": "old-after" });
     const test = harness({ "a.md": "before" }, previous);
