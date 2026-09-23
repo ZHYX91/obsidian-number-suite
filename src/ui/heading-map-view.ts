@@ -460,6 +460,27 @@ export class NumberSuiteHeadingMapView extends ItemView {
       for (const id of this.searchCollapsed) effectiveCollapsed.add(id);
     }
     const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed);
+    if (this.selectedId != null && !layout.nodes.some(({ node }) => node.id === this.selectedId)) {
+      // Clearing search can hide the selected match again. Keep its nearest visible ancestor
+      // at the match's screen position instead of leaving the user over an empty canvas.
+      const visibleIds = new Set(layout.nodes.map(({ node }) => node.id));
+      const visibleAncestor = (node: HeadingMapTreeNode, ancestor: string | null): string | null => {
+        const nearest = visibleIds.has(node.id) ? node.id : ancestor;
+        if (node.id === this.selectedId) return nearest;
+        for (const child of node.children) {
+          const found = visibleAncestor(child, nearest);
+          if (found != null) return found;
+        }
+        return null;
+      };
+      for (const root of visibleRoots) {
+        const ancestor = visibleAncestor(root, null);
+        if (ancestor != null) {
+          this.selectedId = ancestor;
+          break;
+        }
+      }
+    }
     const nextAnchor = layout.nodes.find(({ node }) => node.id === this.selectedId);
     if (!this.needsInitialFit && previousAnchor != null && nextAnchor != null) {
       this.offsetX += (previousAnchor.x - nextAnchor.x) * this.scale;

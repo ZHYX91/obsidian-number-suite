@@ -19,6 +19,7 @@ All notable changes to Number Suite are documented here.
   render instead of leaving an empty tab.
 - Let long outline rows grow with wrapped text and share the available width between numbers and
   titles; reduce indentation in narrow sidebars so deep headings remain readable.
+- Keep a visible ancestor in place when clearing search hides the selected map result again.
 
 ## 0.4.0 - 2026-09-23
 

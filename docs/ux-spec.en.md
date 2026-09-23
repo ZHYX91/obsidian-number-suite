@@ -71,7 +71,8 @@ shallower heading without creating synthetic nodes.
 The mind map supports whole-document and Selected subtree scopes, title/number search, Fit,
 empty-space panning, and Ctrl/Cmd-wheel zoom around the pointer. Search may temporarily reveal the
 ancestors needed for matches, but must not alter structural counts or the user's session collapse
-intent; clearing search restores the session collapse state. Click selects a card; double-click or
+intent; clearing search restores the session collapse state. If the selected match becomes hidden,
+its nearest visible ancestor takes its selection and screen position. Click selects a card; double-click or
 Enter on its body navigates to the exact source line. Edits to the current note may refresh the map
 without resetting selection, branch collapse, or the viewport for that same document. The view is
 strictly read-only and exposes no drag reorder, heading-level change, or Markdown write path.

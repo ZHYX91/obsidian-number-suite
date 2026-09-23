@@ -247,6 +247,26 @@ describe("heading map interactions", () => {
     expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
   });
 
+  it("keeps the nearest visible ancestor on screen after clearing a centered hidden match", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Branch\n### Target");
+    const branch = view.roots[0]!.children[0]!;
+    const target = branch.children[0]!;
+    view.searchQuery = "Target";
+    view.selectedId = target.id;
+    view.render();
+    const before = view.lastLayout.nodes.find(({ node }) => node.id === target.id)!;
+    view.offsetX = 400 - (before.x + 132);
+    view.offsetY = 300 - (before.y + 24);
+    view.searchQuery = "";
+    view.render();
+    const after = view.lastLayout.nodes.find(({ node }) => node.id === branch.id)!;
+    expect(view.selectedId).toBe(branch.id);
+    expect(view.collapsed.has(branch.id)).toBe(true);
+    expect(after.x + 132 + view.offsetX).toBe(400);
+    expect(after.y + 24 + view.offsetY).toBe(300);
+  });
+
   it("pins the clicked parent to the same screen position while collapsing and expanding", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## A\n## B\n## C\n# Other");
