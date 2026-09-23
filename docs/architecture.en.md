@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-09-23
 ---
 
 # Number Suite — Architecture
@@ -99,6 +99,14 @@ renders the pure outline projection. The current-note tab owns a reusable contro
 a modal. Workspace file, leaf, editor, and Vault-modify events refresh only the relevant active tab;
 the selected tab is stored as view state. Navigation resolves an existing Markdown leaf when
 possible and otherwise opens the file at the projected source line.
+
+`heading-map.ts` builds a heading-only projection on the same authenticated heading parser,
+numbering options, and display plan. Captions never count as child headings, and skipped levels attach
+to the nearest preceding shallower heading. The left-handle label prefers the virtual number that is
+actually displayed, then a reliably recognized visible stored number within the current recognition
+scope; the display layer falls back to Hn when neither is available. `heading-map-layout.ts` turns
+only that projection plus the session collapse set into a deterministic left-to-right 2D layout and
+structure edges; it does not read the Workspace or persist document state.
 
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
