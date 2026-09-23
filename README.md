@@ -45,6 +45,9 @@ Markdown.
 - Use exact seven-, eight-, or nine-hash source lines as DocWen-compatible H7-H9 extensions.
 - Open a Number Suite document outline for H1-H9 headings and Figure, Table, Equation, and Code
   captions; select an item to navigate to its source line.
+- Explore the current document in a read-only 2D heading mind map. Each heading is a card whose
+  left handle shows its effective number when available and whose right handle shows and toggles
+  the number of direct child headings.
 - Exclude an exact heading or its whole subtree without consuming a number.
 - Show `Figure:`, `Table:`, `Equation:`, and `Code:` captions as filled pills, with optional
   display-only numbers that restart independently in every Markdown file.
@@ -105,6 +108,16 @@ actions. **Open current note controls** selects that tab directly. File-changing
 open a separate preview before applying anything. Writing or removing a number changes the heading
 text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin
 does not guess and rewrite those links.
+
+Use **Open heading mind map** from the command palette or the map button in Document outline to open
+the current Markdown note as a left-to-right heading tree. The left card handle shows the virtual
+number that is actually displayed, or a reliably recognized visible stored number; otherwise it
+falls back to the heading level. The right handle always shows the count of direct child headings
+and toggles only that branch. Select a card and switch between the whole document and that heading's
+subtree, search without changing structural counts, drag empty space or scroll to pan, hold Ctrl/Cmd
+while scrolling to zoom around the pointer, and use Fit to frame the visible tree. Double-click a
+heading card or press Enter to jump to its exact source line. The map is display-only: it does not
+reorder headings, edit Markdown, or count captions as child headings.
 
 ### Extended H7-H9 headings
 
