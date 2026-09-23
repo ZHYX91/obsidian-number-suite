@@ -2,6 +2,8 @@ import {
   MarkdownView,
   Notice,
   Plugin,
+  TFile,
+  type WorkspaceLeaf,
 } from "obsidian";
 
 import { openObsidianPluginSettings } from "../adapters/obsidian/plugin-settings";
@@ -34,6 +36,10 @@ import {
   cleanupNumberSuiteReadingDom,
   HeadingReadingProcessor,
 } from "../reading/heading-postprocessor";
+import {
+  NUMBER_SUITE_HEADING_MAP_VIEW,
+  NumberSuiteHeadingMapView,
+} from "../ui/heading-map-view";
 import {
   NUMBER_SUITE_SIDEBAR_VIEW,
   NumberSuiteSidebarView,
@@ -98,6 +104,11 @@ export default class NumberSuitePlugin extends Plugin {
       runCurrent: (operation, path) => this.runCurrent(operation, path),
       openBatch: () => this.batchController?.open(this.translate()),
       openGlobalSettings: () => this.openGlobalSettings(),
+      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf),
+    }));
+    this.registerView(NUMBER_SUITE_HEADING_MAP_VIEW, (leaf) => new NumberSuiteHeadingMapView(leaf, {
+      getSettings: () => this.settings,
+      getTranslate: () => this.translate(),
     }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
@@ -241,6 +252,16 @@ export default class NumberSuitePlugin extends Plugin {
       name: this.translate()("command.sidebar.outline"),
       callback: () => void this.openSidebar("outline"),
     });
+    this.addCommand({
+      id: "open-heading-mind-map",
+      name: this.translate()("command.headingMap.open"),
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        const available = file?.extension.toLowerCase() === "md";
+        if (!checking && available) void this.openHeadingMap(file.path);
+        return available;
+      },
+    });
   }
 
   private addRibbon(): void {
@@ -260,6 +281,25 @@ export default class NumberSuitePlugin extends Plugin {
       },
     );
     if (leaf.view instanceof NumberSuiteSidebarView && tab != null) leaf.view.selectTab(tab);
+    await this.app.workspace.revealLeaf(leaf);
+  }
+
+  private async openHeadingMap(path?: string, sourceLeaf: WorkspaceLeaf | null = null): Promise<void> {
+    const origin = sourceLeaf ?? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null;
+    let file: TFile | null = null;
+    if (path != null) {
+      const candidate = this.app.vault.getAbstractFileByPath(path);
+      if (candidate instanceof TFile && candidate.extension.toLowerCase() === "md") file = candidate;
+    } else {
+      const active = this.app.workspace.getActiveFile();
+      if (active?.extension.toLowerCase() === "md") file = active;
+    }
+    const existing = this.app.workspace.getLeavesOfType(NUMBER_SUITE_HEADING_MAP_VIEW)[0] ?? null;
+    const leaf = existing ?? this.app.workspace.getLeaf("tab");
+    if (existing == null) {
+      await leaf.setViewState({ type: NUMBER_SUITE_HEADING_MAP_VIEW, active: true });
+    }
+    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
     await this.app.workspace.revealLeaf(leaf);
   }
 
@@ -310,6 +350,9 @@ export default class NumberSuitePlugin extends Plugin {
   private refreshSidebarViews(): void {
     for (const leaf of this.app.workspace.getLeavesOfType(NUMBER_SUITE_SIDEBAR_VIEW)) {
       if (leaf.view instanceof NumberSuiteSidebarView) leaf.view.refresh();
+    }
+    for (const leaf of this.app.workspace.getLeavesOfType(NUMBER_SUITE_HEADING_MAP_VIEW)) {
+      if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.refresh();
     }
   }
 

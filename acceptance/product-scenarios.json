@@ -13,6 +13,30 @@
   },
   "scenarios": [
     {
+      "id": "heading-map-interactions",
+      "title": "Heading map navigation, state, viewport and search",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map from Document outline and from the command palette. Compare heading numbers, skipped levels and direct-child counts with the source; captions must not be counted.",
+        "Collapse and expand Research, select a heading subtree, return to the document, then search Question A inside a collapsed branch. Toggle the search-revealed branch and clear the search.",
+        "Pan the blank canvas in both directions, zoom using buttons and Fit. On desktop also use ordinary wheel and Ctrl/Cmd-wheel at the canvas boundaries, and Tab/Enter navigation. On Android use touch pan, cancel a drag, and verify controls in a narrow portrait viewport.",
+        "Rename a selected/collapsed heading in the editor, then insert a new Repeated heading before the existing sections. Confirm state stays with the original section. On desktop switch rapidly between two panes of the same note and navigate from the map back to the originating pane."
+      ],
+      "expected": [
+        "Each card has the effective number or Hn and the unchanged direct-child total; leaves show a disabled zero handle. Map-only operations leave Markdown bytes unchanged.",
+        "Renames and source insertions preserve unambiguously matched selection, subtree scope and collapse state; delayed old-pane buffers never replace the active source snapshot.",
+        "Zoom keeps the pointer or viewport-center anchor fixed, including small trees and all canvas boundaries. Collapse/expand keeps the clicked parent at the same screen position. Fit centers the tree and narrow toolbars wrap without hiding controls.",
+        "Search reveals matches, the handle announces the effective expanded state, temporary search toggles work, and clearing search restores saved collapse intent. Keyboard focus remains usable and navigation targets the correct source line."
+      ]
+    },
+    {
       "id": "virtual-write-cleanup-and-live-preview",
       "title": "Virtual numbering, previewed writes, cleanup, captions, and references",
       "surfaces": [

@@ -1,0 +1,267 @@
+// @vitest-environment happy-dom
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MarkdownView, type WorkspaceLeaf } from "obsidian";
+
+vi.mock("obsidian", async (original) => ({
+  ...await original<Record<string, unknown>>(),
+  ItemView: class {},
+}));
+
+import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
+import { DEFAULT_SETTINGS } from "../../src/config/settings";
+import { findHeadingMapNode, type HeadingMapNode } from "../../src/application/heading-map";
+import { installDomFixture } from "./dom-fixture";
+import type { HeadingMapLayout } from "../../src/application/heading-map-layout";
+
+type Subject = {
+  roots: HeadingMapNode[];
+  selectedId: string | null;
+  scopeId: string | null;
+  collapsed: Set<string>;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+  lastLayout: HeadingMapLayout;
+  searchQuery: string;
+  sceneHost: HTMLElement;
+  viewport: HTMLElement;
+  refreshMap(source?: string, path?: string): Promise<void>;
+  scheduleRefresh(source?: string): void;
+  onActiveLeafChange(leaf: WorkspaceLeaf): void;
+  setScaleAt(scale: number, x: number, y: number): void;
+  render(): void;
+  fitToView(): void;
+  onWheel(event: WheelEvent): void;
+  beginPan(event: PointerEvent): void;
+  movePan(event: PointerEvent): void;
+  endPan(event: PointerEvent): void;
+  setFile(file: { path: string; extension: string }, refresh?: boolean): void;
+};
+
+function makeView(): Subject {
+  const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
+    getSettings: () => DEFAULT_SETTINGS,
+    getTranslate: () => ((key: string) => key),
+  });
+  const contentEl = document.createElement("div");
+  const viewport = contentEl.appendChild(document.createElement("div"));
+  const sceneHost = viewport.appendChild(document.createElement("div"));
+  Object.defineProperties(viewport, {
+    clientWidth: { value: 800 },
+    clientHeight: { value: 600 },
+  });
+  Object.assign(view, {
+    contentEl, viewport, sceneHost,
+    currentFile: { path: "Same.md", basename: "Same", extension: "md" },
+    needsInitialFit: false,
+  });
+  return view as unknown as Subject;
+}
+
+beforeEach(installDomFixture);
+afterEach(() => { vi.useRealTimers(); });
+
+describe("heading map interactions", () => {
+  it("control: preserves selection, scope, and collapse for a body-only edit", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const id = view.roots[0]!.id;
+    view.selectedId = id;
+    view.scopeId = id;
+    view.collapsed.add(id);
+    await view.refreshMap("# Root\nbody edited\n## Child");
+    expect(view.selectedId).toBe(id);
+    expect(view.scopeId).toBe(id);
+    expect(view.collapsed.has(view.roots[0]!.id)).toBe(true);
+  });
+
+  it("preserves selection, subtree scope, and collapse when the heading is renamed", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const id = view.roots[0]!.id;
+    view.selectedId = id;
+    view.scopeId = id;
+    view.collapsed.add(id);
+    await view.refreshMap("# Root renamed\n## Child");
+    const renamedId = view.roots[0]!.id;
+    expect.soft(view.selectedId).toBe(renamedId);
+    expect.soft(view.scopeId).toBe(renamedId);
+    expect.soft(view.collapsed.has(renamedId)).toBe(true);
+  });
+
+  it("keeps the selected duplicate heading in its original branch after an earlier insertion", async () => {
+    const view = makeView();
+    const source = "# A\n## Repeated\n### Child A\n# B\n## Repeated\n### Child B";
+    await view.refreshMap(source);
+    view.selectedId = view.roots[1]!.children[0]!.id;
+    await view.refreshMap("# Inserted\n## Repeated\n### Child inserted\n" + source);
+    const selected = findHeadingMapNode(view.roots, view.selectedId!);
+    expect(selected?.children[0]?.title).toBe("Child B");
+  });
+
+  it("cancels an old buffer refresh when switching panes of the same file", () => {
+    vi.useFakeTimers();
+    const view = makeView();
+    const refreshMap = vi.fn().mockResolvedValue(undefined);
+    Object.assign(view, { refreshMap });
+    view.scheduleRefresh("# Old pane");
+    const markdown = Object.assign(Object.create(MarkdownView.prototype), {
+      file: { path: "Same.md", extension: "md" },
+      editor: { getValue: () => "# New pane" },
+    });
+    view.onActiveLeafChange({ view: markdown } as WorkspaceLeaf);
+    vi.advanceTimersByTime(200);
+    expect(refreshMap.mock.calls).toEqual([["# New pane", "Same.md"]]);
+  });
+
+  it("keeps the graph point beneath the pointer fixed when zooming out at the top-left boundary", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child\n### Deep\n#### Deeper");
+    const pointer = { x: 400, y: 300 };
+    const world = { x: pointer.x / view.scale, y: pointer.y / view.scale };
+    view.setScaleAt(1 / 1.2, pointer.x, pointer.y);
+    expect.soft(world.x * view.scale + view.offsetX).toBeCloseTo(pointer.x);
+    expect.soft(world.y * view.scale + view.offsetY).toBeCloseTo(pointer.y);
+    expect(view.sceneHost.querySelector<HTMLElement>(".number-suite-heading-map-canvas")?.style.transform)
+      .toBe(`translate(${view.offsetX}px, ${view.offsetY}px) scale(${view.scale})`);
+  });
+
+  it("reports a search-revealed branch as expanded while preserving the saved collapse after clearing search", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Search target");
+    const root = view.roots[0]!;
+    view.collapsed.add(root.id);
+    view.searchQuery = "Search target";
+    view.render();
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    const control = [...view.sceneHost.querySelectorAll<HTMLElement>("[data-node-control]")]
+      .find((element) => element.dataset.nodeControl === root.id)!;
+    expect.soft(control.getAttribute("aria-expanded")).toBe("true");
+    view.searchQuery = "";
+    view.render();
+    expect(view.collapsed.has(root.id)).toBe(true);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+  });
+
+  it("toggles a search-revealed branch without changing the saved collapse intent", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Search target");
+    const root = view.roots[0]!;
+    view.searchQuery = "Search target";
+    view.render();
+    const rootControl = () => [...view.sceneHost.querySelectorAll<HTMLButtonElement>("[data-node-control]")]
+      .find((element) => element.dataset.nodeControl === root.id)!;
+    rootControl().click();
+    expect(rootControl().getAttribute("aria-expanded")).toBe("false");
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+    expect(view.collapsed.has(root.id)).toBe(false);
+    rootControl().click();
+    expect(rootControl().getAttribute("aria-expanded")).toBe("true");
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    view.searchQuery = "";
+    view.render();
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+  });
+
+  it("pins the clicked parent to the same screen position while collapsing and expanding", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## A\n## B\n## C\n# Other");
+    const root = view.roots[0]!;
+    const screenY = () => view.lastLayout.nodes.find(({ node }) => node.id === root.id)!.y
+      * view.scale + view.offsetY;
+    const before = screenY();
+    const control = () => [...view.sceneHost.querySelectorAll<HTMLButtonElement>("[data-node-control]")]
+      .find((element) => element.dataset.nodeControl === root.id)!;
+    control().click();
+    expect(screenY()).toBe(before);
+    expect(control().textContent).toBe("3");
+    control().click();
+    expect(screenY()).toBe(before);
+  });
+
+  it.each([[0, 0], [-900, -700], [250, 170]])("keeps zoom anchors and round trips at offset %s, %s", async (x, y) => {
+    const view = makeView();
+    await view.refreshMap("# Root");
+    view.offsetX = x;
+    view.offsetY = y;
+    const point = { x: (700 - x) / view.scale, y: (500 - y) / view.scale };
+    view.setScaleAt(0.5, 700, 500);
+    expect(point.x * view.scale + view.offsetX).toBeCloseTo(700);
+    expect(point.y * view.scale + view.offsetY).toBeCloseTo(500);
+    view.setScaleAt(1, 700, 500);
+    expect(view.offsetX).toBeCloseTo(x);
+    expect(view.offsetY).toBeCloseTo(y);
+  });
+
+  it("centers small trees on Fit and pans with ordinary or Shift-wheel input", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root");
+    view.fitToView();
+    expect(view.offsetX + view.lastLayout.width / 2).toBe(400);
+    expect(view.offsetY + view.lastLayout.height / 2).toBe(300);
+    const before = { x: view.offsetX, y: view.offsetY };
+    const event = new WheelEvent("wheel", { deltaY: 40, cancelable: true });
+    view.onWheel(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(view.offsetY).toBe(before.y - 40);
+    // happy-dom does not yet initialize WheelEvent modifier keys from its constructor options.
+    const horizontal = new WheelEvent("wheel", { deltaY: 2, deltaMode: 1 });
+    Object.defineProperty(horizontal, "shiftKey", { value: true });
+    view.onWheel(horizontal);
+    expect(view.offsetX).toBe(before.x - 32);
+    expect(view.scale).toBe(1);
+  });
+
+  it("does not let a second touch replace an in-progress pan and releases cancellation", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root");
+    const captured = new Set<number>();
+    Object.assign(view.viewport, {
+      setPointerCapture: (id: number) => captured.add(id),
+      hasPointerCapture: (id: number) => captured.has(id),
+      releasePointerCapture: (id: number) => captured.delete(id),
+    });
+    const pointer = (id: number, x: number, y: number) => new PointerEvent("pointerdown", {
+      pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: y,
+    });
+    view.beginPan(pointer(1, 100, 100));
+    view.beginPan(pointer(2, 300, 300));
+    view.movePan(pointer(2, 400, 400));
+    expect(view.offsetX).toBe(0);
+    view.movePan(pointer(1, 180, 150));
+    expect([view.offsetX, view.offsetY]).toEqual([80, 50]);
+    view.endPan(pointer(2, 400, 400));
+    expect(captured.has(1)).toBe(true);
+    view.endPan(pointer(1, 180, 150));
+    expect(captured.size).toBe(0);
+    expect(view.viewport.classList.contains("is-panning")).toBe(false);
+  });
+
+  it("invalidates a pending read as soon as a new edit is queued", async () => {
+    vi.useFakeTimers();
+    const view = makeView();
+    let finishRead: (source: string) => void = () => undefined;
+    Object.assign(view, { sourceForFile: () => new Promise<string>((resolve) => { finishRead = resolve; }) });
+    const reading = view.refreshMap();
+    view.scheduleRefresh("# Current buffer");
+    finishRead("# Old disk");
+    await reading;
+    expect(view.roots).toHaveLength(0);
+    vi.advanceTimersByTime(200);
+    expect(view.roots[0]?.title).toBe("Current buffer");
+  });
+
+  it("cancels delayed old-file buffers and clears document session state on a file switch", async () => {
+    vi.useFakeTimers();
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    view.selectedId = view.roots[0]!.id;
+    view.collapsed.add(view.selectedId);
+    view.scheduleRefresh("# Old file");
+    view.setFile({ path: "Other.md", extension: "md" }, false);
+    vi.advanceTimersByTime(200);
+    expect(view.roots).toHaveLength(0);
+    expect(view.selectedId).toBeNull();
+    expect(view.collapsed.size).toBe(0);
+  });
+});

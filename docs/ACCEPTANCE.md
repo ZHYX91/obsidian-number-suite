@@ -49,6 +49,25 @@ block explicitly authorized publication. Never use a production Vault for these 
 - [ ] Open the same note in two editor panes. A Markdown-changing action from Current note must fail
   closed with a clear notice; closing one pane must restore the previewed action path.
 
+## Heading mind map
+
+- [ ] Open `Heading map.md` through the outline button and command palette. Check H1-H9,
+  effective/hidden numbers, direct-child counts, skipped levels and caption exclusion.
+- [ ] Rename a selected, collapsed subtree root and insert an earlier duplicate heading. Check
+  selection, scope, collapse and viewport remain attached to the original source section.
+- [ ] Switch rapidly between same-file editor panes while typing. Map refresh and source-line
+  navigation must follow the originating pane, without a delayed old-buffer overwrite.
+- [ ] Zoom at each canvas boundary and with a tree smaller than the viewport; the pointer anchor
+  must stay fixed. Use ordinary/Shift wheel, blank-canvas drag, zoom buttons and Fit. Collapse and
+  expand a large branch without moving the clicked parent under the pointer.
+- [ ] Search inside a collapsed branch. Verify the handle describes its visible state, toggle it,
+  clear search and check the original saved collapse intent is restored.
+- [ ] Tab through number handles, card bodies and branch handles; off-screen focus must become
+  visible. Enter and double-click must navigate to the exact source line.
+- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation, branch taps, navigation
+  and zoom buttons. Two-finger pinch zoom is not part of the current map interaction contract.
+- [ ] Hash the fixture before/after map-only operations; no Markdown writes are allowed.
+
 ## Captions and same-file references
 
 For attachment-gap checks, use a square-corner `square-edge.svg` (or another image with an explicit

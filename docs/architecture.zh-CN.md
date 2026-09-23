@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-09-23
 ---
 
 # Number Suite — 架构
@@ -59,6 +59,17 @@ frontmatter、围栏代码、HTML/Obsidian 注释和块；10 个及以上井号�
 它按源码层级嵌套标题，把题注归入前方最深标题，只从显示标签末尾去掉用户写入的块 ID，并
 输出用于跳转的源码行；它既不读取 Vault，也不写入 Markdown。
 
+`heading-map.ts` 在同一已认证标题解析器、编号选项和显示计划之上生成只包含标题的投影。
+它不会把题注算作子标题；跳级标题按最近的更浅标题归属。左把手标签优先使用实际显示的虚拟
+序号，其次使用当前识别范围内可靠的可见实体序号；没有可用序号时由显示层回退到 Hn。
+`heading-map-layout.ts` 只根据标题投影与会话内折叠集合生成确定性的从左到右二维布局和结构边，
+不读取 Workspace，也不持久化内容。
+
+`heading-map-identity.ts` 分配文档会话内的节点 ID，通过未变更行和有序唯一行锚点匹配前后
+源码快照，匹配包含周围正文。等长替换区域保留行身份以支持改名和改级；无法明确匹配的插入
+或删除使用新 ID。ID 不来自显示序号或标题。视图在来源窗格变化时使待处理读取失效，并分别
+保存用户折叠意图、临时搜索状态和不受滚动边界限制的画布平移。
+
 <!-- section: interop-api -->
 ## 消费者互通 API
 
@@ -84,6 +95,13 @@ literal；更窄的消费格式必须在自己的适配层校验。题注视觉�
 控制面板，不再使用弹窗。Workspace 的文件、leaf、编辑器和 Vault 修改事件只刷新相关活动
 选项卡，所选选项卡保存为视图状态。导航优先复用已有 Markdown leaf，否则在投影给出的源码
 行打开文件。
+
+`NumberSuiteHeadingMapView` 是独立的主工作区 `ItemView`，从文档大纲按钮或命令面板打开。
+它沿用来源窗格优先的源码读取与精确源码行导航，显示从左到右的标题卡片和 SVG 结构边。
+卡片左把手显示标题序号或 Hn 回退，右把手始终显示直接子标题总数，并只改变当前会话的分支
+折叠状态。视图支持整篇文档/所选标题子树、搜索、空白处平移、Ctrl/Cmd+滚轮缩放和 Fit；
+搜索可以临时展开命中项祖先，但不改变结构计数。该视图只消费显示计划，不调用 Editor/Vault
+写入 API，也不提供拖拽重排或改级。
 
 每个 CodeMirror `EditorView` 拥有一个 `ViewPlugin`，确认扫描器候选与语法树一致，区分实时
 预览和 Source Mode，并以 `Decoration.widget`/`Decoration.replace` 实现虚拟显示和隐藏。

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-09-23
 ---
 
 # Number Suite — UX specification
@@ -33,7 +33,9 @@ specification.
 
 The ribbon icon opens a persistent right sidebar and preserves its last selected tab. The dedicated
 outline command selects Document outline; Open current note controls selects Current note. The
-command palette also offers source-appearance restore, independent virtual/conceal toggles,
+Open heading mind map command and the map button in the Document outline header open a separate
+workspace view for the current Markdown note. The command palette also offers source-appearance
+restore, independent virtual/conceal toggles,
 current-note write/remove/renumber, source-marker removal, batch processing, and latest-batch undo.
 Current-note actions are unavailable without an active Markdown note and must show a clear notice.
 
@@ -46,6 +48,30 @@ Number Suite/DocWen H7-H9 extension headings, and Figure/Table/Equation/Code cap
 same effective per-note numbering and concealment plan as the editor, strips authored block IDs from
 labels, supports collapsing sections, and navigates by source line without rewriting Markdown.
 Captions are children of the deepest preceding heading, or roots before any heading.
+
+The heading mind map projects H1-H9 headings only: captions are neither shown nor counted as child
+headings. Its default layout runs left to right, connecting a parent's right side to each child's
+left side. A card's left handle first shows the virtual number that is actually visible; when there
+is no virtual number, it may show a reliably recognized visible stored number within the current
+recognition scope; otherwise it shows Hn. The right handle always shows the total number of direct
+child headings. When children exist it toggles only that branch without changing the count; zero is
+shown but is not expandable. A skipped-level heading attaches directly to the nearest preceding
+shallower heading without creating synthetic nodes.
+
+The mind map supports whole-document and Selected subtree scopes, title/number search, Fit,
+empty-space panning, and Ctrl/Cmd-wheel zoom around the pointer. Search may temporarily reveal the
+ancestors needed for matches, but must not alter structural counts or the user's session collapse
+intent; clearing search restores the session collapse state. Click selects a card; double-click or
+Enter on its body navigates to the exact source line. Edits to the current note may refresh the map
+without resetting selection, branch collapse, or the viewport for that same document. The view is
+strictly read-only and exposes no drag reorder, heading-level change, or Markdown write path.
+
+Ordinary wheel input pans; Shift-wheel pans horizontally. Canvas translation is independent of
+scroll boundaries, and collapsing a branch preserves the clicked parent's screen position. Fit
+centers the visible tree. Search handles describe the effective visible state; toggles on a
+search-revealed ancestor last only for that query and leave the saved collapse intent unchanged.
+Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
+panning and zoom buttons; two-finger pinch zoom is not provided.
 
 The two sidebar tabs have equal width and span the sidebar. Inactive tabs use muted text; the active
 tab combines semibold text with a bottom accent line. Hover uses a quiet background, while keyboard
@@ -177,10 +203,11 @@ labels and list values.
 Virtual heading numerals and generated caption numerals are hidden from assistive semantics while
 stored caption content remains accessible. Reference pills expose link semantics, visible text,
 keyboard focus, and a non-color-only outline treatment. Formatted note labels expose their note type
-and number. Sidebar tabs, outline
-rows, collapse controls, and action buttons have consistent alignment, keyboard focus, and at least
-44-pixel touch height on coarse-pointer devices; summaries reflow on narrow screens without dropping
-fields. Android physical devices and iOS are outside the acceptance scope.
+and number. Sidebar tabs, outline rows, collapse controls, heading-map card bodies and interactive
+handles, and action buttons expose visible keyboard focus; interactive controls have at least
+44-pixel touch height on coarse-pointer devices. Heading-map selection and search matches cannot be
+communicated by color alone, and a zero-child handle must not pretend to be actionable. Summaries
+reflow on narrow screens without dropping fields. Android physical devices and iOS are outside the acceptance scope.
 
 <!-- section: error-recovery -->
 ## Errors and recovery
