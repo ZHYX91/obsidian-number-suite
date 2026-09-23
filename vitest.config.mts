@@ -43,6 +43,12 @@ export default defineConfig({
           functions: 85,
           lines: 85,
         },
+        "src/ui/heading-map-view.ts": {
+          statements: 75,
+          branches: 65,
+          functions: 55,
+          lines: 80,
+        },
       },
     },
   },
