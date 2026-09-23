@@ -15,8 +15,14 @@
     {
       "id": "heading-map-startup",
       "title": "Heading map opens and reopens through the host lifecycle",
-      "surfaces": ["desktop", "android-emulator"],
-      "requiredCapabilities": { "desktop": [], "android-emulator": [] },
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
       "steps": [
         "Open Heading map.md and launch its heading map from Document outline. Verify the file label, search, scope and zoom controls, heading cards and connecting edges are visible.",
         "Collapse and expand Research, use zoom and Fit, then close the map tab and reopen it through the command palette. Confirm the toolbar and cards render again."

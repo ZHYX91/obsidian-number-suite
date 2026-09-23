@@ -73,7 +73,9 @@ afterEach(() => { vi.useRealTimers(); });
 
 describe("heading map interactions", () => {
   it("loads through the host lifecycle without overwriting the ItemView header", async () => {
-    const file = Object.assign(new TFile("Map.md"), { basename: "Map" });
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Map.md", basename: "Map", extension: "md",
+    });
     const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
       getSettings: () => DEFAULT_SETTINGS,
       getTranslate: () => ((key: string) => key),
