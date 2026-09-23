@@ -217,14 +217,10 @@ export class BatchController {
   }
 
   private async synchronizeOpenMarkdownViews(
-    expectedSources?: ReadonlyMap<string, string>,
+    expectedSources: ReadonlyMap<string, string>,
     expectedFiles?: ReadonlyMap<string, TFile>,
   ): Promise<boolean> {
     const initialViews = this.openMarkdownViews();
-    if (expectedSources == null) {
-      await Promise.all(initialViews.map(async (view) => view.save()));
-      return true;
-    }
     const relevantViews = initialViews.filter((view) => {
       const path = view.file?.path;
       return path != null && expectedSources.has(path);
@@ -334,17 +330,28 @@ export class BatchController {
     return failures;
   }
 
+  private async previewSource(file: TFile): Promise<string | null> {
+    const views = this.openMarkdownViews().filter((view) => view.file?.path === file.path);
+    if (views.some((view) => view.file !== file)) return null;
+    if (views.length === 0) return this.app.vault.cachedRead(file);
+    const sources = new Set(views.map((view) => view.editor.getValue()));
+    return sources.size === 1 ? sources.values().next().value ?? "" : null;
+  }
+
   private async preview(
     scope: BatchScope,
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
-    await this.synchronizeOpenMarkdownViews();
     const documents: PreviewDocument[] = [];
     const candidates: Array<Readonly<{ path: string; source: string }>> = [];
     let invalidFrontmatter = 0;
     for (const file of this.filesForScope(scope)) {
-      const source = await this.app.vault.cachedRead(file);
+      const source = await this.previewSource(file);
+      if (source == null) {
+        new Notice(translate("notice.batchChanged"));
+        return;
+      }
       const result = createSourcePlan(source, operation, this.getSettings());
       if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
         invalidFrontmatter += 1;
