@@ -48,6 +48,8 @@ Number Suite/DocWen H7-H9 extension headings, and Figure/Table/Equation/Code cap
 same effective per-note numbering and concealment plan as the editor, strips authored block IDs from
 labels, supports collapsing sections, and navigates by source line without rewriting Markdown.
 Captions are children of the deepest preceding heading, or roots before any heading.
+Outline rows grow with wrapped text. Badges, numbers and titles share the available line width,
+and indentation adapts to sidebar width so long labels and H7-H9 remain readable without overlap.
 
 The heading mind map projects H1-H9 headings only: captions are neither shown nor counted as child
 headings. Its default layout runs left to right, connecting a parent's right side to each child's

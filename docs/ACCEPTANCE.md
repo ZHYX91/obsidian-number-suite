@@ -34,6 +34,8 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Number Suite outline
 
+- [ ] Use a narrow sidebar with a long title and H1-H9 numbering. Wrapped rows must grow without
+  overlapping later rows, and deep-level titles must retain usable width. Resize and navigate them.
 - [ ] Build one note containing H1-H9 plus Figure, Table, Equation, and Code captions before and
   within sections. Confirm nesting follows source heading levels and captions attach to the deepest
   preceding heading.

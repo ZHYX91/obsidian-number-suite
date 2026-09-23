@@ -13,6 +13,26 @@
   },
   "scenarios": [
     {
+      "id": "outline-wrapped-layout",
+      "title": "Long and deeply nested outline rows in a narrow sidebar",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map.md and Document outline in a narrow sidebar. Inspect the long H2 title and the H3-H9 rows below it, including their numbers. Scroll to Conclusion.",
+        "Collapse and expand Results, then select Level nine and confirm source navigation. On desktop also widen and narrow the sidebar."
+      ],
+      "expected": [
+        "Wrapped text increases the row height without overlapping later rows. Deep titles use the available row width instead of being squeezed into a one-character column by number and indentation columns.",
+        "Collapse, expansion and navigation remain usable, all levels remain distinguishable, and these actions do not change Markdown bytes."
+      ]
+    },
+    {
       "id": "heading-map-startup",
       "title": "Heading map opens and reopens through the host lifecycle",
       "surfaces": [

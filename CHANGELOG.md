@@ -10,6 +10,8 @@ All notable changes to Number Suite are documented here.
 
 - Preserve the host-owned view header when opening the heading mind map, so the toolbar and cards
   render instead of leaving an empty tab.
+- Let long outline rows grow with wrapped text and share the available width between numbers and
+  titles; reduce indentation in narrow sidebars so deep headings remain readable.
 
 ## 0.4.0 - 2026-09-23
 

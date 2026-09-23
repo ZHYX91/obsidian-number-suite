@@ -749,10 +749,10 @@
 }
 
 .number-suite-outline-row {
-  align-items: stretch;
+  align-items: flex-start;
   display: flex;
   min-width: 0;
-  padding-inline-start: calc(var(--number-suite-outline-depth) * 0.75rem);
+  padding-inline-start: calc(var(--number-suite-outline-depth) * min(0.75rem, 2.5%));
 }
 
 .number-suite-outline-toggle,
@@ -768,6 +768,7 @@
   align-items: center;
   display: inline-flex;
   flex: 0 0 1.6rem;
+  height: auto;
   justify-content: center;
   min-height: 2rem;
   padding: 0;
@@ -779,15 +780,15 @@
 }
 
 .number-suite-outline-link {
-  align-items: baseline;
   border-radius: var(--radius-s);
-  display: grid;
+  display: block;
   flex: 1 1 auto;
   font-size: var(--font-ui-small);
-  gap: var(--size-2-2);
-  grid-template-columns: auto auto minmax(0, 1fr);
+  height: auto;
+  line-height: var(--line-height-tight);
   min-height: 2rem;
   min-width: 0;
+  overflow-wrap: anywhere;
   padding: var(--size-2-2) var(--size-4-2);
   text-align: start;
   white-space: normal;
@@ -807,12 +808,13 @@
 .number-suite-outline-badge {
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
+  margin-inline-end: var(--size-2-2);
 }
 
 .number-suite-outline-number {
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  margin-inline-end: var(--size-2-2);
 }
 
 .number-suite-outline-title {
