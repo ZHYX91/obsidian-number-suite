@@ -4,6 +4,11 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+### Added
+
+- Add a read-only 2D heading mind map with numbered left handles, direct-child-count expansion
+  handles, document/subtree scopes, search, source navigation, panning, zooming, and Fit.
+
 ## 0.3.3 - 2026-09-20
 
 ### Fixed
