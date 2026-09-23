@@ -9,6 +9,11 @@ All notable changes to Number Suite are documented here.
 - Add a read-only 2D heading mind map with numbered left handles, direct-child-count expansion
   handles, document/subtree scopes, search, source navigation, panning, zooming, and Fit.
 
+### Fixed
+
+- Revalidate editor buffers before, inside and after guarded batch writes and restores; preserve
+  conflicting edits and retain recovery when a write or rollback cannot be confirmed safely.
+
 ## 0.3.3 - 2026-09-20
 
 ### Fixed
