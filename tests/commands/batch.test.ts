@@ -56,6 +56,7 @@ function harness(
     },
   } as unknown as App;
   const persistence: BatchPersistence = {
+    ensureLoaded: async () => undefined,
     getLastBatch: () => stored,
     setLastBatch: async (next) => {
       persistenceCalls += 1;
@@ -139,6 +140,7 @@ function applyHarness(diskSource: string, bufferSource: string) {
     },
   } as unknown as App;
   const persistence: BatchPersistence = {
+    ensureLoaded: async () => undefined,
     getLastBatch: () => stored,
     setLastBatch: async (next) => { stored = next; },
   };
@@ -184,6 +186,39 @@ async function applyPreviews(
 
 beforeEach(() => {
   (Notice as unknown as { readonly messages: string[] }).messages.length = 0;
+});
+
+describe("BatchController recovery loading", () => {
+  it("loads persisted recovery before reading undo state", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    let loaded = false;
+    const contents = new Map([["a.md", "after-a"]]);
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("a.md");
+    const app = {
+      vault: {
+        getAbstractFileByPath: () => file,
+        cachedRead: async () => contents.get("a.md") ?? "",
+        process: async (_file: TFile, transform: (current: string) => string) => {
+          const next = transform(contents.get("a.md") ?? "");
+          contents.set("a.md", next);
+          return next;
+        },
+      },
+      workspace: { iterateAllLeaves: () => undefined },
+    } as unknown as App;
+    const persistence: BatchPersistence = {
+      ensureLoaded: async () => { loaded = true; },
+      getLastBatch: () => loaded ? recovery : null,
+      setLastBatch: async () => undefined,
+    };
+    const controller = new BatchController(app, () => DEFAULT_SETTINGS, persistence);
+
+    await controller.undo((key) => key);
+
+    expect(loaded).toBe(true);
+    expect(contents.get("a.md")).toBe("before:a.md");
+  });
 });
 
 describe("BatchController undo", () => {
