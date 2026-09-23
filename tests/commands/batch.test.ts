@@ -37,6 +37,7 @@ function harness(
   const leaves: Array<{ view: MarkdownView }> = [];
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? null,
+    getMarkdownFiles: () => [...files.values()],
     cachedRead: async (file: TFile) => contents.get(file.path) ?? "",
     process: async (file: TFile, transform: (current: string) => string) => {
       processCalls += 1;
@@ -184,6 +185,44 @@ async function applyPreviews(
 
 beforeEach(() => {
   (Notice as unknown as { readonly messages: string[] }).messages.length = 0;
+});
+
+describe("BatchController preview", () => {
+  async function preview(controller: BatchController): Promise<void> {
+    const run = Reflect.get(controller, "preview") as (
+      scope: { folder: null; label: string },
+      operation: "write",
+      translate: (key: string, values?: Record<string, unknown>) => string,
+    ) => Promise<void>;
+    await run.call(controller, { folder: null, label: "vault" }, "write", (key) => key);
+  }
+
+  it("reads open target buffers without saving target or unrelated editors", async () => {
+    const test = harness({ "a.md": "# Disk A", "b.md": "# Disk B" });
+    const target = test.addView("a.md", "# Buffer A");
+    const unrelated = test.addView("b.md", "# Buffer B");
+
+    await preview(test.controller);
+
+    expect(target.save).not.toHaveBeenCalled();
+    expect(unrelated.save).not.toHaveBeenCalled();
+    expect(test.contents.get("a.md")).toBe("# Disk A");
+    expect(test.contents.get("b.md")).toBe("# Disk B");
+  });
+
+  it("fails closed when two panes of one target disagree", async () => {
+    const test = harness({ "a.md": "# Disk A" });
+    const first = test.addView("a.md", "# Pane A");
+    const second = test.addView("a.md", "# Pane B");
+
+    await preview(test.controller);
+
+    expect(first.save).not.toHaveBeenCalled();
+    expect(second.save).not.toHaveBeenCalled();
+    expect(test.contents.get("a.md")).toBe("# Disk A");
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
 });
 
 describe("BatchController undo", () => {
