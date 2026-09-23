@@ -110,18 +110,21 @@ text and can invalidate `[[Note#Heading]]` links, heading embeds, or external an
 does not guess and rewrite those links.
 
 Use **Open heading mind map** from the command palette or the map button in Document outline to open
-the current Markdown note as a left-to-right heading tree. A file card connects all top-level
-headings and remains visible even when the note has none. It shows the file name, a file icon and
-the number of top-level headings; it never replaces a same-name H1. The initial overview shows two
-structural heading depths at readable size. Click the file name above the map to return from a
-subtree, or the zoom percentage to restore 100%. The left heading-card handle shows the virtual
-number that is actually displayed, or a reliably recognized visible stored number; otherwise it
-falls back to the heading level. The right handle always shows the count of direct child headings
-and toggles only that branch. Select a card and switch between the whole document and that heading's
-subtree, search without changing structural counts, drag empty space or scroll to pan, hold Ctrl/Cmd
-while scrolling to zoom around the pointer, and use Fit to frame the visible tree. Double-click a
-heading card or press Enter to jump to its exact source line. The map is display-only: it does not
-reorder headings, edit Markdown, or count captions as child headings.
+the current Markdown note as an ordered heading tree. A file card connects all top-level headings
+and remains visible even when the note has none. It shows the file name, a file icon and the number
+of top-level headings; it never replaces a same-name H1. The initial overview shows two structural
+heading depths at readable size. Click the file name above the map to return from a subtree, or the
+zoom percentage to restore 100%. The left heading-card handle shows the virtual number that is
+actually displayed, or a reliably recognized visible stored number; otherwise it falls back to the
+heading level. The right handle always shows the count of direct child headings and toggles only that
+branch. Select a card and switch between the whole document and that heading's subtree, show 1, 2,
+3, or all structural depths, and switch between left-to-right and top-to-bottom layout. Search shows
+the current match count; Enter and Shift+Enter move forward and backward through matches without
+changing structural counts. Drag empty space or scroll to pan, hold Ctrl/Cmd while scrolling to zoom
+around the pointer, use two-finger pinch zoom on touch devices, and use +, -, 0 or the toolbar
+controls for zoom/Fit. Double-click a heading card or press Enter on its body to jump to its exact
+source line. The map is display-only: it does not reorder headings, edit Markdown, or count captions
+as child headings.
 
 ### Extended H7-H9 headings
 
