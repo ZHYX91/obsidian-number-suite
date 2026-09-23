@@ -4,6 +4,26 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.4.1 - 2026-09-23
+
+### Added
+
+- Connect heading cards to a virtual document root with the file name, file icon and top-level
+  heading count, including notes without headings. Keep same-name H1 headings separate.
+- Start with two structural heading depths at readable size; add expansion symbols, a document
+  breadcrumb and a 100% zoom reset. Keyboard traversal follows document order.
+
+### Fixed
+
+- Preserve the host-owned view header when opening the heading mind map, so the toolbar and cards
+  render instead of leaving an empty tab.
+- Let long outline rows grow with wrapped text and share the available width between numbers and
+  titles; reduce indentation in narrow sidebars so deep headings remain readable.
+- Keep a visible ancestor in place when clearing search hides the selected map result again.
+- Wait for a visible viewport before positioning a newly opened file, including empty notes.
+- Keep mobile canvas drags from opening the host sidebar while preserving card taps.
+- Show the beginning of long card titles with an ellipsis instead of clipping their centered text.
+
 ## 0.4.0 - 2026-09-23
 
 ### Added

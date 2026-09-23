@@ -20,6 +20,35 @@ export interface HeadingMapNode {
   readonly children: HeadingMapNode[];
 }
 
+export const HEADING_MAP_DOCUMENT_ID = "document-root";
+
+export interface HeadingMapDocumentNode {
+  readonly id: typeof HEADING_MAP_DOCUMENT_ID;
+  readonly line: 0;
+  readonly level: 0;
+  readonly title: string;
+  readonly numberLabel: null;
+  readonly children: HeadingMapNode[];
+}
+
+export type HeadingMapTreeNode = HeadingMapNode | HeadingMapDocumentNode;
+
+/** The document is a view-only root, including when it has no headings. */
+export function createHeadingMapDocument(title: string, children: HeadingMapNode[]): HeadingMapDocumentNode {
+  return { id: HEADING_MAP_DOCUMENT_ID, line: 0, level: 0, title, numberLabel: null, children };
+}
+
+/** Initial overview follows structural depth, including notes that skip heading levels. */
+export function headingMapOverview(roots: readonly HeadingMapNode[]): Set<string> {
+  const collapsed = new Set<string>();
+  const visit = (node: HeadingMapNode, depth: number): void => {
+    if (depth >= 2 && node.children.length > 0) collapsed.add(node.id);
+    for (const child of node.children) visit(child, depth + 1);
+  };
+  for (const root of roots) visit(root, 1);
+  return collapsed;
+}
+
 export interface HeadingMapOptions {
   readonly nodeIds?: ReadonlyMap<number, string>;
   readonly headingDisplayPlan: readonly DisplayDecorationPlan[];

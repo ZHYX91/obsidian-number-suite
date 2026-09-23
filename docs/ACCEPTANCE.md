@@ -34,6 +34,8 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Number Suite outline
 
+- [ ] Use a narrow sidebar with a long title and H1-H9 numbering. Wrapped rows must grow without
+  overlapping later rows, and deep-level titles must retain usable width. Resize and navigate them.
 - [ ] Build one note containing H1-H9 plus Figure, Table, Equation, and Code captions before and
   within sections. Confirm nesting follows source heading levels and captions attach to the deepest
   preceding heading.
@@ -51,6 +53,14 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Heading mind map
 
+- [ ] The file root shows its basename, file icon and direct top-level heading count. Test an
+  initial H2, skipped levels, same-name H1 and `Heading map empty.md`; empty notes retain a disabled
+  zero handle. Root navigation goes to the file top without modifying Markdown.
+- [ ] Initial overview shows two structural heading depths at 100%, with deeper branches collapsed.
+  Root collapse, search reveal and clearing, subtree scope and the file breadcrumb preserve state.
+  Fit can zoom out; clicking the percentage restores 100%. Rename the file and verify its label.
+- [ ] Open, close, and reopen the map through both entry points. Confirm the host header, file
+  label, search, scope and zoom controls, cards and edges all render before testing interactions.
 - [ ] Open `Heading map.md` through the outline button and command palette. Check H1-H9,
   effective/hidden numbers, direct-child counts, skipped levels and caption exclusion.
 - [ ] Rename a selected, collapsed subtree root and insert an earlier duplicate heading. Check
@@ -64,7 +74,7 @@ block explicitly authorized publication. Never use a production Vault for these 
   clear search and check the original saved collapse intent is restored.
 - [ ] Tab through number handles, card bodies and branch handles; off-screen focus must become
   visible. Enter and double-click must navigate to the exact source line.
-- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation, branch taps, navigation
+- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation without opening either host sidebar, branch taps, navigation
   and zoom buttons. Two-finger pinch zoom is not part of the current map interaction contract.
 - [ ] Hash the fixture before/after map-only operations; no Markdown writes are allowed.
 

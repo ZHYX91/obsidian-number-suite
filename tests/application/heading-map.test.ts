@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDisplayPlan } from "../../src/application/display-plan";
-import { createHeadingMap } from "../../src/application/heading-map";
+import { createHeadingMap, createHeadingMapDocument, headingMapOverview } from "../../src/application/heading-map";
 import { layoutHeadingMap } from "../../src/application/heading-map-layout";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
@@ -47,6 +47,30 @@ function mapFor(
 }
 
 describe("heading mind map", () => {
+  it("connects every parentless heading to the document without merging its namesake H1", () => {
+    const roots = mapFor("## Before\n#### Child\n# Note\n## Section\n# Last");
+    const document = createHeadingMapDocument("Note", roots);
+    expect(document).toMatchObject({ title: "Note", level: 0, numberLabel: null, line: 0 });
+    expect(document.children.map((node) => node.title)).toEqual(["Before", "Note", "Last"]);
+    expect(layoutHeadingMap([document], new Set()).edges).toHaveLength(5);
+  });
+
+  it("keeps the document root for an empty note", () => {
+    const document = createHeadingMapDocument("Empty", mapFor(""));
+    const layout = layoutHeadingMap([document], new Set());
+    expect(layout.nodes).toHaveLength(1);
+    expect(layout.nodes[0]?.node.children).toEqual([]);
+    expect(layout.edges).toEqual([]);
+  });
+
+  it("limits the initial overview by structural depth instead of heading level", () => {
+    const roots = mapFor("## Start\n#### Jump\n###### Deep\n#### Sibling\n# Last");
+    const collapsed = headingMapOverview(roots);
+    const layout = layoutHeadingMap([createHeadingMapDocument("Note", roots)], collapsed);
+    expect(layout.nodes.map(({ node }) => node.title)).toEqual(["Note", "Start", "Jump", "Sibling", "Last"]);
+    expect(collapsed.has(roots[0]!.children[0]!.id)).toBe(true);
+  });
+
   it("builds a heading-only hierarchy and treats skipped levels as direct children", () => {
     const roots = mapFor([
       "# Root",

@@ -48,8 +48,18 @@ Number Suite/DocWen H7-H9 extension headings, and Figure/Table/Equation/Code cap
 same effective per-note numbering and concealment plan as the editor, strips authored block IDs from
 labels, supports collapsing sections, and navigates by source line without rewriting Markdown.
 Captions are children of the deepest preceding heading, or roots before any heading.
+Outline rows grow with wrapped text. Badges, numbers and titles share the available line width,
+and indentation adapts to sidebar width so long labels and H7-H9 remain readable without overlap.
 
-The heading mind map projects H1-H9 headings only: captions are neither shown nor counted as child
+The heading mind map connects H1-H9 headings to a virtual document root. The root displays the
+basename, a file icon instead of a heading number, and the direct top-level heading count. It remains
+visible without headings and never merges with a same-name H1. Every parentless heading attaches
+to it, including an initial H2. Root body navigation opens the file top. Subtree scope uses the
+selected heading as root; the file-name breadcrumb returns to the document. Initially, two structural
+heading depths are visible at 100% scale; deeper branches are collapsed. Clicking the zoom percentage
+restores 100%. These presentation defaults never change Markdown or reset expansion on later edits.
+
+The map projects headings only: captions are neither shown nor counted as child
 headings. Its default layout runs left to right, connecting a parent's right side to each child's
 left side. A card's left handle first shows the virtual number that is actually visible; when there
 is no virtual number, it may show a reliably recognized visible stored number within the current
@@ -61,7 +71,8 @@ shallower heading without creating synthetic nodes.
 The mind map supports whole-document and Selected subtree scopes, title/number search, Fit,
 empty-space panning, and Ctrl/Cmd-wheel zoom around the pointer. Search may temporarily reveal the
 ancestors needed for matches, but must not alter structural counts or the user's session collapse
-intent; clearing search restores the session collapse state. Click selects a card; double-click or
+intent; clearing search restores the session collapse state. If the selected match becomes hidden,
+its nearest visible ancestor takes its selection and screen position. Click selects a card; double-click or
 Enter on its body navigates to the exact source line. Edits to the current note may refresh the map
 without resetting selection, branch collapse, or the viewport for that same document. The view is
 strictly read-only and exposes no drag reorder, heading-level change, or Markdown write path.

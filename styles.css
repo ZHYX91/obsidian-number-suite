@@ -749,10 +749,10 @@
 }
 
 .number-suite-outline-row {
-  align-items: stretch;
+  align-items: flex-start;
   display: flex;
   min-width: 0;
-  padding-inline-start: calc(var(--number-suite-outline-depth) * 0.75rem);
+  padding-inline-start: calc(var(--number-suite-outline-depth) * min(0.75rem, 2.5%));
 }
 
 .number-suite-outline-toggle,
@@ -768,6 +768,7 @@
   align-items: center;
   display: inline-flex;
   flex: 0 0 1.6rem;
+  height: auto;
   justify-content: center;
   min-height: 2rem;
   padding: 0;
@@ -779,15 +780,15 @@
 }
 
 .number-suite-outline-link {
-  align-items: baseline;
   border-radius: var(--radius-s);
-  display: grid;
+  display: block;
   flex: 1 1 auto;
   font-size: var(--font-ui-small);
-  gap: var(--size-2-2);
-  grid-template-columns: auto auto minmax(0, 1fr);
+  height: auto;
+  line-height: var(--line-height-tight);
   min-height: 2rem;
   min-width: 0;
+  overflow-wrap: anywhere;
   padding: var(--size-2-2) var(--size-4-2);
   text-align: start;
   white-space: normal;
@@ -812,7 +813,6 @@
 .number-suite-outline-number {
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .number-suite-outline-title {
@@ -1255,12 +1255,18 @@
 }
 
 .number-suite-heading-map-file {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   flex: 1 1 auto;
   font-weight: var(--font-semibold);
   min-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: start;
+  height: auto;
+  padding: 4px 0;
 }
 
 .number-suite-heading-map-search {
@@ -1280,6 +1286,7 @@
 }
 
 .number-suite-heading-map-scope {
+  flex-wrap: wrap;
   min-width: 0;
 }
 
@@ -1297,10 +1304,18 @@
   box-shadow: none;
   color: var(--text-muted);
   display: inline-flex;
-  height: 28px;
+  height: auto;
+  min-height: 28px;
   justify-content: center;
   min-width: 28px;
   padding: 4px 7px;
+}
+
+.number-suite-heading-map-scope button {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .number-suite-heading-map-scope button:hover:not(:disabled),
@@ -1390,6 +1405,14 @@
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus), var(--shadow-s);
 }
 
+.number-suite-heading-map-card.is-document {
+  border-color: var(--interactive-accent);
+}
+
+.number-suite-heading-map-card.is-document .number-suite-heading-map-body {
+  font-weight: var(--font-semibold);
+}
+
 .number-suite-heading-map-card.is-match:not(.is-selected) {
   box-shadow: 0 0 0 2px var(--text-accent), var(--shadow-s);
 }
@@ -1430,6 +1453,7 @@
 .number-suite-heading-map-body {
   background: transparent;
   color: var(--text-normal);
+  display: block;
   flex: 1 1 auto;
   font-size: var(--font-ui-small);
   min-width: 0;
@@ -1448,6 +1472,16 @@
   border-inline-start: 1px solid var(--background-modifier-border);
   flex: 0 0 46px;
   padding: 0;
+  gap: 2px;
+}
+
+.number-suite-heading-map-expand-icon {
+  display: inline-flex;
+}
+
+.number-suite-heading-map-expand-icon svg {
+  height: 12px;
+  width: 12px;
 }
 
 .number-suite-heading-map-children:not(:disabled):hover,
@@ -1488,6 +1522,8 @@
 }
 
 @media (pointer: coarse) {
+  .number-suite-heading-map-number,
+  .number-suite-heading-map-file,
   .number-suite-sidebar-tab,
   .number-suite-outline-link,
   .number-suite-outline-toggle,

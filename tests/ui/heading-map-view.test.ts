@@ -1,15 +1,25 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MarkdownView, type WorkspaceLeaf } from "obsidian";
+import { MarkdownView, TFile, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
-  ItemView: class {},
+  ItemView: class {
+    // ItemView owns this undocumented header field and uses it before onOpen.
+    readonly titleEl = document.createElement("div");
+    readonly contentEl = document.createElement("div");
+
+    getDisplayText(): string { return ""; }
+
+    load(): void { this.titleEl.setText(this.getDisplayText()); }
+
+    registerEvent(_event: unknown): void {}
+  },
 }));
 
 import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
-import { findHeadingMapNode, type HeadingMapNode } from "../../src/application/heading-map";
+import { findHeadingMapNode, HEADING_MAP_DOCUMENT_ID, type HeadingMapNode } from "../../src/application/heading-map";
 import { installDomFixture } from "./dom-fixture";
 import type { HeadingMapLayout } from "../../src/application/heading-map-layout";
 
@@ -25,12 +35,15 @@ type Subject = {
   searchQuery: string;
   sceneHost: HTMLElement;
   viewport: HTMLElement;
+  needsInitialFit: boolean;
+  onResize(): void;
   refreshMap(source?: string, path?: string): Promise<void>;
   scheduleRefresh(source?: string): void;
   onActiveLeafChange(leaf: WorkspaceLeaf): void;
   setScaleAt(scale: number, x: number, y: number): void;
   render(): void;
-  fitToView(): void;
+  fitToView(readable?: boolean): void;
+  showDocument(): void;
   onWheel(event: WheelEvent): void;
   beginPan(event: PointerEvent): void;
   movePan(event: PointerEvent): void;
@@ -47,8 +60,8 @@ function makeView(): Subject {
   const viewport = contentEl.appendChild(document.createElement("div"));
   const sceneHost = viewport.appendChild(document.createElement("div"));
   Object.defineProperties(viewport, {
-    clientWidth: { value: 800 },
-    clientHeight: { value: 600 },
+    clientWidth: { value: 800, configurable: true },
+    clientHeight: { value: 600, configurable: true },
   });
   Object.assign(view, {
     contentEl, viewport, sceneHost,
@@ -62,6 +75,119 @@ beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
 
 describe("heading map interactions", () => {
+  it("renders an empty file as a document card with a disabled zero handle", async () => {
+    const view = makeView();
+    await view.refreshMap("");
+    const card = view.sceneHost.querySelector(".is-document")!;
+    expect(card.querySelector(".number-suite-heading-map-body")?.textContent).toBe("Same");
+    expect(card.querySelector(".number-suite-heading-map-number")?.getAttribute("aria-label")).toBe("Same.md");
+    const handle = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
+    expect(handle.disabled).toBe(true);
+    expect(handle.textContent).toBe("0");
+    expect(view.lastLayout.edges).toHaveLength(0);
+  });
+
+  it("preserves document collapse and selection through edits and returns from a subtree", async () => {
+    const view = makeView();
+    await view.refreshMap("## A\n#### B\n###### C\n# D");
+    const documentControl = view.sceneHost.querySelector<HTMLButtonElement>(`[data-node-control="${HEADING_MAP_DOCUMENT_ID}"]`)!;
+    expect(documentControl.textContent).toBe("2");
+    documentControl.click();
+    await view.refreshMap("## A\nbody\n#### B\n###### C\n# D");
+    expect(view.selectedId).toBe(HEADING_MAP_DOCUMENT_ID);
+    expect(view.lastLayout.nodes).toHaveLength(1);
+    view.scopeId = view.roots[0]!.id;
+    view.render();
+    expect(view.sceneHost.querySelector(".is-document")).toBeNull();
+    view.showDocument();
+    expect(view.scopeId).toBeNull();
+    expect(view.sceneHost.querySelector(".is-document")).not.toBeNull();
+    expect(view.collapsed.has(HEADING_MAP_DOCUMENT_ID)).toBe(true);
+  });
+
+  it("opens a readable overview and does not reset user expansion on an edit", async () => {
+    const view = makeView();
+    await view.refreshMap("## A\n#### B\n###### C\n# D");
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A", "B", "D"]);
+    view.fitToView(true);
+    expect(view.scale).toBe(1);
+    const root = view.lastLayout.nodes.find(({ node }) => node.id === HEADING_MAP_DOCUMENT_ID)!;
+    expect(view.offsetX + root.x).toBe(24);
+    const branch = view.roots[0]!.children[0]!;
+    view.collapsed.delete(branch.id);
+    await view.refreshMap("## A\ntext\n#### B\n###### C\n# D");
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toContain("C");
+  });
+
+  it("loads through the host lifecycle without overwriting the ItemView header", async () => {
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Map.md", basename: "Map", extension: "md",
+    });
+    const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
+      getSettings: () => DEFAULT_SETTINGS,
+      getTranslate: () => ((key: string) => key),
+    });
+    Object.assign(view, {
+      app: {
+        workspace: {
+          on: vi.fn(),
+          getActiveFile: () => file,
+          getActiveViewOfType: () => null,
+          iterateAllLeaves: vi.fn(),
+        },
+        vault: { on: vi.fn(), cachedRead: async () => "# Root\n## Child" },
+      },
+    });
+    view.load();
+    await view.onOpen();
+    const header = (view as unknown as { titleEl: HTMLElement }).titleEl;
+    expect(header.textContent).toBe("headingMap.title");
+    expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
+    expect(view.contentEl.querySelector(".number-suite-heading-map-search")).not.toBeNull();
+    expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(3);
+    const hostSwipe = vi.fn();
+    const hostPointer = vi.fn();
+    view.contentEl.addEventListener("touchstart", hostSwipe);
+    view.contentEl.addEventListener("touchmove", hostSwipe);
+    view.contentEl.addEventListener("touchend", hostSwipe);
+    view.contentEl.addEventListener("pointerdown", hostPointer);
+    const body = view.contentEl.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
+    for (const type of ["touchstart", "touchmove", "touchend"]) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      body.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    body.click();
+    expect(body.parentElement?.classList.contains("is-selected")).toBe(true);
+    expect(hostSwipe).not.toHaveBeenCalled();
+    expect(hostPointer).not.toHaveBeenCalled();
+    await view.onClose();
+  });
+
+  it("defers an empty document's initial fit until a hidden tab is revealed without resetting later panning", async () => {
+    vi.useFakeTimers();
+    const view = makeView();
+    Object.defineProperties(view.viewport, { clientWidth: { value: 0 }, clientHeight: { value: 0 } });
+    view.needsInitialFit = true;
+    await view.refreshMap("");
+    vi.advanceTimersByTime(20);
+    expect(view.needsInitialFit).toBe(true);
+    expect([view.offsetX, view.offsetY]).toEqual([0, 0]);
+    Object.defineProperties(view.viewport, { clientWidth: { value: 400 }, clientHeight: { value: 600 } });
+    view.onResize();
+    vi.advanceTimersByTime(20);
+    expect(view.needsInitialFit).toBe(false);
+    expect(view.offsetX + view.lastLayout.width / 2).toBe(200);
+    expect(view.offsetY + view.lastLayout.height / 2).toBe(300);
+    view.offsetX = -120;
+    view.offsetY = 70;
+    view.scale = 1.2;
+    view.onResize();
+    vi.advanceTimersByTime(20);
+    expect([view.offsetX, view.offsetY, view.scale]).toEqual([-120, 70, 1.2]);
+  });
+
   it("control: preserves selection, scope, and collapse for a body-only edit", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child");
@@ -133,14 +259,14 @@ describe("heading map interactions", () => {
     view.collapsed.add(root.id);
     view.searchQuery = "Search target";
     view.render();
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
     const control = [...view.sceneHost.querySelectorAll<HTMLElement>("[data-node-control]")]
       .find((element) => element.dataset.nodeControl === root.id)!;
     expect.soft(control.getAttribute("aria-expanded")).toBe("true");
     view.searchQuery = "";
     view.render();
     expect(view.collapsed.has(root.id)).toBe(true);
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
   });
 
   it("toggles a search-revealed branch without changing the saved collapse intent", async () => {
@@ -153,14 +279,34 @@ describe("heading map interactions", () => {
       .find((element) => element.dataset.nodeControl === root.id)!;
     rootControl().click();
     expect(rootControl().getAttribute("aria-expanded")).toBe("false");
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
     expect(view.collapsed.has(root.id)).toBe(false);
     rootControl().click();
     expect(rootControl().getAttribute("aria-expanded")).toBe("true");
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
     view.searchQuery = "";
     view.render();
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
+  });
+
+  it("keeps the nearest visible ancestor on screen after clearing a centered hidden match", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Branch\n### Target");
+    const branch = view.roots[0]!.children[0]!;
+    const target = branch.children[0]!;
+    view.searchQuery = "Target";
+    view.selectedId = target.id;
+    view.render();
+    const before = view.lastLayout.nodes.find(({ node }) => node.id === target.id)!;
+    view.offsetX = 400 - (before.x + 132);
+    view.offsetY = 300 - (before.y + 24);
+    view.searchQuery = "";
+    view.render();
+    const after = view.lastLayout.nodes.find(({ node }) => node.id === branch.id)!;
+    expect(view.selectedId).toBe(branch.id);
+    expect(view.collapsed.has(branch.id)).toBe(true);
+    expect(after.x + 132 + view.offsetX).toBe(400);
+    expect(after.y + 24 + view.offsetY).toBe(300);
   });
 
   it("pins the clicked parent to the same screen position while collapsing and expanding", async () => {
