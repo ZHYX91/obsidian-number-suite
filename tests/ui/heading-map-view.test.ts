@@ -35,6 +35,8 @@ type Subject = {
   searchQuery: string;
   sceneHost: HTMLElement;
   viewport: HTMLElement;
+  needsInitialFit: boolean;
+  onResize(): void;
   refreshMap(source?: string, path?: string): Promise<void>;
   scheduleRefresh(source?: string): void;
   onActiveLeafChange(leaf: WorkspaceLeaf): void;
@@ -58,8 +60,8 @@ function makeView(): Subject {
   const viewport = contentEl.appendChild(document.createElement("div"));
   const sceneHost = viewport.appendChild(document.createElement("div"));
   Object.defineProperties(viewport, {
-    clientWidth: { value: 800 },
-    clientHeight: { value: 600 },
+    clientWidth: { value: 800, configurable: true },
+    clientHeight: { value: 600, configurable: true },
   });
   Object.assign(view, {
     contentEl, viewport, sceneHost,
@@ -143,7 +145,47 @@ describe("heading map interactions", () => {
     expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
     expect(view.contentEl.querySelector(".number-suite-heading-map-search")).not.toBeNull();
     expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(3);
+    const hostSwipe = vi.fn();
+    const hostPointer = vi.fn();
+    view.contentEl.addEventListener("touchstart", hostSwipe);
+    view.contentEl.addEventListener("touchmove", hostSwipe);
+    view.contentEl.addEventListener("touchend", hostSwipe);
+    view.contentEl.addEventListener("pointerdown", hostPointer);
+    const body = view.contentEl.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
+    for (const type of ["touchstart", "touchmove", "touchend"]) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      body.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    body.click();
+    expect(body.parentElement?.classList.contains("is-selected")).toBe(true);
+    expect(hostSwipe).not.toHaveBeenCalled();
+    expect(hostPointer).not.toHaveBeenCalled();
     await view.onClose();
+  });
+
+  it("defers an empty document's initial fit until a hidden tab is revealed without resetting later panning", async () => {
+    vi.useFakeTimers();
+    const view = makeView();
+    Object.defineProperties(view.viewport, { clientWidth: { value: 0 }, clientHeight: { value: 0 } });
+    view.needsInitialFit = true;
+    await view.refreshMap("");
+    vi.advanceTimersByTime(20);
+    expect(view.needsInitialFit).toBe(true);
+    expect([view.offsetX, view.offsetY]).toEqual([0, 0]);
+    Object.defineProperties(view.viewport, { clientWidth: { value: 400 }, clientHeight: { value: 600 } });
+    view.onResize();
+    vi.advanceTimersByTime(20);
+    expect(view.needsInitialFit).toBe(false);
+    expect(view.offsetX + view.lastLayout.width / 2).toBe(200);
+    expect(view.offsetY + view.lastLayout.height / 2).toBe(300);
+    view.offsetX = -120;
+    view.offsetY = 70;
+    view.scale = 1.2;
+    view.onResize();
+    vi.advanceTimersByTime(20);
+    expect([view.offsetX, view.offsetY, view.scale]).toEqual([-120, 70, 1.2]);
   });
 
   it("control: preserves selection, scope, and collapse for a body-only edit", async () => {

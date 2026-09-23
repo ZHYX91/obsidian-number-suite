@@ -20,6 +20,8 @@ All notable changes to Number Suite are documented here.
 - Let long outline rows grow with wrapped text and share the available width between numbers and
   titles; reduce indentation in narrow sidebars so deep headings remain readable.
 - Keep a visible ancestor in place when clearing search hides the selected map result again.
+- Wait for a visible viewport before positioning a newly opened file, including empty notes.
+- Keep mobile canvas drags from opening the host sidebar while preserving card taps.
 
 ## 0.4.0 - 2026-09-23
 

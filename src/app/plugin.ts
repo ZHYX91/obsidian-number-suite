@@ -299,8 +299,8 @@ export default class NumberSuitePlugin extends Plugin {
     if (existing == null) {
       await leaf.setViewState({ type: NUMBER_SUITE_HEADING_MAP_VIEW, active: true });
     }
-    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
     await this.app.workspace.revealLeaf(leaf);
+    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
   }
 
   private openGlobalSettings(): void {

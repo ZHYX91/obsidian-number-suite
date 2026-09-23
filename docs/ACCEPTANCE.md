@@ -74,7 +74,7 @@ block explicitly authorized publication. Never use a production Vault for these 
   clear search and check the original saved collapse intent is restored.
 - [ ] Tab through number handles, card bodies and branch handles; off-screen focus must become
   visible. Enter and double-click must navigate to the exact source line.
-- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation, branch taps, navigation
+- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation without opening either host sidebar, branch taps, navigation
   and zoom buttons. Two-finger pinch zoom is not part of the current map interaction contract.
 - [ ] Hash the fixture before/after map-only operations; no Markdown writes are allowed.
 

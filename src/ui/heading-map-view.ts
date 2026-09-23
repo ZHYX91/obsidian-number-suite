@@ -110,7 +110,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.sceneHost = this.viewport.createDiv({ cls: "number-suite-heading-map-scene" });
 
     this.viewport.addEventListener("wheel", (event) => this.onWheel(event), { passive: false });
-    this.viewport.addEventListener("pointerdown", (event) => this.beginPan(event));
+    // The host's mobile sidebar listens for bubbling touch gestures. Own gestures inside
+    // the canvas without cancelling tap/click synthesis on card buttons.
+    for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"] as const) {
+      this.viewport.addEventListener(type, (event) => event.stopPropagation(), { passive: true });
+    }
+    this.viewport.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      this.beginPan(event);
+    });
     this.viewport.addEventListener("pointermove", (event) => this.movePan(event));
     this.viewport.addEventListener("pointerup", (event) => this.endPan(event));
     this.viewport.addEventListener("pointercancel", (event) => this.endPan(event));
@@ -142,6 +150,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.sceneHost = null;
     this.canvas = null;
     this.lastLayout = null;
+  }
+
+  override onResize(): void {
+    if (this.needsInitialFit) this.requestFrame(() => this.fitInitialView());
   }
 
   showFile(file: TFile | null, sourceLeaf: WorkspaceLeaf | null = null): void {
@@ -584,8 +596,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.applyScale();
     this.updateToolbarState();
     if (this.needsInitialFit) {
-      this.needsInitialFit = false;
-      this.requestFrame(() => this.fitToView(true));
+      this.requestFrame(() => this.fitInitialView());
     }
   }
 
@@ -685,10 +696,17 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.updateToolbarState();
   }
 
-  private fitToView(readable = false): void {
+  private fitInitialView(): void {
+    if (this.needsInitialFit && this.fitToView(true)) this.needsInitialFit = false;
+  }
+
+  private fitToView(readable = false): boolean {
     const viewport = this.viewport;
     const layout = this.lastLayout;
-    if (viewport == null || layout == null || layout.width === 0 || layout.height === 0) return;
+    // A background tab can render a new file before it has measurable dimensions.
+    // Keep the initial fit pending until the host reveals/resizes the view.
+    if (viewport == null || layout == null || layout.width === 0 || layout.height === 0
+      || viewport.clientWidth <= 0 || viewport.clientHeight <= 0) return false;
     const availableWidth = Math.max(1, viewport.clientWidth - 32);
     const availableHeight = Math.max(1, viewport.clientHeight - 32);
     this.scale = Math.min(
@@ -706,6 +724,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       }
     }
     this.applyScale();
+    return true;
   }
 
   private onWheel(event: WheelEvent): void {
