@@ -37,6 +37,46 @@ describe("Markdown source binding", () => {
     });
   });
 
+  it("uses the active same-file pane when no preferred pane remains", async () => {
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("Same.md");
+    const activeView = view(file, "# Active");
+    const active = { view: activeView } as unknown as WorkspaceLeaf;
+    Object.assign(activeView, { leaf: active });
+    const app = {
+      workspace: {
+        iterateAllLeaves: (callback: (leaf: WorkspaceLeaf) => void) => callback(active),
+        getActiveViewOfType: () => activeView,
+      },
+      vault: { cachedRead: async () => "# Disk" },
+    } as unknown as App;
+
+    await expect(readBoundMarkdownSource(app, file, null)).resolves.toEqual({
+      leaf: active,
+      source: "# Active",
+    });
+  });
+
+  it("uses the unique same-file pane when it is not active", async () => {
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("Same.md");
+    const onlyView = view(file, "# Only");
+    const only = { view: onlyView } as unknown as WorkspaceLeaf;
+    Object.assign(onlyView, { leaf: only });
+    const app = {
+      workspace: {
+        iterateAllLeaves: (callback: (leaf: WorkspaceLeaf) => void) => callback(only),
+        getActiveViewOfType: () => null,
+      },
+      vault: { cachedRead: async () => "# Disk" },
+    } as unknown as App;
+
+    await expect(readBoundMarkdownSource(app, file, null)).resolves.toEqual({
+      leaf: only,
+      source: "# Only",
+    });
+  });
+
   it("falls back to disk when multiple panes exist and none is bound or active", async () => {
     const FileConstructor = TFile as unknown as new (path: string) => TFile;
     const file = new FileConstructor("Same.md");
