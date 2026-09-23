@@ -1,4 +1,5 @@
 import { navigateToLine } from "../adapters/navigate-to-line";
+import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import {
   ItemView,
   MarkdownView,
@@ -9,6 +10,7 @@ import {
 } from "obsidian";
 
 import { createDisplayPlan } from "../application/display-plan";
+import { HeadingMapIdentity } from "../application/heading-map-identity";
 import {
   createDocumentOutline,
   type DocumentOutlineNode,
@@ -69,6 +71,8 @@ export class NumberSuiteSidebarView extends ItemView {
   private outlineRequest = 0;
   private outlineTimer: number | null = null;
   private outlineRoots: readonly DocumentOutlineNode[] = [];
+  private outlineIdentities = new HeadingMapIdentity();
+  private outlineNodeIds = new Map<number, string>();
   private readonly collapsed = new Set<string>();
 
   constructor(
@@ -202,6 +206,8 @@ export class NumberSuiteSidebarView extends ItemView {
     this.outlineRequest += 1;
     this.currentFile = markdown;
     this.outlineRoots = [];
+    this.outlineIdentities = new HeadingMapIdentity();
+    this.outlineNodeIds.clear();
     this.collapsed.clear();
     this.notePane?.setFile(markdown, refresh && this.activeTab === "note");
     if (refresh && this.activeTab === "outline") void this.refreshOutline();
@@ -257,24 +263,9 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   private async sourceForFile(file: TFile): Promise<string> {
-    const active = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (active?.file?.path === file.path) {
-      this.sourceLeaf = active.leaf;
-      return active.editor.getValue();
-    }
-    const matching: MarkdownView[] = [];
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
-        matching.push(leaf.view);
-      }
-    });
-    const source = matching.find((view) => view.leaf === this.sourceLeaf)
-      ?? (matching.length === 1 ? matching[0] : null);
-    if (source != null) {
-      this.sourceLeaf = source.leaf;
-      return source.editor.getValue();
-    }
-    return this.app.vault.cachedRead(file);
+    const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
+    if (bound.leaf != null) this.sourceLeaf = bound.leaf;
+    return bound.source;
   }
 
   private async refreshOutline(
@@ -315,6 +306,7 @@ export class NumberSuiteSidebarView extends ItemView {
         return;
       }
       const headings = parseAtxHeadings(source);
+      this.outlineNodeIds = new Map(this.outlineIdentities.update(source, headings));
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
         showVirtualNumbers: effective.showVirtualNumbers,
         concealStoredNumbers: effective.concealStoredNumbers,
@@ -377,7 +369,8 @@ export class NumberSuiteSidebarView extends ItemView {
     node: DocumentOutlineNode,
     depth: number,
   ): void {
-    const key = `${file.path}:${node.kind}:${node.line}`;
+    const identity = node.kind === "heading" ? this.outlineNodeIds.get(node.line) ?? String(node.line) : String(node.line);
+    const key = `${file.path}:${node.kind}:${identity}`;
     const collapsed = this.collapsed.has(key);
     const item = container.createDiv({ cls: `number-suite-outline-item is-${node.kind}` });
     item.setAttribute("role", "listitem");
