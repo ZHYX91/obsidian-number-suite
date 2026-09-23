@@ -42,6 +42,7 @@ export interface NumberSuiteSidebarActions {
   readonly runCurrent: (operation: TransformOperation, path: string) => void;
   readonly openBatch: () => void;
   readonly openGlobalSettings: () => void;
+  readonly openHeadingMap: (path: string) => void;
 }
 
 function sidebarTab(value: unknown): NumberSuiteSidebarTab {
@@ -349,7 +350,14 @@ export class NumberSuiteSidebarView extends ItemView {
     this.outlineRoots = outline;
     panel.empty();
     const header = panel.createDiv({ cls: "number-suite-sidebar-file" });
-    header.createEl("h4", { text: file.basename });
+    const heading = header.createDiv({ cls: "number-suite-sidebar-file-heading" });
+    heading.createEl("h4", { text: file.basename });
+    const map = heading.createEl("button", { cls: "number-suite-sidebar-map-button" });
+    map.type = "button";
+    setIcon(map, "git-fork");
+    map.setAttribute("aria-label", this.actions.getTranslate()("sidebar.outline.openMap"));
+    map.title = this.actions.getTranslate()("sidebar.outline.openMap");
+    map.addEventListener("click", () => this.actions.openHeadingMap(file.path));
     header.createEl("p", { text: file.path });
     if (outline.length === 0) {
       panel.createEl("p", {
