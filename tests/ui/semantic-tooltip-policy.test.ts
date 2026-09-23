@@ -30,6 +30,25 @@ describe("semantic tooltip policy", () => {
     controller.refresh();
     expect(tooltip.isConnected).toBe(false);
   });
+  it("adds and removes only its own aria-describedby token", () => {
+    const controller = new SemanticTooltipController({} as App, () => DEFAULT_SETTINGS);
+    const target = document.body.appendChild(document.createElement("img"));
+    target.dataset.numberSuiteTooltipTitle = "Figure 1";
+    target.dataset.numberSuiteTooltipBody = "Diagram";
+    target.setAttribute("aria-describedby", "existing-description");
+    const show = Reflect.get(controller, "show") as (element: HTMLElement) => void;
+    const hide = Reflect.get(controller, "hide") as () => void;
+
+    show.call(controller, target);
+    const describedBy = target.getAttribute("aria-describedby")?.split(/\s+/u) ?? [];
+    expect(describedBy).toContain("existing-description");
+    expect(describedBy.some((value) => value.startsWith("number-suite-semantic-tooltip-"))).toBe(true);
+
+    hide.call(controller);
+    expect(target.getAttribute("aria-describedby")).toBe("existing-description");
+    target.remove();
+  });
+
   it("honors the global tooltip toggle even when stale metadata remains on an image", () => {
     const app = { workspace: { iterateAllLeaves: () => undefined } } as unknown as App;
     const controller = new SemanticTooltipController(app, () => ({
