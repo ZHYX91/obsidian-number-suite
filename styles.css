@@ -1274,8 +1274,19 @@
   min-width: 140px;
 }
 
+.number-suite-heading-map-search-status {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: end;
+}
+
 .number-suite-heading-map-scope,
-.number-suite-heading-map-zoom {
+.number-suite-heading-map-zoom,
+.number-suite-heading-map-range,
+.number-suite-heading-map-direction {
   align-items: center;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
@@ -1290,8 +1301,26 @@
   min-width: 0;
 }
 
+.number-suite-heading-map-range,
+.number-suite-heading-map-direction,
 .number-suite-heading-map-zoom {
   flex: 0 0 auto;
+}
+
+.number-suite-heading-map-range,
+.number-suite-heading-map-direction {
+  min-height: 34px;
+}
+
+.number-suite-heading-map-direction {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-width: 34px;
+  padding: 4px 7px;
+}
+
+.number-suite-heading-map-zoom {
   margin-inline-start: auto;
 }
 
