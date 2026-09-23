@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { App } from "obsidian";
 
 import { parseNoteOverrides } from "../../src/config/frontmatter";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
+import { installDomFixture } from "./dom-fixture";
 import {
   SemanticTooltipController,
   semanticTooltipAllowed,
@@ -14,6 +15,8 @@ function allowed(controller: SemanticTooltipController, target: HTMLElement): bo
   const check = Reflect.get(controller, "allowed") as (element: HTMLElement) => boolean;
   return check.call(controller, target);
 }
+
+beforeEach(installDomFixture);
 
 describe("semantic tooltip policy", () => {
   it.each([
