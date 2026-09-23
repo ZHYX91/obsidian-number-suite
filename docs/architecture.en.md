@@ -109,20 +109,24 @@ placement, alignment, pills, and tooltips never change these source facts.
 ## Display adapters
 
 `NumberSuiteSidebarView` is one persistent right-side `ItemView` with two internal tabs. The outline
-tab reads the active editor when uniquely available and otherwise uses a cached Vault read, then
-renders the pure outline projection. The current-note tab owns a reusable controls pane instead of
-a modal. Workspace file, leaf, editor, and Vault-modify events refresh only the relevant active tab;
-the selected tab is stored as view state. Navigation resolves an existing Markdown leaf when
-possible and otherwise opens the file at the projected source line.
+and Heading Map share a Markdown-source binding adapter: an existing originating same-file pane wins,
+then the active same-file pane, then a unique same-file pane, and ambiguous unbound panes fall back
+to a cached Vault read. The outline renders the pure projection and reconciles heading collapse
+state with source identities instead of raw line numbers. The current-note tab owns a reusable
+controls pane instead of a modal. Workspace file, leaf, editor, and Vault-modify events refresh only
+the relevant active tab; the selected tab is stored as view state. Navigation resolves an existing
+Markdown leaf when possible and otherwise opens the file at the projected source line.
 
 `NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from the outline button
-or command palette. It uses the same originating-pane source preference and exact source-line
-navigation, rendering left-to-right heading cards with SVG structure edges. A card's left handle
-shows its heading number or Hn fallback; its right handle always shows the total direct-child count
-and changes only session-local branch collapse. The view supports whole-document/selected-subtree
-scopes, search, empty-space panning, Ctrl/Cmd-wheel pointer zoom, and Fit. Search may temporarily
-reveal ancestors of matches without changing structural counts. The view only consumes display
-plans: it never calls Editor/Vault write APIs and offers no drag reordering or heading-level edits.
+or command palette. It uses the same bound-pane source preference and exact source-line navigation,
+rendering SVG structure edges in left-to-right or top-to-bottom layout. Pure helpers own structural
+depth expansion and anchored viewport zoom math. A card's left handle shows its heading number or Hn
+fallback; its right handle always shows the total direct-child count and changes only session-local
+branch collapse. The view supports whole-document/selected-subtree scopes, 1/2/3/all depth presets,
+search traversal, empty-space panning, Ctrl/Cmd-wheel or two-finger pointer zoom, keyboard zoom/Fit,
+and toolbar Fit. Search may temporarily reveal ancestors of matches without changing structural
+counts. The view only consumes display plans: it never calls Editor/Vault write APIs and offers no
+drag reordering or heading-level edits.
 
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
