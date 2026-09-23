@@ -24,7 +24,7 @@ import {
   cloneSettings,
   normalizePluginData,
   sanitizeSettings,
-  type NumberSuiteSettings
+  type NumberSuiteSettings,
 } from "../config/settings";
 import {
   type SettingsSaveStatus,
