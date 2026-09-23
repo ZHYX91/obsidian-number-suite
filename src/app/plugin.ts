@@ -128,6 +128,9 @@ export default class NumberSuitePlugin extends Plugin {
     this.tooltipController.register(this);
     this.registerCommands();
     this.addRibbon();
+    this.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
+      this.applyAppearanceToDocument(window.document);
+    }));
     this.applyAppearance();
   }
 
@@ -367,17 +370,19 @@ export default class NumberSuitePlugin extends Plugin {
     return [...documents];
   }
 
+  private applyAppearanceToDocument(ownerDocument: Document): void {
+    ownerDocument.body.style.setProperty(
+      "--number-suite-virtual-opacity",
+      String(this.settings.virtualOpacity),
+    );
+    ownerDocument.body.style.setProperty(
+      "--number-suite-virtual-gap",
+      `${this.settings.virtualGapEm}em`,
+    );
+  }
+
   private applyAppearance(): void {
-    for (const ownerDocument of this.ownerDocuments()) {
-      ownerDocument.body.style.setProperty(
-        "--number-suite-virtual-opacity",
-        String(this.settings.virtualOpacity),
-      );
-      ownerDocument.body.style.setProperty(
-        "--number-suite-virtual-gap",
-        `${this.settings.virtualGapEm}em`,
-      );
-    }
+    for (const ownerDocument of this.ownerDocuments()) this.applyAppearanceToDocument(ownerDocument);
   }
 
   private clearAppearance(): void {
