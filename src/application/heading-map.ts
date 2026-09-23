@@ -7,6 +7,7 @@ import type {
   CleanupScope,
   CleanupTemplateSource,
   HeadingLevel,
+  HeadingNumberMatch,
   NumberingOptions,
 } from "../core/types";
 
@@ -39,7 +40,7 @@ function visibleStoredPrefix(
   level: HeadingLevel,
   expectedLabel: string | null,
   options: HeadingMapOptions,
-) {
+): HeadingNumberMatch | null {
   if (!options.recognizeStoredNumbers || options.concealStoredNumbers) return null;
   const analysis = analyzeHeadingPrefix({ content, level }, expectedLabel, options.templateSources);
   const first = analysis.first;
@@ -73,11 +74,11 @@ export function createHeadingMap(
       ? heading.content.slice(prefix.length).trimStart()
       : heading.content;
     const title = withoutBlockId(visible);
-    const identity = `${heading.level}\u0000${title}`;
+    const identity = `${heading.level}:${encodeURIComponent(title)}`;
     const occurrence = (identities.get(identity) ?? 0) + 1;
     identities.set(identity, occurrence);
     return {
-      id: `${identity}\u0000${occurrence}`,
+      id: `${identity}:${occurrence}`,
       line: heading.line,
       level: heading.level,
       title,
