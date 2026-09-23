@@ -245,12 +245,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
     const range = secondary.createEl("select", { cls: "number-suite-heading-map-range" });
     range.setAttribute("aria-label", this.actions.getTranslate()("headingMap.expandRange"));
-    range.createEl("option", { value: "", text: this.actions.getTranslate()("headingMap.expandRange") });
+    const rangePrompt = range.createEl("option", { text: this.actions.getTranslate()("headingMap.expandRange") });
+    rangePrompt.value = "";
     for (const value of ["1", "2", "3", "all"] as const) {
-      range.createEl("option", {
-        value,
+      const option = range.createEl("option", {
         text: this.actions.getTranslate()(`headingMap.expandRange.${value}`),
       });
+      option.value = value;
     }
     range.value = "";
     range.addEventListener("change", () => {
