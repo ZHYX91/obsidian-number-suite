@@ -68,16 +68,20 @@ child headings. When children exist it toggles only that branch without changing
 shown but is not expandable. A skipped-level heading attaches directly to the nearest preceding
 shallower heading without creating synthetic nodes.
 
-The mind map supports whole-document and Selected subtree scopes, title/number search, Fit,
-empty-space panning, and Ctrl/Cmd-wheel zoom around the pointer. Search may temporarily reveal the
+The mind map supports whole-document and Selected subtree scopes, 1/2/3/all structural-depth
+expansion, left-to-right and top-to-bottom layouts, title/number search, Fit, empty-space panning,
+Ctrl/Cmd-wheel zoom around the pointer, and two-finger pinch zoom. Search may temporarily reveal the
 ancestors needed for matches, but must not alter structural counts or the user's session collapse
-intent; clearing search restores the session collapse state. If the selected match becomes hidden,
-its nearest visible ancestor takes its selection and screen position. Click selects a card; double-click or
-Enter on its body navigates to the exact source line. Edits to the current note may refresh the map
-without resetting selection, branch collapse, or the viewport for that same document. The view is
-strictly read-only and exposes no drag reorder, heading-level change, or Markdown write path.
+intent; clearing search restores the session collapse state. Enter and Shift+Enter traverse matches
+in document order while a compact status reports the current and total match count. If the selected
+match becomes hidden, its nearest visible ancestor takes its selection and screen position. Click
+selects a card; double-click or Enter on its body navigates to the exact source line. Edits to the
+current note may refresh the map without resetting selection, branch collapse, or the viewport for
+that same document. The view is strictly read-only and exposes no drag reorder, heading-level change,
+or Markdown write path.
 
-Ordinary wheel input pans; Shift-wheel pans horizontally. Canvas translation is independent of
+Ordinary wheel input pans; Shift-wheel pans horizontally. The map surface accepts + and - for zoom
+and 0 for Fit. Canvas translation is independent of
 scroll boundaries, and collapsing a branch preserves the clicked parent's screen position. Fit
 centers the visible tree. Search handles describe the effective visible state; toggles on a
 search-revealed ancestor last only for that query and leave the saved collapse intent unchanged.
