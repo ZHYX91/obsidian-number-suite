@@ -4,6 +4,20 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.5.0 - 2026-09-24
+
+### Added
+
+- Expand the Heading Map to 1, 2, 3, or all depths; switch between horizontal and vertical layouts.
+- Traverse counted search results with Enter and Shift+Enter, control zoom with +, - and 0, and pinch to zoom on touch screens.
+
+### Fixed
+
+- Keep batch previews read-only by reading live target buffers without saving editors, and reject divergent panes.
+- Apply appearance settings in new pop-out windows and make image and caption tooltips keyboard accessible.
+- Load batch recovery only when Apply or Undo needs it; retry failed reads without losing or replacing an existing snapshot.
+- Keep outline collapse state tied to heading identity when source lines move.
+
 ## 0.4.1 - 2026-09-23
 
 ### Added
