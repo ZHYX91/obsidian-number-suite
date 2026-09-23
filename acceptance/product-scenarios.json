@@ -45,11 +45,11 @@
       },
       "steps": [
         "Open Heading map.md and launch its heading map from Document outline. Verify the file label, search, scope and zoom controls, heading cards and connecting edges are visible.",
-        "Collapse and expand Research, use zoom and Fit, then close the map tab and reopen it through the command palette. Confirm the toolbar and cards render again."
+        "Close the map tab and reopen it through the command palette. Confirm the toolbar and cards render again."
       ],
       "expected": [
         "Opening and reopening never leaves a blank content area; the host header and the map file label both remain usable. Long card titles show their beginning and an ellipsis, with the complete title available to assistive technology and desktop hover.",
-        "Expansion, zoom and Fit operate on the displayed map. These actions do not change Markdown bytes."
+        "Both entry points open the current document without changing Markdown bytes."
       ]
     },
     {
@@ -64,18 +64,17 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Heading map.md. Verify the file root and its three top-level children, two structural heading depths at 100%, and plus/minus handles. Collapse and expand the file root.",
-        "Select Research, switch to its subtree, return through the file-name breadcrumb, use Fit and reset through the percentage. Search Question A inside a collapsed branch, press Enter to center it, then clear the search and verify its visible parent replaces it on screen.",
-        "Leave the map tab hidden, open Heading map empty.md in the editor, then reveal its map. Verify the file root is fully visible with a disabled zero handle. Navigate from the root body to the source file top."
+        "Open Heading map.md. Verify the file root and its three top-level children, two structural heading depths at 100%, and plus/minus handles. Compare effective heading numbers (or Hn), skipped levels and direct-child counts with the source; captions must not be counted.",
+        "Collapse and expand the file root and Research. Select Research, switch to its subtree, then return through the file-name breadcrumb."
       ],
       "expected": [
-        "The root represents the file without inventing a heading number. Counts include only direct structural children; captions are excluded. The initial view keeps text readable and controls usable on narrow screens.",
-        "Subtree and document navigation, search, collapse and zoom preserve their stated behavior without changing Markdown. Empty notes remain navigable."
+        "The root represents the file with an icon rather than an invented heading number. Counts include only direct structural children; captions are excluded and leaves show a disabled zero handle. The initial view keeps text readable on narrow screens.",
+        "Collapse/expand keeps the clicked parent at the same screen position. Subtree and document navigation preserve their stated scope and do not change Markdown bytes."
       ]
     },
     {
-      "id": "heading-map-interactions",
-      "title": "Heading map navigation, state, viewport and search",
+      "id": "heading-map-search",
+      "title": "Search reveal, temporary expansion and clear",
       "surfaces": [
         "desktop",
         "android-emulator"
@@ -85,16 +84,133 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Heading map from Document outline and from the command palette. Compare heading numbers, skipped levels and direct-child counts with the source; captions must not be counted.",
-        "Collapse and expand Research, select a heading subtree, return to the document, then search Question A inside a collapsed branch. Toggle the search-revealed branch and clear the search.",
-        "Pan the blank canvas in both directions, zoom using buttons and Fit. On desktop also use ordinary wheel and Ctrl/Cmd-wheel at the canvas boundaries, and Tab/Enter navigation. On Android use touch pan in both directions without opening either host sidebar, cancel a drag, and verify controls in a narrow portrait viewport.",
-        "Rename a selected/collapsed heading in the editor, then insert a new Repeated heading before the existing sections. Confirm state stays with the original section. On desktop switch rapidly between two panes of the same note and navigate from the map back to the originating pane."
+        "Open Heading map.md, collapse Research and search Question A. Press Enter using the available keyboard to center the match. Toggle the search-revealed branch, then clear the search."
       ],
       "expected": [
-        "Each card has the effective number or Hn and the unchanged direct-child total; leaves show a disabled zero handle. Map-only operations leave Markdown bytes unchanged.",
-        "Renames and source insertions preserve unambiguously matched selection, subtree scope and collapse state; delayed old-pane buffers never replace the active source snapshot.",
-        "Zoom keeps the pointer or viewport-center anchor fixed, including small trees and all canvas boundaries. Collapse/expand keeps the clicked parent at the same screen position. Fit centers the tree and narrow toolbars wrap without hiding controls.",
-        "Search reveals matches, the handle announces the effective expanded state, temporary search toggles work, and clearing search restores saved collapse intent. Keyboard focus remains usable and navigation targets the correct source line."
+        "Search reveals matches and the handle announces the effective expanded state. Temporary search toggles work; clearing search restores saved collapse intent and centers the visible parent when the selected match becomes hidden. Markdown bytes remain unchanged."
+      ]
+    },
+    {
+      "id": "heading-map-empty-file",
+      "title": "Hidden map follows an empty source file",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map.md and leave its map tab hidden. Open Heading map empty.md in the editor, then reveal the map. Navigate from the file root body to the source file top."
+      ],
+      "expected": [
+        "The empty document root is fully visible, with its file icon and disabled zero handle. Navigation reaches the correct source file top; no stale headings remain and Markdown bytes are unchanged."
+      ]
+    },
+    {
+      "id": "heading-map-viewport-controls",
+      "title": "Zoom controls, fit and narrow toolbar",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map.md. Use plus/minus, Fit and the percentage reset with the full tree and again with the file root collapsed. On Android use a narrow portrait viewport; on desktop narrow the map pane."
+      ],
+      "expected": [
+        "Button zoom keeps the viewport-center anchor fixed, including small trees and canvas boundaries. Fit centers the tree; reset returns to 100%. The toolbar wraps without hiding controls and Markdown bytes remain unchanged."
+      ]
+    },
+    {
+      "id": "heading-map-desktop-navigation",
+      "title": "Desktop canvas and keyboard navigation",
+      "surfaces": [
+        "desktop"
+      ],
+      "requiredCapabilities": {
+        "desktop": []
+      },
+      "steps": [
+        "Open Heading map.md. Pan the blank canvas in both directions, use ordinary wheel and Ctrl/Cmd-wheel at each canvas boundary and with a small collapsed tree.",
+        "Use Tab and Enter to activate heading cards and handles, then navigate to Level nine in the source."
+      ],
+      "expected": [
+        "Pan and zoom remain responsive; pointer-anchored wheel zoom does not jump at boundaries. Keyboard focus remains visible and usable, navigation reaches the correct source line and Markdown bytes remain unchanged."
+      ]
+    },
+    {
+      "id": "heading-map-android-pan",
+      "title": "Android canvas pan and sidebar boundaries",
+      "surfaces": [
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "android-emulator": [
+          "touch.drag"
+        ]
+      },
+      "steps": [
+        "Open Heading map.md in portrait. Touch-drag the blank canvas horizontally and vertically in both directions, including near both edges; release and use a card and toolbar control."
+      ],
+      "expected": [
+        "The map pans without opening either host sidebar. Release leaves controls responsive and no stuck drag. Markdown bytes remain unchanged."
+      ]
+    },
+    {
+      "id": "heading-map-touch-cancellation",
+      "title": "Android interrupted touch drag",
+      "surfaces": [
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "android-emulator": [
+          "touch.drag"
+        ]
+      },
+      "steps": [
+        "Begin a map drag in Heading map.md, exercise a real touch cancellation, and try another drag and a card. Record unverified with the missing mechanism if cancellation cannot be generated; a normal pointer release does not cover cancellation."
+      ],
+      "expected": [
+        "Cancellation clears drag state; subsequent pan, card navigation and controls remain usable without changing Markdown bytes."
+      ]
+    },
+    {
+      "id": "heading-map-edit-state",
+      "title": "Map state follows renamed and shifted source headings",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map.md, select Research, collapse it and enter its subtree. Rename that heading in the editor, then insert a new Repeated heading before the existing sections; return to the map after each edit."
+      ],
+      "expected": [
+        "Unambiguously matched selection, subtree scope and collapse state stay with the original section after renaming and insertion. Numbers and direct-child counts refresh from the edited source; map refresh adds no source writes."
+      ]
+    },
+    {
+      "id": "heading-map-pane-origin",
+      "title": "Same-file desktop pane origin and stale buffers",
+      "surfaces": [
+        "desktop"
+      ],
+      "requiredCapabilities": {
+        "desktop": []
+      },
+      "steps": [
+        "Open Heading map.md in two editor panes. Switch rapidly between them while editing a heading, then navigate from the map back to the originating pane."
+      ],
+      "expected": [
+        "Delayed old-pane buffers never replace the active source snapshot. Map navigation retains the originating editor pane and reaches the intended heading."
       ]
     },
     {

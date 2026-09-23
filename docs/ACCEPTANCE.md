@@ -9,6 +9,17 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Test setup
 
+`acceptance/product-scenarios.json` is the executable scenario inventory. Heading map checks are
+separate for startup, document root, search, empty files, zoom controls, desktop navigation,
+Android pan, Android touch cancellation, edit-state retention and desktop pane origin. Select the
+relevant checks for a change and record each outcome independently. Opening the map is sufficient
+setup for later checks; repeat the two entry-point checks only in `heading-map-startup`.
+
+Desktop wheel/keyboard and same-file pane checks apply only to desktop. Android pan and cancellation
+apply only to the emulator. A normal drag release does not prove cancellation: record cancellation
+as unverified when it cannot be generated. Keep untouched scenarios untested, and never turn a
+scoped pass into a claim that every product scenario passed.
+
 - [ ] Build with `npm ci && npm run check`.
 - [ ] Copy only `dist/main.js`, `dist/manifest.json`, and `dist/styles.css` into `.obsidian/plugins/number-suite/`.
 - [ ] Hash-verify the copied files.
