@@ -51,7 +51,15 @@ Captions are children of the deepest preceding heading, or roots before any head
 Outline rows grow with wrapped text. Badges, numbers and titles share the available line width,
 and indentation adapts to sidebar width so long labels and H7-H9 remain readable without overlap.
 
-The heading mind map projects H1-H9 headings only: captions are neither shown nor counted as child
+The heading mind map connects H1-H9 headings to a virtual document root. The root displays the
+basename, a file icon instead of a heading number, and the direct top-level heading count. It remains
+visible without headings and never merges with a same-name H1. Every parentless heading attaches
+to it, including an initial H2. Root body navigation opens the file top. Subtree scope uses the
+selected heading as root; the file-name breadcrumb returns to the document. Initially, two structural
+heading depths are visible at 100% scale; deeper branches are collapsed. Clicking the zoom percentage
+restores 100%. These presentation defaults never change Markdown or reset expansion on later edits.
+
+The map projects headings only: captions are neither shown nor counted as child
 headings. Its default layout runs left to right, connecting a parent's right side to each child's
 left side. A card's left handle first shows the virtual number that is actually visible; when there
 is no virtual number, it may show a reliably recognized visible stored number within the current

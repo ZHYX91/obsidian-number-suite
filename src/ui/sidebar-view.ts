@@ -414,8 +414,10 @@ export class NumberSuiteSidebarView extends ItemView {
       setIcon(badge, CAPTION_ICONS[node.captionKind]);
       badge.setAttribute("aria-label", node.captionKind);
     }
+    navigate.append(" ");
     if (node.numberLabel != null) {
       navigate.createSpan({ cls: "number-suite-outline-number", text: node.numberLabel });
+      navigate.append(" ");
     }
     navigate.createSpan({
       cls: "number-suite-outline-title",

@@ -53,6 +53,12 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Heading mind map
 
+- [ ] The file root shows its basename, file icon and direct top-level heading count. Test an
+  initial H2, skipped levels, same-name H1 and `Heading map empty.md`; empty notes retain a disabled
+  zero handle. Root navigation goes to the file top without modifying Markdown.
+- [ ] Initial overview shows two structural heading depths at 100%, with deeper branches collapsed.
+  Root collapse, search reveal and clearing, subtree scope and the file breadcrumb preserve state.
+  Fit can zoom out; clicking the percentage restores 100%. Rename the file and verify its label.
 - [ ] Open, close, and reopen the map through both entry points. Confirm the host header, file
   label, search, scope and zoom controls, cards and edges all render before testing interactions.
 - [ ] Open `Heading map.md` through the outline button and command palette. Check H1-H9,

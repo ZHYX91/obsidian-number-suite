@@ -19,7 +19,7 @@ vi.mock("obsidian", async (original) => ({
 
 import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
-import { findHeadingMapNode, type HeadingMapNode } from "../../src/application/heading-map";
+import { findHeadingMapNode, HEADING_MAP_DOCUMENT_ID, type HeadingMapNode } from "../../src/application/heading-map";
 import { installDomFixture } from "./dom-fixture";
 import type { HeadingMapLayout } from "../../src/application/heading-map-layout";
 
@@ -40,7 +40,8 @@ type Subject = {
   onActiveLeafChange(leaf: WorkspaceLeaf): void;
   setScaleAt(scale: number, x: number, y: number): void;
   render(): void;
-  fitToView(): void;
+  fitToView(readable?: boolean): void;
+  showDocument(): void;
   onWheel(event: WheelEvent): void;
   beginPan(event: PointerEvent): void;
   movePan(event: PointerEvent): void;
@@ -72,6 +73,50 @@ beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
 
 describe("heading map interactions", () => {
+  it("renders an empty file as a document card with a disabled zero handle", async () => {
+    const view = makeView();
+    await view.refreshMap("");
+    const card = view.sceneHost.querySelector(".is-document")!;
+    expect(card.querySelector(".number-suite-heading-map-body")?.textContent).toBe("Same");
+    expect(card.querySelector(".number-suite-heading-map-number")?.getAttribute("aria-label")).toBe("Same.md");
+    const handle = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
+    expect(handle.disabled).toBe(true);
+    expect(handle.textContent).toBe("0");
+    expect(view.lastLayout.edges).toHaveLength(0);
+  });
+
+  it("preserves document collapse and selection through edits and returns from a subtree", async () => {
+    const view = makeView();
+    await view.refreshMap("## A\n#### B\n###### C\n# D");
+    const documentControl = view.sceneHost.querySelector<HTMLButtonElement>(`[data-node-control="${HEADING_MAP_DOCUMENT_ID}"]`)!;
+    expect(documentControl.textContent).toBe("2");
+    documentControl.click();
+    await view.refreshMap("## A\nbody\n#### B\n###### C\n# D");
+    expect(view.selectedId).toBe(HEADING_MAP_DOCUMENT_ID);
+    expect(view.lastLayout.nodes).toHaveLength(1);
+    view.scopeId = view.roots[0]!.id;
+    view.render();
+    expect(view.sceneHost.querySelector(".is-document")).toBeNull();
+    view.showDocument();
+    expect(view.scopeId).toBeNull();
+    expect(view.sceneHost.querySelector(".is-document")).not.toBeNull();
+    expect(view.collapsed.has(HEADING_MAP_DOCUMENT_ID)).toBe(true);
+  });
+
+  it("opens a readable overview and does not reset user expansion on an edit", async () => {
+    const view = makeView();
+    await view.refreshMap("## A\n#### B\n###### C\n# D");
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A", "B", "D"]);
+    view.fitToView(true);
+    expect(view.scale).toBe(1);
+    const root = view.lastLayout.nodes.find(({ node }) => node.id === HEADING_MAP_DOCUMENT_ID)!;
+    expect(view.offsetX + root.x).toBe(24);
+    const branch = view.roots[0]!.children[0]!;
+    view.collapsed.delete(branch.id);
+    await view.refreshMap("## A\ntext\n#### B\n###### C\n# D");
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toContain("C");
+  });
+
   it("loads through the host lifecycle without overwriting the ItemView header", async () => {
     const file = Object.assign(Object.create(TFile.prototype) as TFile, {
       path: "Map.md", basename: "Map", extension: "md",
@@ -97,7 +142,7 @@ describe("heading map interactions", () => {
     expect(header.textContent).toBe("headingMap.title");
     expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
     expect(view.contentEl.querySelector(".number-suite-heading-map-search")).not.toBeNull();
-    expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(2);
+    expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(3);
     await view.onClose();
   });
 
@@ -172,14 +217,14 @@ describe("heading map interactions", () => {
     view.collapsed.add(root.id);
     view.searchQuery = "Search target";
     view.render();
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
     const control = [...view.sceneHost.querySelectorAll<HTMLElement>("[data-node-control]")]
       .find((element) => element.dataset.nodeControl === root.id)!;
     expect.soft(control.getAttribute("aria-expanded")).toBe("true");
     view.searchQuery = "";
     view.render();
     expect(view.collapsed.has(root.id)).toBe(true);
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
   });
 
   it("toggles a search-revealed branch without changing the saved collapse intent", async () => {
@@ -192,14 +237,14 @@ describe("heading map interactions", () => {
       .find((element) => element.dataset.nodeControl === root.id)!;
     rootControl().click();
     expect(rootControl().getAttribute("aria-expanded")).toBe("false");
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(1);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
     expect(view.collapsed.has(root.id)).toBe(false);
     rootControl().click();
     expect(rootControl().getAttribute("aria-expanded")).toBe("true");
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
     view.searchQuery = "";
     view.render();
-    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(2);
+    expect(view.sceneHost.querySelectorAll("[data-node-id]")).toHaveLength(3);
   });
 
   it("pins the clicked parent to the same screen position while collapsing and expanding", async () => {

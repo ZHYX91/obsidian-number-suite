@@ -6,6 +6,13 @@ All notable changes to Number Suite are documented here.
 
 ## 0.4.1 - 2026-09-23
 
+### Added
+
+- Connect heading cards to a virtual document root with the file name, file icon and top-level
+  heading count, including notes without headings. Keep same-name H1 headings separate.
+- Start with two structural heading depths at readable size; add expansion symbols, a document
+  breadcrumb and a 100% zoom reset. Keyboard traversal follows document order.
+
 ### Fixed
 
 - Preserve the host-owned view header when opening the heading mind map, so the toolbar and cards

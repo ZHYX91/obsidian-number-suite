@@ -1,4 +1,4 @@
-import type { HeadingMapNode } from "./heading-map";
+import type { HeadingMapTreeNode } from "./heading-map";
 
 export const HEADING_MAP_CARD_WIDTH = 264;
 export const HEADING_MAP_CARD_HEIGHT = 48;
@@ -8,7 +8,7 @@ const ROOT_GAP = 30;
 const PADDING = 36;
 
 export interface HeadingMapLayoutNode {
-  readonly node: HeadingMapNode;
+  readonly node: HeadingMapTreeNode;
   readonly x: number;
   readonly y: number;
 }
@@ -36,15 +36,19 @@ interface PositionedNode {
 
 /** Deterministic left-to-right tree layout with parents centered over visible descendants. */
 export function layoutHeadingMap(
-  roots: readonly HeadingMapNode[],
+  roots: readonly HeadingMapTreeNode[],
   collapsed: ReadonlySet<string>,
 ): HeadingMapLayout {
   const positioned: PositionedNode[] = [];
   let cursorY = PADDING;
   let maxDepth = 0;
 
-  const visit = (node: HeadingMapNode, depth: number, parentId: string | null): number => {
+  const visit = (node: HeadingMapTreeNode, depth: number, parentId: string | null): number => {
     maxDepth = Math.max(maxDepth, depth);
+    // Reserve the parent first so DOM and keyboard order follow document order.
+    const index = positioned.length;
+    const x = PADDING + depth * (HEADING_MAP_CARD_WIDTH + COLUMN_GAP);
+    positioned.push({ item: { node, x, y: 0 }, parentId });
     const children = collapsed.has(node.id) ? [] : node.children;
     let centerY: number;
     if (children.length === 0) {
@@ -54,14 +58,14 @@ export function layoutHeadingMap(
       const centers = children.map((child) => visit(child, depth + 1, node.id));
       centerY = ((centers[0] ?? cursorY) + (centers[centers.length - 1] ?? cursorY)) / 2;
     }
-    positioned.push({
+    positioned[index] = {
       item: {
         node,
-        x: PADDING + depth * (HEADING_MAP_CARD_WIDTH + COLUMN_GAP),
+        x,
         y: centerY - HEADING_MAP_CARD_HEIGHT / 2,
       },
       parentId,
-    });
+    };
     return centerY;
   };
 

@@ -808,13 +808,11 @@
 .number-suite-outline-badge {
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
-  margin-inline-end: var(--size-2-2);
 }
 
 .number-suite-outline-number {
   color: var(--text-accent);
   font-variant-numeric: tabular-nums;
-  margin-inline-end: var(--size-2-2);
 }
 
 .number-suite-outline-title {
@@ -1257,12 +1255,18 @@
 }
 
 .number-suite-heading-map-file {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   flex: 1 1 auto;
   font-weight: var(--font-semibold);
   min-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: start;
+  height: auto;
+  padding: 4px 0;
 }
 
 .number-suite-heading-map-search {
@@ -1282,6 +1286,7 @@
 }
 
 .number-suite-heading-map-scope {
+  flex-wrap: wrap;
   min-width: 0;
 }
 
@@ -1299,10 +1304,18 @@
   box-shadow: none;
   color: var(--text-muted);
   display: inline-flex;
-  height: 28px;
+  height: auto;
+  min-height: 28px;
   justify-content: center;
   min-width: 28px;
   padding: 4px 7px;
+}
+
+.number-suite-heading-map-scope button {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .number-suite-heading-map-scope button:hover:not(:disabled),
@@ -1392,6 +1405,14 @@
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus), var(--shadow-s);
 }
 
+.number-suite-heading-map-card.is-document {
+  border-color: var(--interactive-accent);
+}
+
+.number-suite-heading-map-card.is-document .number-suite-heading-map-body {
+  font-weight: var(--font-semibold);
+}
+
 .number-suite-heading-map-card.is-match:not(.is-selected) {
   box-shadow: 0 0 0 2px var(--text-accent), var(--shadow-s);
 }
@@ -1450,6 +1471,16 @@
   border-inline-start: 1px solid var(--background-modifier-border);
   flex: 0 0 46px;
   padding: 0;
+  gap: 2px;
+}
+
+.number-suite-heading-map-expand-icon {
+  display: inline-flex;
+}
+
+.number-suite-heading-map-expand-icon svg {
+  height: 12px;
+  width: 12px;
 }
 
 .number-suite-heading-map-children:not(:disabled):hover,
@@ -1490,6 +1521,8 @@
 }
 
 @media (pointer: coarse) {
+  .number-suite-heading-map-number,
+  .number-suite-heading-map-file,
   .number-suite-sidebar-tab,
   .number-suite-outline-link,
   .number-suite-outline-toggle,

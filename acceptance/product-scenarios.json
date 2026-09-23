@@ -53,6 +53,27 @@
       ]
     },
     {
+      "id": "heading-map-document-root",
+      "title": "Document root, readable overview and subtree return",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading map.md. Verify the file root and its three top-level children, two structural heading depths at 100%, and plus/minus handles. Collapse and expand the file root.",
+        "Select Research, switch to its subtree, return through the file-name breadcrumb, use Fit and reset through the percentage. Search Question A inside a collapsed branch, then clear the search.",
+        "Open Heading map empty.md and its map. Verify the file root remains with a disabled zero handle. Navigate from the root body to the source file top."
+      ],
+      "expected": [
+        "The root represents the file without inventing a heading number. Counts include only direct structural children; captions are excluded. The initial view keeps text readable and controls usable on narrow screens.",
+        "Subtree and document navigation, search, collapse and zoom preserve their stated behavior without changing Markdown. Empty notes remain navigable."
+      ]
+    },
+    {
       "id": "heading-map-interactions",
       "title": "Heading map navigation, state, viewport and search",
       "surfaces": [

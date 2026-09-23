@@ -12,7 +12,11 @@ import { HeadingMapIdentity } from "../application/heading-map-identity";
 import {
   findHeadingMapNode,
   createHeadingMap,
+  createHeadingMapDocument,
+  headingMapOverview,
+  HEADING_MAP_DOCUMENT_ID,
   type HeadingMapNode,
+  type HeadingMapTreeNode,
 } from "../application/heading-map";
 import {
   HEADING_MAP_CARD_HEIGHT,
@@ -67,6 +71,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private request = 0;
   private refreshTimer: number | null = null;
   private needsInitialFit = true;
+  private overviewInitialized = false;
   private pan: PanState | null = null;
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
@@ -122,6 +127,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.registerEvent(this.app.vault.on("modify", (file) => {
       if (file.path === this.currentFile?.path) this.scheduleRefresh();
     }));
+    this.registerEvent(this.app.vault.on("rename", (file) => {
+      if (file === this.currentFile) this.scheduleRefresh();
+    }));
     this.setFile(this.app.workspace.getActiveFile(), false);
     await this.refreshMap();
   }
@@ -153,7 +161,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private buildToolbar(): void {
     const toolbar = this.contentEl.createDiv({ cls: "number-suite-heading-map-toolbar" });
     const primary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-primary" });
-    this.fileLabelEl = primary.createDiv({ cls: "number-suite-heading-map-file" });
+    const fileButton = primary.createEl("button", { cls: "number-suite-heading-map-file" });
+    fileButton.type = "button";
+    fileButton.addEventListener("click", () => this.showDocument());
+    this.fileLabelEl = fileButton;
     const search = primary.createEl("input", {
       cls: "number-suite-heading-map-search",
       type: "search",
@@ -183,16 +194,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
     });
     this.documentButton.type = "button";
     this.documentButton.addEventListener("click", () => {
-      this.scopeId = null;
-      this.needsInitialFit = true;
-      this.render();
+      this.showDocument();
     });
     this.subtreeButton = scope.createEl("button", {
       text: this.actions.getTranslate()("headingMap.scope.subtree"),
     });
     this.subtreeButton.type = "button";
     this.subtreeButton.addEventListener("click", () => {
-      if (this.selectedId == null) return;
+      if (this.selectedId == null || this.selectedId === HEADING_MAP_DOCUMENT_ID) return;
       this.scopeId = this.selectedId;
       this.needsInitialFit = true;
       this.render();
@@ -204,7 +213,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
     setIcon(zoomOut, "minus");
     zoomOut.setAttribute("aria-label", this.actions.getTranslate()("headingMap.zoomOut"));
     zoomOut.addEventListener("click", () => this.setScaleAt(this.scale / ZOOM_STEP));
-    this.scaleLabel = zoom.createSpan({ cls: "number-suite-heading-map-scale" });
+    const reset = zoom.createEl("button", { cls: "number-suite-heading-map-scale" });
+    reset.type = "button";
+    reset.title = this.actions.getTranslate()("headingMap.actualSize");
+    reset.setAttribute("aria-label", reset.title);
+    reset.addEventListener("click", () => this.setScaleAt(1));
+    this.scaleLabel = reset;
     const zoomIn = zoom.createEl("button");
     zoomIn.type = "button";
     setIcon(zoomIn, "plus");
@@ -222,11 +236,26 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (this.fileLabelEl != null) {
       this.fileLabelEl.setText(this.currentFile?.basename ?? this.actions.getTranslate()("headingMap.title"));
       this.fileLabelEl.title = this.currentFile?.path ?? "";
+      this.fileLabelEl.setAttribute("aria-label", this.actions.getTranslate()("headingMap.backToDocument", {
+        title: this.currentFile?.basename ?? "",
+      }));
     }
     this.documentButton?.classList.toggle("is-active", this.scopeId == null);
     this.subtreeButton?.classList.toggle("is-active", this.scopeId != null);
-    if (this.subtreeButton != null) this.subtreeButton.disabled = this.selectedId == null;
+    if (this.subtreeButton != null) {
+      this.subtreeButton.disabled = this.selectedId == null || this.selectedId === HEADING_MAP_DOCUMENT_ID;
+      const scoped = this.scopeId == null ? null : findHeadingMapNode(this.roots, this.scopeId);
+      this.subtreeButton.setText(scoped?.title ?? this.actions.getTranslate()("headingMap.scope.subtree"));
+      this.subtreeButton.title = scoped?.title ?? "";
+    }
     if (this.scaleLabel != null) this.scaleLabel.setText(`${Math.round(this.scale * 100)}%`);
+  }
+
+  private showDocument(): void {
+    this.scopeId = null;
+    this.selectedId = HEADING_MAP_DOCUMENT_ID;
+    this.needsInitialFit = true;
+    this.render();
   }
 
   private setFile(file: TFile | null, refresh = true): void {
@@ -248,6 +277,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.offsetX = 0;
     this.offsetY = 0;
     this.needsInitialFit = true;
+    this.overviewInitialized = false;
     this.updateToolbarState();
     if (refresh) void this.refreshMap();
   }
@@ -361,7 +391,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
         concealStoredNumbers: !effective.disabled && effective.concealStoredNumbers,
         recognizeStoredNumbers: !effective.disabled,
       });
-      const liveIds = new Set<string>();
+      if (!this.overviewInitialized) {
+        for (const id of headingMapOverview(this.roots)) this.collapsed.add(id);
+        this.overviewInitialized = true;
+      }
+      const liveIds = new Set<string>([HEADING_MAP_DOCUMENT_ID]);
       const collectIds = (nodes: readonly HeadingMapNode[]): void => {
         for (const node of nodes) {
           liveIds.add(node.id);
@@ -372,7 +406,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       for (const collection of [this.collapsed, this.searchCollapsed]) {
         for (const id of collection) if (!liveIds.has(id)) collection.delete(id);
       }
-      if (this.selectedId != null && findHeadingMapNode(this.roots, this.selectedId) == null) {
+      if (this.selectedId != null && !liveIds.has(this.selectedId)) {
         this.selectedId = null;
       }
       if (this.scopeId != null && findHeadingMapNode(this.roots, this.scopeId) == null) {
@@ -403,7 +437,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (host == null) return;
     const previousAnchor = this.lastLayout?.nodes.find(({ node }) => node.id === this.selectedId);
     host.empty();
-    if (this.roots.length === 0) {
+    if (this.currentFile == null) {
       host.createDiv({
         cls: "number-suite-heading-map-status",
         text: this.actions.getTranslate()("headingMap.empty"),
@@ -415,7 +449,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
     }
 
     const scoped = this.scopeId == null ? null : findHeadingMapNode(this.roots, this.scopeId);
-    const visibleRoots = scoped == null ? this.roots : [scoped];
+    const visibleRoots: readonly HeadingMapTreeNode[] = scoped == null
+      ? [createHeadingMapDocument(this.currentFile.basename, [...this.roots])] : [scoped];
     const { matches, ancestors } = this.searchState(visibleRoots);
     this.firstSearchMatch = matches.values().next().value ?? null;
     const effectiveCollapsed = new Set(
@@ -465,11 +500,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
       card.style.height = `${HEADING_MAP_CARD_HEIGHT}px`;
       card.classList.toggle("is-selected", node.id === this.selectedId);
       card.classList.toggle("is-match", matches.has(node.id));
+      const documentRoot = node.id === HEADING_MAP_DOCUMENT_ID;
+      card.classList.toggle("is-document", documentRoot);
 
       const number = card.createEl("button", { cls: "number-suite-heading-map-number" });
       number.type = "button";
-      number.setText(node.numberLabel ?? `H${node.level}`);
-      number.title = node.numberLabel ?? `H${node.level}`;
+      if (documentRoot) setIcon(number, "file-text");
+      else number.setText(node.numberLabel ?? `H${node.level}`);
+      number.title = documentRoot ? this.currentFile.path : node.numberLabel ?? `H${node.level}`;
+      number.setAttribute("aria-label", number.title);
       number.addEventListener("click", () => this.setSelection(node.id));
       number.addEventListener("focus", () => this.revealNode(node.id));
 
@@ -497,6 +536,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       handle.disabled = childCount === 0;
       if (childCount > 0) {
         const collapsed = effectiveCollapsed.has(node.id);
+        setIcon(handle.createSpan({ cls: "number-suite-heading-map-expand-icon" }), collapsed ? "plus" : "minus");
         handle.classList.toggle("is-collapsed", collapsed);
         handle.setAttribute("aria-expanded", String(!collapsed));
         handle.setAttribute("aria-label", this.actions.getTranslate()(
@@ -524,11 +564,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.updateToolbarState();
     if (this.needsInitialFit) {
       this.needsInitialFit = false;
-      this.requestFrame(() => this.fitToView());
+      this.requestFrame(() => this.fitToView(true));
     }
   }
 
-  private searchState(roots: readonly HeadingMapNode[]): {
+  private searchState(roots: readonly HeadingMapTreeNode[]): {
     matches: Set<string>;
     ancestors: Set<string>;
   } {
@@ -537,7 +577,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const query = this.searchQuery.toLocaleLowerCase();
     if (query.length === 0) return { matches, ancestors };
 
-    const visit = (node: HeadingMapNode, path: readonly string[]): void => {
+    const visit = (node: HeadingMapTreeNode, path: readonly string[]): void => {
       const searchable = `${node.numberLabel ?? ""} ${node.title}`.toLocaleLowerCase();
       if (searchable.includes(query)) {
         matches.add(node.id);
@@ -593,7 +633,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       || top + HEADING_MAP_CARD_HEIGHT * this.scale > viewport.clientHeight) this.centerNode(id);
   }
 
-  private async navigate(node: HeadingMapNode): Promise<void> {
+  private async navigate(node: HeadingMapTreeNode): Promise<void> {
     const file = this.currentFile;
     if (file == null) return;
     await navigateToLine(this.app, file, node.line, this.sourceLeaf);
@@ -624,7 +664,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.updateToolbarState();
   }
 
-  private fitToView(): void {
+  private fitToView(readable = false): void {
     const viewport = this.viewport;
     const layout = this.lastLayout;
     if (viewport == null || layout == null || layout.width === 0 || layout.height === 0) return;
@@ -633,10 +673,17 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.scale = Math.min(
       1,
       MAX_SCALE,
-      Math.max(MIN_SCALE, Math.min(availableWidth / layout.width, availableHeight / layout.height)),
+      Math.max(readable ? 1 : MIN_SCALE, Math.min(availableWidth / layout.width, availableHeight / layout.height)),
     );
     this.offsetX = (viewport.clientWidth - layout.width * this.scale) / 2;
     this.offsetY = (viewport.clientHeight - layout.height * this.scale) / 2;
+    if (readable && (layout.width * this.scale > availableWidth || layout.height * this.scale > availableHeight)) {
+      const root = layout.nodes.find(({ node }) => node.id === (this.scopeId ?? HEADING_MAP_DOCUMENT_ID));
+      if (root != null) {
+        this.offsetX = 24 - root.x * this.scale;
+        this.offsetY = viewport.clientHeight / 2 - (root.y + HEADING_MAP_CARD_HEIGHT / 2) * this.scale;
+      }
+    }
     this.applyScale();
   }
 
