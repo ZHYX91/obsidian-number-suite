@@ -3,6 +3,7 @@ import {
   Notice,
   Plugin,
   TFile,
+  type WorkspaceLeaf,
 } from "obsidian";
 
 import { openObsidianPluginSettings } from "../adapters/obsidian/plugin-settings";
@@ -103,7 +104,7 @@ export default class NumberSuitePlugin extends Plugin {
       runCurrent: (operation, path) => this.runCurrent(operation, path),
       openBatch: () => this.batchController?.open(this.translate()),
       openGlobalSettings: () => this.openGlobalSettings(),
-      openHeadingMap: (path) => void this.openHeadingMap(path),
+      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf),
     }));
     this.registerView(NUMBER_SUITE_HEADING_MAP_VIEW, (leaf) => new NumberSuiteHeadingMapView(leaf, {
       getSettings: () => this.settings,
@@ -283,7 +284,8 @@ export default class NumberSuitePlugin extends Plugin {
     await this.app.workspace.revealLeaf(leaf);
   }
 
-  private async openHeadingMap(path?: string): Promise<void> {
+  private async openHeadingMap(path?: string, sourceLeaf: WorkspaceLeaf | null = null): Promise<void> {
+    const origin = sourceLeaf ?? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null;
     let file: TFile | null = null;
     if (path != null) {
       const candidate = this.app.vault.getAbstractFileByPath(path);
@@ -297,7 +299,7 @@ export default class NumberSuitePlugin extends Plugin {
     if (existing == null) {
       await leaf.setViewState({ type: NUMBER_SUITE_HEADING_MAP_VIEW, active: true });
     }
-    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file);
+    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
     await this.app.workspace.revealLeaf(leaf);
   }
 

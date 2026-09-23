@@ -42,7 +42,7 @@ export interface NumberSuiteSidebarActions {
   readonly runCurrent: (operation: TransformOperation, path: string) => void;
   readonly openBatch: () => void;
   readonly openGlobalSettings: () => void;
-  readonly openHeadingMap: (path: string) => void;
+  readonly openHeadingMap: (path: string, sourceLeaf: WorkspaceLeaf | null) => void;
 }
 
 function sidebarTab(value: unknown): NumberSuiteSidebarTab {
@@ -357,7 +357,7 @@ export class NumberSuiteSidebarView extends ItemView {
     setIcon(map, "git-fork");
     map.setAttribute("aria-label", this.actions.getTranslate()("sidebar.outline.openMap"));
     map.title = this.actions.getTranslate()("sidebar.outline.openMap");
-    map.addEventListener("click", () => this.actions.openHeadingMap(file.path));
+    map.addEventListener("click", () => this.actions.openHeadingMap(file.path, this.sourceLeaf));
     header.createEl("p", { text: file.path });
     if (outline.length === 0) {
       panel.createEl("p", {

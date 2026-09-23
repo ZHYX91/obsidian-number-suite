@@ -66,6 +66,13 @@ Enter on its body navigates to the exact source line. Edits to the current note 
 without resetting selection, branch collapse, or the viewport for that same document. The view is
 strictly read-only and exposes no drag reorder, heading-level change, or Markdown write path.
 
+Ordinary wheel input pans; Shift-wheel pans horizontally. Canvas translation is independent of
+scroll boundaries, and collapsing a branch preserves the clicked parent's screen position. Fit
+centers the visible tree. Search handles describe the effective visible state; toggles on a
+search-revealed ancestor last only for that query and leave the saved collapse intent unchanged.
+Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
+panning and zoom buttons; two-finger pinch zoom is not provided.
+
 The two sidebar tabs have equal width and span the sidebar. Inactive tabs use muted text; the active
 tab combines semibold text with a bottom accent line. Hover uses a quiet background, while keyboard
 focus uses a visible inset ring that preserves the active line. Tabs use `tablist`, `tab`, `tabpanel`,

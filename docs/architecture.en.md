@@ -76,6 +76,13 @@ scope; the display layer falls back to Hn when neither is available. `heading-ma
 only that projection plus the session collapse set into a deterministic left-to-right 2D layout and
 structure edges; it does not read the Workspace or persist document state.
 
+`heading-map-identity.ts` allocates document-session node IDs and reconciles source lines across
+snapshots using unchanged runs and ordered unique-line anchors, including surrounding body text.
+Equal-length replacement regions retain line identity for renames and level changes; ambiguous
+insertions/deletions receive fresh IDs. IDs never derive from a visible number or title. The view
+invalidates pending reads on source-pane changes and keeps saved collapse, temporary search state
+and unconstrained canvas translation separate.
+
 <!-- section: interop-api -->
 ## Consumer interoperability API
 

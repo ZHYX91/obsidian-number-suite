@@ -21,6 +21,7 @@ export interface HeadingMapNode {
 }
 
 export interface HeadingMapOptions {
+  readonly nodeIds?: ReadonlyMap<number, string>;
   readonly headingDisplayPlan: readonly DisplayDecorationPlan[];
   readonly numbering: NumberingOptions;
   readonly cleanupScope: CleanupScope;
@@ -62,7 +63,6 @@ export function createHeadingMap(
 
   const headings = parseAtxHeadings(source);
   const numbered = numberHeadings(headings, options.numbering);
-  const identities = new Map<string, number>();
   const nodes = headings.map((heading, index): HeadingMapNode => {
     const linePlan = planByLine.get(heading.line) ?? [];
     const conceal = linePlan.find((item) => item.kind === "conceal");
@@ -74,11 +74,8 @@ export function createHeadingMap(
       ? heading.content.slice(prefix.length).trimStart()
       : heading.content;
     const title = withoutBlockId(visible);
-    const identity = `${heading.level}:${encodeURIComponent(title)}`;
-    const occurrence = (identities.get(identity) ?? 0) + 1;
-    identities.set(identity, occurrence);
     return {
-      id: `${identity}:${occurrence}`,
+      id: options.nodeIds?.get(heading.line) ?? `heading-${index + 1}`,
       line: heading.line,
       level: heading.level,
       title,

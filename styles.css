@@ -1243,6 +1243,7 @@
 .number-suite-heading-map-toolbar-secondary {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--size-4-2);
   min-width: 0;
   padding: 6px 12px;
@@ -1331,7 +1332,7 @@
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
-  overflow: auto;
+  overflow: clip;
   position: relative;
   touch-action: none;
 }
@@ -1416,12 +1417,14 @@
   text-overflow: ellipsis;
 }
 
+.number-suite-heading-map-number,
 .number-suite-heading-map-body,
 .number-suite-heading-map-children {
   appearance: none;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  height: 100%;
 }
 
 .number-suite-heading-map-body {
@@ -1435,6 +1438,10 @@
   text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.number-suite-heading-map-number {
+  border-inline-end: 1px solid var(--background-modifier-border);
 }
 
 .number-suite-heading-map-children {
@@ -1460,6 +1467,7 @@
   opacity: 0.65;
 }
 
+.number-suite-heading-map-number:focus-visible,
 .number-suite-heading-map-body:focus-visible,
 .number-suite-heading-map-children:focus-visible {
   box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
@@ -1487,5 +1495,6 @@
   .number-suite-heading-map-scope button,
   .number-suite-heading-map-zoom button {
     min-height: 44px;
+    min-width: 44px;
   }
 }

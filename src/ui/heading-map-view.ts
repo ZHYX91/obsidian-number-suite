@@ -8,6 +8,7 @@ import {
 
 import { navigateToLine } from "../adapters/navigate-to-line";
 import { createDisplayPlan } from "../application/display-plan";
+import { HeadingMapIdentity } from "../application/heading-map-identity";
 import {
   findHeadingMapNode,
   createHeadingMap,
@@ -40,8 +41,8 @@ interface PanState {
   readonly pointerId: number;
   readonly x: number;
   readonly y: number;
-  readonly scrollLeft: number;
-  readonly scrollTop: number;
+  readonly offsetX: number;
+  readonly offsetY: number;
 }
 
 const MIN_SCALE = 0.38;
@@ -53,12 +54,16 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private currentFile: TFile | null = null;
   private sourceLeaf: WorkspaceLeaf | null = null;
   private roots: readonly HeadingMapNode[] = [];
+  private identities = new HeadingMapIdentity();
   private readonly collapsed = new Set<string>();
+  private readonly searchCollapsed = new Set<string>();
   private selectedId: string | null = null;
   private scopeId: string | null = null;
   private searchQuery = "";
   private firstSearchMatch: string | null = null;
   private scale = 1;
+  private offsetX = 0;
+  private offsetY = 0;
   private request = 0;
   private refreshTimer: number | null = null;
   private needsInitialFit = true;
@@ -99,28 +104,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.viewport = this.contentEl.createDiv({ cls: "number-suite-heading-map-viewport" });
     this.sceneHost = this.viewport.createDiv({ cls: "number-suite-heading-map-scene" });
 
-    this.viewport.addEventListener("wheel", (event) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault();
-      const bounds = this.viewport?.getBoundingClientRect();
-      if (bounds == null) return;
-      const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-      this.setScaleAt(
-        this.scale * factor,
-        event.clientX - bounds.left,
-        event.clientY - bounds.top,
-      );
-    }, { passive: false });
+    this.viewport.addEventListener("wheel", (event) => this.onWheel(event), { passive: false });
     this.viewport.addEventListener("pointerdown", (event) => this.beginPan(event));
     this.viewport.addEventListener("pointermove", (event) => this.movePan(event));
     this.viewport.addEventListener("pointerup", (event) => this.endPan(event));
     this.viewport.addEventListener("pointercancel", (event) => this.endPan(event));
+    this.viewport.addEventListener("lostpointercapture", (event) => this.endPan(event));
 
     this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
-    this.registerEvent(this.app.workspace.on("editor-change", (editor, info) => {
+    this.registerEvent(this.app.workspace.on("editor-change", (_editor, info) => {
       if (info.file?.path === this.currentFile?.path) {
-        this.scheduleRefresh(editor.getValue());
+        // Resolve the currently bound pane when the debounce fires, not an arbitrary pane's buffer.
+        this.scheduleRefresh();
       }
     }));
     this.registerEvent(this.app.vault.on("modify", (file) => {
@@ -140,11 +136,17 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.lastLayout = null;
   }
 
-  showFile(file: TFile | null): void {
-    this.setFile(file, true);
+  showFile(file: TFile | null, sourceLeaf: WorkspaceLeaf | null = null): void {
+    this.clearRefreshTimer();
+    this.setFile(file, false);
+    if (sourceLeaf?.view instanceof MarkdownView && sourceLeaf.view.file === file) {
+      this.sourceLeaf = sourceLeaf;
+    }
+    void this.refreshMap();
   }
 
   refresh(): void {
+    this.clearRefreshTimer();
     void this.refreshMap();
   }
 
@@ -160,11 +162,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
     search.setAttribute("aria-label", this.actions.getTranslate()("headingMap.search"));
     search.addEventListener("input", () => {
       this.searchQuery = search.value.trim();
+      this.searchCollapsed.clear();
       this.render();
     });
     search.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" || this.firstSearchMatch == null) return;
       event.preventDefault();
+      this.searchCollapsed.clear();
+      this.render();
+      if (this.firstSearchMatch == null) return;
       this.setSelection(this.firstSearchMatch);
       this.centerNode(this.firstSearchMatch);
     });
@@ -229,13 +235,18 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.clearRefreshTimer();
     this.request += 1;
     this.currentFile = markdown;
+    this.identities = new HeadingMapIdentity();
     this.roots = [];
+    this.lastLayout = null;
     this.collapsed.clear();
+    this.searchCollapsed.clear();
     this.selectedId = null;
     this.scopeId = null;
     this.searchQuery = "";
     if (this.searchInput != null) this.searchInput.value = "";
     this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
     this.needsInitialFit = true;
     this.updateToolbarState();
     if (refresh) void this.refreshMap();
@@ -243,6 +254,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
     if (!(leaf?.view instanceof MarkdownView)) return;
+    this.clearRefreshTimer();
+    this.request += 1;
     this.sourceLeaf = leaf;
     const path = leaf.view.file?.path ?? null;
     this.setFile(leaf.view.file, false);
@@ -257,10 +270,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private scheduleRefresh(source?: string): void {
     this.clearRefreshTimer();
+    const request = ++this.request;
     const expectedPath = this.currentFile?.path ?? null;
+    const expectedLeaf = this.sourceLeaf;
     const run = (): void => {
       this.refreshTimer = null;
-      if (expectedPath !== (this.currentFile?.path ?? null)) return;
+      if (request !== this.request || expectedLeaf !== this.sourceLeaf
+        || expectedPath !== (this.currentFile?.path ?? null)) return;
       void this.refreshMap(source, expectedPath);
     };
     const timerWindow = this.contentEl.ownerDocument.defaultView;
@@ -337,6 +353,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         composing: false,
       });
       this.roots = createHeadingMap(source, {
+        nodeIds: this.identities.update(source, headings),
         headingDisplayPlan: displayPlan,
         numbering,
         cleanupScope: settings.concealScope,
@@ -344,6 +361,17 @@ export class NumberSuiteHeadingMapView extends ItemView {
         concealStoredNumbers: !effective.disabled && effective.concealStoredNumbers,
         recognizeStoredNumbers: !effective.disabled,
       });
+      const liveIds = new Set<string>();
+      const collectIds = (nodes: readonly HeadingMapNode[]): void => {
+        for (const node of nodes) {
+          liveIds.add(node.id);
+          collectIds(node.children);
+        }
+      };
+      collectIds(this.roots);
+      for (const collection of [this.collapsed, this.searchCollapsed]) {
+        for (const id of collection) if (!liveIds.has(id)) collection.delete(id);
+      }
       if (this.selectedId != null && findHeadingMapNode(this.roots, this.selectedId) == null) {
         this.selectedId = null;
       }
@@ -373,6 +401,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private render(): void {
     const host = this.sceneHost;
     if (host == null) return;
+    const previousAnchor = this.lastLayout?.nodes.find(({ node }) => node.id === this.selectedId);
     host.empty();
     if (this.roots.length === 0) {
       host.createDiv({
@@ -392,7 +421,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const effectiveCollapsed = new Set(
       [...this.collapsed].filter((id) => !ancestors.has(id)),
     );
+    if (this.searchQuery.length > 0) {
+      for (const id of this.searchCollapsed) effectiveCollapsed.add(id);
+    }
     const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed);
+    const nextAnchor = layout.nodes.find(({ node }) => node.id === this.selectedId);
+    if (!this.needsInitialFit && previousAnchor != null && nextAnchor != null) {
+      this.offsetX += (previousAnchor.x - nextAnchor.x) * this.scale;
+      this.offsetY += (previousAnchor.y - nextAnchor.y) * this.scale;
+    }
     this.lastLayout = layout;
 
     const canvas = host.createDiv({ cls: "number-suite-heading-map-canvas" });
@@ -429,19 +466,22 @@ export class NumberSuiteHeadingMapView extends ItemView {
       card.classList.toggle("is-selected", node.id === this.selectedId);
       card.classList.toggle("is-match", matches.has(node.id));
 
-      const number = card.createSpan({ cls: "number-suite-heading-map-number" });
+      const number = card.createEl("button", { cls: "number-suite-heading-map-number" });
+      number.type = "button";
       number.setText(node.numberLabel ?? `H${node.level}`);
       number.title = node.numberLabel ?? `H${node.level}`;
       number.addEventListener("click", () => this.setSelection(node.id));
+      number.addEventListener("focus", () => this.revealNode(node.id));
 
       const body = card.createEl("button", { cls: "number-suite-heading-map-body" });
       body.type = "button";
       body.setText(node.title || this.actions.getTranslate()("headingMap.untitled"));
       body.title = node.title || this.actions.getTranslate()("headingMap.untitled");
       body.addEventListener("click", () => this.setSelection(node.id));
+      body.addEventListener("focus", () => this.revealNode(node.id));
       body.addEventListener("dblclick", () => void this.navigate(node));
       body.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
+        if (event.key !== "Enter" || event.repeat) return;
         event.preventDefault();
         void this.navigate(node);
       });
@@ -453,9 +493,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
         attr: { "data-node-control": node.id },
       });
       handle.type = "button";
+      handle.addEventListener("focus", () => this.revealNode(node.id));
       handle.disabled = childCount === 0;
       if (childCount > 0) {
-        const collapsed = this.collapsed.has(node.id);
+        const collapsed = effectiveCollapsed.has(node.id);
         handle.classList.toggle("is-collapsed", collapsed);
         handle.setAttribute("aria-expanded", String(!collapsed));
         handle.setAttribute("aria-label", this.actions.getTranslate()(
@@ -465,8 +506,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
         handle.title = handle.getAttribute("aria-label") ?? "";
         handle.addEventListener("click", () => {
           this.setSelection(node.id);
-          if (collapsed) this.collapsed.delete(node.id);
-          else this.collapsed.add(node.id);
+          const collection = this.searchQuery.length > 0 && ancestors.has(node.id)
+            ? this.searchCollapsed : this.collapsed;
+          if (collapsed) collection.delete(node.id);
+          else collection.add(node.id);
           this.render();
           this.focusControl(node.id);
         });
@@ -520,7 +563,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       const controls = this.sceneHost?.querySelectorAll<HTMLButtonElement>("[data-node-control]") ?? [];
       for (const control of controls) {
         if (control.dataset.nodeControl === id) {
-          control.focus();
+          control.focus({ preventScroll: true });
           break;
         }
       }
@@ -535,8 +578,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (item == null) return;
     const centerX = (item.x + HEADING_MAP_CARD_WIDTH / 2) * this.scale;
     const centerY = (item.y + HEADING_MAP_CARD_HEIGHT / 2) * this.scale;
-    viewport.scrollLeft = Math.max(0, centerX - viewport.clientWidth / 2);
-    viewport.scrollTop = Math.max(0, centerY - viewport.clientHeight / 2);
+    this.offsetX = viewport.clientWidth / 2 - centerX;
+    this.offsetY = viewport.clientHeight / 2 - centerY;
+    this.applyScale();
+  }
+
+  private revealNode(id: string): void {
+    const viewport = this.viewport;
+    const item = this.lastLayout?.nodes.find(({ node }) => node.id === id);
+    if (viewport == null || item == null) return;
+    const left = item.x * this.scale + this.offsetX;
+    const top = item.y * this.scale + this.offsetY;
+    if (left < 0 || top < 0 || left + HEADING_MAP_CARD_WIDTH * this.scale > viewport.clientWidth
+      || top + HEADING_MAP_CARD_HEIGHT * this.scale > viewport.clientHeight) this.centerNode(id);
   }
 
   private async navigate(node: HeadingMapNode): Promise<void> {
@@ -553,12 +607,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (Math.abs(scale - previous) < 0.001) return;
     const x = pointerX ?? viewport.clientWidth / 2;
     const y = pointerY ?? viewport.clientHeight / 2;
-    const logicalX = (viewport.scrollLeft + x) / previous;
-    const logicalY = (viewport.scrollTop + y) / previous;
+    const logicalX = (x - this.offsetX) / previous;
+    const logicalY = (y - this.offsetY) / previous;
     this.scale = scale;
+    this.offsetX = x - logicalX * scale;
+    this.offsetY = y - logicalY * scale;
     this.applyScale();
-    viewport.scrollLeft = Math.max(0, logicalX * scale - x);
-    viewport.scrollTop = Math.max(0, logicalY * scale - y);
   }
 
   private applyScale(): void {
@@ -566,9 +620,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const canvas = this.canvas;
     const layout = this.lastLayout;
     if (host == null || canvas == null || layout == null) return;
-    host.style.width = `${Math.max(1, layout.width * this.scale)}px`;
-    host.style.height = `${Math.max(1, layout.height * this.scale)}px`;
-    canvas.style.transform = `scale(${this.scale})`;
+    canvas.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
     this.updateToolbarState();
   }
 
@@ -583,23 +635,42 @@ export class NumberSuiteHeadingMapView extends ItemView {
       MAX_SCALE,
       Math.max(MIN_SCALE, Math.min(availableWidth / layout.width, availableHeight / layout.height)),
     );
+    this.offsetX = (viewport.clientWidth - layout.width * this.scale) / 2;
+    this.offsetY = (viewport.clientHeight - layout.height * this.scale) / 2;
     this.applyScale();
-    viewport.scrollLeft = Math.max(0, (layout.width * this.scale - viewport.clientWidth) / 2);
-    viewport.scrollTop = Math.max(0, (layout.height * this.scale - viewport.clientHeight) / 2);
+  }
+
+  private onWheel(event: WheelEvent): void {
+    const viewport = this.viewport;
+    if (viewport == null) return;
+    event.preventDefault();
+    if (event.ctrlKey || event.metaKey) {
+      if (event.deltaY === 0) return;
+      const bounds = viewport.getBoundingClientRect();
+      this.setScaleAt(this.scale * (event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP),
+        event.clientX - bounds.left, event.clientY - bounds.top);
+    } else {
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1;
+      this.offsetX -= (event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX) * unit;
+      this.offsetY -= (event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY) * unit;
+      this.applyScale();
+    }
   }
 
   private beginPan(event: PointerEvent): void {
     const viewport = this.viewport;
-    const target = event.target instanceof Element ? event.target : null;
-    if (viewport == null || target?.closest(".number-suite-heading-map-card, .number-suite-heading-map-toolbar") != null) {
+    const ElementType = this.contentEl.ownerDocument.defaultView?.Element;
+    const target = ElementType != null && event.target instanceof ElementType ? event.target : null;
+    if (viewport == null || this.pan != null || event.button !== 0
+      || target?.closest(".number-suite-heading-map-card, .number-suite-heading-map-toolbar") != null) {
       return;
     }
     this.pan = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      scrollLeft: viewport.scrollLeft,
-      scrollTop: viewport.scrollTop,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
     };
     viewport.setPointerCapture(event.pointerId);
     viewport.addClass("is-panning");
@@ -609,15 +680,16 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const viewport = this.viewport;
     const pan = this.pan;
     if (viewport == null || pan == null || pan.pointerId !== event.pointerId) return;
-    viewport.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
-    viewport.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+    this.offsetX = pan.offsetX + event.clientX - pan.x;
+    this.offsetY = pan.offsetY + event.clientY - pan.y;
+    this.applyScale();
   }
 
   private endPan(event: PointerEvent): void {
     const viewport = this.viewport;
     if (viewport == null || this.pan?.pointerId !== event.pointerId) return;
-    if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     this.pan = null;
+    if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     viewport.removeClass("is-panning");
   }
 
