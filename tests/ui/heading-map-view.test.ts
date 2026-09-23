@@ -33,6 +33,9 @@ type Subject = {
   offsetY: number;
   lastLayout: HeadingMapLayout;
   searchQuery: string;
+  searchMatches: string[];
+  searchIndex: number;
+  layoutDirection: "left-to-right" | "top-to-bottom";
   sceneHost: HTMLElement;
   viewport: HTMLElement;
   needsInitialFit: boolean;
@@ -44,6 +47,9 @@ type Subject = {
   render(): void;
   fitToView(readable?: boolean): void;
   showDocument(): void;
+  setExpandRange(range: 1 | 2 | 3 | "all"): void;
+  cycleSearch(backward: boolean): void;
+  onViewportKeyDown(event: KeyboardEvent): void;
   onWheel(event: WheelEvent): void;
   beginPan(event: PointerEvent): void;
   movePan(event: PointerEvent): void;
@@ -240,6 +246,60 @@ describe("heading map interactions", () => {
     expect(refreshMap.mock.calls).toEqual([["# New pane", "Same.md"]]);
   });
 
+  it("applies structural range expansion without changing the heading tree", async () => {
+    const view = makeView();
+    await view.refreshMap("# A\n## B\n### C\n#### D");
+    view.setExpandRange(1);
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A"]);
+    view.setExpandRange(3);
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A", "B", "C"]);
+    view.setExpandRange("all");
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A", "B", "C", "D"]);
+  });
+
+  it("switches to top-to-bottom layout while preserving document order", async () => {
+    const view = makeView();
+    await view.refreshMap("# A\n## B");
+    view.layoutDirection = "top-to-bottom";
+    view.render();
+    const root = view.lastLayout.nodes[0]!;
+    const heading = view.lastLayout.nodes[1]!;
+    expect(view.lastLayout.nodes.map(({ node }) => node.title)).toEqual(["Same", "A", "B"]);
+    expect(heading.y).toBeGreaterThan(root.y);
+  });
+
+  it("cycles all search matches in document order and reverses with Shift semantics", async () => {
+    const view = makeView();
+    await view.refreshMap("# Alpha\n# Alpha two\n# Alpha three");
+    view.searchQuery = "alpha";
+    view.render();
+    expect(view.searchMatches).toHaveLength(3);
+    view.cycleSearch(false);
+    const first = view.selectedId;
+    view.cycleSearch(false);
+    expect(view.selectedId).not.toBe(first);
+    view.cycleSearch(true);
+    expect(view.selectedId).toBe(first);
+  });
+
+  it("supports plus, minus, and zero keyboard viewport controls", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const key = (value: string): void => {
+      const event = new KeyboardEvent("keydown", { key: value, cancelable: true });
+      Object.defineProperty(event, "target", { value: view.viewport });
+      view.onViewportKeyDown(event);
+      expect(event.defaultPrevented).toBe(true);
+    };
+    key("+");
+    expect(view.scale).toBeGreaterThan(1);
+    key("-");
+    expect(view.scale).toBeCloseTo(1);
+    view.offsetX = -300;
+    key("0");
+    expect(view.scale).toBeLessThanOrEqual(1);
+  });
+
   it("keeps the graph point beneath the pointer fixed when zooming out at the top-left boundary", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child\n### Deep\n#### Deeper");
@@ -358,7 +418,7 @@ describe("heading map interactions", () => {
     expect(view.scale).toBe(1);
   });
 
-  it("does not let a second touch replace an in-progress pan and releases cancellation", async () => {
+  it("uses two touch pointers for anchored pinch zoom and returns to one-finger pan", async () => {
     const view = makeView();
     await view.refreshMap("# Root");
     const captured = new Set<number>();
@@ -366,19 +426,20 @@ describe("heading map interactions", () => {
       setPointerCapture: (id: number) => captured.add(id),
       hasPointerCapture: (id: number) => captured.has(id),
       releasePointerCapture: (id: number) => captured.delete(id),
+      getBoundingClientRect: () => ({ left: 0, top: 0 }),
     });
     const pointer = (id: number, x: number, y: number) => new PointerEvent("pointerdown", {
       pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: y,
     });
     view.beginPan(pointer(1, 100, 100));
-    view.beginPan(pointer(2, 300, 300));
-    view.movePan(pointer(2, 400, 400));
-    expect(view.offsetX).toBe(0);
-    view.movePan(pointer(1, 180, 150));
-    expect([view.offsetX, view.offsetY]).toEqual([80, 50]);
-    view.endPan(pointer(2, 400, 400));
-    expect(captured.has(1)).toBe(true);
-    view.endPan(pointer(1, 180, 150));
+    view.beginPan(pointer(2, 300, 100));
+    view.movePan(pointer(2, 400, 100));
+    expect(view.scale).toBeGreaterThan(1);
+    const afterPinch = [view.offsetX, view.offsetY];
+    view.endPan(pointer(2, 400, 100));
+    view.movePan(pointer(1, 140, 130));
+    expect([view.offsetX, view.offsetY]).not.toEqual(afterPinch);
+    view.endPan(pointer(1, 140, 130));
     expect(captured.size).toBe(0);
     expect(view.viewport.classList.contains("is-panning")).toBe(false);
   });
