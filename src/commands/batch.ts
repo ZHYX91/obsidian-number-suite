@@ -13,6 +13,7 @@ import { ChangePreviewModal, type PreviewDocument } from "../ui/preview-modal";
 import { createSourcePlan } from "./transform-options";
 
 export interface BatchPersistence {
+  ensureLoaded(): Promise<void>;
   getLastBatch(): LastBatchSnapshot | null;
   setLastBatch(snapshot: LastBatchSnapshot | null): Promise<void>;
 }
@@ -103,6 +104,7 @@ export class BatchController {
   }
 
   private async undoExclusive(translate: Translate): Promise<void> {
+    await this.persistence.ensureLoaded();
     const snapshot = this.persistence.getLastBatch();
     if (snapshot == null) {
       new Notice(translate("notice.noBatch"));
@@ -395,6 +397,7 @@ export class BatchController {
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
+    await this.persistence.ensureLoaded();
     const expectedSources = new Map(documents.map((document) => (
       [document.path, document.plan.source] as const
     )));
