@@ -450,3 +450,85 @@ describe("BatchController apply", () => {
     expect(test.processCalls()).toBe(1);
   });
 });
+
+describe("batch write boundary recovery", () => {
+  it("preserves an editor edit arriving before the undo callback", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "after-a" }, recovery);
+    const open = test.addView("a.md", "after-a");
+    test.setProcessHook(() => open.setBuffer("typing during restore"));
+    await test.controller.undo((key) => key);
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(open.view.editor.getValue()).toBe("typing during restore");
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.undoConflict");
+  });
+
+  it("retains recovery and a new editor edit after the undo write", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "after-a" }, recovery);
+    const open = test.addView("a.md", "after-a");
+    test.setProcessAfterHook(() => open.setBuffer("typing after restore"));
+    await test.controller.undo((key) => key);
+    expect(test.contents.get("a.md")).toBe("before:a.md");
+    expect(open.view.editor.getValue()).toBe("typing after restore");
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.undoConflict");
+  });
+
+  it("does not roll back an open buffer edited while a later file fails", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    const open = test.addView("a.md", "before-a");
+    test.setProcessHook((path) => {
+      if (path === "b.md") {
+        open.setBuffer("typing into already-written file");
+        throw new Error("later file failed");
+      }
+    });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(test.contents.get("b.md")).toBe("before-b");
+    expect(open.view.editor.getValue()).toBe("typing into already-written file");
+    expect(test.getStored()?.status).toBe("pending");
+  });
+
+  it("accepts host propagation where two panes see old and new content", async () => {
+    const test = harness({ "a.md": "before" });
+    test.addView("a.md", "before");
+    const second = test.addView("a.md", "before");
+    test.setProcessAfterHook(() => second.setBuffer("after"));
+    await applyPreview(test.controller, previewDocument("before", "after"));
+    expect(test.contents.get("a.md")).toBe("after");
+    expect(test.getStored()?.status).toBe("applied");
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.batchApplied");
+  });
+
+  it("rejects a newly opened stale pane before the callback writes", async () => {
+    const test = harness({ "a.md": "before" });
+    test.setProcessHook(() => { test.addView("a.md", "new pane unsaved text"); });
+    await applyPreview(test.controller, previewDocument("before", "after"));
+    expect(test.contents.get("a.md")).toBe("before");
+    expect(test.getStored()).toBeNull();
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("preserves an editor change arriving inside the rollback callback", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    const open = test.addView("a.md", "before-a");
+    test.setProcessHook((path, call) => {
+      if (path === "b.md") throw new Error("later file failed");
+      if (call === 3) open.setBuffer("typing during rollback");
+    });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(test.processCalls()).toBe(3);
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(open.view.editor.getValue()).toBe("typing during rollback");
+    expect(test.getStored()?.status).toBe("pending");
+  });
+});

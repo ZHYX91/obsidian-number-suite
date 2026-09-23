@@ -89,6 +89,26 @@
       "expected": [
         "Navigation reaches the intended heading and retains the originating desktop pane. Outline buttons keep usable focus. Tooltip content updates without visible interaction stalls. Dismissal cannot imply cancellation after applying begins."
       ]
+    },
+    {
+      "id": "batch-concurrency-and-recovery",
+      "title": "Batch write conflicts and retained recovery",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Use disposable copies of two fixture notes. Preview a batch Write, then introduce an editor change while applying or restoring; inspect the conflict notice and retained recovery. On desktop also exercise two panes temporarily showing pre-write and replacement content.",
+        "Induce a later-file failure after one file has been written, edit the already-written file, and attempt recovery. Record unverified if the host cannot deterministically exercise the timing."
+      ],
+      "expected": [
+        "Writes and restores reject divergent editor buffers at the guarded write boundary. A just-published buffer or the exact expected pre-write content remains valid during host propagation.",
+        "Rollback never overwrites a conflicting buffer. Uncertain writes retain the recovery snapshot; unchanged files and unrelated user text remain intact."
+      ]
     }
   ]
 }

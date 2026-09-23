@@ -4,6 +4,11 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- Revalidate editor buffers before, inside and after guarded batch writes and restores; preserve
+  conflicting edits and retain recovery when a write or rollback cannot be confirmed safely.
+
 ## 0.3.3 - 2026-09-20
 
 ### Fixed
