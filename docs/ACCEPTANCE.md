@@ -51,6 +51,8 @@ block explicitly authorized publication. Never use a production Vault for these 
 
 ## Heading mind map
 
+- [ ] Open, close, and reopen the map through both entry points. Confirm the host header, file
+  label, search, scope and zoom controls, cards and edges all render before testing interactions.
 - [ ] Open `Heading map.md` through the outline button and command palette. Check H1-H9,
   effective/hidden numbers, direct-child counts, skipped levels and caption exclusion.
 - [ ] Rename a selected, collapsed subtree root and insert an earlier duplicate heading. Check

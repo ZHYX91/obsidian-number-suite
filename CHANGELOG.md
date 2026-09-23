@@ -4,6 +4,11 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- Preserve the host-owned view header when opening the heading mind map, so the toolbar and cards
+  render instead of leaving an empty tab.
+
 ## 0.4.0 - 2026-09-23
 
 ### Added

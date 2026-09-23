@@ -71,7 +71,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
   private canvas: HTMLElement | null = null;
-  private titleEl: HTMLElement | null = null;
+  private fileLabelEl: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private documentButton: HTMLButtonElement | null = null;
   private subtreeButton: HTMLButtonElement | null = null;
@@ -153,7 +153,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private buildToolbar(): void {
     const toolbar = this.contentEl.createDiv({ cls: "number-suite-heading-map-toolbar" });
     const primary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-primary" });
-    this.titleEl = primary.createDiv({ cls: "number-suite-heading-map-file" });
+    this.fileLabelEl = primary.createDiv({ cls: "number-suite-heading-map-file" });
     const search = primary.createEl("input", {
       cls: "number-suite-heading-map-search",
       type: "search",
@@ -219,9 +219,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private updateToolbarState(): void {
-    if (this.titleEl != null) {
-      this.titleEl.setText(this.currentFile?.basename ?? this.actions.getTranslate()("headingMap.title"));
-      this.titleEl.title = this.currentFile?.path ?? "";
+    if (this.fileLabelEl != null) {
+      this.fileLabelEl.setText(this.currentFile?.basename ?? this.actions.getTranslate()("headingMap.title"));
+      this.fileLabelEl.title = this.currentFile?.path ?? "";
     }
     this.documentButton?.classList.toggle("is-active", this.scopeId == null);
     this.subtreeButton?.classList.toggle("is-active", this.scopeId != null);

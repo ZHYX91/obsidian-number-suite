@@ -1,10 +1,20 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MarkdownView, type WorkspaceLeaf } from "obsidian";
+import { MarkdownView, TFile, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
-  ItemView: class {},
+  ItemView: class {
+    // ItemView owns this undocumented header field and uses it before onOpen.
+    readonly titleEl = document.createElement("div");
+    readonly contentEl = document.createElement("div");
+
+    getDisplayText(): string { return ""; }
+
+    load(): void { this.titleEl.setText(this.getDisplayText()); }
+
+    registerEvent(_event: unknown): void {}
+  },
 }));
 
 import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
@@ -62,6 +72,33 @@ beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
 
 describe("heading map interactions", () => {
+  it("loads through the host lifecycle without overwriting the ItemView header", async () => {
+    const file = Object.assign(new TFile("Map.md"), { basename: "Map" });
+    const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
+      getSettings: () => DEFAULT_SETTINGS,
+      getTranslate: () => ((key: string) => key),
+    });
+    Object.assign(view, {
+      app: {
+        workspace: {
+          on: vi.fn(),
+          getActiveFile: () => file,
+          getActiveViewOfType: () => null,
+          iterateAllLeaves: vi.fn(),
+        },
+        vault: { on: vi.fn(), cachedRead: async () => "# Root\n## Child" },
+      },
+    });
+    view.load();
+    await view.onOpen();
+    const header = (view as unknown as { titleEl: HTMLElement }).titleEl;
+    expect(header.textContent).toBe("headingMap.title");
+    expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
+    expect(view.contentEl.querySelector(".number-suite-heading-map-search")).not.toBeNull();
+    expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(2);
+    await view.onClose();
+  });
+
   it("control: preserves selection, scope, and collapse for a body-only edit", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child");
