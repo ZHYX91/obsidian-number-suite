@@ -7,7 +7,7 @@ describe("plugin recovery startup boundary", () => {
   it("constructs a lazy recovery session without awaiting recovery storage during onload", () => {
     expect(source).toContain("new RecoverySession(new RecoveryStore(this.app, this.manifest))");
     expect(source).not.toContain("await this.recoveryStore.load()");
-    expect(source).not.toContain("await this.recoverySession.ensureLoaded()");
+    expect(source).not.toContain("this.lastBatch = await");
   });
 
   it("lets BatchController own the first recovery load at mutation and undo boundaries", () => {
