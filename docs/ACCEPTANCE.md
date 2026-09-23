@@ -69,9 +69,11 @@ scoped pass into a claim that every product scenario passed.
   zero handle. Root navigation goes to the file top without modifying Markdown.
 - [ ] Initial overview shows two structural heading depths at 100%, with deeper branches collapsed.
   Root collapse, search reveal and clearing, subtree scope and the file breadcrumb preserve state.
-  Fit can zoom out; clicking the percentage restores 100%. Rename the file and verify its label.
+  Exercise the 1/2/3/all depth presets. Fit can zoom out; clicking the percentage restores 100%.
+  Rename the file and verify its label.
 - [ ] Open, close, and reopen the map through both entry points. Confirm the host header, file
-  label, search, scope and zoom controls, cards and edges all render before testing interactions.
+  label, search, scope, depth, direction and zoom controls, cards and edges all render before testing
+  interactions. Switch left-to-right/top-to-bottom layout and verify document order is unchanged.
 - [ ] Open `Heading map.md` through the outline button and command palette. Check H1-H9,
   effective/hidden numbers, direct-child counts, skipped levels and caption exclusion.
 - [ ] Rename a selected, collapsed subtree root and insert an earlier duplicate heading. Check
@@ -79,14 +81,15 @@ scoped pass into a claim that every product scenario passed.
 - [ ] Switch rapidly between same-file editor panes while typing. Map refresh and source-line
   navigation must follow the originating pane, without a delayed old-buffer overwrite.
 - [ ] Zoom at each canvas boundary and with a tree smaller than the viewport; the pointer anchor
-  must stay fixed. Use ordinary/Shift wheel, blank-canvas drag, zoom buttons and Fit. Collapse and
-  expand a large branch without moving the clicked parent under the pointer.
+  must stay fixed. Use ordinary/Shift wheel, blank-canvas drag, Ctrl/Cmd-wheel, +, -, 0, zoom buttons
+  and Fit. Collapse and expand a large branch without moving the clicked parent under the pointer.
 - [ ] Search inside a collapsed branch. Verify the handle describes its visible state, toggle it,
-  clear search and check the original saved collapse intent is restored.
+  use Enter and Shift+Enter to traverse multiple matches, then clear search and check the original
+  saved collapse intent is restored.
 - [ ] Tab through number handles, card bodies and branch handles; off-screen focus must become
   visible. Enter and double-click must navigate to the exact source line.
-- [ ] On Android, check portrait toolbar wrapping, touch pan/cancellation without opening either host sidebar, branch taps, navigation
-  and zoom buttons. Two-finger pinch zoom is not part of the current map interaction contract.
+- [ ] On Android, check portrait toolbar wrapping, one-finger pan/cancellation without opening either
+  host sidebar, two-finger pinch around the moving midpoint, branch taps, navigation and zoom buttons.
 - [ ] Hash the fixture before/after map-only operations; no Markdown writes are allowed.
 
 ## Captions and same-file references
