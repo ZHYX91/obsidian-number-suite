@@ -15,7 +15,19 @@ describe("semantic tooltip metadata", () => {
       numberSuiteTooltip: "true",
       numberSuiteTooltipTitle: "Figure 1: Lunch",
       numberSuiteTooltipBody: "tray of food",
+      numberSuiteTooltipOwnTabindex: "true",
     });
+    expect(element.tabIndex).toBe(0);
+  });
+
+  it("preserves an authored tabindex while adding tooltip metadata", () => {
+    const element = document.createElement("span");
+    element.tabIndex = -1;
+    expect(applySemanticTooltip(element, "Title", "Body")).toBe(true);
+    expect(element.tabIndex).toBe(-1);
+    expect(element.dataset.numberSuiteTooltipOwnTabindex).toBeUndefined();
+    clearSemanticTooltip(element);
+    expect(element.tabIndex).toBe(-1);
   });
 
   it("deduplicates equal text and removes empty tooltip metadata", () => {
@@ -24,6 +36,7 @@ describe("semantic tooltip metadata", () => {
     expect(element.dataset.numberSuiteTooltipBody).toBe("");
     clearSemanticTooltip(element);
     expect(element.dataset.numberSuiteTooltip).toBeUndefined();
+    expect(element.hasAttribute("tabindex")).toBe(false);
     expect(applySemanticTooltip(element, "", "")).toBe(false);
   });
 });
