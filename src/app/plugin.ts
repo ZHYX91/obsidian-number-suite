@@ -8,6 +8,7 @@ import {
 
 import { openObsidianPluginSettings } from "../adapters/obsidian/plugin-settings";
 import { RecoveryStore } from "../adapters/obsidian/recovery-store";
+import { RecoverySession } from "../application/recovery-session";
 import {
   updateDisplayPreferences,
   type DisplayPreferenceAction,
@@ -24,7 +25,6 @@ import {
   normalizePluginData,
   sanitizeSettings,
   type NumberSuiteSettings,
-  type LastBatchSnapshot,
 } from "../config/settings";
 import {
   type SettingsSaveStatus,
@@ -57,10 +57,9 @@ import { clearNoteControlSessions } from "../ui/note-control-modal";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = cloneSettings(DEFAULT_SETTINGS);
-  private lastBatch: LastBatchSnapshot | null = null;
   private displayController: HeadingDisplayController | null = null;
   private batchController: BatchController | null = null;
-  private recoveryStore: RecoveryStore | null = null;
+  private recoverySession: RecoverySession | null = null;
   private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
   private tooltipController: SemanticTooltipController | null = null;
@@ -76,8 +75,7 @@ export default class NumberSuitePlugin extends Plugin {
       await this.saveData({ schemaVersion: PERSISTENCE_SCHEMA_VERSION, settings: snapshot });
     });
     this.settings = this.settingsPersistence.initialSettings();
-    this.recoveryStore = new RecoveryStore(this.app, this.manifest);
-    this.lastBatch = await this.recoveryStore.load();
+    this.recoverySession = new RecoverySession(new RecoveryStore(this.app, this.manifest));
 
     this.displayController = new HeadingDisplayController(() => this.settings);
     this.registerEditorExtension(this.displayController.createExtension());
@@ -88,11 +86,14 @@ export default class NumberSuitePlugin extends Plugin {
       this.app,
       () => this.settings,
       {
-        getLastBatch: () => this.lastBatch,
+        ensureLoaded: async () => {
+          if (this.recoverySession == null) throw new Error("Recovery session is unavailable.");
+          await this.recoverySession.ensureLoaded();
+        },
+        getLastBatch: () => this.recoverySession?.get() ?? null,
         setLastBatch: async (snapshot) => {
-          if (this.recoveryStore == null) throw new Error("Recovery store is unavailable.");
-          await this.recoveryStore.save(snapshot);
-          this.lastBatch = snapshot;
+          if (this.recoverySession == null) throw new Error("Recovery session is unavailable.");
+          await this.recoverySession.save(snapshot);
         },
       },
     );
@@ -128,10 +129,14 @@ export default class NumberSuitePlugin extends Plugin {
     this.tooltipController.register(this);
     this.registerCommands();
     this.addRibbon();
+    this.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
+      this.applyAppearanceToDocument(window.document);
+    }));
     this.applyAppearance();
   }
 
   override onunload(): void {
+    this.batchController?.dispose();
     void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
@@ -230,7 +235,8 @@ export default class NumberSuitePlugin extends Plugin {
       id: "undo-last-batch",
       name: this.translate()("command.batch.undo"),
       checkCallback: (checking) => {
-        const available = this.lastBatch != null;
+        const recovery = this.recoverySession;
+        const available = recovery == null || recovery.status() !== "loaded" || recovery.get() != null;
         if (!checking && available) {
           void this.batchController?.undo(this.translate());
         }
@@ -367,17 +373,19 @@ export default class NumberSuitePlugin extends Plugin {
     return [...documents];
   }
 
+  private applyAppearanceToDocument(ownerDocument: Document): void {
+    ownerDocument.body.style.setProperty(
+      "--number-suite-virtual-opacity",
+      String(this.settings.virtualOpacity),
+    );
+    ownerDocument.body.style.setProperty(
+      "--number-suite-virtual-gap",
+      `${this.settings.virtualGapEm}em`,
+    );
+  }
+
   private applyAppearance(): void {
-    for (const ownerDocument of this.ownerDocuments()) {
-      ownerDocument.body.style.setProperty(
-        "--number-suite-virtual-opacity",
-        String(this.settings.virtualOpacity),
-      );
-      ownerDocument.body.style.setProperty(
-        "--number-suite-virtual-gap",
-        `${this.settings.virtualGapEm}em`,
-      );
-    }
+    for (const ownerDocument of this.ownerDocuments()) this.applyAppearanceToDocument(ownerDocument);
   }
 
   private clearAppearance(): void {

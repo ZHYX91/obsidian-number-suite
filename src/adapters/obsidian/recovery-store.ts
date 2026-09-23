@@ -15,12 +15,15 @@ export class RecoveryStore {
   async load(): Promise<LastBatchSnapshot | null> {
     for (const path of [this.temporaryPath, this.path]) {
       if (!await this.app.vault.adapter.exists(path)) continue;
+      // An unreadable pending file may contain newer recovery. Do not fall back or
+      // let the session cache absence until storage can actually be read.
+      const source = await this.app.vault.adapter.read(path);
       try {
-        const snapshot = sanitizeLastBatch(JSON.parse(await this.app.vault.adapter.read(path)));
+        const snapshot = sanitizeLastBatch(JSON.parse(source));
         if (snapshot != null) return snapshot;
         console.error(`Number Suite: ignored invalid recovery snapshot ${path}`);
       } catch (error) {
-        console.error(`Number Suite: could not read ${path}`, error);
+        console.error(`Number Suite: ignored invalid recovery JSON ${path}`, error);
       }
     }
     return null;

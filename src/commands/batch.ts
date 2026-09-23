@@ -13,6 +13,7 @@ import { ChangePreviewModal, type PreviewDocument } from "../ui/preview-modal";
 import { createSourcePlan } from "./transform-options";
 
 export interface BatchPersistence {
+  ensureLoaded(): Promise<void>;
   getLastBatch(): LastBatchSnapshot | null;
   setLastBatch(snapshot: LastBatchSnapshot | null): Promise<void>;
 }
@@ -66,6 +67,7 @@ export function planChangesSource(plan: Pick<TransformPlan, "source" | "result">
 
 export class BatchController {
   private operationActive = false;
+  private disposed = false;
 
   constructor(
     private readonly app: App,
@@ -74,6 +76,7 @@ export class BatchController {
   ) {}
 
   private async runExclusive(translate: Translate, operation: () => Promise<void>): Promise<void> {
+    if (this.disposed) return;
     if (this.operationActive) {
       new Notice(translate("notice.batchBusy"));
       return;
@@ -81,12 +84,20 @@ export class BatchController {
     this.operationActive = true;
     try {
       await operation();
+    } catch (error: unknown) {
+      console.error("Number Suite batch preflight failed", error);
+      if (!this.disposed) new Notice(translate("notice.batchFailed"));
     } finally {
       this.operationActive = false;
     }
   }
 
+  dispose(): void {
+    this.disposed = true;
+  }
+
   open(translate: Translate): void {
+    if (this.disposed) return;
     new FolderScopeModal(this.app, translate, (scope) => {
       const files = this.filesForScope(scope);
       new BatchOperationModal(this.app, translate, files.length, (operation) => {
@@ -103,6 +114,8 @@ export class BatchController {
   }
 
   private async undoExclusive(translate: Translate): Promise<void> {
+    await this.persistence.ensureLoaded();
+    if (this.disposed) return;
     const snapshot = this.persistence.getLastBatch();
     if (snapshot == null) {
       new Notice(translate("notice.noBatch"));
@@ -160,6 +173,7 @@ export class BatchController {
     }
     const restored: BoundBatchFile[] = [];
     const remainingSources = new Map(verified.map((item) => [item.path, item.before] as const));
+    if (this.disposed) return;
     try {
       for (const item of verified) {
         if (
@@ -217,14 +231,10 @@ export class BatchController {
   }
 
   private async synchronizeOpenMarkdownViews(
-    expectedSources?: ReadonlyMap<string, string>,
+    expectedSources: ReadonlyMap<string, string>,
     expectedFiles?: ReadonlyMap<string, TFile>,
   ): Promise<boolean> {
     const initialViews = this.openMarkdownViews();
-    if (expectedSources == null) {
-      await Promise.all(initialViews.map(async (view) => view.save()));
-      return true;
-    }
     const relevantViews = initialViews.filter((view) => {
       const path = view.file?.path;
       return path != null && expectedSources.has(path);
@@ -334,17 +344,29 @@ export class BatchController {
     return failures;
   }
 
+  private async previewSource(file: TFile): Promise<string | null> {
+    const views = this.openMarkdownViews().filter((view) => view.file?.path === file.path);
+    if (views.some((view) => view.file !== file)) return null;
+    if (views.length === 0) return this.app.vault.cachedRead(file);
+    const sources = new Set(views.map((view) => view.editor.getValue()));
+    return sources.size === 1 ? sources.values().next().value ?? "" : null;
+  }
+
   private async preview(
     scope: BatchScope,
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
-    await this.synchronizeOpenMarkdownViews();
+    if (this.disposed) return;
     const documents: PreviewDocument[] = [];
     const candidates: Array<Readonly<{ path: string; source: string }>> = [];
     let invalidFrontmatter = 0;
     for (const file of this.filesForScope(scope)) {
-      const source = await this.app.vault.cachedRead(file);
+      const source = await this.previewSource(file);
+      if (source == null) {
+        new Notice(translate("notice.batchChanged"));
+        return;
+      }
       const result = createSourcePlan(source, operation, this.getSettings());
       if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
         invalidFrontmatter += 1;
@@ -362,6 +384,7 @@ export class BatchController {
       new Notice(translate("notice.batchNone"));
       return;
     }
+    if (this.disposed) return;
     new ChangePreviewModal({
       app: this.app,
       operation,
@@ -395,6 +418,8 @@ export class BatchController {
     operation: TransformOperation,
     translate: Translate,
   ): Promise<void> {
+    await this.persistence.ensureLoaded();
+    if (this.disposed) return;
     const expectedSources = new Map(documents.map((document) => (
       [document.path, document.plan.source] as const
     )));
@@ -456,6 +481,7 @@ export class BatchController {
     const previousSnapshot = this.persistence.getLastBatch();
     const modified: BoundBatchFile[] = [];
     const remainingSources = new Map(expectedSources);
+    if (this.disposed) return;
     try {
       await this.persistence.setLastBatch(pendingSnapshot);
       for (const item of files) {

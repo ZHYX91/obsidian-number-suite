@@ -80,6 +80,39 @@ function makeView(): Subject {
 beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
 
+describe("heading map touch targets", () => {
+  it("zooms when one finger starts on a heading card", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const captured = new Set<number>();
+    view.viewport.setPointerCapture = (id: number) => { captured.add(id); };
+    view.viewport.hasPointerCapture = (id: number) => captured.has(id);
+    view.viewport.releasePointerCapture = (id: number) => { captured.delete(id); };
+    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
+    view.viewport.addEventListener("pointermove", (event) => view.movePan(event));
+    const pointer = (type: string, id: number, x: number) => new PointerEvent(type, {
+      bubbles: true, pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: 100,
+    });
+    const card = view.sceneHost.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
+    view.viewport.dispatchEvent(pointer("pointerdown", 1, 100));
+    card.dispatchEvent(pointer("pointerdown", 2, 300));
+    view.viewport.dispatchEvent(pointer("pointermove", 2, 400));
+    expect(view.scale).toBeGreaterThan(1);
+  });
+
+  it("keeps a single-finger card tap from starting a pan", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root");
+    const card = view.sceneHost.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
+    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
+    card.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true, pointerId: 1, pointerType: "touch", button: 0, clientX: 100, clientY: 100,
+    }));
+    expect(view.viewport.classList.contains("is-panning")).toBe(false);
+    expect(view.scale).toBe(1);
+  });
+});
+
 describe("heading map interactions", () => {
   it("renders an empty file as a document card with a disabled zero handle", async () => {
     const view = makeView();

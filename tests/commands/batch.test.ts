@@ -37,6 +37,7 @@ function harness(
   const leaves: Array<{ view: MarkdownView }> = [];
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? null,
+    getMarkdownFiles: () => [...files.values()],
     cachedRead: async (file: TFile) => contents.get(file.path) ?? "",
     process: async (file: TFile, transform: (current: string) => string) => {
       processCalls += 1;
@@ -56,6 +57,7 @@ function harness(
     },
   } as unknown as App;
   const persistence: BatchPersistence = {
+    ensureLoaded: async () => undefined,
     getLastBatch: () => stored,
     setLastBatch: async (next) => {
       persistenceCalls += 1;
@@ -139,6 +141,7 @@ function applyHarness(diskSource: string, bufferSource: string) {
     },
   } as unknown as App;
   const persistence: BatchPersistence = {
+    ensureLoaded: async () => undefined,
     getLastBatch: () => stored,
     setLastBatch: async (next) => { stored = next; },
   };
@@ -184,6 +187,77 @@ async function applyPreviews(
 
 beforeEach(() => {
   (Notice as unknown as { readonly messages: string[] }).messages.length = 0;
+});
+
+describe("BatchController preview", () => {
+  async function preview(controller: BatchController): Promise<void> {
+    const run = Reflect.get(controller, "preview") as (
+      scope: { folder: null; label: string },
+      operation: "write",
+      translate: (key: string, values?: Record<string, unknown>) => string,
+    ) => Promise<void>;
+    await run.call(controller, { folder: null, label: "vault" }, "write", (key) => key);
+  }
+
+  it("reads open target buffers without saving target or unrelated editors", async () => {
+    const test = harness({ "a.md": "# Disk A", "b.md": "# Disk B" });
+    const target = test.addView("a.md", "# Buffer A");
+    const unrelated = test.addView("b.md", "# Buffer B");
+
+    await preview(test.controller);
+
+    expect(target.save).not.toHaveBeenCalled();
+    expect(unrelated.save).not.toHaveBeenCalled();
+    expect(test.contents.get("a.md")).toBe("# Disk A");
+    expect(test.contents.get("b.md")).toBe("# Disk B");
+  });
+
+  it("fails closed when two panes of one target disagree", async () => {
+    const test = harness({ "a.md": "# Disk A" });
+    const first = test.addView("a.md", "# Pane A");
+    const second = test.addView("a.md", "# Pane B");
+
+    await preview(test.controller);
+
+    expect(first.save).not.toHaveBeenCalled();
+    expect(second.save).not.toHaveBeenCalled();
+    expect(test.contents.get("a.md")).toBe("# Disk A");
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain("notice.batchChanged");
+  });
+});
+
+describe("BatchController recovery loading", () => {
+  it("loads persisted recovery before reading undo state", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    let loaded = false;
+    const contents = new Map([["a.md", "after-a"]]);
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("a.md");
+    const app = {
+      vault: {
+        getAbstractFileByPath: () => file,
+        cachedRead: async () => contents.get("a.md") ?? "",
+        process: async (_file: TFile, transform: (current: string) => string) => {
+          const next = transform(contents.get("a.md") ?? "");
+          contents.set("a.md", next);
+          return next;
+        },
+      },
+      workspace: { iterateAllLeaves: () => undefined },
+    } as unknown as App;
+    const persistence: BatchPersistence = {
+      ensureLoaded: async () => { loaded = true; },
+      getLastBatch: () => loaded ? recovery : null,
+      setLastBatch: async () => undefined,
+    };
+    const controller = new BatchController(app, () => DEFAULT_SETTINGS, persistence);
+
+    await controller.undo((key) => key);
+
+    expect(loaded).toBe(true);
+    expect(contents.get("a.md")).toBe("before:a.md");
+  });
 });
 
 describe("BatchController undo", () => {

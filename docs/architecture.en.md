@@ -211,7 +211,9 @@ explicit user action.
 
 `data.json` stores schema-versioned settings only. A serialized save coordinator coalesces frequent
 updates and exposes pending, failure, and retry state. The latest batch snapshot is stored separately
-in `recovery.json`; settings reset cannot delete it. Templates retired by custom-scheme edits or
+in `recovery.json`; settings reset cannot delete it. Plugin startup constructs a lazy recovery session
+without reading recovery files. The first batch commit boundary or batch-undo request single-flights
+that load before any recovery state is read or replaced. Templates retired by custom-scheme edits or
 deletion enter cleanup history until explicitly cleared.
 
 Markdown scanners share block protection and offset-preserving inline comment ranges. Caption

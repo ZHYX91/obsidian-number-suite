@@ -26,6 +26,10 @@ export function applySemanticTooltip(
   element.dataset.numberSuiteTooltip = "true";
   element.dataset.numberSuiteTooltipTitle = cleanTitle;
   element.dataset.numberSuiteTooltipBody = cleanBody;
+  if (!element.hasAttribute("tabindex")) {
+    element.tabIndex = 0;
+    element.dataset.numberSuiteTooltipOwnTabindex = "true";
+  }
   return true;
 }
 
@@ -33,6 +37,10 @@ export function clearSemanticTooltip(element: HTMLElement): void {
   delete element.dataset.numberSuiteTooltip;
   delete element.dataset.numberSuiteTooltipTitle;
   delete element.dataset.numberSuiteTooltipBody;
+  if (element.dataset.numberSuiteTooltipOwnTabindex === "true") {
+    element.removeAttribute("tabindex");
+    delete element.dataset.numberSuiteTooltipOwnTabindex;
+  }
 }
 
 /** Pure policy shared by DOM gating and tests. */
@@ -74,6 +82,8 @@ export class SemanticTooltipController {
   private readonly registeredDocuments = new WeakSet<Document>();
   private active: HTMLElement | null = null;
   private tooltip: HTMLElement | null = null;
+  private describedBy: { readonly id: string; readonly target: HTMLElement } | null = null;
+  private tooltipSequence = 0;
 
   constructor(
     private readonly app: App,
@@ -146,6 +156,11 @@ export class SemanticTooltipController {
     const ownerDocument = target.ownerDocument;
     const tooltip = ownerDocument.body.createDiv({ cls: "number-suite-semantic-tooltip" });
     tooltip.setAttribute("role", "tooltip");
+    const tooltipId = `number-suite-semantic-tooltip-${++this.tooltipSequence}`;
+    tooltip.id = tooltipId;
+    const describedBy = target.getAttribute("aria-describedby")?.trim() ?? "";
+    target.setAttribute("aria-describedby", describedBy.length === 0 ? tooltipId : `${describedBy} ${tooltipId}`);
+    this.describedBy = { id: tooltipId, target };
     if (title.length > 0) {
       const heading = tooltip.createDiv({ cls: "number-suite-semantic-tooltip-title" });
       heading.textContent = title;
@@ -171,6 +186,15 @@ export class SemanticTooltipController {
   }
 
   private hide(): void {
+    if (this.describedBy != null) {
+      const { id, target } = this.describedBy;
+      const remaining = (target.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/u)
+        .filter((value) => value.length > 0 && value !== id);
+      if (remaining.length === 0) target.removeAttribute("aria-describedby");
+      else target.setAttribute("aria-describedby", remaining.join(" "));
+      this.describedBy = null;
+    }
     this.tooltip?.remove();
     this.tooltip = null;
     this.active = null;

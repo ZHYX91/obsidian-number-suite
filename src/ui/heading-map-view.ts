@@ -863,21 +863,22 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const viewport = this.viewport;
     const ElementType = this.contentEl.ownerDocument.defaultView?.Element;
     const target = ElementType != null && event.target instanceof ElementType ? event.target : null;
-    if (viewport == null || event.button !== 0
-      || target?.closest(".number-suite-heading-map-card, .number-suite-heading-map-toolbar") != null) {
-      return;
-    }
+    if (viewport == null || event.button !== 0) return;
+    const onCard = target?.closest(".number-suite-heading-map-card") != null;
     if (event.pointerType === "touch") {
       this.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      viewport.setPointerCapture(event.pointerId);
-      viewport.addClass("is-panning");
       if (this.touchPointers.size > 1) {
         this.pan = null;
+        viewport.addClass("is-panning");
         return;
       }
+      // Preserve a single-finger card tap, but track it if a second finger
+      // starts a pinch on the card or blank canvas.
+      if (onCard) return;
     } else if (this.pan != null) {
       return;
     }
+    if (onCard || target?.closest(".number-suite-heading-map-toolbar") != null) return;
     this.pan = {
       pointerId: event.pointerId,
       x: event.clientX,
