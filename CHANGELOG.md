@@ -4,6 +4,8 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.4.0 - 2026-09-23
+
 ### Added
 
 - Add a read-only 2D heading mind map with numbered left handles, direct-child-count expansion
