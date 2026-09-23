@@ -22,6 +22,7 @@ All notable changes to Number Suite are documented here.
 - Keep a visible ancestor in place when clearing search hides the selected map result again.
 - Wait for a visible viewport before positioning a newly opened file, including empty notes.
 - Keep mobile canvas drags from opening the host sidebar while preserving card taps.
+- Show the beginning of long card titles with an ellipsis instead of clipping their centered text.
 
 ## 0.4.0 - 2026-09-23
 

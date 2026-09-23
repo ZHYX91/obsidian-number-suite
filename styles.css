@@ -1453,6 +1453,7 @@
 .number-suite-heading-map-body {
   background: transparent;
   color: var(--text-normal);
+  display: block;
   flex: 1 1 auto;
   font-size: var(--font-ui-small);
   min-width: 0;
