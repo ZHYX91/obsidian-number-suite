@@ -38,7 +38,8 @@ describe("Markdown source binding", () => {
   });
 
   it("falls back to disk when multiple panes exist and none is bound or active", async () => {
-    const file = new TFile("Same.md");
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("Same.md");
     const first = { view: view(file, "# First") } as unknown as WorkspaceLeaf;
     const second = { view: view(file, "# Second") } as unknown as WorkspaceLeaf;
     const app = {
