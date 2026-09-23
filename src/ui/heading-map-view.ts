@@ -7,8 +7,11 @@ import {
 } from "obsidian";
 
 import { navigateToLine } from "../adapters/navigate-to-line";
+import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import { createDisplayPlan } from "../application/display-plan";
 import { HeadingMapIdentity } from "../application/heading-map-identity";
+import { headingMapCollapsedForRange, type HeadingMapExpandRange } from "../application/heading-map-state";
+import { zoomHeadingMapViewport } from "../application/heading-map-viewport";
 import {
   findHeadingMapNode,
   createHeadingMap,
@@ -23,6 +26,7 @@ import {
   HEADING_MAP_CARD_WIDTH,
   layoutHeadingMap,
   type HeadingMapLayout,
+  type HeadingMapLayoutDirection,
 } from "../application/heading-map-layout";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { resolveNoteSettings } from "../config/frontmatter";
@@ -49,6 +53,11 @@ interface PanState {
   readonly offsetY: number;
 }
 
+interface TouchPoint {
+  x: number;
+  y: number;
+}
+
 const MIN_SCALE = 0.38;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 1.2;
@@ -64,7 +73,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private selectedId: string | null = null;
   private scopeId: string | null = null;
   private searchQuery = "";
-  private firstSearchMatch: string | null = null;
+  private searchMatches: string[] = [];
+  private searchIndex = 0;
+  private layoutDirection: HeadingMapLayoutDirection = "left-to-right";
   private scale = 1;
   private offsetX = 0;
   private offsetY = 0;
@@ -73,11 +84,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private needsInitialFit = true;
   private overviewInitialized = false;
   private pan: PanState | null = null;
+  private readonly touchPointers = new Map<number, TouchPoint>();
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
   private canvas: HTMLElement | null = null;
   private fileLabelEl: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
+  private searchStatusEl: HTMLElement | null = null;
+  private directionButton: HTMLButtonElement | null = null;
   private documentButton: HTMLButtonElement | null = null;
   private subtreeButton: HTMLButtonElement | null = null;
   private scaleLabel: HTMLElement | null = null;
@@ -107,9 +121,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.contentEl.addClass("number-suite-heading-map-view");
     this.buildToolbar();
     this.viewport = this.contentEl.createDiv({ cls: "number-suite-heading-map-viewport" });
+    this.viewport.tabIndex = 0;
+    this.viewport.setAttribute("aria-label", this.actions.getTranslate()("headingMap.canvas"));
     this.sceneHost = this.viewport.createDiv({ cls: "number-suite-heading-map-scene" });
 
     this.viewport.addEventListener("wheel", (event) => this.onWheel(event), { passive: false });
+    this.viewport.addEventListener("keydown", (event) => this.onViewportKeyDown(event));
     // The host's mobile sidebar listens for bubbling touch gestures. Own gestures inside
     // the canvas without cancelling tap/click synthesis on card buttons.
     for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"] as const) {
@@ -185,19 +202,26 @@ export class NumberSuiteHeadingMapView extends ItemView {
     search.setAttribute("aria-label", this.actions.getTranslate()("headingMap.search"));
     search.addEventListener("input", () => {
       this.searchQuery = search.value.trim();
+      this.searchIndex = 0;
       this.searchCollapsed.clear();
       this.render();
     });
     search.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || this.firstSearchMatch == null) return;
+      if (event.key === "Escape" && this.searchQuery.length > 0) {
+        event.preventDefault();
+        search.value = "";
+        this.searchQuery = "";
+        this.searchIndex = 0;
+        this.searchCollapsed.clear();
+        this.render();
+        return;
+      }
+      if (event.key !== "Enter") return;
       event.preventDefault();
-      this.searchCollapsed.clear();
-      this.render();
-      if (this.firstSearchMatch == null) return;
-      this.setSelection(this.firstSearchMatch);
-      this.centerNode(this.firstSearchMatch);
+      this.cycleSearch(event.shiftKey);
     });
     this.searchInput = search;
+    this.searchStatusEl = primary.createSpan({ cls: "number-suite-heading-map-search-status" });
 
     const secondary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-secondary" });
     const scope = secondary.createDiv({ cls: "number-suite-heading-map-scope" });
@@ -216,6 +240,30 @@ export class NumberSuiteHeadingMapView extends ItemView {
       if (this.selectedId == null || this.selectedId === HEADING_MAP_DOCUMENT_ID) return;
       this.scopeId = this.selectedId;
       this.needsInitialFit = true;
+      this.render();
+    });
+
+    const range = secondary.createEl("select", { cls: "number-suite-heading-map-range" });
+    range.setAttribute("aria-label", this.actions.getTranslate()("headingMap.expandRange"));
+    range.createEl("option", { value: "", text: this.actions.getTranslate()("headingMap.expandRange") });
+    for (const value of ["1", "2", "3", "all"] as const) {
+      range.createEl("option", {
+        value,
+        text: this.actions.getTranslate()(`headingMap.expandRange.${value}`),
+      });
+    }
+    range.value = "";
+    range.addEventListener("change", () => {
+      const value = range.value;
+      range.value = "";
+      if (value === "1" || value === "2" || value === "3") this.setExpandRange(Number(value) as 1 | 2 | 3);
+      else if (value === "all") this.setExpandRange("all");
+    });
+
+    this.directionButton = secondary.createEl("button", { cls: "number-suite-heading-map-direction" });
+    this.directionButton.type = "button";
+    this.directionButton.addEventListener("click", () => {
+      this.layoutDirection = this.layoutDirection === "left-to-right" ? "top-to-bottom" : "left-to-right";
       this.render();
     });
 
@@ -261,6 +309,24 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.subtreeButton.title = scoped?.title ?? "";
     }
     if (this.scaleLabel != null) this.scaleLabel.setText(`${Math.round(this.scale * 100)}%`);
+    if (this.searchStatusEl != null) {
+      this.searchStatusEl.setText(this.searchQuery.length === 0 || this.searchMatches.length === 0
+        ? ""
+        : this.actions.getTranslate()("headingMap.searchResult", {
+          current: Math.min(this.searchIndex + 1, this.searchMatches.length),
+          total: this.searchMatches.length,
+        }));
+    }
+    if (this.directionButton != null) {
+      const vertical = this.layoutDirection === "top-to-bottom";
+      this.directionButton.empty();
+      setIcon(this.directionButton, vertical ? "arrow-down" : "arrow-right");
+      const label = this.actions.getTranslate()(vertical
+        ? "headingMap.direction.horizontal"
+        : "headingMap.direction.vertical");
+      this.directionButton.setAttribute("aria-label", label);
+      this.directionButton.title = label;
+    }
   }
 
   private showDocument(): void {
@@ -284,6 +350,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.selectedId = null;
     this.scopeId = null;
     this.searchQuery = "";
+    this.searchMatches = [];
+    this.searchIndex = 0;
     if (this.searchInput != null) this.searchInput.value = "";
     this.scale = 1;
     this.offsetX = 0;
@@ -330,24 +398,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private async sourceForFile(file: TFile): Promise<string> {
-    const active = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (active?.file?.path === file.path) {
-      this.sourceLeaf = active.leaf;
-      return active.editor.getValue();
-    }
-    const matching: MarkdownView[] = [];
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
-        matching.push(leaf.view);
-      }
-    });
-    const source = matching.find((view) => view.leaf === this.sourceLeaf)
-      ?? (matching.length === 1 ? matching[0] : null);
-    if (source != null) {
-      this.sourceLeaf = source.leaf;
-      return source.editor.getValue();
-    }
-    return this.app.vault.cachedRead(file);
+    const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
+    if (bound.leaf != null) this.sourceLeaf = bound.leaf;
+    return bound.source;
   }
 
   private async refreshMap(
@@ -437,6 +490,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private renderStatus(message: string): void {
     this.roots = [];
+    this.selectedId = null;
+    this.scopeId = null;
+    this.searchMatches = [];
+    this.searchIndex = 0;
     this.lastLayout = null;
     this.canvas = null;
     this.sceneHost?.empty();
@@ -463,15 +520,18 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const scoped = this.scopeId == null ? null : findHeadingMapNode(this.roots, this.scopeId);
     const visibleRoots: readonly HeadingMapTreeNode[] = scoped == null
       ? [createHeadingMapDocument(this.currentFile.basename, [...this.roots])] : [scoped];
-    const { matches, ancestors } = this.searchState(visibleRoots);
-    this.firstSearchMatch = matches.values().next().value ?? null;
+    const { matches, ancestors, ordered } = this.searchState(visibleRoots);
+    this.searchMatches = ordered;
+    const selectedSearchIndex = this.selectedId == null ? -1 : ordered.indexOf(this.selectedId);
+    if (selectedSearchIndex >= 0) this.searchIndex = selectedSearchIndex;
+    else if (this.searchIndex >= ordered.length) this.searchIndex = 0;
     const effectiveCollapsed = new Set(
       [...this.collapsed].filter((id) => !ancestors.has(id)),
     );
     if (this.searchQuery.length > 0) {
       for (const id of this.searchCollapsed) effectiveCollapsed.add(id);
     }
-    const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed);
+    const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed, this.layoutDirection);
     if (this.selectedId != null && !layout.nodes.some(({ node }) => node.id === this.selectedId)) {
       // Clearing search can hide the selected match again. Keep its nearest visible ancestor
       // at the match's screen position instead of leaving the user over an empty canvas.
@@ -512,11 +572,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
     svg.setAttribute("height", String(layout.height));
     for (const edge of layout.edges) {
       const path = canvas.ownerDocument.createElementNS(SVG_NS, "path");
-      const delta = Math.max(32, (edge.toX - edge.fromX) * 0.45);
-      path.setAttribute(
-        "d",
-        `M ${edge.fromX} ${edge.fromY} C ${edge.fromX + delta} ${edge.fromY}, ${edge.toX - delta} ${edge.toY}, ${edge.toX} ${edge.toY}`,
-      );
+      if (this.layoutDirection === "top-to-bottom") {
+        const delta = Math.max(24, (edge.toY - edge.fromY) * 0.45);
+        path.setAttribute(
+          "d",
+          `M ${edge.fromX} ${edge.fromY} C ${edge.fromX} ${edge.fromY + delta}, ${edge.toX} ${edge.toY - delta}, ${edge.toX} ${edge.toY}`,
+        );
+      } else {
+        const delta = Math.max(32, (edge.toX - edge.fromX) * 0.45);
+        path.setAttribute(
+          "d",
+          `M ${edge.fromX} ${edge.fromY} C ${edge.fromX + delta} ${edge.fromY}, ${edge.toX - delta} ${edge.toY}, ${edge.toX} ${edge.toY}`,
+        );
+      }
       svg.appendChild(path);
     }
     canvas.appendChild(svg);
@@ -603,22 +671,51 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private searchState(roots: readonly HeadingMapTreeNode[]): {
     matches: Set<string>;
     ancestors: Set<string>;
+    ordered: string[];
   } {
     const matches = new Set<string>();
     const ancestors = new Set<string>();
+    const ordered: string[] = [];
     const query = this.searchQuery.toLocaleLowerCase();
-    if (query.length === 0) return { matches, ancestors };
+    if (query.length === 0) return { matches, ancestors, ordered };
 
     const visit = (node: HeadingMapTreeNode, path: readonly string[]): void => {
       const searchable = `${node.numberLabel ?? ""} ${node.title}`.toLocaleLowerCase();
       if (searchable.includes(query)) {
         matches.add(node.id);
+        ordered.push(node.id);
         for (const id of path) ancestors.add(id);
       }
       for (const child of node.children) visit(child, [...path, node.id]);
     };
     for (const root of roots) visit(root, []);
-    return { matches, ancestors };
+    return { matches, ancestors, ordered };
+  }
+
+  private cycleSearch(backward: boolean): void {
+    this.searchCollapsed.clear();
+    this.render();
+    if (this.searchMatches.length === 0) return;
+    const current = this.selectedId == null ? -1 : this.searchMatches.indexOf(this.selectedId);
+    const next = current < 0
+      ? backward ? this.searchMatches.length - 1 : 0
+      : (current + (backward ? -1 : 1) + this.searchMatches.length) % this.searchMatches.length;
+    this.searchIndex = next;
+    const id = this.searchMatches[next];
+    if (id == null) return;
+    this.setSelection(id);
+    this.centerNode(id);
+    this.updateToolbarState();
+  }
+
+  private setExpandRange(range: HeadingMapExpandRange): void {
+    const scoped = this.scopeId == null ? null : findHeadingMapNode(this.roots, this.scopeId);
+    const roots = scoped == null ? this.roots : [scoped];
+    const next = headingMapCollapsedForRange(roots, range);
+    this.collapsed.clear();
+    for (const id of next) this.collapsed.add(id);
+    this.searchCollapsed.clear();
+    this.render();
   }
 
   private setSelection(id: string): void {
@@ -674,16 +771,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private setScaleAt(next: number, pointerX?: number, pointerY?: number): void {
     const viewport = this.viewport;
     if (viewport == null || this.lastLayout == null) return;
-    const previous = this.scale;
-    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
-    if (Math.abs(scale - previous) < 0.001) return;
     const x = pointerX ?? viewport.clientWidth / 2;
     const y = pointerY ?? viewport.clientHeight / 2;
-    const logicalX = (x - this.offsetX) / previous;
-    const logicalY = (y - this.offsetY) / previous;
-    this.scale = scale;
-    this.offsetX = x - logicalX * scale;
-    this.offsetY = y - logicalY * scale;
+    const state = zoomHeadingMapViewport(
+      { scale: this.scale, offsetX: this.offsetX, offsetY: this.offsetY },
+      next,
+      x,
+      y,
+      MIN_SCALE,
+      MAX_SCALE,
+    );
+    this.scale = state.scale;
+    this.offsetX = state.offsetX;
+    this.offsetY = state.offsetY;
     this.applyScale();
   }
 
@@ -727,6 +827,20 @@ export class NumberSuiteHeadingMapView extends ItemView {
     return true;
   }
 
+  private onViewportKeyDown(event: KeyboardEvent): void {
+    if (event.target !== this.viewport || event.repeat) return;
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      this.setScaleAt(this.scale * ZOOM_STEP);
+    } else if (event.key === "-") {
+      event.preventDefault();
+      this.setScaleAt(this.scale / ZOOM_STEP);
+    } else if (event.key === "0") {
+      event.preventDefault();
+      this.fitToView();
+    }
+  }
+
   private onWheel(event: WheelEvent): void {
     const viewport = this.viewport;
     if (viewport == null) return;
@@ -748,8 +862,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const viewport = this.viewport;
     const ElementType = this.contentEl.ownerDocument.defaultView?.Element;
     const target = ElementType != null && event.target instanceof ElementType ? event.target : null;
-    if (viewport == null || this.pan != null || event.button !== 0
+    if (viewport == null || event.button !== 0
       || target?.closest(".number-suite-heading-map-card, .number-suite-heading-map-toolbar") != null) {
+      return;
+    }
+    if (event.pointerType === "touch") {
+      this.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      viewport.setPointerCapture(event.pointerId);
+      viewport.addClass("is-panning");
+      if (this.touchPointers.size > 1) {
+        this.pan = null;
+        return;
+      }
+    } else if (this.pan != null) {
       return;
     }
     this.pan = {
@@ -765,8 +890,27 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private movePan(event: PointerEvent): void {
     const viewport = this.viewport;
+    if (viewport == null) return;
+    const touch = this.touchPointers.get(event.pointerId);
+    if (touch != null) {
+      const before = touchGesture(this.touchPointers.values());
+      touch.x = event.clientX;
+      touch.y = event.clientY;
+      const after = touchGesture(this.touchPointers.values());
+      if (before != null && after != null && before.distance > 0) {
+        this.offsetX += after.centerX - before.centerX;
+        this.offsetY += after.centerY - before.centerY;
+        const bounds = viewport.getBoundingClientRect();
+        this.setScaleAt(
+          this.scale * after.distance / before.distance,
+          after.centerX - bounds.left,
+          after.centerY - bounds.top,
+        );
+        return;
+      }
+    }
     const pan = this.pan;
-    if (viewport == null || pan == null || pan.pointerId !== event.pointerId) return;
+    if (pan == null || pan.pointerId !== event.pointerId) return;
     this.offsetX = pan.offsetX + event.clientX - pan.x;
     this.offsetY = pan.offsetY + event.clientY - pan.y;
     this.applyScale();
@@ -774,10 +918,21 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private endPan(event: PointerEvent): void {
     const viewport = this.viewport;
-    if (viewport == null || this.pan?.pointerId !== event.pointerId) return;
-    this.pan = null;
+    if (viewport == null) return;
+    this.touchPointers.delete(event.pointerId);
+    if (this.pan?.pointerId === event.pointerId) this.pan = null;
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
-    viewport.removeClass("is-panning");
+    const remaining = this.touchPointers.entries().next().value;
+    if (remaining != null && this.touchPointers.size === 1) {
+      this.pan = {
+        pointerId: remaining[0],
+        x: remaining[1].x,
+        y: remaining[1].y,
+        offsetX: this.offsetX,
+        offsetY: this.offsetY,
+      };
+    }
+    if (this.pan == null && this.touchPointers.size === 0) viewport.removeClass("is-panning");
   }
 
   private requestFrame(callback: () => void): void {
@@ -785,4 +940,18 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (view == null) callback();
     else view.requestAnimationFrame(callback);
   }
+}
+
+function touchGesture(points: Iterable<TouchPoint>): {
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly distance: number;
+} | null {
+  const [first, second] = [...points];
+  if (first == null || second == null) return null;
+  return {
+    centerX: (first.x + second.x) / 2,
+    centerY: (first.y + second.y) / 2,
+    distance: Math.hypot(second.x - first.x, second.y - first.y),
+  };
 }
