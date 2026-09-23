@@ -12,11 +12,12 @@ function view(file: TFile, source: string): MarkdownView {
 
 describe("Markdown source binding", () => {
   it("keeps an existing preferred same-file pane ahead of another active pane", async () => {
-    const file = new TFile("Same.md");
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("Same.md");
     const preferredView = view(file, "# Preferred");
     const activeView = view(file, "# Active");
-    const preferred = { view: preferredView } as WorkspaceLeaf;
-    const active = { view: activeView } as WorkspaceLeaf;
+    const preferred = { view: preferredView } as unknown as WorkspaceLeaf;
+    const active = { view: activeView } as unknown as WorkspaceLeaf;
     Object.assign(preferredView, { leaf: preferred });
     Object.assign(activeView, { leaf: active });
     const app = {
@@ -38,8 +39,8 @@ describe("Markdown source binding", () => {
 
   it("falls back to disk when multiple panes exist and none is bound or active", async () => {
     const file = new TFile("Same.md");
-    const first = { view: view(file, "# First") } as WorkspaceLeaf;
-    const second = { view: view(file, "# Second") } as WorkspaceLeaf;
+    const first = { view: view(file, "# First") } as unknown as WorkspaceLeaf;
+    const second = { view: view(file, "# Second") } as unknown as WorkspaceLeaf;
     const app = {
       workspace: {
         iterateAllLeaves: (callback: (leaf: WorkspaceLeaf) => void) => {
