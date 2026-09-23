@@ -108,6 +108,21 @@ describe("heading mind map", () => {
     expect(roots[0]).toMatchObject({ title: "7 Stored", numberLabel: null });
   });
 
+  it("supports top-to-bottom structure anchors without changing document order", () => {
+    const roots = mapFor("# Root\n## A\n## B");
+    const layout = layoutHeadingMap(roots, new Set(), "top-to-bottom");
+    expect(layout.nodes.map(({ node }) => node.title)).toEqual(["Root", "A", "B"]);
+    const root = layout.nodes[0]!;
+    const child = layout.nodes[1]!;
+    expect(child.y).toBeGreaterThan(root.y);
+    expect(layout.edges[0]).toMatchObject({
+      fromX: root.x + 132,
+      fromY: root.y + 48,
+      toX: child.x + 132,
+      toY: child.y,
+    });
+  });
+
   it("lays out only visible descendants when a branch is collapsed", () => {
     const roots = mapFor("# Root\n## A\n### A1\n## B");
     const root = roots[0];
