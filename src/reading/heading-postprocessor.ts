@@ -707,10 +707,13 @@ export class HeadingReadingProcessor {
     if (
       this.generation !== generation
       || this.containerRequests.get(container) !== request
-      || !container.isConnected
     ) {
       return;
     }
+    // Reading View virtualizes long documents by temporarily detaching sections while
+    // asynchronous post-processors are running. A detached container is still current and
+    // must be decorated before Obsidian reattaches it; request and generation checks above
+    // reject genuinely stale work without confusing virtualization with disposal.
     const fingerprint = JSON.stringify({ settings, effective });
     let cached = this.cache.get(file.path);
     if (cached == null || cached.fingerprint !== fingerprint || cached.source !== source) {
@@ -723,7 +726,7 @@ export class HeadingReadingProcessor {
     }
     const { headings, displayPlan, semanticPlan } = cached;
     const section = context.getSectionInfo(container);
-    if (section == null || !container.isConnected) {
+    if (section == null) {
       return;
     }
     const sectionHeadings = headings.filter((heading) => (

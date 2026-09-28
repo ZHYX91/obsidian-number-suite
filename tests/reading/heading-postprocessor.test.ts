@@ -261,6 +261,44 @@ describe("HeadingReadingProcessor", () => {
     expect(heading.textContent).toBe("1 First");
   });
 
+  it("decorates a reading section that is virtualized while its source is loading", async () => {
+    const source = "# First";
+    let resolveRead: ((value: string) => void) | undefined;
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("note.md");
+    const app = {
+      vault: {
+        getAbstractFileByPath: () => file,
+        cachedRead: () => new Promise<string>((resolve) => { resolveRead = resolve; }),
+      },
+    } as unknown as App;
+    const processor = new HeadingReadingProcessor(
+      app,
+      () => settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical" }),
+    );
+    const context = {
+      sourcePath: "note.md",
+      frontmatter: null,
+      getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: 0 }),
+    } as unknown as MarkdownPostProcessorContext;
+    const container = document.createElement("div");
+    const heading = document.createElement("h1");
+    heading.textContent = "First";
+    container.append(heading);
+    document.body.append(container);
+
+    const processing = processor.process(container, context);
+    container.remove();
+    resolveRead?.(source);
+    await processing;
+
+    expect(container.isConnected).toBe(false);
+    expect(heading.textContent).toBe("1 First");
+
+    document.body.append(container);
+    expect(heading.textContent).toBe("1 First");
+  });
+
   it("conceals only the validated source prefix", async () => {
     const { processor, context, container } = harness(
       "# 1 Stored",
