@@ -365,7 +365,11 @@ Project links:
 <!-- section: support -->
 ## Support
 
-Use [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues) for reproducible bugs
+- [Q&A](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/q-a): Usage and configuration questions.
+- [Ideas](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/ideas): Early feature and workflow ideas.
+- [Show and tell](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/show-and-tell): Tips, workflows, and reference implementations.
+
+Use [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues/new/choose) for reproducible bugs
 and feature requests. Include plugin and Obsidian versions, operating system, minimal synthetic
 Markdown, the selected scheme, and the exact action taken. Do not attach private vault content.
 
