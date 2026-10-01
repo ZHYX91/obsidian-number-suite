@@ -54,6 +54,7 @@ import {
 import { CaptionCarrierMenuBridge } from "../integration/structural-table-caption-menu";
 import { SemanticTooltipController } from "../ui/semantic-tooltip";
 import { clearNoteControlSessions } from "../ui/note-control-modal";
+import { registerReadingViewRefresh } from "../reading/refresh-reading-views";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = cloneSettings(DEFAULT_SETTINGS);
@@ -81,6 +82,7 @@ export default class NumberSuitePlugin extends Plugin {
     this.registerEditorExtension(this.displayController.createExtension());
     this.readingProcessor = new HeadingReadingProcessor(this.app, () => this.settings);
     this.registerMarkdownPostProcessor((element, context) => this.readingProcessor?.process(element, context));
+    registerReadingViewRefresh(this);
 
     this.batchController = new BatchController(
       this.app,
@@ -140,7 +142,7 @@ export default class NumberSuitePlugin extends Plugin {
     void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
-    this.readingProcessor?.invalidate();
+    this.readingProcessor?.dispose();
     this.cleanupReadingDom();
     this.clearAppearance();
     clearNoteControlSessions(this.app);
