@@ -308,7 +308,11 @@ npm run check
 <!-- section: support -->
 ## 支持
 
-请通过 [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues) 报告可复现问题
+- [Q&A](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/q-a)：使用和配置问题。
+- [Ideas](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/ideas)：尚待讨论的功能与工作流想法。
+- [Show and tell](https://github.com/ZHYX91/obsidian-number-suite/discussions/categories/show-and-tell)：技巧、工作流和参考实现。
+
+请通过 [GitHub Issues](https://github.com/ZHYX91/obsidian-number-suite/issues/new/choose) 报告可复现问题
 或提出功能建议。请提供插件和 Obsidian 版本、操作系统、最小化的合成 Markdown、所选方案及
 精确操作。不要附带私有 Vault 内容。
 
