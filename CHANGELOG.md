@@ -4,6 +4,18 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+## 0.5.1 - 2026-10-01
+
+### Fixed
+
+- Preserve virtual numbering and stored-number concealment in off-screen Reading View sections of long notes.
+- Refresh unchanged downstream counters in Reading View after an earlier heading is edited, including across split panes.
+- Clean up detached reading sections, reference listeners and queued caption layout callbacks when the plugin is disabled.
+
+### Changed
+
+- Update development dependencies and patch compatible transitive dependency security advisories.
+
 ## 0.5.0 - 2026-09-24
 
 ### Added
