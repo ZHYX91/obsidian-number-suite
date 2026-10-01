@@ -299,6 +299,62 @@ describe("HeadingReadingProcessor", () => {
     expect(heading.textContent).toBe("1 First");
   });
 
+  it("preserves full-document numbering and concealment across detached later sections", async () => {
+    const source = "## 1 First\n\n### 1.1 Child\n\n## 2 Second\n\n### 2.1 Later";
+    const { processor, context, container, cachedRead } = harness(source, settings({
+      showVirtualNumbers: true,
+      concealStoredNumbers: true,
+      selectedSchemeId: "hierarchical-h2",
+      concealScope: "templates",
+    }));
+    context.getSectionInfo = () => ({ text: source, lineStart: 4, lineEnd: 6 });
+    const chapter = document.createElement("h2");
+    chapter.textContent = "2 Second";
+    const section = document.createElement("h3");
+    section.textContent = "2.1 Later";
+    container.append(chapter, section);
+    let resolveRead: ((value: string) => void) | undefined;
+    cachedRead.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveRead = resolve; }));
+    const processing = processor.process(container, context);
+    container.remove();
+    resolveRead?.(source);
+    await processing;
+
+    for (const [heading, prefix] of [[chapter, "2 "], [section, "2.1 "]] as const) {
+      expect(heading.dataset.numberSuiteMode).toBe("show-conceal");
+      expect(heading.querySelector(".number-suite-concealed")?.textContent).toBe(prefix);
+      expect(heading.querySelectorAll(".number-suite-virtual")).toHaveLength(1);
+      expect(heading.querySelector(".number-suite-virtual")?.textContent).toBe(prefix);
+    }
+    document.body.append(container);
+    await processor.process(container, context);
+    expect(container.querySelectorAll(".number-suite-virtual")).toHaveLength(2);
+    cleanupNumberSuiteReadingDom(container);
+    expect(chapter.textContent).toBe("2 Second");
+    expect(section.textContent).toBe("2.1 Later");
+  });
+
+  it("does not decorate detached sections after pending work is invalidated", async () => {
+    const source = "# First";
+    const { processor, context, container, cachedRead } = harness(source, settings({
+      showVirtualNumbers: true,
+      selectedSchemeId: "hierarchical",
+    }));
+    const heading = document.createElement("h1");
+    heading.textContent = "First";
+    container.append(heading);
+    let resolveRead: ((value: string) => void) | undefined;
+    cachedRead.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveRead = resolve; }));
+    const processing = processor.process(container, context);
+    container.remove();
+    processor.invalidate();
+    resolveRead?.(source);
+    await processing;
+    document.body.append(container);
+    expect(heading.textContent).toBe("First");
+    expect(heading.querySelector(".number-suite-virtual")).toBeNull();
+  });
+
   it("conceals only the validated source prefix", async () => {
     const { processor, context, container } = harness(
       "# 1 Stored",
