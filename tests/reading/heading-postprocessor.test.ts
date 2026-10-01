@@ -329,12 +329,19 @@ describe("HeadingReadingProcessor", () => {
     document.body.append(container);
     await processor.process(container, context);
     expect(container.querySelectorAll(".number-suite-virtual")).toHaveLength(2);
-    cleanupNumberSuiteReadingDom(container);
+    container.remove();
+    processor.dispose();
+    processor.dispose();
+    document.body.append(container);
     expect(chapter.textContent).toBe("2 Second");
     expect(section.textContent).toBe("2.1 Later");
+    expect(container.querySelector(".number-suite-concealed")).toBeNull();
+    expect(chapter.hasAttribute("data-number-suite-mode")).toBe(false);
+    await processor.process(container, context);
+    expect(container.querySelector(".number-suite-virtual")).toBeNull();
   });
 
-  it("does not decorate detached sections after pending work is invalidated", async () => {
+  it.each(["invalidate", "dispose"] as const)("does not decorate detached sections after %s", async (end) => {
     const source = "# First";
     const { processor, context, container, cachedRead } = harness(source, settings({
       showVirtualNumbers: true,
@@ -347,12 +354,66 @@ describe("HeadingReadingProcessor", () => {
     cachedRead.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveRead = resolve; }));
     const processing = processor.process(container, context);
     container.remove();
-    processor.invalidate();
+    processor[end]();
     resolveRead?.(source);
     await processing;
     document.body.append(container);
     expect(heading.textContent).toBe("First");
     expect(heading.querySelector(".number-suite-virtual")).toBeNull();
+  });
+
+  it("updates a later section after a one-character same-length source change", async () => {
+    const source = "## A\n\n## B";
+    const { processor, context, container, setSource } = harness(source, settings({
+      showVirtualNumbers: true,
+      selectedSchemeId: "hierarchical-h2",
+    }));
+    context.getSectionInfo = () => ({ text: source, lineStart: 2, lineEnd: 2 });
+    const heading = document.createElement("h2");
+    heading.textContent = "B";
+    container.append(heading);
+    await processor.process(container, context);
+    expect(heading.textContent).toBe("2 B");
+    setSource("#  A\n\n## B");
+    await processor.process(container, context);
+    expect(heading.textContent).toBe("1 B");
+    processor.dispose();
+  });
+
+  it("cancels queued caption layout when disposing a detached section", async () => {
+    const { processor, context, container } = harness("Figure: Caption\n\n![[image.png]]", settings({
+      showCaptionNumbers: true,
+    }));
+    const callbacks: FrameRequestCallback[] = [];
+    const request = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    });
+    const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    try {
+      const caption = document.createElement("p");
+      caption.textContent = "Figure: Caption";
+      const object = document.createElement("p");
+      const image = document.createElement("img");
+      object.append(image);
+      container.append(caption, object);
+      caption.getBoundingClientRect = () => ({ width: 20, left: 0 }) as DOMRect;
+      image.getBoundingClientRect = () => ({ width: 100, left: 40 }) as DOMRect;
+      await processor.process(container, context);
+      expect(callbacks.length).toBeGreaterThan(0);
+      container.remove();
+      processor.dispose();
+      document.body.append(container);
+      for (const callback of callbacks) callback(0);
+      expect(cancel).toHaveBeenCalled();
+      expect(caption.classList.contains("number-suite-caption-object-aligned")).toBe(false);
+      expect(caption.style.getPropertyValue("--number-suite-caption-inline-offset")).toBe("");
+      expect(caption.textContent).toBe("Figure: Caption");
+    } finally {
+      processor.dispose();
+      request.mockRestore();
+      cancel.mockRestore();
+    }
   });
 
   it("conceals only the validated source prefix", async () => {

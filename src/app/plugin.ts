@@ -140,7 +140,7 @@ export default class NumberSuitePlugin extends Plugin {
     void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
-    this.readingProcessor?.invalidate();
+    this.readingProcessor?.dispose();
     this.cleanupReadingDom();
     this.clearAppearance();
     clearNoteControlSessions(this.app);

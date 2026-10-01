@@ -44,7 +44,7 @@ const sharedCaptionOrigins = new WeakMap<HTMLElement, Readonly<{
   separators: readonly ChildNode[];
   sourcePlacement: "above" | "below";
 }>>();
-const captionLayoutObservers = new WeakMap<HTMLElement, ResizeObserver>();
+const captionLayoutCleanup = new WeakMap<HTMLElement, () => void>();
 
 interface CachedReadingPlan {
   readonly headings: readonly ParsedHeading[];
@@ -165,8 +165,8 @@ function cleanupSemantic(container: HTMLElement): void {
       "number-suite-caption-object-aligned",
       "number-suite-caption-pill",
     );
-    captionLayoutObservers.get(caption)?.disconnect();
-    captionLayoutObservers.delete(caption);
+    captionLayoutCleanup.get(caption)?.();
+    captionLayoutCleanup.delete(caption);
     caption.style.removeProperty("--number-suite-caption-inline-offset");
     delete caption.dataset.numberSuiteCaptionKind;
     delete caption.dataset.numberSuiteCaptionPlacement;
@@ -414,8 +414,14 @@ function splitSharedCaptionRoot(
 }
 
 function alignRenderedCaption(caption: HTMLElement, target: HTMLElement): void {
+  captionLayoutCleanup.get(caption)?.();
   const view = caption.ownerDocument.defaultView;
+  if (view == null) return;
+  let active = true;
+  let frame: number | null = null;
   const update = (): void => {
+    frame = null;
+    if (!active) return;
     if (!caption.isConnected || !target.isConnected || caption.parentElement == null) return;
     const parentRect = caption.parentElement.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
@@ -429,14 +435,20 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement): void {
     caption.classList.add("number-suite-caption-object-aligned");
     caption.style.setProperty("--number-suite-caption-inline-offset", `${offset}px`);
   };
-  view?.requestAnimationFrame(update);
-  const Observer = view?.ResizeObserver;
-  if (view == null || Observer == null) return;
-  captionLayoutObservers.get(caption)?.disconnect();
-  const observer = new Observer(() => view.requestAnimationFrame(update));
-  observer.observe(target);
-  observer.observe(caption);
-  captionLayoutObservers.set(caption, observer);
+  const schedule = (): void => {
+    if (active && frame == null) frame = view.requestAnimationFrame(update);
+  };
+  const Observer = view.ResizeObserver;
+  const observer = Observer == null ? null : new Observer(schedule);
+  observer?.observe(target);
+  observer?.observe(caption);
+  captionLayoutCleanup.set(caption, () => {
+    active = false;
+    observer?.disconnect();
+    if (frame != null) view.cancelAnimationFrame(frame);
+    frame = null;
+  });
+  schedule();
 }
 
 function placeRenderedCaption(
@@ -673,7 +685,13 @@ export class HeadingReadingProcessor {
   private readonly cache = new Map<string, ReadingPlanCacheEntry>();
   private readonly containerRequests = new WeakMap<HTMLElement, number>();
   private generation = 0;
-  private readonly interactiveContainers = new WeakSet<HTMLElement>();
+  private disposed = false;
+  private readonly containers = new Set<WeakRef<HTMLElement>>();
+  private readonly containerRefs = new WeakMap<HTMLElement, WeakRef<HTMLElement>>();
+  private readonly collectedContainers = new FinalizationRegistry<WeakRef<HTMLElement>>((reference) => {
+    this.containers.delete(reference);
+  });
+  private readonly navigationHandlers = new WeakMap<HTMLElement, EventListener>();
 
   constructor(
     private readonly app: App,
@@ -685,7 +703,30 @@ export class HeadingReadingProcessor {
     this.generation += 1;
   }
 
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.invalidate();
+    for (const reference of this.containers) {
+      const container = reference.deref();
+      if (container != null) {
+        cleanupNumberSuiteReadingDom(container);
+        this.removeReferenceNavigation(container);
+      }
+      this.collectedContainers.unregister(reference);
+    }
+    this.containers.clear();
+  }
+
   async process(container: HTMLElement, context: MarkdownPostProcessorContext): Promise<void> {
+    if (this.disposed) return;
+    if (!this.containerRefs.has(container)) {
+      const reference = new WeakRef(container);
+      this.containerRefs.set(container, reference);
+      this.containers.add(reference);
+      this.collectedContainers.register(container, reference, reference);
+    }
+    this.removeReferenceNavigation(container);
     const request = (this.containerRequests.get(container) ?? 0) + 1;
     const generation = this.generation;
     this.containerRequests.set(container, request);
@@ -909,9 +950,7 @@ export class HeadingReadingProcessor {
   }
 
   private ensureReferenceNavigation(container: HTMLElement, file: TFile): void {
-    if (this.interactiveContainers.has(container)) return;
-    this.interactiveContainers.add(container);
-    container.addEventListener("click", (event) => {
+    const handler: EventListener = (event) => {
       const target = event.target;
       if (target == null || !("nodeType" in target) || target.nodeType !== 1) return;
       const anchor = (target as Element).closest<HTMLElement>(
@@ -926,7 +965,15 @@ export class HeadingReadingProcessor {
         if (leaf.view instanceof MarkdownView && leaf.view.containerEl?.contains(container)) origin = leaf;
       });
       void navigateToLine(this.app, file, line, origin);
-    });
+    };
+    container.addEventListener("click", handler);
+    this.navigationHandlers.set(container, handler);
+  }
+
+  private removeReferenceNavigation(container: HTMLElement): void {
+    const handler = this.navigationHandlers.get(container);
+    if (handler != null) container.removeEventListener("click", handler);
+    this.navigationHandlers.delete(container);
   }
 
   private buildPlan(
