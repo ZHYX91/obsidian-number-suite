@@ -15,6 +15,9 @@ describe("document semantics", () => {
       "Figure: Second ^fig-two",
       "Equation: E",
       "Code: Sample",
+      "figure: Lowercase near-miss",
+      "FIGURE: Uppercase near-miss",
+      "Figure : Spaced-colon near-miss",
       "Listing: Not supported",
     ].join("\n");
     const parsed = parseDocumentSemantics(source);
@@ -73,6 +76,30 @@ describe("document semantics", () => {
     ].join("\n"));
     expect(parsed.captions.map((caption) => caption.kind)).toEqual(["Figure"]);
     expect(parsed.references).toEqual([]);
+  });
+
+  it("requires visible Figure/Table titles but permits ID-only Equation/Code declarations", () => {
+    const source = [
+      "Figure: ^figure-only",
+      "Table: ^table-only",
+      "Equation: ^energy",
+      "Code: ^snippet",
+      "Figure: Visible figure",
+      "Table: Visible table",
+    ].join("\n");
+    const parsed = parseDocumentSemantics(source);
+    expect(numberCaptions(parsed.captions).map(({ kind, title, number }) => ({ kind, title, number }))).toEqual([
+      { kind: "Equation", title: "", number: 1 },
+      { kind: "Code", title: "", number: 1 },
+      { kind: "Figure", title: "Visible figure", number: 1 },
+      { kind: "Table", title: "Visible table", number: 1 },
+    ]);
+    expect([...parsed.blockOwners.keys()].sort()).toEqual([
+      "block:energy",
+      "block:figure-only",
+      "block:snippet",
+      "block:table-only",
+    ]);
   });
 
   it("associates inline and immediately following block IDs without requiring an ID", () => {
