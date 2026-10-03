@@ -63,7 +63,7 @@ Markdown.
   or previewing one new ID before it is created.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
-- Override display, concealment, scheme, cleanup scope, starting counters, or full opt-out per note.
+- Override display, concealment, scheme, starting counters, skipped-heading counts, or full opt-out per note.
 - Use English or Simplified Chinese interface text.
 
 <!-- section: requirements-and-compatibility -->
@@ -297,6 +297,9 @@ note to the canonical list and removes only the old Number Suite fields. Equival
 are accepted; conflicts, duplicate directives, unknown directives, invalid values, and unavailable
 schemes fail closed.
 
+Current-note number fields save after a short typing pause, on Enter, or when leaving the field.
+Failed input remains available for Retry, and outline navigation stays in the originating pane.
+
 <!-- section: limitations -->
 ## Limitations
 
@@ -377,6 +380,3 @@ Markdown, the selected scheme, and the exact action taken. Do not attach private
 ## License
 
 [MIT](LICENSE)
-
-Current note number fields save after a short typing pause, on Enter, or when leaving the field.
-The save status retains failed input for Retry. Outline navigation stays in the originating pane.

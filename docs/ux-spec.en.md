@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-09-23
+last_synced: 2026-10-03
 ---
 
 # Number Suite — UX specification
@@ -86,7 +86,7 @@ scroll boundaries, and collapsing a branch preserves the clicked parent's screen
 centers the visible tree. Search handles describe the effective visible state; toggles on a
 search-revealed ancestor last only for that query and leave the saved collapse intent unchanged.
 Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
-panning and zoom buttons; two-finger pinch zoom is not provided.
+panning, zoom buttons, and two-finger pinch zoom.
 
 The two sidebar tabs have equal width and span the sidebar. Inactive tabs use muted text; the active
 tab combines semibold text with a bottom accent line. Hover uses a quiet background, while keyboard

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-10-03
 ---
 
 # Number Suite — Testing strategy
@@ -72,10 +72,10 @@ display/concealment, Live Preview, Reading View, previewed writes and undo, sour
 plugin-disable cleanup, same-length edits, Properties persistence, and link-risk messaging. Batch
 work also verifies stale previews, concurrent conflicts, mid-run failure, recovery, and exclusions.
 
-The 0.7 line additionally verifies all four caption keywords with and without IDs, independent
-per-file counters, explicit heading/block references and aliases, ordinary-link non-interference,
-fail-closed missing/duplicate targets, independent alignment toggles, embedded-file boundaries, and
-Markdown byte identity.
+Caption and reference acceptance additionally verifies all four caption keywords with and without
+IDs, independent per-file counters, explicit heading/block references and aliases, ordinary-link
+non-interference, fail-closed missing/duplicate targets, independent alignment toggles,
+embedded-file boundaries, and Markdown byte identity.
 
 Footnote/endnote acceptance additionally covers default, explicit, and endnote syntax,
 independent per-kind counters, repeated-reference reuse, fail-closed missing/duplicate/canonical
