@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-09-23
+last_synced: 2026-10-03
 ---
 
 # Number Suite — 交互规范
