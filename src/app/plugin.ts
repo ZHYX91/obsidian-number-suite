@@ -212,7 +212,7 @@ export default class NumberSuitePlugin extends Plugin {
 
   private refreshLocalizedChrome(): void {
     const t = this.translate();
-    for (const { command, key } of this.localizedCommands) command.name = t(key);
+    for (const { command, key } of this.localizedCommands) {\n      command.name = `${this.manifest.name}: ${t(key)}`;\n    }
     this.ribbonEl?.setAttribute("aria-label", t("panel.ribbon"));
   }
 
