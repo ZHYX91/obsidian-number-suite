@@ -2,7 +2,11 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.5.2 - 2026-10-03
+
+- Refresh command and ribbon labels immediately when the interface language changes.
+- Align caption recognition across display and interop, preserving standalone captions and treating malformed declarations as ordinary text.
+- Clarify bilingual usage and settings guidance.
 
 ## 0.5.1 - 2026-10-01
 
