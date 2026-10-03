@@ -239,16 +239,7 @@ Source markers are disabled by default. Before enabling them for a release claim
 
 ## Acceptance record
 
-Record evidence here or in a release issue:
-
-```text
-Plugin commit:
-Artifact SHA-256:
-Obsidian version:
-Operating system:
-Vault path/type:
-Automated gate:
-Manual cases passed:
-Known limitations:
-Accepted by/date:
-```
+Record only acceptance that was actually performed. For durable repository evidence, copy
+[`docs/acceptance/TEMPLATE.md`](acceptance/TEMPLATE.md) to a versioned file in
+[`docs/acceptance/`](acceptance/README.md). Automated CI alone does not create a host or device
+acceptance record.
