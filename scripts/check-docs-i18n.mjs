@@ -109,7 +109,7 @@ for (const stem of stems) {
   for (const [file, content] of [[sourcePath, source], [translationPath, translation]]) {
     assert.doesNotMatch(content, /(?:[A-Za-z]:\\|OneDrive|Obsidian-Plugins|obsidian-plugin-workspace|sibling)/iu,
       `${file} must not contain local or cross-repository references`);
-    assert.doesNotMatch(content, /\\b\\d+\\.\\d+(?:\\.\\d+)?\\s+line\\b/iu,
+    assert.doesNotMatch(content, /\b\d+\.\d+(?:\.\d+)?\s+line\b/iu,
       `${file} must not encode version-line-specific acceptance policy`);
   }
 }
