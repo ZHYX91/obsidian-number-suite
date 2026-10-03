@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-10-03
 ---
 
 # Number Suite — 测试策略
@@ -23,7 +23,7 @@ last_synced: 2026-08-29
 1. **源码检查**：format、双语结构、lint、类型、纯逻辑和适配层测试。
 2. **候选包检查**：生产 bundle、manifest/版本一致性、external、离线运行时和精确资产布局。
 3. **宿主验收**：指定 Obsidian 版本、操作系统、主题和隔离 Vault 中的实际交互。
-4. **设备验收**：模拟器与实体设备分别记录；一个不能替代另一个。
+4. **设备验收**：Android 模拟器是支持的移动验收表面；Android 真机和 iOS 不在验收范围内。
 5. **公开发布**：远端 tag、Release 资产、字节比较和 provenance；本地构建不能证明这一层。
 
 报告必须说明证据属于哪一层，不得用较低层推导较高层通过。
