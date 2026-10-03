@@ -127,17 +127,22 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       const kind = captionMatch[2] as CaptionKind;
       const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;
       const content = captionMatch[3] ?? "";
-      const caption: ParsedCaption = {
-        kind,
-        line: line.number,
-        lineFrom: line.from,
-        lineTo: line.to,
-        colonFrom: line.from + (captionMatch[1]?.length ?? 0) + kind.length,
-        content,
-        title: withoutTrailingBlockId(content),
-        blockId,
-      };
-      captions.push(caption);
+      const title = withoutTrailingBlockId(content);
+      const validCaption = title.length > 0
+        || ((kind === "Equation" || kind === "Code") && blockId != null);
+      if (validCaption) {
+        const caption: ParsedCaption = {
+          kind,
+          line: line.number,
+          lineFrom: line.from,
+          lineTo: line.to,
+          colonFrom: line.from + (captionMatch[1]?.length ?? 0) + kind.length,
+          content,
+          title,
+          blockId,
+        };
+        captions.push(caption);
+      }
       previousSemanticLine = line.number;
       interveningBlankLines = 0;
       if (blockId != null) recordBlockOwner(blockId, line.number);
