@@ -144,6 +144,8 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override onunload(): void {
+    this.localizedCommands.length = 0;
+    this.ribbonEl = null;
     this.batchController?.dispose();
     void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
@@ -212,10 +214,12 @@ export default class NumberSuitePlugin extends Plugin {
 
   private refreshLocalizedChrome(): void {
     const t = this.translate();
+    const prefix = `${this.manifest.name}: `;
     for (const { command, key } of this.localizedCommands) {
-      command.name = `${this.manifest.name}: ${t(key)}`;
+      command.name = command.name.startsWith(prefix) ? `${prefix}${t(key)}` : t(key);
     }
     this.ribbonEl?.setAttribute("aria-label", t("panel.ribbon"));
+    this.ribbonEl?.setAttribute("title", t("panel.ribbon"));
   }
 
   private registerCommands(): void {
