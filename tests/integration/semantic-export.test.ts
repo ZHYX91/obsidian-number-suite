@@ -127,6 +127,43 @@ describe("Number Suite interoperability snapshot", () => {
     expect(snapshot.captionTargets[0]?.sourceStartUtf16).toBe(source.indexOf(lines[1] ?? ""));
   });
 
+  it("keeps Figure/Table ID-only near-misses out of the interop target and reference sets", () => {
+    const source = [
+      "Figure: ^figure-only",
+      "Table: ^table-only",
+      "Equation: ^energy",
+      "$E=mc^2$",
+      "Code: ^snippet",
+      "```ts",
+      "const answer = 42;",
+      "```",
+      "Figure: Visible figure",
+      "Table: Visible table",
+      "See @[[#^figure-only]], @[[#^table-only]], @[[#^energy]], and @[[#^snippet]].",
+    ].join("\n");
+    const snapshot = exportSemanticSnapshotV2(DEFAULT_SETTINGS, {
+      schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,
+      authoredMarkdown: source,
+      frontmatter: null,
+    });
+
+    expect(snapshot.captionTargets.map(({ kind, targetId, authoredText, derivedNumber }) => ({
+      kind,
+      targetId,
+      authoredText,
+      derivedNumber,
+    }))).toEqual([
+      { kind: "Equation", targetId: "energy", authoredText: "", derivedNumber: "1" },
+      { kind: "Code", targetId: "snippet", authoredText: "", derivedNumber: "1" },
+      { kind: "Figure", targetId: null, authoredText: "Visible figure", derivedNumber: "1" },
+      { kind: "Table", targetId: null, authoredText: "Visible table", derivedNumber: "1" },
+    ]);
+    expect(snapshot.references).toHaveLength(2);
+    expect(snapshot.references.map((reference) => (
+      source.slice(reference.targetSourceStartUtf16, reference.targetSourceEndUtf16)
+    ))).toEqual(["Equation: ^energy", "Code: ^snippet"]);
+  });
+
   it("exports a unique following block ID as target identity", () => {
     const source = [
       "# Scope",
