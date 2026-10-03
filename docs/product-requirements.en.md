@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-08-29
+last_synced: 2026-10-03
 ---
 
 # Number Suite — Product requirements
