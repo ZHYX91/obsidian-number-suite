@@ -26,7 +26,7 @@ cannot weaken this strategy.
 2. **Candidate checks**: production bundle, manifest/version alignment, externals, offline runtime,
    and exact asset layout.
 3. **Host acceptance**: real interaction in a named Obsidian version, OS, theme, and isolated vault.
-4. **Device acceptance**: emulator and physical-device evidence are recorded separately; neither substitutes for the other.
+4. **Device acceptance**: the Android emulator is the supported mobile surface; Android physical devices and iOS are out of scope.
 5. **Public release**: remote tag, Release assets, byte comparison, and provenance; local builds do
    not prove this level.
 
