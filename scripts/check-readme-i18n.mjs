@@ -43,7 +43,7 @@ function sectionShapes(source, file) {
       shape();
       continue;
     }
-    if (/^\`\`\`/u.test(line)) {
+    if (/^```/u.test(line)) {
       if (!fenced) shape().fences += 1;
       fenced = !fenced;
       continue;
