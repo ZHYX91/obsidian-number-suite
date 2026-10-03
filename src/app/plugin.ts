@@ -3,6 +3,7 @@ import {
   Notice,
   Plugin,
   TFile,
+  type Command,
   type WorkspaceLeaf,
 } from "obsidian";
 
@@ -64,6 +65,11 @@ export default class NumberSuitePlugin extends Plugin {
   private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
   private tooltipController: SemanticTooltipController | null = null;
+  private readonly localizedCommands: Array<Readonly<{
+    command: Command;
+    key: Parameters<Translate>[0];
+  }>> = [];
+  private ribbonEl: HTMLElement | null = null;
   private readonly interopApi = createNumberSuiteInteropApiV2(() => this.settings);
 
   getInteropApi(): NumberSuiteInteropApiV2 {
@@ -138,6 +144,8 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override onunload(): void {
+    this.localizedCommands.length = 0;
+    this.ribbonEl = null;
     this.batchController?.dispose();
     void this.settingsPersistence?.flush().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
@@ -154,7 +162,9 @@ export default class NumberSuitePlugin extends Plugin {
       throw new Error("Settings persistence is unavailable.");
     }
     this.settingsPersistence.assertWritable();
+    const previousLanguage = this.settings.language;
     this.settings = sanitizeSettings(settings);
+    if (previousLanguage !== this.settings.language) this.refreshLocalizedChrome();
     this.applySettingsImpact(impact);
     this.settingsPersistence.schedule(this.settings);
   }
@@ -167,7 +177,9 @@ export default class NumberSuitePlugin extends Plugin {
       throw new Error("Settings persistence is unavailable.");
     }
     this.settingsPersistence.assertWritable();
+    const previousLanguage = this.settings.language;
     this.settings = sanitizeSettings(settings);
+    if (previousLanguage !== this.settings.language) this.refreshLocalizedChrome();
     this.applySettingsImpact(impact);
     await this.settingsPersistence.save(this.settings);
   }
@@ -188,6 +200,28 @@ export default class NumberSuitePlugin extends Plugin {
     return createTranslator(this.settings.language);
   }
 
+  private addLocalizedCommand(
+    key: Parameters<Translate>[0],
+    command: Omit<Command, "name">,
+  ): Command {
+    const registered = this.addCommand({
+      ...command,
+      name: this.translate()(key),
+    });
+    this.localizedCommands.push({ command: registered, key });
+    return registered;
+  }
+
+  private refreshLocalizedChrome(): void {
+    const t = this.translate();
+    const prefix = `${this.manifest.name}: `;
+    for (const { command, key } of this.localizedCommands) {
+      command.name = command.name.startsWith(prefix) ? `${prefix}${t(key)}` : t(key);
+    }
+    this.ribbonEl?.setAttribute("aria-label", t("panel.ribbon"));
+    this.ribbonEl?.setAttribute("title", t("panel.ribbon"));
+  }
+
   private registerCommands(): void {
     const commandNames: ReadonlyArray<readonly [
       DisplayPreferenceAction,
@@ -198,9 +232,8 @@ export default class NumberSuitePlugin extends Plugin {
       ["conceal", "command.mode.conceal"],
     ];
     for (const [mode, key] of commandNames) {
-      this.addCommand({
+      this.addLocalizedCommand(key, {
         id: `set-view-mode-${mode}`,
-        name: this.translate()(key),
         callback: () => void this.updateDisplayPreference(mode).catch((error: unknown) => {
           console.error("Number Suite: failed to save view mode", error);
         }),
@@ -214,9 +247,8 @@ export default class NumberSuitePlugin extends Plugin {
       ["strip-markers", "command.strip.current", "strip-source-markers-current-note"],
     ];
     for (const [operation, key, id] of operations) {
-      this.addCommand({
+      this.addLocalizedCommand(key, {
         id,
-        name: this.translate()(key),
         checkCallback: (checking) => {
           const view = this.app.workspace.getActiveViewOfType(MarkdownView);
           const available = view?.file != null && view.getMode() === "source";
@@ -228,14 +260,12 @@ export default class NumberSuitePlugin extends Plugin {
       });
     }
 
-    this.addCommand({
+    this.addLocalizedCommand("command.batch.folder", {
       id: "process-folder-or-vault",
-      name: this.translate()("command.batch.folder"),
       callback: () => this.batchController?.open(this.translate()),
     });
-    this.addCommand({
+    this.addLocalizedCommand("command.batch.undo", {
       id: "undo-last-batch",
-      name: this.translate()("command.batch.undo"),
       checkCallback: (checking) => {
         const recovery = this.recoverySession;
         const available = recovery == null || recovery.status() !== "loaded" || recovery.get() != null;
@@ -245,9 +275,8 @@ export default class NumberSuitePlugin extends Plugin {
         return available;
       },
     });
-    this.addCommand({
+    this.addLocalizedCommand("command.note.controls", {
       id: "open-current-note-controls",
-      name: this.translate()("command.note.controls"),
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
@@ -255,14 +284,12 @@ export default class NumberSuitePlugin extends Plugin {
         return available;
       },
     });
-    this.addCommand({
+    this.addLocalizedCommand("command.sidebar.outline", {
       id: "open-outline",
-      name: this.translate()("command.sidebar.outline"),
       callback: () => void this.openSidebar("outline"),
     });
-    this.addCommand({
+    this.addLocalizedCommand("command.headingMap.open", {
       id: "open-heading-mind-map",
-      name: this.translate()("command.headingMap.open"),
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
@@ -273,7 +300,7 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private addRibbon(): void {
-    this.addRibbonIcon("list-tree", this.translate()("panel.ribbon"), () => {
+    this.ribbonEl = this.addRibbonIcon("list-tree", this.translate()("panel.ribbon"), () => {
       void this.openSidebar();
     });
   }
