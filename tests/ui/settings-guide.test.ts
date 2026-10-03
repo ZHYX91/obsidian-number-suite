@@ -82,7 +82,7 @@ describe("settings guide", () => {
     expect(declarative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(panel).toContain('renderNoteOverridesGuide(section, this.t, "panel")');
     expect(messages).toContain("Current-note Properties are optional");
-    expect(messages).toContain("当前笔记 Properties 并非必需");
+    expect(messages).toContain("当前笔记属性（Properties）是可选的");
     expect(messages).toContain("Other Properties remain unchanged.");
     expect(messages).toContain("其他 Properties 保持不变。");
   });
