@@ -239,16 +239,8 @@ Source markers are disabled by default. Before enabling them for a release claim
 
 ## Acceptance record
 
-Record evidence here or in a release issue:
-
-```text
-Plugin commit:
-Artifact SHA-256:
-Obsidian version:
-Operating system:
-Vault path/type:
-Automated gate:
-Manual cases passed:
-Known limitations:
-Accepted by/date:
-```
+Record only acceptance that was actually performed. Keep run-specific evidence outside the source
+repository. Identify the plugin commit and artifact SHA-256, Obsidian version, operating system,
+isolated Vault type, theme, cases performed, results, limitations, and date. Record automated checks
+separately: CI alone does not prove real-host or Android emulator behavior. Do not include private
+Vault content or imply that an older candidate's results verify newer code.
