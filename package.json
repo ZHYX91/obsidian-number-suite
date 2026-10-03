@@ -11,7 +11,7 @@
     "check:runtime": "node scripts/check-runtime.mjs",
     "format:check": "node scripts/check-format.mjs",
     "check:readme-i18n": "node scripts/check-readme-i18n.mjs",
-    "check:docs-i18n": "node scripts/check-docs-i18n.mjs",
+    "check:docs-i18n": "node scripts/check-docs-i18n.mjs",\n    "check:ui-i18n": "node scripts/check-ui-i18n.mjs",
     "lint": "eslint main.ts src tests scripts esbuild.config.mjs eslint.config.mjs vitest.config.mts --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -26,7 +26,7 @@
     "release:post-verify": "node scripts/release.mjs post-verify",
     "clean": "node scripts/clean.mjs",
     "clean:deps": "node scripts/clean.mjs --deps",
-    "check": "npm run check:runtime && npm run format:check && npm run check:readme-i18n && npm run check:docs-i18n && npm run lint && npm run typecheck && npm run test:coverage && npm run build:bundle && npm run check:production && npm run release:validate",
+    "check": "npm run check:runtime && npm run format:check && npm run check:readme-i18n && npm run check:docs-i18n && npm run check:ui-i18n && npm run lint && npm run typecheck && npm run test:coverage && npm run build:bundle && npm run check:production && npm run release:validate",
     "release:check": "npm run check && npm run release:validate-tag"
   },
   "keywords": [
