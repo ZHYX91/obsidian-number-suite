@@ -45,9 +45,10 @@ frontmatter、围栏代码、HTML/Obsidian 注释和块；10 个及以上井号�
 旧字段一起解析；它保持 first-number 与 skip-first 的语义独立，报告冲突或无效指令，并在明确
 请求的方案不可用时失败关闭。`scheme-template-validation.ts` 在自定义方案保存前强制执行模板语义。
 
-`document-semantics.ts` 是四种固定题注声明和显式同文件 `@` 引用的纯逻辑扫描器。它跳过受
-保护 Markdown 区域，不创建 ID，把重复目标视为歧义，并为每份源文档重新开始四个独立题注
-计数。`semantic-display-plan.ts` 将扫描结果与标题显示计划合并；标题名和完整类型化题注名
+`document-semantics.ts` 是四种固定题注声明和显式同文件 `@` 引用的纯逻辑扫描器。题注关键字
+只接受规范大小写的 `Figure:`、`Table:`、`Equation:`、`Code:`；Figure/Table 去掉行末块 ID 后
+必须仍有非空可见题名，Equation/Code 可以仅保留一个合法块 ID。扫描器跳过受保护 Markdown
+区域，不创建 ID，把重复目标视为歧义，并为每份源文档重新开始四个独立题注计数。`semantic-display-plan.ts` 将扫描结果与标题显示计划合并；标题名和完整类型化题注名
 共用一个候选集合，因此必须只剩一个目标。引用标签使用别名或目标题名，只在最终存在可见
 标题/题注编号时带上编号。
 
