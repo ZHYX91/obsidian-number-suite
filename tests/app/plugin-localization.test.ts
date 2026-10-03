@@ -7,7 +7,7 @@ describe("plugin localization lifecycle", () => {
   it("tracks registered command objects and refreshes their labels when language changes", () => {
     expect(source).toContain("private readonly localizedCommands");
     expect(source).toContain("this.localizedCommands.push({ command: registered, key })");
-    expect(source).toContain("for (const { command, key } of this.localizedCommands) command.name = t(key)");
+    expect(source).toContain("command.name = `${this.manifest.name}: ${t(key)}`");
     expect(source).toContain("previousLanguage !== this.settings.language");
   });
 
