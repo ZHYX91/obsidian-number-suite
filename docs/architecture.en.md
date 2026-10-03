@@ -51,8 +51,11 @@ and fails closed when an explicitly requested scheme is unavailable. `scheme-tem
 before a custom scheme can be saved.
 
 `document-semantics.ts` is the pure scanner for the four fixed caption declarations and explicit
-same-file `@` references. It skips protected Markdown regions, creates no IDs, treats duplicate
-targets as ambiguous, and restarts all four independent caption counters for each source document.
+same-file `@` references. Caption keywords accept only the canonical-case `Figure:`, `Table:`,
+`Equation:`, and `Code:` spellings. Figure/Table must retain non-empty visible title text after a
+trailing block ID is removed, while Equation/Code may consist only of one valid block ID. The scanner
+skips protected Markdown regions, creates no IDs, treats duplicate targets as ambiguous, and restarts
+all four independent caption counters for each source document.
 `semantic-display-plan.ts` combines those results with the heading display plan. Heading and complete
 typed caption names share one candidate set, so exactly one target must remain. Reference labels use
 the alias or target title and include a heading/caption number only when it is visible.
