@@ -13,6 +13,30 @@
   },
   "scenarios": [
     {
+      "id": "review-display-and-reference-regressions",
+      "title": "Source Properties, comment offsets, stable copies and Chinese groups",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Review regressions.md in Reading View and Live Preview. Inspect H1-H6, the inline comment inside the stored prefix, long-title wrapping, and native collapse/expand. On desktop repeat the layout in default light and dark themes.",
+        "Toggle virtual display and stored-number concealment separately and together, then restore both. Switch notes and view modes. Disable and re-enable the plugin and inspect cleanup and restoration.",
+        "Open Quoted Properties.md and Duplicate Properties.md in editing, reading and Document outline. Confirm invalid Properties are rejected. Return to Review regressions.md and confirm valid Properties enable numbering.",
+        "Copy the existing review-anchor reference through the context menu; its duplicate inside a code example must not block the action. On desktop, change the bound source from another pane while the menu is open and confirm a stale copy is rejected.",
+        "Open the stable-reference preview on the last unanchored heading, inspect the ID and cancel. On Android also use long press, open the soft keyboard in body text, and switch modes after dismissing it.",
+        "Open Chinese numerals.md, compare both virtual labels with the stated values, open the current-note write preview and cancel. Confirm the preview matches the display and all fixture Markdown bytes remain unchanged."
+      ],
+      "expected": [
+        "All visible numbers remain aligned and usable, including comment-spanning replacement points, folded headings and narrow wrapped titles. View changes and plugin cleanup leave no duplicate or residual decorations.",
+        "Invalid source Properties fail closed consistently, valid source Properties work, an existing unambiguous ID is copied despite protected examples, stale copies are cancelled, and Chinese group numerals retain one. Previews and display-only interactions preserve Markdown."
+      ]
+    },
+    {
       "id": "heading-fold-layout",
       "title": "Virtual heading numerals preserve native fold controls",
       "surfaces": [
