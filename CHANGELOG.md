@@ -9,6 +9,7 @@ All notable changes to Number Suite are documented here.
 - Map virtual heading replacements through inline comments and apply the same source Properties validation in editing and reading views.
 - Reject stale reference copies and ignore protected block-ID examples when checking existing targets.
 - Preserve the leading one in non-leading Chinese numeral groups.
+- Patch development dependencies affected by Moment and source-map-js security advisories.
 - Add a reusable syntax interoperability corpus and a heading-fold layout regression scenario.
 
 ## 0.5.2 - 2026-10-03
