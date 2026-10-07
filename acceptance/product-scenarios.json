@@ -13,6 +13,26 @@
   },
   "scenarios": [
     {
+      "id": "heading-fold-layout",
+      "title": "Virtual heading numerals preserve native fold controls",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Heading fold layout.md in Reading View. Collapse and expand the first heading with the native arrow. Inspect the long H3 heading and multi-level numeral at narrow width.",
+        "Switch to Live Preview, inspect inactive numbered headings and use the native fold control. Return to Reading View and verify the layout remains stable."
+      ],
+      "expected": [
+        "Native fold arrows remain outside numeral badges, and collapse and expansion work without changing the note. Numerals do not overlap title text or the native fold control at phone width.",
+        "Numbering remains consistent between views, long headings wrap without clipping, and Markdown bytes remain unchanged."
+      ]
+    },
+    {
       "id": "outline-wrapped-layout",
       "title": "Long and deeply nested outline rows in a narrow sidebar",
       "surfaces": [

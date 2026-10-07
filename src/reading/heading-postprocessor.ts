@@ -623,7 +623,12 @@ function enhanceNoteDefinitions(
 }
 
 function prependVirtualNumber(element: HTMLElement, label: string): void {
-  element.prepend(createVirtualNumeralElement(element.ownerDocument, label));
+  const number = createVirtualNumeralElement(element.ownerDocument, label);
+  // The native control uses its static inline position even when absolutely
+  // positioned. Keep it before the numeral so its gutter stays at the heading start.
+  const collapseIndicator = element.querySelector(":scope > .heading-collapse-indicator");
+  if (collapseIndicator != null) collapseIndicator.after(number);
+  else element.prepend(number);
 }
 
 function leadingTextNodes(element: HTMLElement): Text[] {

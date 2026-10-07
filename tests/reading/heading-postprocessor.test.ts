@@ -131,6 +131,36 @@ afterEach(() => {
 });
 
 describe("HeadingReadingProcessor", () => {
+  it("keeps the native fold control before the numeral through refresh and cleanup", async () => {
+    const { processor, context, container } = harness(
+      "# **First**",
+      settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical" }),
+    );
+    const heading = document.createElement("h1");
+    const control = document.createElement("span");
+    control.className = "heading-collapse-indicator collapse-indicator collapse-icon";
+    const toggle = vi.fn();
+    control.addEventListener("click", toggle);
+    const title = document.createElement("strong");
+    title.textContent = "First";
+    heading.append(control, title);
+    container.append(heading);
+
+    for (let render = 0; render < 2; render += 1) {
+      await processor.process(container, context);
+      expect(heading.firstChild).toBe(control);
+      expect(control.nextElementSibling?.classList.contains("number-suite-heading-number")).toBe(true);
+      expect(heading.lastChild).toBe(title);
+      expect(heading.querySelectorAll(".number-suite-heading-number")).toHaveLength(1);
+    }
+    control.click();
+    expect(toggle).toHaveBeenCalledTimes(1);
+    cleanupNumberSuiteReadingDom(container);
+    expect([...heading.childNodes]).toEqual([control, title]);
+    control.click();
+    expect(toggle).toHaveBeenCalledTimes(2);
+  });
+
   it("adds virtual numbers using the full document counter plan", async () => {
     const { processor, context, container } = harness(
       "# First\n## Second",
