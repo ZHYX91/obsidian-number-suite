@@ -144,6 +144,17 @@ describe("numberHeadings", () => {
     expect(formatCounter(14, "roman_lower")).toBe("xiv");
   });
 
+  it.each([
+    [10, "十"],
+    [1010, "一千零一十"],
+    [10010, "一万零一十"],
+    [10011, "一万零一十一"],
+    [100000010, "一亿零一十"],
+    [100100000, "一亿零一十万"],
+  ])("preserves one in non-leading Chinese groups for %i", (value, expected) => {
+    expect(formatCounter(value as number, "chinese_lower")).toBe(expected);
+  });
+
   it("excludes one exact heading without consuming its counter", () => {
     const result = numberHeadings(
       parseAtxHeadings("# First\n# References\n# Next"),

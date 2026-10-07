@@ -7,7 +7,7 @@ const CIRCLED = [
   "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳",
 ] as const;
 
-function chineseGroup(value: number, upper: boolean): string {
+function chineseGroup(value: number, upper: boolean, leadingGroup: boolean): string {
   const digits = upper ? UPPER_DIGITS : LOWER_DIGITS;
   const units = upper ? ["", "拾", "佰", "仟"] : ["", "十", "百", "千"];
   let result = "";
@@ -23,7 +23,7 @@ function chineseGroup(value: number, upper: boolean): string {
       result += digits[0];
       zeroPending = false;
     }
-    const omitLeadingOne = !upper && digit === 1 && place === 1 && result.length === 0;
+    const omitLeadingOne = !upper && leadingGroup && digit === 1 && place === 1 && result.length === 0;
     if (!omitLeadingOne) result += digits[digit];
     result += units[place];
   }
@@ -50,7 +50,7 @@ function toChinese(value: number, upper: boolean): string {
       continue;
     }
     if (output.length > 0 && (needsZero || group < 1000)) output += "零";
-    output += chineseGroup(group, upper) + (groupUnits[index] ?? "");
+    output += chineseGroup(group, upper, output.length === 0) + (groupUnits[index] ?? "");
     needsZero = false;
   }
   return output;

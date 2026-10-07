@@ -64,4 +64,23 @@ describe("stable cross-reference planning", () => {
     const source = "# One ^duplicate\n\n# Two ^duplicate";
     expect(createStableReferencePlan(source, 3)).toBeNull();
   });
+
+  it.each([
+    "```txt\n^anchor\n```",
+    "    ^anchor",
+    "<!-- ^anchor -->",
+    "%% ^anchor %%",
+    "Example `^anchor`",
+  ])("ignores protected block-ID examples: %s", (example) => {
+    const source = `# Title ^anchor\n\n${example}`;
+    expect(createStableReferencePlan(source, 3)).toMatchObject({
+      blockId: "anchor",
+      link: "@[[#^anchor|Title]]",
+      change: null,
+    });
+  });
+
+  it("still rejects a duplicate ID owned by an ordinary paragraph", () => {
+    expect(createStableReferencePlan("# Title ^anchor\n\nBody ^anchor", 3)).toBeNull();
+  });
 });

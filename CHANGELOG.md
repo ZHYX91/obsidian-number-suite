@@ -6,6 +6,9 @@ All notable changes to Number Suite are documented here.
 
 - Keep native Reading View fold arrows before virtual heading numerals so the controls do not overlap.
 - Make heading numeral badges more compact and align them with the first title line in Reading View and Live Preview.
+- Map virtual heading replacements through inline comments and apply the same source Properties validation in editing and reading views.
+- Reject stale reference copies and ignore protected block-ID examples when checking existing targets.
+- Preserve the leading one in non-leading Chinese numeral groups.
 - Add a reusable syntax interoperability corpus and a heading-fold layout regression scenario.
 
 ## 0.5.2 - 2026-10-03
