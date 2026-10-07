@@ -17,7 +17,8 @@
   font-size: 0.65em;
   line-height: 1.35;
   padding: 0.08em 0.48em;
-  vertical-align: 0.08em;
+  /* Optically center the smaller badge against the heading's first text line. */
+  vertical-align: 0.22em;
 }
 
 .number-suite-caption-pill {
