@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.5.3 - 2026-10-07
+
+- Keep native Reading View fold arrows before virtual heading numerals so the controls do not overlap.
+- Make heading numeral badges more compact in Reading View and Live Preview.
+- Add a reusable syntax interoperability corpus and a heading-fold layout regression scenario.
+
 ## 0.5.2 - 2026-10-03
 
 - Refresh command and ribbon labels immediately when the interface language changes.
