@@ -17,12 +17,11 @@ import {
 import {
   editorInfoField,
   editorLivePreviewField,
-  getFrontMatterInfo,
-  parseYaml,
   type Editor,
 } from "obsidian";
 
-import { invalidNoteOverrides, parseNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
+import { invalidNoteOverrides, resolveNoteSettings, type NoteOverrides } from "../config/frontmatter";
+import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { createTranslator } from "../config/i18n";
 import {
   centeredCaptionKinds,
@@ -499,18 +498,6 @@ export function captionBlockWidgetAnchor(
   };
 }
 
-function parseOverrides(source: string): NoteOverrides | null {
-  try {
-    const info = getFrontMatterInfo(source);
-    if (!info.exists) {
-      return parseNoteOverrides(null);
-    }
-    return parseNoteOverrides(parseYaml(info.frontmatter));
-  } catch {
-    return null;
-  }
-}
-
 const semanticSnapshots = new SemanticSnapshotCache();
 
 function buildAnchoredCaptionDecorations(
@@ -522,7 +509,7 @@ function buildAnchoredCaptionDecorations(
   if (!livePreview || !settings.enableLivePreview) return Decoration.none;
   const snapshot = semanticSnapshots.get(state.doc, () => state.doc.toString());
   const source = snapshot.source;
-  const overrides = parseOverrides(source) ?? invalidNoteOverrides();
+  const overrides = parseNoteOverridesFromSource(source) ?? invalidNoteOverrides();
   const effective = resolveNoteSettings(settings, overrides);
   if (effective.disabled || !effective.valid) return Decoration.none;
   const selections = state.selection.ranges.map((range) => ({ from: range.from, to: range.to }));
@@ -632,7 +619,7 @@ export class HeadingDisplayController {
       private imageTooltipGeneration = 0;
 
       constructor(private readonly view: EditorView) {
-        this.overrides = parseOverrides(view.state.doc.toString()) ?? invalidNoteOverrides();
+        this.overrides = parseNoteOverridesFromSource(view.state.doc.toString()) ?? invalidNoteOverrides();
         views.add(view);
         this.decorations = this.buildDecorations();
         this.scheduleImageTooltips();
@@ -652,7 +639,7 @@ export class HeadingDisplayController {
 
       update(update: ViewUpdate): void {
         if (update.docChanged) {
-          const nextOverrides = parseOverrides(update.state.doc.toString());
+          const nextOverrides = parseNoteOverridesFromSource(update.state.doc.toString());
           this.overrides = nextOverrides ?? invalidNoteOverrides();
         }
         const livePreviewChanged = update.startState.field(editorLivePreviewField, false)

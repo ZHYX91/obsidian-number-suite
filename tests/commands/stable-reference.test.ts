@@ -114,6 +114,22 @@ describe("stable cross-reference context menu", () => {
     expect(notices()).toContain("reference.notice.copied");
   });
 
+  it("fails closed when an existing-ID source changes before copy", async () => {
+    const menu = createMenu();
+    const editor = createEditor("Figure: Miao ^figure-id", 8);
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate);
+    editor.setValue("Figure: Changed ^figure-id");
+
+    menu.click?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(modal.options).toBeNull();
+    expect(editor.transactions).toHaveLength(0);
+    expect(clipboard).not.toHaveBeenCalled();
+    expect(notices()).toContain("notice.stalePreview");
+  });
+
   it("fails closed when the source changes after preview", async () => {
     const menu = createMenu();
     const editor = createEditor("# Architecture", 4);

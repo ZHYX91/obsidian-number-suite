@@ -8,7 +8,8 @@ import {
   type MarkdownPostProcessorContext,
 } from "obsidian";
 
-import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
+import { resolveNoteSettings } from "../config/frontmatter";
+import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { meaningfulImageReplacementText } from "../core/caption-objects";
 import { createTranslator, type Translate } from "../config/i18n";
 import {
@@ -740,11 +741,6 @@ export class HeadingReadingProcessor {
     if (!settings.enableReadingView) {
       return;
     }
-    const effective = resolveNoteSettings(settings, parseNoteOverrides(context.frontmatter));
-    const captionCentering = centeredCaptionKinds(settings);
-    if (effective.disabled || !effective.valid) {
-      return;
-    }
     const file = this.app.vault.getAbstractFileByPath(normalizePath(context.sourcePath));
     if (!(file instanceof TFile) || file.extension.toLowerCase() !== "md") {
       return;
@@ -756,6 +752,11 @@ export class HeadingReadingProcessor {
     ) {
       return;
     }
+    const overrides = parseNoteOverridesFromSource(source);
+    if (overrides == null) return;
+    const effective = resolveNoteSettings(settings, overrides);
+    const captionCentering = centeredCaptionKinds(settings);
+    if (effective.disabled || !effective.valid) return;
     // Reading View virtualizes long documents by temporarily detaching sections while
     // asynchronous post-processors are running. A detached container is still current and
     // must be decorated before Obsidian reattaches it; request and generation checks above
