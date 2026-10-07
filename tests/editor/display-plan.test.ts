@@ -165,6 +165,22 @@ describe("display plan", () => {
       .toEqual(["1", "2"]);
   });
 
+  it("maps a virtual replacement through hidden inline comments inside the stored prefix", () => {
+    const source = "# 1<!-- gap --> ???";
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      showVirtualNumbers: true,
+      concealStoredNumbers: true,
+    }));
+    const conceal = plan.find((item) => item.kind === "conceal");
+    const virtual = plan.find((item) => item.kind === "virtual");
+
+    expect(conceal).toBeDefined();
+    expect(virtual).toBeDefined();
+    expect(source.slice(conceal?.from, conceal?.to)).toBe("1<!-- gap --> ");
+    expect(virtual?.from).toBe(conceal?.to);
+    expect(virtual?.from).toBe(source.indexOf("???"));
+  });
+
   it("fails closed for unsafe bare alphabetic schemes", () => {
     const unsafe = {
       id: "custom-letter",

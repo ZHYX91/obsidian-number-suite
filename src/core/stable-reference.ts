@@ -1,4 +1,4 @@
-import { parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
+import { blockTargetKey, parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
 import { parseAtxHeadings } from "./heading-parser";
 
 export interface StableReferenceTarget {
@@ -123,11 +123,8 @@ export function createStableReferencePlan(
   const target = targetAtOffset(source, cursorOffset);
   if (target == null) return null;
   if (target.blockId != null) {
-    const normalized = target.blockId.normalize("NFC").toLowerCase();
-    const occurrences = [...source.matchAll(ANY_BLOCK_ID)].filter((match) => (
-      match[1]?.normalize("NFC").toLowerCase() === normalized
-    )).length;
-    if (occurrences !== 1) return null;
+    const owner = parseDocumentSemantics(source).blockOwners.get(blockTargetKey(target.blockId));
+    if (owner !== target.line) return null;
   }
   const blockId = target.blockId ?? generatedBlockId(source, target);
   const alias = safeAlias(target.title);

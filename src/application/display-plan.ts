@@ -116,7 +116,7 @@ export function createDisplayPlan(
       options.showVirtualNumbers
       && (concealTo > 0 || (matches.length === 0 && !analysis.suspicious))
     ) {
-      const virtualFrom = heading.contentFrom + concealTo;
+      const virtualFrom = sourceOffsetForHeadingContent(heading, concealTo);
       decorations.push({
         kind: "virtual",
         from: virtualFrom,

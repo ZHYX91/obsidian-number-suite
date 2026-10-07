@@ -65,5 +65,8 @@
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "overrides": {
+    "moment": "2.31.0"
   }
 }

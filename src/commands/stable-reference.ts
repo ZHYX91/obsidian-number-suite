@@ -59,7 +59,22 @@ export function addStableReferenceContextMenuItem(
     .setIcon("copy")
     .onClick(() => {
       if (plan.change == null) {
-        void copyWithNotice(plan, translate, false);
+        const current = editor.getValue();
+        const refreshed = createStableReferencePlan(current, cursorOffset);
+        if (
+          info.file?.path !== path
+          || current !== source
+          || refreshed == null
+          || refreshed.change != null
+          || refreshed.blockId !== plan.blockId
+          || refreshed.target.kind !== plan.target.kind
+          || refreshed.target.line !== plan.target.line
+          || refreshed.link !== plan.link
+        ) {
+          new Notice(translate("notice.stalePreview"));
+          return;
+        }
+        void copyWithNotice(refreshed, translate, false);
         return;
       }
       new StableReferenceModal({
