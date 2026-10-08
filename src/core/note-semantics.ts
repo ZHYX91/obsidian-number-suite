@@ -1,4 +1,5 @@
 import {
+  isMarkdownSourceEscaped,
   maskInlineProtectedSyntax,
   scanMarkdownProtectedLines,
 } from "./markdown-protection";
@@ -137,7 +138,7 @@ export function parseDocumentNotes(source: string): DocumentNoteSemantics {
     const masked = maskInlineProtectedSyntax(line.text);
     for (const match of masked.matchAll(REFERENCE)) {
       if (match.index == null || match[1] == null) continue;
-      if (match.index > 0 && line.text[match.index - 1] === "\\") continue;
+      if (isMarkdownSourceEscaped(line.text, match.index)) continue;
       const identity = noteIdentity(match[1]);
       if (identity == null) continue;
       references.push({
