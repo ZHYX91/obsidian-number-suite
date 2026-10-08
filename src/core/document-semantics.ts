@@ -1,6 +1,7 @@
 import { WORD_JOINER } from "./markers";
 import { noteContainerLines } from "./note-semantics";
 import {
+  isMarkdownSourceEscaped,
   maskInlineProtectedSyntax,
   scanMarkdownProtectedLines,
 } from "./markdown-protection";
@@ -157,7 +158,7 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
     }
 
     for (const match of masked.matchAll(SEMANTIC_REFERENCE)) {
-      if (match.index == null || (match.index > 0 && line.text[match.index - 1] === "\\")) continue;
+      if (match.index == null || isMarkdownSourceEscaped(line.text, match.index)) continue;
       const rawTarget = match[1]?.trim();
       if (rawTarget == null || rawTarget.length === 0) continue;
       const block = rawTarget.startsWith("^");

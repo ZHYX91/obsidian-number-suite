@@ -95,6 +95,9 @@ governed by their own source and settings.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
     order, and repeated references reuse the first number. Footnotes display plain numbers and
     endnotes display an `E` prefix.
+    Note and semantic-reference markers in ordinary text follow Markdown backslash parity:
+    odd runs escape the marker; even runs leave it active. Protected code, HTML, and link
+    destinations remain excluded independently of this rule.
 14. Footnote/endnote display must not create, rename, or rewrite definitions, references, IDs, or
     other Markdown. Missing definitions, duplicate definitions, canonical ID conflicts between
     default and explicit footnotes, and source/render count mismatches fail closed. Definition

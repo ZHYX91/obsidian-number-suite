@@ -308,6 +308,15 @@ function maskLinkDestinations(text: string, characters: string[]): void {
   }
 }
 
+/** A token is escaped only by an odd run of immediately preceding backslashes. */
+export function isMarkdownSourceEscaped(text: string, offset: number): boolean {
+  let slashes = 0;
+  for (let cursor = offset - 1; cursor >= 0 && text[cursor] === "\\"; cursor -= 1) {
+    slashes += 1;
+  }
+  return slashes % 2 === 1;
+}
+
 /** Mask inline regions that must not contribute note/reference semantics. */
 export function maskInlineProtectedSyntax(text: string): string {
   const characters = scanInlineComments(text).masked.split("");

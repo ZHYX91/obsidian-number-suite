@@ -2,6 +2,11 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.5.4 - 2026-10-08
+
+- Recognize footnotes, endnotes, and semantic references after an even number of backslashes; odd runs still escape the marker.
+- Expand the independent interoperability corpus to cover zero through four backslashes without changing protected-region behavior.
+
 ## 0.5.3 - 2026-10-07
 
 - Keep native Reading View fold arrows before virtual heading numerals so the controls do not overlap.
