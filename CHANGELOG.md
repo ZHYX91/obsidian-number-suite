@@ -2,6 +2,11 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.5.5 - 2026-10-09
+
+- Explain display-only numbering, stored heading numbers, and optional DocWen Word export in the README and settings.
+- Report the heading level and cause of an invalid custom scheme template; cover rejected saves and successful correction through DOM interactions.
+
 ## 0.5.4 - 2026-10-08
 
 - Recognize footnotes, endnotes, and semantic references after an even number of backslashes; odd runs still escape the marker.
