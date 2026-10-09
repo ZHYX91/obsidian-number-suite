@@ -8,6 +8,7 @@ import { renderNoteOverridesGuide } from "./note-overrides-guide";
 import { renderSameFileReferenceGuide } from "./reference-guide";
 import {
   renderBatchOperationsGuide,
+  renderExportGuide,
   renderCaptionNumberingGuide,
   renderFileOperationsGuide,
   renderHeadingDisplayGuide,
@@ -33,6 +34,7 @@ export function createSettingDefinitions(
       items: [
         saveStatusDefinition(context),
         ...generalDefinitions(context),
+        customDefinition(t("settings.exportGuide.title"), (container) => renderExportGuide(container, t)),
       ],
     },
     {
@@ -217,7 +219,7 @@ function headingDefinitions(
     dropdownDefinition(
       "general.missingLevelStrategy",
       t("settings.missing"),
-      undefined,
+      t("settings.missing.desc"),
       {
         "fill-one": t("missing.fill-one"),
         "current-only": t("missing.current-only"),
@@ -250,13 +252,13 @@ function cleanupDefinitions(t: Translate): SettingGroupItem<SettingsControlKey>[
     toggleDefinition(
       "cleanup.removeMultiplePrefixes",
       t("settings.multiple"),
-      undefined,
+      t("settings.multiple.desc"),
       DEFAULT_SETTINGS.removeMultiplePrefixes,
     ),
     toggleDefinition(
       "cleanup.normalizeManualOnRenumber",
       t("settings.normalize"),
-      undefined,
+      t("settings.normalize.desc"),
       DEFAULT_SETTINGS.normalizeManualOnRenumber,
     ),
   ];

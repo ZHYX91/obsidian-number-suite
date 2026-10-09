@@ -2,10 +2,7 @@
 
 [English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md)
 
-Number Suite separates two decisions that Markdown tools often mix together: whether heading
-numbers are stored in a Markdown file and whether those numbers are visible in Obsidian. It can
-write, remove, virtually display, or visually conceal heading numbers without network access or
-telemetry.
+Number Suite lets you number headings, captions, and references without having to change your Markdown files. You can choose whether numbers appear only on screen or are written into the note. It can also hide stored heading numbers without deleting them. The plugin does not use network access or telemetry.
 
 <!-- section: screenshots -->
 ## Screenshots
@@ -89,6 +86,8 @@ Do not mix files from different versions.
 
 <!-- section: usage -->
 ## Usage
+
+**Not sure where to start?** To see heading numbers without changing your note, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** tab and review the preview before applying.
 
 | Source state | Desired result | Action | Changes Markdown |
 |---|---|---|---|
@@ -242,6 +241,8 @@ and batch. The tab itself identifies the current section, so its content starts 
 first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
 appearance, and batch operations.
 
+**Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in DocWen's Markdown syntax settings; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
+
 ### Numbering schemes
 
 Templates use `{heading-level.number-format}` placeholders, such as `{1.arabic}` or
@@ -307,11 +308,9 @@ Failed input remains available for Retry, and outline navigation stays in the or
   supported.
 - Caption counters and semantic-reference resolution are also scoped to one Markdown file. Embedded
   files use their own source and counters; cross-file semantic references are not recognized.
-- Number Suite keeps caption semantics separate from carrier structure during DocWen handoff. The
-  current exact-two contract preserves all four caption labels on any supported carrier; for
-  example, `Figure:` on a Markdown table remains a native table while using the Figure counter and
-  cross-reference label. Release acceptance still validates this against the exact DocWen candidate
-  instead of inferring conversion support from display behavior alone.
+- When using DocWen, caption labels and the object they describe remain distinct: for example,
+  a `Figure:` caption can describe a table while the table remains a table in Word. The resulting
+  document depends on the selected conversion options and should be reviewed before sharing.
 - Footnote and endnote counters are independent and file-scoped. Obsidian still owns note anchors,
   navigation, layout, and definition rendering; the plugin changes only validated visible labels.
 - Top-level ATX H1-H6 plus Number Suite/DocWen H7-H9 extension headings are handled. Setext

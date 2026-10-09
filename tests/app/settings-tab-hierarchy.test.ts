@@ -28,6 +28,8 @@ describe("settings page hierarchy", () => {
     expect(source).toContain('setName(t("settings.captions.alignment"))');
     expect(source).toContain('setName(t("settings.views")).setHeading()');
     expect(definitions).toContain('heading: t("settings.views")');
+    expect(source).toContain("renderExportGuide(container, t)");
+    expect(definitions).toContain("renderExportGuide(container, t)");
     expect(source).toContain('setName(t("settings.appearance")).setHeading()');
     expect(source).toContain('setName(t("settings.batch")).setHeading()');
   });

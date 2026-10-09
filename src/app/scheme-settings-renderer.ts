@@ -8,7 +8,7 @@ import {
   isBuiltInSchemeId,
 } from "../core/schemes";
 import { NUMBER_FORMATS, renderTemplate } from "../core/template-compiler";
-import { inspectSchemeTemplates } from "../core/scheme-template-validation";
+import { inspectSchemeTemplates, type SchemeTemplateIssue } from "../core/scheme-template-validation";
 import { matchHeadingExclusion, normalizeExclusionTitle } from "../core/heading-exclusions";
 import {
   BUILT_IN_SCHEME_IDS,
@@ -77,6 +77,23 @@ export function selectedSchemeName(settings: NumberSuiteSettings, t: Translate):
   if (isBuiltInSchemeId(settings.selectedSchemeId)) return builtInName(settings.selectedSchemeId, t);
   const custom = settings.customSchemes.find((scheme) => scheme.id === settings.selectedSchemeId);
   return custom == null ? settings.selectedSchemeId : custom.name;
+}
+
+export function describeSchemeTemplateIssue(issue: SchemeTemplateIssue, t: Translate): string {
+  const level = `H${issue.headingLevel}`;
+  if (issue.code === "missing-current-level") {
+    return t("settings.scheme.issue.missingCurrentLevel", {
+      level,
+      example: `{${issue.headingLevel}.arabic}`,
+    });
+  }
+  if (issue.code === "descendant-level-reference") {
+    return t("settings.scheme.issue.descendantLevel", {
+      level,
+      referenced: `H${issue.referencedLevel}`,
+    });
+  }
+  return t("settings.scheme.issue.invalidPlaceholder", { level });
 }
 
 export class SchemeSettingsRenderer {
@@ -268,13 +285,14 @@ export class SchemeSettingsRenderer {
     validation.setAttribute("role", "alert");
     const previewElements: HTMLElement[] = [];
     const updateValidation = (): boolean => {
-      const invalidTemplate = inspectSchemeTemplates(draft.templates).length > 0;
+      const templateIssue = inspectSchemeTemplates(draft.templates)[0];
+      const invalidTemplate = templateIssue != null;
       const normalizedTitles = draft.exclusions.map((rule) => normalizeExclusionTitle(rule.title));
       const invalidExclusions = normalizedTitles.some((title) => title.length === 0)
         || new Set(normalizedTitles).size !== normalizedTitles.length;
       validation.hidden = !invalidTemplate && !invalidExclusions;
-      validation.textContent = invalidTemplate
-        ? t("settings.scheme.invalid")
+      validation.textContent = templateIssue != null
+        ? describeSchemeTemplateIssue(templateIssue, t)
         : invalidExclusions ? t("settings.scheme.exclusions.invalid") : "";
       draft.templates.forEach((template, index) => {
         const preview = previewElements[index];
