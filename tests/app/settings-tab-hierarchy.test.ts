@@ -7,6 +7,8 @@ const definitions = readFileSync(
   "utf8",
 );
 
+const guides = readFileSync(new URL("../../src/ui/settings/usage-guides.ts", import.meta.url), "utf8");
+
 describe("settings page hierarchy", () => {
   it("starts with the tablist and does not repeat the plugin or active-tab title", () => {
     expect(source).not.toContain('setName(t("settings.title")).setHeading()');
@@ -30,6 +32,7 @@ describe("settings page hierarchy", () => {
     expect(definitions).toContain('heading: t("settings.views")');
     expect(source).toContain("renderExportGuide(container, t)");
     expect(definitions).toContain("renderExportGuide(container, t)");
+    expect(guides).toContain("https://obsidian.md/plugins?id=docwen-assistant");
     expect(source).toContain('setName(t("settings.appearance")).setHeading()');
     expect(source).toContain('setName(t("settings.batch")).setHeading()');
   });
