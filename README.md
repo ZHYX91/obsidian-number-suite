@@ -2,7 +2,7 @@
 
 [English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md)
 
-Number Suite lets you number headings, captions, and references without having to change your Markdown files. You can choose whether numbers appear only on screen or are written into the note. It can also hide stored heading numbers without deleting them. The plugin does not use network access or telemetry.
+Number Suite displays numbers for headings, captions, and references. Heading numbers can appear only on screen or be written into the Markdown note. Caption and reference numbers are displayed from their supported Markdown syntax. The plugin can also hide stored heading numbers without deleting them. It does not use network access or telemetry.
 
 <!-- section: screenshots -->
 ## Screenshots
