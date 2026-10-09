@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { firstAvailableScheme } from "../../src/app/scheme-settings-renderer";
+import { describeSchemeTemplateIssue, firstAvailableScheme } from "../../src/app/scheme-settings-renderer";
+import { createTranslator } from "../../src/config/i18n";
 import { cloneSettings, DEFAULT_SETTINGS } from "../../src/config/settings";
 import { BUILT_IN_SCHEME_IDS } from "../../src/core/types";
 
 describe("scheme settings renderer", () => {
+  it("reports the invalid heading level and reason", () => {
+    const zh = createTranslator("zh");
+    const en = createTranslator("en");
+    expect(describeSchemeTemplateIssue({ headingLevel: 3, code: "missing-current-level" }, zh))
+      .toContain("H3");
+    expect(describeSchemeTemplateIssue({
+      headingLevel: 2, code: "descendant-level-reference", referencedLevel: 4,
+    }, zh)).toContain("H4");
+    expect(describeSchemeTemplateIssue({ headingLevel: 1, code: "invalid-placeholder" }, en))
+      .toContain("H1");
+  });
+
   it("restores the default scheme when deleting the last visible option", () => {
     const settings = cloneSettings({
       ...DEFAULT_SETTINGS,

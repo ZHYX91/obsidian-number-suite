@@ -15,6 +15,15 @@ describe("localized UI copy", () => {
     expect(zh("settings.scheme.hidden")).toBe("已隐藏的内置方案");
   });
 
+  it("explains skipped headings, recovery limits, and document export", () => {
+    const en = createTranslator("en");
+    const zh = createTranslator("zh");
+    expect(zh("settings.missing.desc")).toContain("四级标题");
+    expect(zh("settings.backupLimit.desc")).toContain("不是笔记文件大小");
+    expect(zh("settings.exportGuide.setup")).toContain("输入扩展");
+    expect(en("settings.exportGuide.body")).toContain("optional Markdown extensions");
+  });
+
   it("uses user-facing caption and marker terminology", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");

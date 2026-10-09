@@ -63,6 +63,18 @@ function renderList(
   for (const key of keys) list.createEl("li", { text: t(key) });
 }
 
+export function renderExportGuide(container: HTMLElement, t: Translate): void {
+  const body = createGuide(container, "export", t("settings.exportGuide.title"));
+  body.createEl("p", { text: t("settings.exportGuide.body") });
+  body.createEl("p", { text: t("settings.exportGuide.setup") });
+  const link = body.createEl("a", {
+    text: t("settings.exportGuide.link"),
+    href: "https://obsidian.md/plugins?id=docwen-assistant",
+  });
+  link.setAttribute("target", "_blank");
+  link.setAttribute("rel", "noopener noreferrer");
+}
+
 export function renderHeadingDisplayGuide(container: HTMLElement, t: Translate): void {
   const body = createGuide(container, "heading-display", t("settings.headings.guide.title"));
   body.createEl("p", { text: t("settings.headings.guide.intro") });

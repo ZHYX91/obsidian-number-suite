@@ -21,6 +21,7 @@ import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
 import {
   renderBatchOperationsGuide,
+  renderExportGuide,
   renderCaptionNumberingGuide,
   renderFileOperationsGuide,
   renderHeadingDisplayGuide,
@@ -278,6 +279,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addButton((button) => button.setButtonText(t("settings.reset.button")).setWarning().onClick(() => {
         this.openResetModal(t);
       }));
+    renderExportGuide(container, t);
   }
 
   private renderHeadings(container: HTMLElement, t: Translate): void {
@@ -303,6 +305,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     renderNoteOverridesGuide(container, t, "settings");
     new Setting(container)
       .setName(t("settings.missing"))
+      .setDesc(t("settings.missing.desc"))
       .addDropdown((dropdown) => dropdown
         .addOption("fill-one", t("missing.fill-one"))
         .addOption("current-only", t("missing.current-only"))
@@ -394,10 +397,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
         .addOption("common", t("cleanup.common"))
         .setValue(this.plugin.settings.cleanupScope)
         .onChange((value) => this.updateControl("cleanup.cleanupScope", value)));
-    new Setting(container).setName(t("settings.multiple")).addToggle((toggle) => toggle
+    new Setting(container).setName(t("settings.multiple")).setDesc(t("settings.multiple.desc")).addToggle((toggle) => toggle
       .setValue(this.plugin.settings.removeMultiplePrefixes)
       .onChange((value) => this.updateControl("cleanup.removeMultiplePrefixes", value)));
-    new Setting(container).setName(t("settings.normalize")).addToggle((toggle) => toggle
+    new Setting(container).setName(t("settings.normalize")).setDesc(t("settings.normalize.desc")).addToggle((toggle) => toggle
       .setValue(this.plugin.settings.normalizeManualOnRenumber)
       .onChange((value) => this.updateControl("cleanup.normalizeManualOnRenumber", value)));
     this.schemeRenderer(t).renderCleanupHistory(container);
@@ -427,7 +430,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
       .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
         .onChange((value) => this.updateControl("views.excludedFolders", value)));
-    new Setting(container).setName(t("settings.backupLimit")).addSlider((slider) => slider
+    new Setting(container).setName(t("settings.backupLimit")).setDesc(t("settings.backupLimit.desc")).addSlider((slider) => slider
       .setLimits(1, 100, 1).setDynamicTooltip().setValue(this.plugin.settings.batchBackupLimitMb)
       .onChange((value) => this.updateControl("views.batchBackupLimitMb", value)));
   }
