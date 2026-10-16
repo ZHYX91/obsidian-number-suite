@@ -1,3 +1,4 @@
+import { isUiLanguage, type UiLanguage } from "./language-options";
 import {
   CONFIDENCES,
   HEADING_LEVEL_COUNT,
@@ -20,7 +21,7 @@ import type { CaptionKind } from "../core/document-semantics";
 export type CaptionPlacement = "above" | "below";
 
 export interface NumberSuiteSettings {
-  language: "auto" | "en" | "zh";
+  language: UiLanguage;
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
   concealScope: ConcealScope;
@@ -263,7 +264,7 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     : [];
 
   return {
-    language: oneOf(raw.language, ["auto", "en", "zh"] as const, DEFAULT_SETTINGS.language),
+    language: isUiLanguage(raw.language) ? raw.language : DEFAULT_SETTINGS.language,
     showVirtualNumbers: booleanOr(raw.showVirtualNumbers, DEFAULT_SETTINGS.showVirtualNumbers),
     concealStoredNumbers: booleanOr(raw.concealStoredNumbers, DEFAULT_SETTINGS.concealStoredNumbers),
     concealScope: oneOf(

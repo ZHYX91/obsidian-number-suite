@@ -1,3 +1,4 @@
+import { isUiLanguage } from "../config/language-options";
 import { cloneSettings, type NumberSuiteSettings } from "../config/settings";
 import type { SettingsImpact } from "./settings-impact";
 
@@ -126,7 +127,7 @@ export function applySettingsControlValue(
   let persistence: SettingsControlMutation["persistence"] = "immediate";
   switch (key) {
     case "general.language":
-      if (value !== "auto" && value !== "en" && value !== "zh") throw invalidControlValue(key);
+      if (!isUiLanguage(value)) throw invalidControlValue(key);
       next.language = value;
       refreshSurface = true;
       break;
