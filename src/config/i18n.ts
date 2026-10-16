@@ -1,4 +1,6 @@
 import { getLanguage } from "obsidian";
+import { NUMBER_SUITE_LOCALE_OVERRIDES } from "./locale-overrides";
+import { isUiLanguage, type UiLanguage, type UiLocale } from "./language-options";
 
 const EN = {
   "command.mode.normal": "Disable display effects and restore source appearance",
@@ -227,7 +229,7 @@ const EN = {
   "settings.noteOverrides.guide.intro": "Most notes do not need Number Suite Properties. Global defaults are stored in the plugin configuration and apply automatically.",
   "settings.noteOverrides.guide.action": "Only when a note should differ, open Current note. Explicit choices are stored as readable path=value items in one number-suite text list; Follow global removes the item. Old Number Suite fields migrate only after an explicit change, and other Properties remain unchanged.",
   "settings.scheme": "Numbering scheme",
-  "settings.scheme.desc": "The same scheme is used by file operations and virtual display.",
+  "settings.scheme.desc": "File operations and on-screen numbering use the same scheme. Changing the interface language does not change document numbering.",
   "settings.missing": "When heading levels are skipped",
   "settings.missing.desc": "For example, if H2 is followed by H4 with no H3: fill the missing parent with its starting number, show only the H4 number, or omit the generated number and warn. This does not change the note unless you run a file operation.",
   "settings.write": "File operations",
@@ -662,7 +664,7 @@ const ZH: Record<MessageKey, string> = {
   "settings.noteOverrides.guide.intro": "大多数笔记都不需要添加 Number Suite 属性；全局默认设置会自动生效。",
   "settings.noteOverrides.guide.action": "只有某篇笔记需要不同设置时，才打开“当前笔记”。明确选择会以 path=value 文本项写入一个 number-suite 列表；改回“跟随全局”会删除对应项。旧版 Number Suite 字段只在你明确修改后迁移，其他属性保持不变。",
   "settings.scheme": "序号方案",
-  "settings.scheme.desc": "文件操作与虚拟显示共用同一套方案。",
+  "settings.scheme.desc": "文件操作和界面显示共用同一编号方案；切换界面语言不会改变文档编号。",
   "settings.missing": "跳级标题如何编号",
   "settings.missing.desc": "例如二级标题后直接出现四级标题、缺少三级标题时：可用该级的起始数字补齐、只显示四级序号，或跳过编号并提示。仅调整显示不会改动笔记。",
   "settings.write": "文件操作",
@@ -870,13 +872,31 @@ const ZH: Record<MessageKey, string> = {
 
 export type Translate = (key: MessageKey, variables?: Readonly<Record<string, string | number>>) => string;
 
-export function createTranslator(language: "auto" | "en" | "zh"): Translate {
-  const locale = language === "auto"
-    ? (getLanguage().toLowerCase().startsWith("zh") ? "zh" : "en")
-    : language;
-  const messages = locale === "zh" ? ZH : EN;
+export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguage()): UiLocale {
+  if (language !== "auto") return language;
+  const tag = hostLanguage.trim().toLowerCase().replaceAll("_", "-");
+  if (tag === "zh" || tag.startsWith("zh-")) {
+    return /(?:^|[-])(hant|tw|hk|mo)(?:$|[-])/u.test(tag) ? "zh-TW" : "zh";
+  }
+  if (tag === "pt" || tag.startsWith("pt-")) return "pt-BR";
+  const primary = tag.split("-")[0];
+  return isUiLanguage(primary) && primary !== "auto" ? primary : "en";
+}
+
+export function uiTextDirection(language: UiLanguage): "rtl" | "ltr" {
+  return resolvedUiLocale(language) === "ar" ? "rtl" : "ltr";
+}
+
+export function translationCoverage(language: UiLocale): { translated: number; total: number } {
+  const values = language === "zh" ? ZH : language === "en" ? EN : NUMBER_SUITE_LOCALE_OVERRIDES[language] ?? {};
+  return { translated: Object.keys(values).length, total: Object.keys(EN).length };
+}
+
+export function createTranslator(language: UiLanguage): Translate {
+  const locale = resolvedUiLocale(language);
+  const messages = locale === "zh" ? ZH : locale === "en" ? EN : NUMBER_SUITE_LOCALE_OVERRIDES[locale] ?? {};
   return (key, variables = {}) => {
-    let message: string = messages[key];
+    let message: string = messages[key] ?? EN[key];
     for (const [name, value] of Object.entries(variables)) {
       message = message.replace(new RegExp(`\\{${name}\\}`, "gu"), String(value));
     }
