@@ -894,7 +894,7 @@ export type Translate = (key: MessageKey, variables?: Readonly<Record<string, st
 
 export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguage()): UiLocale {
   if (language !== "auto") return language;
-  const tag = hostLanguage.trim().toLowerCase().replaceAll("_", "-");
+  const tag = hostLanguage.trim().toLowerCase().replace(/_/gu, "-");
   if (tag === "zh" || tag.startsWith("zh-")) {
     return /(?:^|[-])(hant|tw|hk|mo)(?:$|[-])/u.test(tag) ? "zh-TW" : "zh";
   }
