@@ -3,6 +3,16 @@
  */
 export const NUMBER_SUITE_LOCALE_OVERRIDES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   "zh-TW": {
+    "settings.scheme.suggestion": "依照介面語言建議：{scheme}",
+    "settings.scheme.suggestion.desc": "這只是建議。選擇方案會立即更新已啟用的虛擬編號與大綱，但不會修改 Markdown。要寫入或重新編號，仍須另行預覽並確認。",
+    "settings.scheme.useSuggestion": "採用此方案",
+    "scheme.chinese-traditional-chapters": "繁體中文章、節、條",
+    "scheme.japanese-chapters": "日文章、節、項",
+    "scheme.korean-chapters": "韓文章、節、項",
+    "scheme.arabic-indic-hierarchical": "阿拉伯—印度數字層級編號（١٫١）",
+    "format.arabic_indic": "阿拉伯—印度數字 — ١、٢、٣",
+    "format.chinese_traditional_lower": "繁體中文數字 — 一、二、三",
+    "format.chinese_traditional_upper": "繁體中文大寫數字 — 壹、貳、參",
     "command.mode.normal": "關閉顯示效果並恢復原樣",
     "command.mode.show": "切換顯示虛擬標題序號",
     "command.mode.conceal": "切換是否隱藏已有標題序號",
@@ -979,6 +989,16 @@ export const NUMBER_SUITE_LOCALE_OVERRIDES: Readonly<Record<string, Readonly<Rec
     "language.zh": "简体中文",
   },
   "ar": {
+    "settings.scheme.suggestion": "نمط مقترح للغة الواجهة: {scheme}",
+    "settings.scheme.suggestion.desc": "هذا اقتراح اختياري. تغيير النمط يحدّث ترقيم العرض والمخطط فقط، ولا يكتب في Markdown. تتطلب كتابة الأرقام أو إعادة ترقيم الملف أمرًا منفصلًا ومعاينة وتأكيدًا.",
+    "settings.scheme.useSuggestion": "استخدام هذا النمط",
+    "scheme.chinese-traditional-chapters": "فصول وأقسام بالصينية التقليدية",
+    "scheme.japanese-chapters": "فصول وأقسام باليابانية",
+    "scheme.korean-chapters": "فصول وأقسام بالكورية",
+    "scheme.arabic-indic-hierarchical": "ترقيم متسلسل بأرقام عربية هندية (١٫١)",
+    "format.arabic_indic": "الأرقام العربية الهندية — ١، ٢، ٣",
+    "format.chinese_traditional_lower": "أرقام صينية تقليدية — 一، 二، 三",
+    "format.chinese_traditional_upper": "أرقام صينية مالية تقليدية — 壹، 貳، 參",
     "preview.title.write": "معاينة كتابة أرقام العناوين",
     "preview.title.remove": "معاينة إزالة أرقام العناوين",
     "preview.title.renumber": "معاينة إعادة ترقيم العناوين",

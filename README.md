@@ -2,7 +2,7 @@
 
 [English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md)
 
-Number Suite displays numbers for headings, captions, and references. Heading numbers can appear only on screen or be written into the Markdown note. Caption and reference numbers are displayed from their supported Markdown syntax. The plugin can also hide stored heading numbers without deleting them. It does not use network access or telemetry.
+Want numbered headings without changing your notes? Turn on **Show virtual numbers**. Number Suite can also display numbers for captions, references, footnotes, and endnotes. To put heading numbers into Markdown, run **Write numbers** or **Renumber** separately, review the preview, and confirm. You can also hide numbers already written in a note without deleting them. Everything runs locally.
 
 <!-- section: screenshots -->
 ## Screenshots
@@ -61,7 +61,7 @@ Markdown.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
 - Override display, concealment, scheme, starting counters, skipped-heading counts, or full opt-out per note.
-- Use English or Simplified Chinese interface text.
+- Choose from 12 interface languages. Some newly added translations remain under review and temporarily fall back to English for missing messages.
 
 <!-- section: requirements-and-compatibility -->
 ## Requirements and compatibility
@@ -244,6 +244,12 @@ appearance, and batch operations.
 **Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in DocWen's Markdown syntax settings; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 
 ### Numbering schemes
+
+The selected scheme controls both virtual display and any later file operation, but **selecting a scheme does not write to the note**. The display updates immediately only where virtual numbering is enabled. Writing or renumbering still requires a separate command, preview, and confirmation.
+
+Alongside the existing hierarchical, Chinese-official and legal schemes, there are optional Traditional Chinese, Japanese, Korean and Arabic-Indic chapter/section styles. These are **examples of writing conventions, not national standards for every document**. The plugin may suggest a scheme based on interface language, but never silently selects it, and changing interface language never changes your scheme. You can choose any scheme regardless of interface language.
+
+In the template editor, `arabic` still means the familiar Western digits `1, 2, 3`; use `arabic_indic` for `١، ٢، ٣`. Traditional Chinese has separate `chinese_traditional_lower` and `chinese_traditional_upper` formats. All styles can be previewed before use.
 
 Templates use `{heading-level.number-format}` placeholders, such as `{1.arabic}` or
 `{2.chinese_lower}`. Supported formats are Arabic, full-width Arabic, lower/upper Chinese, circled,
