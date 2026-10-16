@@ -1,3 +1,4 @@
+import { languageOptions } from "../../config/language-options";
 import type { Setting, SettingDefinitionItem, SettingGroupItem } from "obsidian";
 
 import type { Translate } from "../../config/i18n";
@@ -163,7 +164,7 @@ function generalDefinitions(
       "general.language",
       t("settings.language"),
       t("settings.language.desc"),
-      { auto: t("language.auto"), en: t("language.en"), zh: t("language.zh") },
+      languageOptions(t("language.auto")),
       DEFAULT_SETTINGS.language,
     ),
     {
