@@ -17,7 +17,7 @@ export type UiLocale = keyof typeof UI_LOCALE_LABELS;
 export type UiLanguage = "auto" | UiLocale;
 export const UI_LOCALES = Object.keys(UI_LOCALE_LABELS) as UiLocale[];
 export function isUiLanguage(value: unknown): value is UiLanguage {
-  return value === "auto" || (typeof value === "string" && Object.hasOwn(UI_LOCALE_LABELS, value));
+  return value === "auto" || (typeof value === "string" && Object.prototype.hasOwnProperty.call(UI_LOCALE_LABELS, value));
 }
 export function languageOptions(auto: string): Record<string, string> {
   return { auto, ...UI_LOCALE_LABELS };
