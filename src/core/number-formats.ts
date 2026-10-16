@@ -94,11 +94,11 @@ export function formatCounter(value: number, format: NumberFormat): string {
     case "arabic_indic":
       return String(value).replace(/[0-9]/gu, (digit) => String.fromCharCode(0x0660 + Number(digit)));
     case "chinese_traditional_lower":
-      return toChinese(value, false).replaceAll("万", "萬").replaceAll("亿", "億");
+      return toChinese(value, false).replace(/万/gu, "萬").replace(/亿/gu, "億");
     case "chinese_traditional_upper":
       return toChinese(value, true)
-        .replaceAll("贰", "貳").replaceAll("叁", "參").replaceAll("陆", "陸")
-        .replaceAll("万", "萬").replaceAll("亿", "億");
+        .replace(/贰/gu, "貳").replace(/叁/gu, "參").replace(/陆/gu, "陸")
+        .replace(/万/gu, "萬").replace(/亿/gu, "億");
     case "chinese_lower": return toChinese(value, false);
     case "chinese_upper": return toChinese(value, true);
     case "circled": return CIRCLED[value - 1] ?? `(${value})`;
