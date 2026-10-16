@@ -91,6 +91,14 @@ export function formatCounter(value: number, format: NumberFormat): string {
     case "arabic": return String(value);
     case "arabic_full":
       return String(value).replace(/\d/gu, (digit) => String.fromCharCode(0xFF10 + Number(digit)));
+    case "arabic_indic":
+      return String(value).replace(/[0-9]/gu, (digit) => String.fromCharCode(0x0660 + Number(digit)));
+    case "chinese_traditional_lower":
+      return toChinese(value, false).replaceAll("万", "萬").replaceAll("亿", "億");
+    case "chinese_traditional_upper":
+      return toChinese(value, true)
+        .replaceAll("贰", "貳").replaceAll("叁", "參").replaceAll("陆", "陸")
+        .replaceAll("万", "萬").replaceAll("亿", "億");
     case "chinese_lower": return toChinese(value, false);
     case "chinese_upper": return toChinese(value, true);
     case "circled": return CIRCLED[value - 1] ?? `(${value})`;
@@ -104,6 +112,9 @@ export function formatCounter(value: number, format: NumberFormat): string {
 export const NUMBER_FORMAT_PATTERNS: Readonly<Record<NumberFormat, string>> = {
   arabic: "[0-9]+",
   arabic_full: "[０-９]+",
+  arabic_indic: "[٠-٩]+",
+  chinese_traditional_lower: "[零〇一二三四五六七八九十百千萬億]+",
+  chinese_traditional_upper: "[零壹貳參肆伍陸柒捌玖拾佰仟萬億]+",
   chinese_lower: "[零〇一二三四五六七八九十百千万亿]+",
   chinese_upper: "[零壹贰叁肆伍陆柒捌玖拾佰仟万亿]+",
   circled: "(?:[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]|\\([0-9]+\\))",
