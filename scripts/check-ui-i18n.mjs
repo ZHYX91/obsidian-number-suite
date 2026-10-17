@@ -43,16 +43,10 @@ for (const [key, englishValue] of english) {
 }
 
 
-const localePath = "src/config/locale-overrides.ts";
-const localeSource = await readFile(localePath, "utf8");
-const localeNames = ["zh-TW", "ja", "ko", "de", "fr", "es", "pt-BR", "ru", "vi", "ar"];
-for (let index = 0; index < localeNames.length; index += 1) {
-  const locale = localeNames[index];
-  const start = localeSource.indexOf(`  "${locale}": {`);
-  const next = localeNames[index + 1];
-  const end = next == null ? localeSource.length : localeSource.indexOf(`  "${next}": {`, start + 1);
-  assert.ok(start >= 0 && end > start, `${localePath}: invalid locale block for ${locale}`);
-  const translated = messages(localeSource.slice(start, end), locale);
+const localeNames = ["zh-TW","ja","ko","de","fr","es","pt-BR","ru","vi","ar"];
+for (const locale of localeNames) {
+  const localePath = `src/config/locales/${locale}.ts`;
+  const translated = messages(await readFile(localePath, "utf8"), locale);
   for (const [key, value] of translated) {
     assert.ok(english.has(key), `${locale}: unknown UI key ${key}`);
     assert.deepEqual(placeholders(value), placeholders(english.get(key)),
