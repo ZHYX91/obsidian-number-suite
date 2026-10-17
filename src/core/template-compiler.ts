@@ -4,6 +4,9 @@ import type { Counters, HeadingLevel, NumberFormat } from "./types";
 export const NUMBER_FORMATS = [
   "arabic",
   "arabic_full",
+  "arabic_indic",
+  "chinese_traditional_lower",
+  "chinese_traditional_upper",
   "chinese_lower",
   "chinese_upper",
   "circled",

@@ -83,8 +83,8 @@ describe("settings guide", () => {
     expect(panel).toContain('renderNoteOverridesGuide(section, this.t, "panel")');
     expect(messages).toContain("Current-note Properties are optional");
     expect(messages).toContain("当前笔记属性（Properties）是可选的");
-    expect(messages).toContain("Other Properties remain unchanged.");
-    expect(messages).toContain("其他属性保持不变。");
+    expect(messages).toContain("unrelated Properties stay as they are.");
+    expect(messages).toContain("其他属性不变。");
   });
 
   it("explains heading display, caption syntax, file operations, and batches in both settings paths", () => {
@@ -113,7 +113,7 @@ describe("settings guide", () => {
     expect(messages).toContain("打开当前笔记控制面板");
     expect(messages).toContain("Undo the most recent batch");
     expect(messages).toContain("撤销最近一次批量处理");
-    expect(messages).toContain("may break heading links, embeds, or external anchors");
-    expect(messages).toContain("可能使标题链接、嵌入或外部锚点失效");
+    expect(messages).toContain("may break links or embeds that point to them");
+    expect(messages).toContain("可能让指向这些标题的链接或嵌入失效");
   });
 });

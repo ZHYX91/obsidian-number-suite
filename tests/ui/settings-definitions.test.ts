@@ -152,7 +152,7 @@ describe("Obsidian 1.13 settings definitions", () => {
 
     expect(row?.hidden).toBe(false);
     expect(row?.getAttribute("role")).toBe("alert");
-    expect(row?.textContent).toContain("newer data schema 2");
+    expect(row?.textContent).toContain("newer Number Suite data version (2)");
     expect(row?.querySelector("button")?.hidden).toBe(true);
     expect(editable.disabled).toBe(true);
     expect(container.classList.contains("number-suite-settings-read-only")).toBe(true);

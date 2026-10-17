@@ -1,27 +1,27 @@
 # Number Suite
 
-[English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md)
+[English](README.md) · [简体中文](docs/i18n/README.zh-CN.md) · [繁體中文](docs/i18n/README.zh-TW.md) · [日本語](docs/i18n/README.ja.md) · [한국어](docs/i18n/README.ko.md) · [Deutsch](docs/i18n/README.de.md) · [Français](docs/i18n/README.fr.md) · [Español](docs/i18n/README.es.md) · [Português (Brasil)](docs/i18n/README.pt-BR.md) · [Русский](docs/i18n/README.ru.md) · [Tiếng Việt](docs/i18n/README.vi.md) · [العربية](docs/i18n/README.ar.md)
 
-Number Suite displays numbers for headings, captions, and references. Heading numbers can appear only on screen or be written into the Markdown note. Caption and reference numbers are displayed from their supported Markdown syntax. The plugin can also hide stored heading numbers without deleting them. It does not use network access or telemetry.
+Want numbered headings without changing your notes? Turn on **Show virtual numbers**. Number Suite can also display numbers for captions, references, footnotes, and endnotes. To put heading numbers into Markdown, run **Write numbers** or **Renumber** separately, review the preview, and confirm. You can also hide numbers already written in a note without deleting them. Everything runs locally.
 
 <!-- section: screenshots -->
 ## Screenshots
 
-### Display-only document numbering
+### See numbering without changing a note
 
 See virtual heading numbers, caption numbers, same-file references, footnotes, and endnotes together
 without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-### Sidebar current-note controls
+### Check settings for this note
 
 Use the Current note tab in the Number Suite sidebar to compare global defaults, per-note
 overrides, and effective values before changing the note.
 
 ![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
 
-### Safe file-operation preview
+### Review changes before writing to Markdown
 
 Review every proposed before-and-after change and any warning before Number Suite writes to
 Markdown.
@@ -35,8 +35,7 @@ Markdown.
 - Conceal recognized stored numbers while keeping the source unchanged and accessible.
 - Combine virtual display and concealment to replace one recognized stored prefix visually.
 - Preview and then write, remove, or renumber headings in the current note.
-- Process a folder or vault with stale-content guards, bounded recovery data, and conflict-safe
-  rollback.
+- Number headings in a folder or vault after reviewing a preview. If files change after preview, the operation stops; completed batches can be undone.
 - Use built-in hierarchical, Chinese official-document, and legal-document schemes.
 - Create multiple custom schemes with validated H1-H9 templates and retained cleanup history.
 - Use exact seven-, eight-, or nine-hash source lines as DocWen-compatible H7-H9 extensions.
@@ -54,14 +53,12 @@ Markdown.
   rewriting Markdown; newly created captions are stored above their object.
 - Show a structured hover card on an image or its Figure caption, with the rendered caption as the
   title and meaningful image replacement text as the content.
-- Show explicit same-file heading, caption-title, and stable block references as interactive outline
-  pills; include a target number when available, but do not require one.
+- Show explicit `@[[...]]` links to headings, captions, and block IDs in the same note as clickable reference labels, with numbers when available.
 - Copy a stable cross-reference from a heading or caption context menu, reusing an existing block ID
   or previewing one new ID before it is created.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
 - Override display, concealment, scheme, starting counters, skipped-heading counts, or full opt-out per note.
-- Use English or Simplified Chinese interface text.
 
 <!-- section: requirements-and-compatibility -->
 ## Requirements and compatibility
@@ -244,6 +241,12 @@ appearance, and batch operations.
 **Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in DocWen's Markdown syntax settings; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 
 ### Numbering schemes
+
+The selected scheme controls both virtual display and any later file operation, but **selecting a scheme does not write to the note**. The display updates immediately only where virtual numbering is enabled. Writing or renumbering still requires a separate command, preview, and confirmation.
+
+Alongside the existing hierarchical, Chinese-official and legal schemes, there are optional Traditional Chinese, Japanese, Korean and Arabic-Indic chapter/section styles. These are **examples of writing conventions, not national standards for every document**. The plugin may suggest a scheme based on interface language, but never silently selects it, and changing interface language never changes your scheme. You can choose any scheme regardless of interface language.
+
+In the template editor, `arabic` still means the familiar Western digits `1, 2, 3`; use `arabic_indic` for `١، ٢، ٣`. Traditional Chinese has separate `chinese_traditional_lower` and `chinese_traditional_upper` formats. All styles can be previewed before use.
 
 Templates use `{heading-level.number-format}` placeholders, such as `{1.arabic}` or
 `{2.chinese_lower}`. Supported formats are Arabic, full-width Arabic, lower/upper Chinese, circled,

@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { createTranslator } from "../../src/config/i18n";
+import { createTranslator, resolvedUiLocale, uiTextDirection } from "../../src/config/i18n";
 
 describe("localized UI copy", () => {
+  it("selects host locales correctly and keeps Arabic direction scoped", () => {
+    expect(resolvedUiLocale("auto", "zh-TW")).toBe("zh-TW");
+    expect(resolvedUiLocale("auto", "zh-Hant-HK")).toBe("zh-TW");
+    expect(resolvedUiLocale("auto", "pt-PT")).toBe("pt-BR");
+    expect(uiTextDirection("ar")).toBe("rtl");
+    expect(uiTextDirection("zh-TW")).toBe("ltr");
+    expect(createTranslator("ja")("settings.language.desc")).toContain("Obsidian");
+  });
+
   it("keeps H1-H9 help and hide semantics aligned with the product", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
@@ -19,9 +28,9 @@ describe("localized UI copy", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
     expect(zh("settings.missing.desc")).toContain("四级标题");
-    expect(zh("settings.backupLimit.desc")).toContain("不是笔记文件大小");
+    expect(zh("settings.backupLimit.desc")).toContain("不限制笔记本身的大小");
     expect(zh("settings.exportGuide.setup")).toContain("输入扩展");
-    expect(en("settings.exportGuide.body")).toContain("optional Markdown extensions");
+    expect(en("settings.exportGuide.body")).toContain("extended Markdown syntax");
   });
 
   it("uses user-facing caption and marker terminology", () => {
@@ -33,5 +42,11 @@ describe("localized UI copy", () => {
     expect(zh("caption.kind.figure")).toBe("图片题注");
     expect(zh("settings.markers")).toBe("写入 Number Suite 隐形标记");
     expect(zh("panel.loading")).toBe("正在读取当前笔记属性…");
+    expect(zh("settings.noteOverrides.guide.action")).not.toContain("path=value");
+    expect(zh("settings.captions.guide.intro")).not.toContain("胶囊");
+    expect(zh("settings.captions.guide.safety")).not.toContain("胶囊");
+    expect(zh("settings.references.guide.intro")).toContain("可点击的引用标签");
+    expect(zh("settings.scheme.desc")).toContain("不会自动切换");
+    expect(en("settings.scheme.desc")).toContain("does not select");
   });
 });
