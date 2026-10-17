@@ -7,21 +7,21 @@ Want numbered headings without changing your notes? Turn on **Show virtual numbe
 <!-- section: screenshots -->
 ## Screenshots
 
-### Display-only document numbering
+### See numbering without changing a note
 
 See virtual heading numbers, caption numbers, same-file references, footnotes, and endnotes together
 without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-### Sidebar current-note controls
+### Check settings for this note
 
 Use the Current note tab in the Number Suite sidebar to compare global defaults, per-note
 overrides, and effective values before changing the note.
 
 ![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
 
-### Safe file-operation preview
+### Review changes before writing to Markdown
 
 Review every proposed before-and-after change and any warning before Number Suite writes to
 Markdown.

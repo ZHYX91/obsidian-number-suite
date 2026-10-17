@@ -44,6 +44,8 @@ describe("localized UI copy", () => {
     expect(zh("panel.loading")).toBe("正在读取当前笔记属性…");
     expect(zh("settings.noteOverrides.guide.action")).not.toContain("path=value");
     expect(zh("settings.captions.guide.intro")).not.toContain("胶囊");
+    expect(zh("settings.captions.guide.safety")).not.toContain("胶囊");
+    expect(zh("settings.references.guide.intro")).toContain("可点击的引用标签");
     expect(zh("settings.scheme.desc")).toContain("不会自动切换");
     expect(en("settings.scheme.desc")).toContain("does not select");
   });
