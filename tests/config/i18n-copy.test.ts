@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { createTranslator } from "../../src/config/i18n";
+import { createTranslator, resolvedUiLocale, translationCoverage, uiTextDirection } from "../../src/config/i18n";
 
 describe("localized UI copy", () => {
+  it("identifies the unfinished catalogs without a misleading locale count", () => {
+    expect(translationCoverage("ja").translated).toBeLessThan(translationCoverage("ja").total);
+    expect(translationCoverage("ar").translated).toBe(translationCoverage("ar").total);
+    expect(resolvedUiLocale("auto", "zh-TW")).toBe("zh-TW");
+    expect(uiTextDirection("ar")).toBe("rtl");
+    expect(uiTextDirection("zh-TW")).toBe("ltr");
+    expect(createTranslator("ja")("settings.language.partial")).toContain("英語");
+  });
+
   it("keeps H1-H9 help and hide semantics aligned with the product", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");

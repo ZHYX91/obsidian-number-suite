@@ -30,7 +30,7 @@ import {
 } from "../application/heading-map-layout";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { resolveNoteSettings } from "../config/frontmatter";
-import type { Translate } from "../config/i18n";
+import { uiTextDirection, type Translate } from "../config/i18n";
 import {
   cleanupTemplateSources,
   toNumberingOptions,
@@ -119,6 +119,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   override async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-heading-map-view");
+    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
     this.buildToolbar();
     this.viewport = this.contentEl.createDiv({ cls: "number-suite-heading-map-viewport" });
     this.viewport.tabIndex = 0;
@@ -163,6 +164,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.request += 1;
     this.clearRefreshTimer();
     this.contentEl.empty();
+    this.contentEl.removeAttribute("dir");
     this.viewport = null;
     this.sceneHost = null;
     this.canvas = null;
@@ -183,6 +185,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   refresh(): void {
+    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    const t = this.actions.getTranslate();
+    if (this.searchInput != null) {
+      this.searchInput.placeholder = t("headingMap.search");
+      this.searchInput.setAttribute("aria-label", t("headingMap.search"));
+    }
+    this.viewport?.setAttribute("aria-label", t("headingMap.canvas"));
     this.clearRefreshTimer();
     void this.refreshMap();
   }
