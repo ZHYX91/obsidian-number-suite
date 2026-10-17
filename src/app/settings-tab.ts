@@ -20,6 +20,7 @@ import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
+import { applyModalDirection } from "../ui/modal-direction";
 import {
   renderBatchOperationsGuide,
   renderExportGuide,
@@ -53,6 +54,7 @@ class ResetSettingsModal extends Modal {
   }
 
   override onOpen(): void {
+    applyModalDirection(this.modalEl, this.t);
     this.setTitle(this.t("settings.reset"));
     this.contentEl.createEl("p", { text: this.t("settings.reset.desc") });
     new Setting(this.contentEl)

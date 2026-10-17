@@ -1,6 +1,7 @@
 import { App, Modal, Setting, type ButtonComponent } from "obsidian";
 
 import type { Translate } from "../config/i18n";
+import { applyModalDirection } from "./modal-direction";
 import type { StableReferencePlan } from "../core/stable-reference";
 
 export interface StableReferenceModalOptions {
@@ -54,6 +55,7 @@ export class StableReferenceModal extends Modal {
           });
       });
     });
+    applyModalDirection(this.modalEl, t);
   }
 
   override onClose(): void {

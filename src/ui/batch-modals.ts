@@ -1,6 +1,7 @@
 import { App, FuzzySuggestModal, Modal, Setting, TFolder } from "obsidian";
 
 import type { Translate } from "../config/i18n";
+import { applyModalDirection } from "./modal-direction";
 import type { TransformOperation } from "../core/types";
 
 export interface BatchScope {
@@ -16,6 +17,7 @@ export class FolderScopeModal extends FuzzySuggestModal<BatchScope> {
   ) {
     super(app);
     this.setPlaceholder(translate("batch.scope.title"));
+    applyModalDirection(this.modalEl, translate);
   }
 
   override getItems(): BatchScope[] {
@@ -67,6 +69,7 @@ export class BatchOperationModal extends Modal {
             this.choose(operation);
           }));
     }
+    applyModalDirection(this.modalEl, t);
   }
 
   override onClose(): void {

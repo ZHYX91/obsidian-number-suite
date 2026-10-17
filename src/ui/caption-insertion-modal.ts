@@ -1,6 +1,7 @@
 import { App, Modal, Setting, type ButtonComponent } from "obsidian";
 
 import type { Translate } from "../config/i18n";
+import { applyModalDirection } from "./modal-direction";
 import type {
   CaptionInsertionAction,
   CaptionInsertionTarget,
@@ -90,6 +91,7 @@ export class CaptionInsertionModal extends Modal {
         });
     });
     update();
+    applyModalDirection(this.modalEl, t);
   }
 
   override onClose(): void {

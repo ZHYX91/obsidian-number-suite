@@ -892,7 +892,8 @@ const ZH: Record<MessageKey, string> = {
   "panel.settingsUnavailable": "请打开 Obsidian 设置，然后选择 Number Suite。",
 };
 
-export type Translate = (key: MessageKey, variables?: Readonly<Record<string, string | number>>) => string;
+export type Translate = ((key: MessageKey, variables?: Readonly<Record<string, string | number>>) => string)
+  & { readonly direction?: "rtl" | "ltr" };
 
 export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguage()): UiLocale {
   if (language !== "auto") return language;
@@ -917,11 +918,13 @@ export function translationCoverage(language: UiLocale): { translated: number; t
 export function createTranslator(language: UiLanguage): Translate {
   const locale = resolvedUiLocale(language);
   const messages = locale === "zh" ? ZH : locale === "en" ? EN : NUMBER_SUITE_LOCALE_OVERRIDES[locale] ?? {};
-  return (key, variables = {}) => {
+  const translate = (key: MessageKey, variables: Readonly<Record<string, string | number>> = {}): string => {
     let message: string = messages[key] ?? EN[key];
     for (const [name, value] of Object.entries(variables)) {
       message = message.replace(new RegExp(`\\{${name}\\}`, "gu"), String(value));
     }
     return message;
   };
+  const direction: "rtl" | "ltr" = locale === "ar" ? "rtl" : "ltr";
+  return Object.assign(translate, { direction });
 }
