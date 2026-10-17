@@ -81,8 +81,8 @@ function editionLinks(filePath) {
 }
 for (const {path} of editions) {
   const content = await readFile(path, "utf8");
-  assert.match(content, /^# Number Suite\\n/u, `${path} must begin with its title`);
-  assert.equal(content.split("\\n")[2], editionLinks(path), `${path} must link to every README language`);
+  assert.match(content, /^# Number Suite\n/u, `${path} must begin with its title`);
+  assert.equal(content.split("\n")[2], editionLinks(path), `${path} must link to every README language`);
   assert.match(content, /^## /mu, `${path} must contain usable instructions`);
   assert.ok(content.length > 700, `${path} guide is too short`);
 }
