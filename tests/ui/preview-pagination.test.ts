@@ -28,7 +28,7 @@ describe("large preview feedback", () => {
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(501);
     [...modal.contentEl.querySelectorAll("button")].find((button) => button.textContent?.includes("继续查看警告"))?.click();
     expect(modal.contentEl.querySelectorAll("li")).toHaveLength(201);
-    expect(modal.contentEl.textContent).toContain("已保留无法确定的序号前缀");
+    expect(modal.contentEl.textContent).toContain("插件已保留原文");
     expect(modal.contentEl.textContent).not.toContain("INTERNAL RULE");
   });
 });
