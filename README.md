@@ -35,8 +35,7 @@ Markdown.
 - Conceal recognized stored numbers while keeping the source unchanged and accessible.
 - Combine virtual display and concealment to replace one recognized stored prefix visually.
 - Preview and then write, remove, or renumber headings in the current note.
-- Process a folder or vault with stale-content guards, bounded recovery data, and conflict-safe
-  rollback.
+- Number headings in a folder or vault after reviewing a preview. If files change after preview, the operation stops; completed batches can be undone.
 - Use built-in hierarchical, Chinese official-document, and legal-document schemes.
 - Create multiple custom schemes with validated H1-H9 templates and retained cleanup history.
 - Use exact seven-, eight-, or nine-hash source lines as DocWen-compatible H7-H9 extensions.
@@ -54,14 +53,12 @@ Markdown.
   rewriting Markdown; newly created captions are stored above their object.
 - Show a structured hover card on an image or its Figure caption, with the rendered caption as the
   title and meaningful image replacement text as the content.
-- Show explicit same-file heading, caption-title, and stable block references as interactive outline
-  pills; include a target number when available, but do not require one.
+- Show explicit `@[[...]]` links to headings, captions, and block IDs in the same note as clickable reference labels, with numbers when available.
 - Copy a stable cross-reference from a heading or caption context menu, reusing an existing block ID
   or previewing one new ID before it is created.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
 - Override display, concealment, scheme, starting counters, skipped-heading counts, or full opt-out per note.
-- Choose from 12 interface languages. Some newly added translations remain under review and temporarily fall back to English for missing messages.
 
 <!-- section: requirements-and-compatibility -->
 ## Requirements and compatibility

@@ -33,5 +33,9 @@ describe("localized UI copy", () => {
     expect(zh("caption.kind.figure")).toBe("图片题注");
     expect(zh("settings.markers")).toBe("写入 Number Suite 隐形标记");
     expect(zh("panel.loading")).toBe("正在读取当前笔记属性…");
+    expect(zh("settings.noteOverrides.guide.action")).not.toContain("path=value");
+    expect(zh("settings.captions.guide.intro")).not.toContain("胶囊");
+    expect(zh("settings.scheme.desc")).toContain("不会自动切换");
+    expect(en("settings.scheme.desc")).toContain("does not select");
   });
 });
