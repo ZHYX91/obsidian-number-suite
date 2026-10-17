@@ -95,6 +95,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private documentButton: HTMLButtonElement | null = null;
   private subtreeButton: HTMLButtonElement | null = null;
   private scaleLabel: HTMLElement | null = null;
+  private rangeSelect: HTMLSelectElement | null = null;
+  private zoomOutButton: HTMLButtonElement | null = null;
+  private zoomInButton: HTMLButtonElement | null = null;
+  private fitButton: HTMLButtonElement | null = null;
   private lastLayout: HeadingMapLayout | null = null;
 
   constructor(
@@ -169,6 +173,17 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.sceneHost = null;
     this.canvas = null;
     this.lastLayout = null;
+    this.fileLabelEl = null;
+    this.searchInput = null;
+    this.searchStatusEl = null;
+    this.directionButton = null;
+    this.documentButton = null;
+    this.subtreeButton = null;
+    this.scaleLabel = null;
+    this.rangeSelect = null;
+    this.zoomOutButton = null;
+    this.zoomInButton = null;
+    this.fitButton = null;
   }
 
   override onResize(): void {
@@ -186,14 +201,42 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   refresh(): void {
     this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    // Relabel existing controls before any asynchronous source read. Do not rebuild
+    // the toolbar: that would discard focus, input selection, and pending input.
+    this.updateToolbarLabels();
+    this.updateToolbarState();
+    this.clearRefreshTimer();
+    void this.refreshMap();
+  }
+
+  private updateToolbarLabels(): void {
     const t = this.actions.getTranslate();
     if (this.searchInput != null) {
       this.searchInput.placeholder = t("headingMap.search");
       this.searchInput.setAttribute("aria-label", t("headingMap.search"));
     }
     this.viewport?.setAttribute("aria-label", t("headingMap.canvas"));
-    this.clearRefreshTimer();
-    void this.refreshMap();
+    this.documentButton?.setText(t("headingMap.scope.document"));
+    if (this.rangeSelect != null) {
+      this.rangeSelect.setAttribute("aria-label", t("headingMap.expandRange"));
+      for (const option of Array.from(this.rangeSelect.options)) {
+        const value = option.value;
+        if (value === "") option.textContent = t("headingMap.expandRange");
+        else if (value === "1" || value === "2" || value === "3" || value === "all") {
+          option.textContent = t(`headingMap.expandRange.${value}`);
+        }
+      }
+    }
+    for (const [button, key] of [
+      [this.zoomOutButton, "headingMap.zoomOut"],
+      [this.scaleLabel, "headingMap.actualSize"],
+      [this.zoomInButton, "headingMap.zoomIn"],
+      [this.fitButton, "headingMap.fit"],
+    ] as const) {
+      if (button == null) continue;
+      button.title = t(key);
+      button.setAttribute("aria-label", button.title);
+    }
   }
 
   private buildToolbar(): void {
@@ -207,8 +250,6 @@ export class NumberSuiteHeadingMapView extends ItemView {
       cls: "number-suite-heading-map-search",
       type: "search",
     });
-    search.placeholder = this.actions.getTranslate()("headingMap.search");
-    search.setAttribute("aria-label", this.actions.getTranslate()("headingMap.search"));
     search.addEventListener("input", () => {
       this.searchQuery = search.value.trim();
       this.searchIndex = 0;
@@ -234,16 +275,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
     const secondary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-secondary" });
     const scope = secondary.createDiv({ cls: "number-suite-heading-map-scope" });
-    this.documentButton = scope.createEl("button", {
-      text: this.actions.getTranslate()("headingMap.scope.document"),
-    });
+    this.documentButton = scope.createEl("button");
     this.documentButton.type = "button";
     this.documentButton.addEventListener("click", () => {
       this.showDocument();
     });
-    this.subtreeButton = scope.createEl("button", {
-      text: this.actions.getTranslate()("headingMap.scope.subtree"),
-    });
+    this.subtreeButton = scope.createEl("button");
     this.subtreeButton.type = "button";
     this.subtreeButton.addEventListener("click", () => {
       if (this.selectedId == null || this.selectedId === HEADING_MAP_DOCUMENT_ID) return;
@@ -253,13 +290,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
     });
 
     const range = secondary.createEl("select", { cls: "number-suite-heading-map-range" });
-    range.setAttribute("aria-label", this.actions.getTranslate()("headingMap.expandRange"));
-    const rangePrompt = range.createEl("option", { text: this.actions.getTranslate()("headingMap.expandRange") });
+    this.rangeSelect = range;
+    const rangePrompt = range.createEl("option");
     rangePrompt.value = "";
     for (const value of ["1", "2", "3", "all"] as const) {
-      const option = range.createEl("option", {
-        text: this.actions.getTranslate()(`headingMap.expandRange.${value}`),
-      });
+      const option = range.createEl("option");
       option.value = value;
     }
     range.value = "";
@@ -281,24 +316,23 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const zoomOut = zoom.createEl("button");
     zoomOut.type = "button";
     setIcon(zoomOut, "minus");
-    zoomOut.setAttribute("aria-label", this.actions.getTranslate()("headingMap.zoomOut"));
+    this.zoomOutButton = zoomOut;
     zoomOut.addEventListener("click", () => this.setScaleAt(this.scale / ZOOM_STEP));
     const reset = zoom.createEl("button", { cls: "number-suite-heading-map-scale" });
     reset.type = "button";
-    reset.title = this.actions.getTranslate()("headingMap.actualSize");
-    reset.setAttribute("aria-label", reset.title);
     reset.addEventListener("click", () => this.setScaleAt(1));
     this.scaleLabel = reset;
     const zoomIn = zoom.createEl("button");
     zoomIn.type = "button";
     setIcon(zoomIn, "plus");
-    zoomIn.setAttribute("aria-label", this.actions.getTranslate()("headingMap.zoomIn"));
+    this.zoomInButton = zoomIn;
     zoomIn.addEventListener("click", () => this.setScaleAt(this.scale * ZOOM_STEP));
     const fit = zoom.createEl("button");
     fit.type = "button";
     setIcon(fit, "maximize-2");
-    fit.setAttribute("aria-label", this.actions.getTranslate()("headingMap.fit"));
+    this.fitButton = fit;
     fit.addEventListener("click", () => this.fitToView());
+    this.updateToolbarLabels();
     this.updateToolbarState();
   }
 
