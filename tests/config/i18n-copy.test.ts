@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { createTranslator, resolvedUiLocale, translationCoverage, uiTextDirection } from "../../src/config/i18n";
 
 describe("localized UI copy", () => {
-  it("identifies the unfinished catalogs without a misleading locale count", () => {
-    expect(translationCoverage("ja").translated).toBeLessThan(translationCoverage("ja").total);
-    expect(translationCoverage("ar").translated).toBe(translationCoverage("ar").total);
+  it("keeps every locale complete and preserves language/RTL selection", () => {
+    for (const language of ["ja", "ko", "de", "fr", "es", "pt-BR", "ru", "vi", "zh-TW", "ar"] as const) {
+      const coverage = translationCoverage(language);
+      expect(coverage.translated, language).toBe(coverage.total);
+      expect(coverage.total).toBe(441);
+    }
     expect(resolvedUiLocale("auto", "zh-TW")).toBe("zh-TW");
     expect(uiTextDirection("ar")).toBe("rtl");
     expect(uiTextDirection("zh-TW")).toBe("ltr");

@@ -46,18 +46,6 @@ for (const [key, englishValue] of english) {
 const localePath = "src/config/locale-overrides.ts";
 const localeSource = await readFile(localePath, "utf8");
 const localeNames = ["zh-TW", "ja", "ko", "de", "fr", "es", "pt-BR", "ru", "vi", "ar"];
-const criticalKeys = [
-  "command.mode.normal", "command.mode.show", "command.mode.conceal",
-  "command.write.current", "command.remove.current", "command.renumber.current",
-  "command.strip.current", "command.batch.folder", "command.batch.undo",
-  "command.note.controls", "command.sidebar.outline", "command.headingMap.open",
-  "notice.stalePreview", "notice.batchChanged", "notice.invalidProperties",
-  "notice.noChanges", "notice.batchTooLarge", "notice.batchFailed",
-  "preview.warningLinks", "preview.cleanupScope.desc",
-  "preview.title.write", "preview.title.remove", "preview.title.renumber",
-  "settings.scheme.suggestion", "settings.scheme.suggestion.desc",
-  "settings.scheme.useSuggestion", "settings.language.partial",
-];
 for (let index = 0; index < localeNames.length; index += 1) {
   const locale = localeNames[index];
   const start = localeSource.indexOf(`  "${locale}": {`);
@@ -70,14 +58,8 @@ for (let index = 0; index < localeNames.length; index += 1) {
     assert.deepEqual(placeholders(value), placeholders(english.get(key)),
       `${locale}: placeholder mismatch at ${key}`);
   }
-  if (locale === "zh-TW" || locale === "ar") {
-    assert.deepEqual([...translated.keys()].sort(), [...english.keys()].sort(),
-      `${locale} must translate every UI key`);
-  } else {
-    for (const key of criticalKeys) {
-      assert.ok(translated.has(key), `${locale}: missing critical UI message ${key}`);
-    }
-  }
+  assert.deepEqual([...translated.keys()].sort(), [...english.keys()].sort(),
+    `${locale}: missing or unexpected UI translation keys`);
 }
 
 process.stdout.write(`UI i18n contract passed for ${english.size} EN/zh-CN messages and ten locale catalogs.\n`);

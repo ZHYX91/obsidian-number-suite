@@ -1,5 +1,6 @@
-/** Translation drafts. English fallback is deliberate until every string is reviewed.
- * Never claim these locale packs are complete based on their presence alone.
+/** UI translations with complete message-key coverage.
+ * Key/placeholder parity is checked automatically, but natural wording and
+ * native Obsidian desktop/mobile behavior still require human review.
  */
 export const NUMBER_SUITE_LOCALE_OVERRIDES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   "zh-TW": {
