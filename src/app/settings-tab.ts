@@ -7,7 +7,7 @@ import {
   type SettingDefinitionItem,
 } from "obsidian";
 
-import { createTranslator, resolvedUiLocale, translationCoverage, uiTextDirection, type Translate } from "../config/i18n";
+import { createTranslator, uiTextDirection, type Translate } from "../config/i18n";
 import { languageOptions } from "../config/language-options";
 import {
   DEFAULT_SETTINGS,
@@ -269,14 +269,9 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderGeneral(container: HTMLElement, t: Translate): void {
-    const locale = resolvedUiLocale(this.plugin.settings.language);
-    const coverage = translationCoverage(locale);
-    const languageDescription = coverage.translated < coverage.total
-      ? `${t("settings.language.desc")} ${t("settings.language.partial")}`
-      : t("settings.language.desc");
     new Setting(container)
       .setName(t("settings.language"))
-      .setDesc(languageDescription)
+      .setDesc(t("settings.language.desc"))
       .addDropdown((dropdown) => dropdown
         .addOptions(languageOptions(t("language.auto")))
         .setValue(this.plugin.settings.language)

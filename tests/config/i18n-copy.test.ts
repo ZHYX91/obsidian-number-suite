@@ -1,18 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { createTranslator, resolvedUiLocale, translationCoverage, uiTextDirection } from "../../src/config/i18n";
+import { createTranslator, resolvedUiLocale, uiTextDirection } from "../../src/config/i18n";
 
 describe("localized UI copy", () => {
-  it("keeps every locale complete and preserves language/RTL selection", () => {
-    for (const language of ["ja", "ko", "de", "fr", "es", "pt-BR", "ru", "vi", "zh-TW", "ar"] as const) {
-      const coverage = translationCoverage(language);
-      expect(coverage.translated, language).toBe(coverage.total);
-      expect(coverage.total).toBe(441);
-    }
+  it("selects host locales correctly and keeps Arabic direction scoped", () => {
     expect(resolvedUiLocale("auto", "zh-TW")).toBe("zh-TW");
+    expect(resolvedUiLocale("auto", "zh-Hant-HK")).toBe("zh-TW");
+    expect(resolvedUiLocale("auto", "pt-PT")).toBe("pt-BR");
     expect(uiTextDirection("ar")).toBe("rtl");
     expect(uiTextDirection("zh-TW")).toBe("ltr");
-    expect(createTranslator("ja")("settings.language.partial")).toContain("英語");
+    expect(createTranslator("ja")("settings.language.desc")).toContain("Obsidian");
   });
 
   it("keeps H1-H9 help and hide semantics aligned with the product", () => {

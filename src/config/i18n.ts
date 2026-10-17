@@ -126,7 +126,6 @@ const EN = {
   "settings.headings": "Heading numbering",
   "settings.language": "Interface language",
   "settings.language.desc": "Choose Follow Obsidian to use Obsidian's interface language.",
-  "settings.language.partial": "This translation is still in progress. Some settings and commands will appear in English.",
   "settings.exportGuide.title": "Export numbered documents to Word",
   "settings.exportGuide.body": "Captions, cross-references, heading levels 7–9, and typed endnotes use extended Markdown syntax. For Word export, install DocWen and DocWen Assistant separately.",
   "settings.exportGuide.setup": "Enable the relevant input extensions under DocWen's Markdown syntax settings. Word export uses DocWen's numbering options, which may differ from numbers displayed in Obsidian. Windows/Linux desktop only.",
@@ -572,7 +571,6 @@ const ZH: Record<MessageKey, string> = {
   "settings.headings": "标题编号",
   "settings.language": "界面语言",
   "settings.language.desc": "选择“跟随 Obsidian”可使用 Obsidian 的界面语言。",
-  "settings.language.partial": "当前语言尚未翻译完整，部分设置和命令会显示英文。",
   "settings.exportGuide.title": "将带编号与引用的笔记导出为 Word",
   "settings.exportGuide.body": "题注、交叉引用、七至九级标题和带类型的尾注使用扩展 Markdown 写法。要导出 Word，需另外安装 DocWen 和 DocWen Assistant。",
   "settings.exportGuide.setup": "请在 DocWen 的 Markdown 语法设置中开启所需的输入扩展。Word 导出编号由 DocWen 的转换选项决定，不一定与 Obsidian 中的显示相同。仅支持 Windows/Linux 桌面端。",
@@ -908,11 +906,6 @@ export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguag
 
 export function uiTextDirection(language: UiLanguage): "rtl" | "ltr" {
   return resolvedUiLocale(language) === "ar" ? "rtl" : "ltr";
-}
-
-export function translationCoverage(language: UiLocale): { translated: number; total: number } {
-  const values = language === "zh" ? ZH : language === "en" ? EN : NUMBER_SUITE_LOCALE_OVERRIDES[language] ?? {};
-  return { translated: Object.keys(values).length, total: Object.keys(EN).length };
 }
 
 export function createTranslator(language: UiLanguage): Translate {

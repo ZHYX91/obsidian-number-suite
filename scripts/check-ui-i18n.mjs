@@ -43,7 +43,15 @@ for (const [key, englishValue] of english) {
 }
 
 
-const localeNames = ["zh-TW","ja","ko","de","fr","es","pt-BR","ru","vi","ar"];
+const localeNames = ["zh-TW", "ja", "ko", "de", "fr", "es", "pt-BR", "ru", "vi", "ar"];
+const languageOptions = await readFile("src/config/language-options.ts", "utf8");
+const labelsStart = languageOptions.indexOf("export const UI_LOCALE_LABELS = {");
+const labelsEnd = languageOptions.indexOf("} as const;", labelsStart);
+assert.ok(labelsStart >= 0 && labelsEnd > labelsStart, "UI language options are missing");
+const registeredLocales = [...languageOptions.slice(labelsStart, labelsEnd).matchAll(/^  "([^"]+)":/gmu)]
+  .map((match) => match[1]);
+assert.deepEqual(registeredLocales.sort(), ["en", "zh", ...localeNames].sort(),
+  "Registered UI languages and translation catalogs must agree");
 for (const locale of localeNames) {
   const localePath = `src/config/locales/${locale}.ts`;
   const translated = messages(await readFile(localePath, "utf8"), locale);
@@ -52,8 +60,23 @@ for (const locale of localeNames) {
     assert.deepEqual(placeholders(value), placeholders(english.get(key)),
       `${locale}: placeholder mismatch at ${key}`);
   }
-  assert.deepEqual([...translated.keys()].sort(), [...english.keys()].sort(),
-    `${locale}: missing or unexpected UI translation keys`);
+  assert.deepEqual([...translated.keys()], [...english.keys()],
+    `${locale}: UI keys must match the English catalog in content and order`);
+  const sourceExamples = [
+    "settings.captions.guide.example.source",
+    "settings.references.guide.heading.source",
+    "settings.references.guide.caption.source",
+    "settings.notes.guide.footnote.source",
+    "settings.notes.guide.endnote.source",
+  ];
+  for (const key of sourceExamples) {
+    assert.ok(translated.get(key)?.includes("\\n"), `${locale}: missing Markdown example line breaks in ${key}`);
+  }
+  const captionExample = translated.get("settings.captions.guide.example.source");
+  assert.ok(captionExample?.includes("Figure:") && captionExample.includes("Table:"),
+    `${locale}: caption examples must keep fixed syntax keywords`);
+  assert.ok(translated.get("settings.notes.guide.endnote.source")?.includes("[^endnote:later]"),
+    `${locale}: endnote source marker must remain literal`);
 }
 
 process.stdout.write(`UI i18n contract passed for ${english.size} EN/zh-CN messages and ten locale catalogs.\n`);
