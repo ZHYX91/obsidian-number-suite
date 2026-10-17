@@ -6,7 +6,7 @@ O Number Suite mostra números em títulos, legendas, referências, notas de rod
 
 ## Comece por aqui
 
-1. Em **Configurações → Number Suite → Numeração de títulos**, ative os números virtuais (`Show virtual numbers`).
+1. Em **Configurações → Number Suite → Numeração de títulos**, ative **“Mostrar números virtuais”**.
 2. Abra a pré-visualização ao vivo ou o modo de leitura. Os números aparecem ao lado dos títulos, mas o arquivo não muda.
 3. Para salvar números no Markdown, abra a nota atual na barra lateral do Number Suite. Escolha escrever ou renumerar, confira a prévia e confirme.
 

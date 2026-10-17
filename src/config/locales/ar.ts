@@ -142,7 +142,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.headings.guide.example.result": "سيظهر العنوانان «1 Overview» و«1.1 Results»، بينما يظل سطرا Markdown دون تغيير.",
   "settings.headings.guide.example.preview.number": "1",
   "settings.headings.guide.example.preview.title": "نظرة عامة",
-  "settings.headings.guide.virtual": "خيار «إظهار الأرقام الافتراضية» يعرض الأرقام المحسوبة من النمط المحدد.",
+  "settings.headings.guide.virtual": "خيار «إظهار الترقيم الافتراضي» يعرض الأرقام المحسوبة وفق النمط المحدد.",
   "settings.headings.guide.conceal": "خيار «إخفاء الأرقام المكتوبة» يخفي فقط بادئة معروفة بدرجة كافية؛ لا يحذفها.",
   "settings.headings.guide.together": "يمكن تشغيل الخيارين معًا لاستبدال الرقم المكتوب بالرقم المحسوب في العرض فقط دون تعديل الملف.",
   "settings.headings.guide.views": "تحدد صفحة «العرض والمعالجة الجماعية» ما يظهر في المعاينة المباشرة ووضع القراءة ووضع المصدر. الزخارف في وضع المصدر معطّلة افتراضيًا حتى يظل النص الحقيقي ظاهرًا.",

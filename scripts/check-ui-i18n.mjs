@@ -77,6 +77,19 @@ for (const locale of localeNames) {
     `${locale}: caption examples must keep fixed syntax keywords`);
   assert.ok(translated.get("settings.notes.guide.endnote.source")?.includes("[^endnote:later]"),
     `${locale}: endnote source marker must remain literal`);
+  const decode = (key) => JSON.parse(`"${translated.get(key)}"`);
+  const headingExample = decode("settings.references.guide.heading.source");
+  const headingTitle = /^## (.+)\n/u.exec(headingExample)?.[1];
+  assert.ok(headingTitle && headingExample.includes(`@[[#${headingTitle}|`),
+    `${locale}: heading reference example must point to the shown heading`);
+  const captionReference = decode("settings.references.guide.caption.source");
+  const captionTitle = /^(Figure: .+)\n/u.exec(captionReference)?.[1];
+  assert.ok(captionTitle && captionReference.includes(`@[[#${captionTitle}]]`),
+    `${locale}: caption reference example must point to the shown caption`);
+  assert.ok(decode("settings.notes.guide.footnote.source").includes("[^detail]:"),
+    `${locale}: footnote definition must match its reference`);
+  assert.ok(decode("settings.notes.guide.endnote.source").includes("[^endnote:later]:"),
+    `${locale}: endnote definition must match its reference`);
 }
 
 process.stdout.write(`UI i18n contract passed for ${english.size} EN/zh-CN messages and ten locale catalogs.\n`);

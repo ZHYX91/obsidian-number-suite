@@ -6,7 +6,7 @@ Number Suite zeigt Nummern für Überschriften, Beschriftungen, Verweise, Fußno
 
 ## Schnellstart
 
-1. Aktiviere unter **Einstellungen → Number Suite → Überschriftennummerierung** die virtuellen Nummern (`Show virtual numbers`).
+1. Aktiviere unter **Einstellungen → Number Suite → Überschriftennummerierung** die Option **„Virtuelle Nummern anzeigen“**.
 2. Öffne die Live-Vorschau oder Leseansicht. Die Nummern erscheinen neben den Überschriften, der gespeicherte Text bleibt unverändert.
 3. Sollen die Nummern in Markdown stehen, öffne rechts die aktuelle Notiz in Number Suite. Wähle Schreiben oder Neu nummerieren und prüfe die Vorschau vor dem Bestätigen.
 

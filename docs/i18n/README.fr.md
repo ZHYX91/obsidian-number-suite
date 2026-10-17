@@ -6,7 +6,7 @@ Number Suite affiche des numéros pour les titres, légendes, renvois, notes de 
 
 ## Démarrage rapide
 
-1. Dans **Paramètres → Number Suite → Numérotation des titres**, activez les numéros virtuels (`Show virtual numbers`).
+1. Dans **Paramètres → Number Suite → Numérotation des titres**, activez **« Afficher les numéros virtuels »**.
 2. Ouvrez l’aperçu en direct ou le mode Lecture. Les numéros apparaissent près des titres, sans modifier le texte enregistré.
 3. Pour inscrire les numéros dans Markdown, ouvrez l’onglet de la note actuelle dans la barre latérale de Number Suite. Choisissez l’écriture ou la renumérotation, vérifiez l’aperçu, puis confirmez.
 

@@ -142,7 +142,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.headings.guide.example.result": "Hiển thị “1 Tổng quan” và “1.1 Kết quả”; hai dòng Markdown vẫn giữ nguyên.",
   "settings.headings.guide.example.preview.number": "1",
   "settings.headings.guide.example.preview.title": "Tổng quan",
-  "settings.headings.guide.virtual": "“Hiển thị số ảo” tính và hiển thị số theo kiểu bạn chọn.",
+  "settings.headings.guide.virtual": "“Hiện số ảo” tính và hiển thị số theo kiểu đã chọn.",
   "settings.headings.guide.conceal": "“Ẩn số đã ghi” chỉ ẩn các số nhận diện chắc chắn, không xóa chúng.",
   "settings.headings.guide.together": "Bật cả hai để ẩn số cũ và hiển thị số theo kiểu đã chọn. Markdown không thay đổi.",
   "settings.headings.guide.views": "Trong “Hiển thị và xử lý hàng loạt”, hãy chọn các chế độ hiển thị số. Chế độ nguồn mặc định hiển thị Markdown gốc.",

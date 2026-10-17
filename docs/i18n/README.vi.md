@@ -6,7 +6,7 @@ Number Suite hiển thị số thứ tự cho tiêu đề, chú thích, liên k�
 
 ## Bắt đầu
 
-1. Trong **Cài đặt → Number Suite → Đánh số tiêu đề**, bật số ảo (`Show virtual numbers`).
+1. Trong **Cài đặt → Number Suite → Đánh số tiêu đề**, bật **“Hiện số ảo”**.
 2. Mở Live Preview hoặc chế độ đọc. Số xuất hiện cạnh tiêu đề nhưng nội dung tệp không thay đổi.
 3. Muốn lưu số vào Markdown, mở ghi chú hiện tại trong thanh bên Number Suite. Chọn ghi số hoặc đánh số lại, kiểm tra bản xem trước rồi xác nhận.
 

@@ -142,7 +142,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.headings.guide.example.result": "顯示為“1 概述”和“1.1 結果”；兩行 Markdown 保持不變。",
   "settings.headings.guide.example.preview.number": "1",
   "settings.headings.guide.example.preview.title": "概述",
-  "settings.headings.guide.virtual": "“顯示虛擬序號”會按目前方案計算並顯示序號。",
+  "settings.headings.guide.virtual": "「顯示虛擬編號」會依目前的編號方案計算並顯示序號。",
   "settings.headings.guide.conceal": "“隱藏已寫入序號”只隱藏能可靠識別的前綴，不會刪除它。",
   "settings.headings.guide.together": "同時開啟兩項功能，畫面就會隱藏原有編號，改為顯示目前方案算出的編號；Markdown 不變。",
   "settings.headings.guide.views": "在「顯示與批次處理」中選擇哪些檢視要顯示編號。原始碼模式預設呈現原始 Markdown，不額外加上編號。",

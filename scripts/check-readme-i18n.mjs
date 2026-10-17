@@ -86,6 +86,17 @@ for (const {path} of editions) {
   assert.match(content, /^## /mu, `${path} must contain usable instructions`);
   assert.ok(content.length > 700, `${path} guide is too short`);
 }
+for (const { path } of editions.slice(2)) {
+  const locale = /README\.([^.]+)\.md$/u.exec(path)?.[1];
+  assert.ok(locale, `${path}: cannot identify README locale`);
+  const catalog = await readFile(`src/config/locales/${locale}.ts`, "utf8");
+  const match = /^\s*"settings\.showVirtual":\s*"((?:\\.|[^"\\])*)",?$/mu.exec(catalog);
+  assert.ok(match, `${locale}: missing setting label for the README quick start`);
+  const settingLabel = JSON.parse(`"${match[1]}"`);
+  const source = await readFile(path, "utf8");
+  assert.ok(source.includes(settingLabel), `${path}: quick start must use the actual localized control label`);
+  assert.doesNotMatch(source, /`Show virtual numbers`/u, `${path}: stale English-only button label`);
+}
 assert.doesNotMatch(english, /Choose from 12 interface languages/u);
 assert.doesNotMatch(chinese, /使用英文或简体中文界面/u);
 assert.match(english, /## Features/u, "Root README must be the English canonical document");
