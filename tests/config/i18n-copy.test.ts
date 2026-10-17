@@ -28,9 +28,9 @@ describe("localized UI copy", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
     expect(zh("settings.missing.desc")).toContain("四级标题");
-    expect(zh("settings.backupLimit.desc")).toContain("不是笔记文件大小");
+    expect(zh("settings.backupLimit.desc")).toContain("不限制笔记本身的大小");
     expect(zh("settings.exportGuide.setup")).toContain("输入扩展");
-    expect(en("settings.exportGuide.body")).toContain("optional Markdown extensions");
+    expect(en("settings.exportGuide.body")).toContain("extended Markdown syntax");
   });
 
   it("uses user-facing caption and marker terminology", () => {
