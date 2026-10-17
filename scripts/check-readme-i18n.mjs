@@ -72,12 +72,22 @@ assert.deepEqual(
   sectionShapes(english, englishPath),
   "README translations must keep the same per-section Markdown structure",
 );
-assert.match(english,
-  /^# Number Suite\n\n\[English\]\(https:\/\/github\.com\/ZHYX91\/obsidian-number-suite\/blob\/main\/README\.md\) · \[简体中文\]\(https:\/\/github\.com\/ZHYX91\/obsidian-number-suite\/blob\/main\/docs\/i18n\/README\.zh-CN\.md\)/u,
-  "English README must link to both canonical language editions");
-assert.match(chinese,
-  /^# Number Suite\n\n\[English\]\(\.\.\/\.\.\/README\.md\) · \[简体中文\]\(README\.zh-CN\.md\)/u,
-  "Chinese README must link to both canonical language editions");
+const editions = [{"label":"English","path":"README.md"},{"label":"简体中文","path":"docs/i18n/README.zh-CN.md"},{"label":"繁體中文","path":"docs/i18n/README.zh-TW.md"},{"label":"日本語","path":"docs/i18n/README.ja.md"},{"label":"한국어","path":"docs/i18n/README.ko.md"},{"label":"Deutsch","path":"docs/i18n/README.de.md"},{"label":"Français","path":"docs/i18n/README.fr.md"},{"label":"Español","path":"docs/i18n/README.es.md"},{"label":"Português (Brasil)","path":"docs/i18n/README.pt-BR.md"},{"label":"Русский","path":"docs/i18n/README.ru.md"},{"label":"Tiếng Việt","path":"docs/i18n/README.vi.md"},{"label":"العربية","path":"docs/i18n/README.ar.md"}];
+function editionLinks(filePath) {
+  return editions.map(({label,path}) => {
+    const href = filePath === "README.md" ? path : path === "README.md" ? "../../README.md" : path.slice("docs/i18n/".length);
+    return `[${label}](${href})`;
+  }).join(" · ");
+}
+for (const {path} of editions) {
+  const content = await readFile(path, "utf8");
+  assert.match(content, /^# Number Suite\\n/u, `${path} must begin with its title`);
+  assert.equal(content.split("\\n")[2], editionLinks(path), `${path} must link to every README language`);
+  assert.match(content, /^## /mu, `${path} must contain usable instructions`);
+  assert.ok(content.length > 700, `${path} guide is too short`);
+}
+assert.doesNotMatch(english, /Choose from 12 interface languages/u);
+assert.doesNotMatch(chinese, /使用英文或简体中文界面/u);
 assert.match(english, /## Features/u, "Root README must be the English canonical document");
 assert.match(chinese, /## 功能/u, "Chinese README must contain translated content");
 for (const [file, source] of [[englishPath, english], [chinesePath, chinese]]) {

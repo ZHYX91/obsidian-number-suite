@@ -1,6 +1,6 @@
 # Number Suite
 
-[English](../../README.md) · [简体中文](README.zh-CN.md)
+[English](../../README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português (Brasil)](README.pt-BR.md) · [Русский](README.ru.md) · [Tiếng Việt](README.vi.md) · [العربية](README.ar.md)
 
 想给标题显示序号，又不想改动笔记原文？打开**显示虚拟序号**即可。Number Suite 还能为题注、引用、脚注和尾注显示编号。只有另外执行**写入序号**或**重新编号**，查看预览并确认后，才会修改 Markdown。已经写在笔记里的标题序号也可以只隐藏、不删除。所有操作都在本地完成。
 
