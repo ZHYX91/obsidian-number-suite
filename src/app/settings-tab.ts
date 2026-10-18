@@ -7,7 +7,8 @@ import {
   type SettingDefinitionItem,
 } from "obsidian";
 
-import { createTranslator, type Translate } from "../config/i18n";
+import { createTranslator, uiTextDirection, type Translate } from "../config/i18n";
+import { languageOptions } from "../config/language-options";
 import {
   DEFAULT_SETTINGS,
   cloneSettings,
@@ -19,6 +20,7 @@ import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
+import { applyModalDirection } from "../ui/modal-direction";
 import {
   renderBatchOperationsGuide,
   renderExportGuide,
@@ -52,6 +54,7 @@ class ResetSettingsModal extends Modal {
   }
 
   override onOpen(): void {
+    applyModalDirection(this.modalEl, this.t);
     this.setTitle(this.t("settings.reset"));
     this.contentEl.createEl("p", { text: this.t("settings.reset.desc") });
     new Setting(this.contentEl)
@@ -150,6 +153,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const t = createTranslator(settings.language);
     containerEl.empty();
     containerEl.addClass("number-suite-settings");
+    containerEl.dir = uiTextDirection(settings.language);
     const tabs = [
       { id: "general", label: t("settings.tab.general") },
       { id: "headings", label: t("settings.tab.headings") },
@@ -178,6 +182,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       layout.cleanup();
       statusCleanup();
       containerEl.removeClass("number-suite-settings");
+      containerEl.removeAttribute("dir");
     };
   }
 
@@ -268,9 +273,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setName(t("settings.language"))
       .setDesc(t("settings.language.desc"))
       .addDropdown((dropdown) => dropdown
-        .addOption("auto", t("language.auto"))
-        .addOption("en", t("language.en"))
-        .addOption("zh", t("language.zh"))
+        .addOptions(languageOptions(t("language.auto")))
         .setValue(this.plugin.settings.language)
         .onChange((value) => this.updateControl("general.language", value)));
     new Setting(container)

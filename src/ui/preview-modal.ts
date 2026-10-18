@@ -2,6 +2,7 @@ import { App, Modal, Setting } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
+import { applyModalDirection } from "./modal-direction";
 import type { CleanupScope, TransformOperation, TransformPlan } from "../core/types";
 
 export interface PreviewDocument {
@@ -155,6 +156,7 @@ export class ChangePreviewModal extends Modal {
           });
       });
     });
+    applyModalDirection(this.modalEl, t);
   }
 
   private async changeCleanupScope(scope: CleanupScope): Promise<void> {

@@ -17,7 +17,7 @@ import {
 } from "../application/document-outline";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { resolveNoteSettings } from "../config/frontmatter";
-import type { Translate } from "../config/i18n";
+import { uiTextDirection, type Translate } from "../config/i18n";
 import {
   cleanupTemplateSources,
   toNumberingOptions,
@@ -110,6 +110,7 @@ export class NumberSuiteSidebarView extends ItemView {
   override async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-sidebar");
+    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
     this.sidebarTabs = createSidebarTabs(
       this.contentEl,
       [
@@ -172,6 +173,7 @@ export class NumberSuiteSidebarView extends ItemView {
     this.clearOutlineTimer();
     this.sidebarTabs?.destroy();
     this.contentEl.empty();
+    this.contentEl.removeAttribute("dir");
     this.outlinePanel = null;
     this.notePanel = null;
     this.notePane?.destroy();
@@ -188,6 +190,7 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   refresh(): void {
+    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
     this.updateTabLabels();
     if (this.activeTab === "outline") void this.refreshOutline();
     else this.notePane?.refresh();

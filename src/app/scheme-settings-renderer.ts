@@ -8,6 +8,8 @@ import {
   isBuiltInSchemeId,
 } from "../core/schemes";
 import { NUMBER_FORMATS, renderTemplate } from "../core/template-compiler";
+import { resolvedUiLocale } from "../config/i18n";
+import { recommendedSchemeForLocale } from "../config/recommended-schemes";
 import { inspectSchemeTemplates, type SchemeTemplateIssue } from "../core/scheme-template-validation";
 import { matchHeadingExclusion, normalizeExclusionTitle } from "../core/heading-exclusions";
 import {
@@ -133,6 +135,18 @@ export class SchemeSettingsRenderer {
           next.selectedSchemeId = scheme.id;
         }, "display", true, true);
       }));
+    const suggestion = recommendedSchemeForLocale(resolvedUiLocale(settings.language));
+    if (suggestion !== settings.selectedSchemeId
+        && !settings.hiddenBuiltInSchemeIds.includes(suggestion)) {
+      new Setting(container)
+        .setName(t("settings.scheme.suggestion", { scheme: builtInName(suggestion, t) }))
+        .setDesc(t("settings.scheme.suggestion.desc"))
+        .addButton((button) => button
+          .setButtonText(t("settings.scheme.useSuggestion"))
+          .onClick(() => this.commit((next) => {
+            next.selectedSchemeId = suggestion;
+          }, "display", true, true)));
+    }
     this.renderPlaceholderHelp(container);
     for (const id of visibleBuiltIns) this.renderBuiltInScheme(container, id);
     for (const scheme of settings.customSchemes) this.renderCustomScheme(container, scheme);

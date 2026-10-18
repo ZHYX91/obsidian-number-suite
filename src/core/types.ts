@@ -8,6 +8,10 @@ export const BUILT_IN_SCHEME_IDS = [
   "hierarchical-h2",
   "chinese-official",
   "legal",
+  "chinese-traditional-chapters",
+  "japanese-chapters",
+  "korean-chapters",
+  "arabic-indic-hierarchical",
 ] as const;
 export type BuiltInSchemeId = (typeof BUILT_IN_SCHEME_IDS)[number];
 export type SchemeId = string;
@@ -30,6 +34,9 @@ export type NumberStyle =
 export type NumberFormat =
   | "arabic"
   | "arabic_full"
+  | "arabic_indic"
+  | "chinese_traditional_lower"
+  | "chinese_traditional_upper"
   | "chinese_lower"
   | "chinese_upper"
   | "circled"
