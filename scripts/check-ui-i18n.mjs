@@ -48,7 +48,7 @@ const languageOptions = await readFile("src/config/language-options.ts", "utf8")
 const labelsStart = languageOptions.indexOf("export const UI_LOCALE_LABELS = {");
 const labelsEnd = languageOptions.indexOf("} as const;", labelsStart);
 assert.ok(labelsStart >= 0 && labelsEnd > labelsStart, "UI language options are missing");
-const registeredLocales = [...languageOptions.slice(labelsStart, labelsEnd).matchAll(/^  "([^"]+)":/gmu)]
+const registeredLocales = [...languageOptions.slice(labelsStart, labelsEnd).matchAll(/^ {2}"([^"]+)":/gmu)]
   .map((match) => match[1]);
 assert.deepEqual(registeredLocales.sort(), ["en", "zh", ...localeNames].sort(),
   "Registered UI languages and translation catalogs must agree");

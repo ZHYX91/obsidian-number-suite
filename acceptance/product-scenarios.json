@@ -13,6 +13,29 @@
   },
   "scenarios": [
     {
+      "id": "regional-language-and-rtl",
+      "title": "Language switching, scoped RTL and regional numeric safety",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Regional numbers.md with Document outline and Heading map. Record the selected numbering scheme and source bytes. Switch UI language English to Arabic and back with the map open; inspect all seven settings tabs, commands, outline, map and a write-preview modal.",
+        "In Arabic, search for mixed Arabic and Latin text in the map, select and collapse a branch, change scope and zoom, then switch language. Confirm map selection, search, collapse, scope and viewport remain. Check controls respond once and host panes retain their own direction.",
+        "Inspect mixed Arabic text with Docs/Report.md, Figure: and Markdown in editable inputs. Move the caret, select and copy text. On Android use the soft keyboard and narrow portrait/landscape layouts.",
+        "With default cleanup templates, preview Remove numbers and Renumber for Regional numbers.md. Confirm Arabic-Indic year, decimal, measurement, version and date headings are unchanged and warned about. Cancel; toggle stored-number concealment and confirm these authored values remain visible.",
+        "Explicitly select Arabic-Indic hierarchical numbering. Compare Live Preview, Reading View, outline and map, preview writing to the unnumbered headings, cancel once, then apply and undo/redo. Verify risky authored prefixes remain unchanged. Restore source and saved scheme, restart the plugin, and confirm the saved language and scheme persist independently."
+      ],
+      "expected": [
+        "Language changes never alter the selected scheme or Markdown. Arabic direction stays scoped to plugin surfaces; inputs, narrow layouts and live map state remain usable.",
+        "Numeric false positives remain visible and unchanged. Only previewed supported headings are written; cancellation preserves bytes and undo restores source. Record each platform and any unverified interaction separately."
+      ]
+    },
+    {
       "id": "review-display-and-reference-regressions",
       "title": "Source Properties, comment offsets, stable copies and Chinese groups",
       "surfaces": [

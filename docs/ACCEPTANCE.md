@@ -244,3 +244,11 @@ repository. Identify the plugin commit and artifact SHA-256, Obsidian version, o
 isolated Vault type, theme, cases performed, results, limitations, and date. Record automated checks
 separately: CI alone does not prove real-host or Android emulator behavior. Do not include private
 Vault content or imply that an older candidate's results verify newer code.
+
+## Regional languages and numbering
+
+Run `regional-language-and-rtl` for changes to translations, scoped direction or regional schemes.
+Use `Regional numbers.md` to keep authored years, decimal values, quantities and dates visible and
+unchanged during cleanup and concealment. Check live map state across English/Arabic switching,
+seven settings tabs, mixed-direction input and independent persistence of language and scheme.
+Desktop and Android results are separate; report unavailable interactions as unverified.

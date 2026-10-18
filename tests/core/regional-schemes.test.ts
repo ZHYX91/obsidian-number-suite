@@ -1,3 +1,5 @@
+import { createDisplayPlan } from "../../src/application/display-plan";
+import { planHeadingTransform } from "../../src/core/transform";
 import { describe, expect, it } from "vitest";
 
 import { recommendedSchemeForLocale } from "../../src/config/recommended-schemes";
@@ -77,5 +79,43 @@ describe("optional regional numbering schemes", () => {
     expect(resolvedUiLocale("auto", "ar-SA")).toBe("ar");
     expect(toNumberingOptions(saved).scheme.id).toBe("japanese-chapters");
     expect(DEFAULT_SETTINGS.selectedSchemeId).toBe("hierarchical-h2");
+  });
+});
+
+
+describe("regional numeric false positives", () => {
+  it.each([
+    "# ٢٠٢٦ التقرير السنوي",
+    "## ٣٫١٤ Pi",
+    "# ٦ kg load",
+    "## ٢٫٠ Release notes",
+    "### ٢٠٢٦٫٨٫٢٤ Date",
+  ])("preserves and does not conceal %s with default cleanup templates", (source) => {
+    const numbering = toNumberingOptions(sanitizeSettings({ selectedSchemeId: "hierarchical" }));
+    const templateSources = cleanupTemplateSources(DEFAULT_SETTINGS);
+    for (const operation of ["remove", "renumber"] as const) {
+      const plan = planHeadingTransform(source, operation, {
+        numbering, templateSources, writeMarkers: false, cleanupScope: "templates",
+        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+      });
+      expect(plan.result).toBe(source);
+      expect(plan.changes).toEqual([]);
+      expect(plan.warnings).toHaveLength(1);
+    }
+    expect(createDisplayPlan(parseAtxHeadings(source), {
+      numbering, templateSources, showVirtualNumbers: false, concealStoredNumbers: true,
+      cleanupScope: "templates", revealOnActiveLine: false, selections: [], composing: false,
+    })).toEqual([]);
+  });
+
+  it("still removes an ordinary matching Arabic-Indic heading prefix", () => {
+    const source = "## ١٫٢ Chapter";
+    const plan = planHeadingTransform(source, "remove", {
+      numbering: toNumberingOptions(DEFAULT_SETTINGS),
+      templateSources: cleanupTemplateSources(DEFAULT_SETTINGS),
+      writeMarkers: false, cleanupScope: "templates",
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe("## Chapter");
   });
 });

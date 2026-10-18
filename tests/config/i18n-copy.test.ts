@@ -27,7 +27,7 @@ describe("localized UI copy", () => {
   it("explains skipped headings, recovery limits, and document export", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
-    expect(zh("settings.missing.desc")).toContain("四级标题");
+    expect(zh("settings.missing.desc")).toContain("四级序号");
     expect(zh("settings.backupLimit.desc")).toContain("不限制笔记本身的大小");
     expect(zh("settings.exportGuide.setup")).toContain("输入扩展");
     expect(en("settings.exportGuide.body")).toContain("extended Markdown syntax");

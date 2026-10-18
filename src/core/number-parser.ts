@@ -30,6 +30,11 @@ interface Candidate {
   ruleId: string;
 }
 
+function numericRiskText(text: string): string {
+  return text.replace(/[٠-٩]/gu, (digit) => String(digit.charCodeAt(0) - 0x660))
+    .replace(/٫/gu, ".");
+}
+
 function meaningfulRemainder(text: string, to: number): boolean {
   const remainder = text.slice(to).trim();
   return remainder.length > 0;
@@ -166,7 +171,9 @@ function parseTemplatePrefix(
     const match = pattern?.exec(text);
     if (match == null || match[0].length === 0 || !meaningfulRemainder(text, match[0].length)) continue;
     const core = match[1] ?? match[0].trimEnd();
-    const manual = parseManualPrefix(text);
+    // Compare native numeric templates with the same conservative checks as ASCII.
+    // Each replacement preserves offsets; recognition and returned source stay unchanged.
+    const manual = parseManualPrefix(numericRiskText(text));
     const confidence = manual?.confidence === "low" && manual.to === match[0].length
       ? "low"
       : "high";
@@ -354,7 +361,7 @@ export function isSuspiciousNumericPrefix(text: string): boolean {
   if (hasMalformedPluginMarker(text)) {
     return true;
   }
-  const match = parseHeadingNumber(text);
+  const match = parseHeadingNumber(numericRiskText(text));
   if (match != null) {
     return match.confidence === "low";
   }

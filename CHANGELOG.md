@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.5.6 - 2026-10-18
+
+- Add ten UI translations alongside English and Simplified Chinese, with scoped Arabic right-to-left layouts and live heading-map translation.
+- Offer optional Traditional Chinese, Japanese, Korean, and Arabic-Indic numbering schemes without changing schemes when the interface language changes.
+- Preserve Arabic-Indic years, decimal values, measurements, and dates during cleanup, renumbering, and concealment.
+
 ## 0.5.5 - 2026-10-09
 
 - Explain display-only numbering, stored heading numbers, and optional DocWen Word export in the README and settings.
