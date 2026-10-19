@@ -102,6 +102,12 @@ export function scanMarkdownProtectedLines(
       }
     } else if (container?.literal === true) {
       available = false;
+      // A pending comment must still end while these lines are skipped. Do
+      // not scan the literal tail: code may contain unrelated comment openers.
+      if (inlineComment != null) {
+        const ending = inlineComment === "html" ? "-->" : "%%";
+        if (line.text.includes(ending)) inlineComment = null;
+      }
     } else if (inlineComment != null) {
       const comments = scanInlineComments(line.text, inlineComment);
       commentMaskedText = comments.masked;

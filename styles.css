@@ -82,7 +82,7 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   color: var(--text-accent);
-  cursor: pointer;
+  cursor: var(--cursor, default);
   display: inline;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
@@ -273,7 +273,7 @@
   box-sizing: border-box;
   box-shadow: none !important;
   color: var(--text-muted) !important;
-  cursor: pointer;
+  cursor: var(--cursor, default);
   flex: 0 0 auto;
   font-family: inherit !important;
   font-size: var(--font-ui-small) !important;
@@ -337,7 +337,7 @@
 }
 
 .number-suite-note-control-levels summary {
-  cursor: pointer;
+  cursor: var(--cursor, default);
   font-weight: var(--font-semibold);
   padding-block: var(--size-4-2);
 }
@@ -366,7 +366,7 @@
 }
 
 .number-suite-scheme-card > summary {
-  cursor: pointer;
+  cursor: var(--cursor, default);
   font-weight: var(--font-semibold);
 }
 
@@ -1373,7 +1373,7 @@
 
 .number-suite-heading-map-viewport {
   background: var(--background-primary);
-  cursor: grab;
+  cursor: var(--cursor, default);
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -1383,7 +1383,7 @@
 }
 
 .number-suite-heading-map-viewport.is-panning {
-  cursor: grabbing;
+  cursor: var(--cursor, default);
   user-select: none;
 }
 
