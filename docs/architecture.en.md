@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-09-23
+last_synced: 2026-10-19
 ---
 
 # Number Suite — Architecture
@@ -42,6 +42,13 @@ not headings. `template-compiler.ts` compiles placeholders into an AST used for
 rendering, validation, and template-prefix recognition. `number-parser.ts` supplies provenance,
 style, rule, and confidence for plugin, template, and manual prefixes; `prefix-analysis.ts` is the
 shared display/write entry point.
+
+`markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
+blockquote containers and their literal blocks once per protection scan. The projection is linear
+and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
+boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
+headings, captions, and objects are excluded, while ordinary note and semantic references inside
+containers remain available. A nested fence cannot change protection state outside its container.
 
 `numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level skip-first
 ordinals, resets, empty-template structural semantics, exclusions, and skipped-level strategy.

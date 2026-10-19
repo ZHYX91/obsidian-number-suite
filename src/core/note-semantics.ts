@@ -43,6 +43,7 @@ interface SourceLine {
   readonly to: number;
   readonly number: number;
   readonly available: boolean;
+  readonly topLevel: boolean;
 }
 
 interface NoteIdentity {
@@ -83,6 +84,7 @@ function sourceLines(source: string): SourceLine[] {
     to: line.to,
     number: line.number,
     available: line.available,
+    topLevel: line.topLevel,
   }));
 }
 
@@ -90,7 +92,7 @@ function definitionContainerLines(lines: readonly SourceLine[]): Set<number> {
   const result = new Set<number>();
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (line == null || !line.available || DEFINITION.exec(line.text) == null) continue;
+    if (line == null || !line.available || !line.topLevel || DEFINITION.exec(line.text) == null) continue;
     result.add(line.number);
     for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
       const continuation = lines[cursor];
@@ -122,6 +124,7 @@ export function parseDocumentNotes(source: string): DocumentNoteSemantics {
     if (!line.available) continue;
     const definition = DEFINITION.exec(line.text);
     if (definition?.[1] != null) {
+      if (!line.topLevel) continue;
       const identity = noteIdentity(definition[1]);
       if (identity != null) {
         const markerOffset = line.text.indexOf("[^");

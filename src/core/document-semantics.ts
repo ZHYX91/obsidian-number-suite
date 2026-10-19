@@ -53,6 +53,7 @@ export interface SemanticSourceLine {
   readonly to: number;
   readonly number: number;
   readonly available: boolean;
+  readonly topLevel: boolean;
 }
 
 const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
@@ -68,6 +69,7 @@ export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
     from: line.from,
     to: line.to,
     number: line.number,
+    topLevel: line.topLevel,
     available: line.available && !protectedNoteLines.has(line.number),
   }));
 }
@@ -119,11 +121,11 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
     const masked = maskInlineProtectedSyntax(line.commentMaskedText);
     const standalone = STANDALONE_BLOCK_ID.exec(masked);
     if (standalone?.[1] != null) {
-      if (previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
+      if (line.topLevel && previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
       continue;
     }
 
-    const captionMatch = CAPTION.exec(line.commentMaskedText);
+    const captionMatch = line.topLevel ? CAPTION.exec(line.commentMaskedText) : null;
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
       const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;
@@ -151,9 +153,9 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       interveningBlankLines += 1;
       if (interveningBlankLines > 1) previousSemanticLine = null;
     } else {
-      previousSemanticLine = line.number;
+      previousSemanticLine = line.topLevel ? line.number : null;
       interveningBlankLines = 0;
-      const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1];
+      const blockId = line.topLevel ? TRAILING_BLOCK_ID.exec(masked)?.[1] : undefined;
       if (blockId != null) recordBlockOwner(blockId, line.number);
     }
 

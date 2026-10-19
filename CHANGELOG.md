@@ -2,6 +2,10 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Keep headings, captions, and code examples inside list and blockquote containers out of document numbering while preserving ordinary references in their text.
+
 ## 0.5.6 - 2026-10-18
 
 - Add ten UI translations alongside English and Simplified Chinese, with scoped Arabic right-to-left layouts and live heading-map translation.

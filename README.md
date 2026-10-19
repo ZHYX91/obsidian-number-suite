@@ -319,6 +319,8 @@ Failed input remains available for Retry, and outline navigation stays in the or
 - Top-level ATX H1-H6 plus Number Suite/DocWen H7-H9 extension headings are handled. Setext
   headings, blockquotes, lists, comments, frontmatter, fenced code, and HTML blocks are not
   numbering targets. Native Obsidian heading indexes remain limited to their own supported syntax.
+- Headings and captions inside lists or blockquotes do not enter document numbering. Ordinary
+  footnote and cross-reference links in their text still work; fenced code examples stay unchanged.
 - Canvas, Obsidian's built-in Outline, Backlinks, Search Results, and PDF export integration are not
   supported. Number Suite provides its own H1-H9-and-caption sidebar outline.
 - Source Mode decorations are disabled by default so stored Markdown remains directly visible.
