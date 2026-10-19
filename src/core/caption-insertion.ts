@@ -48,6 +48,12 @@ export interface CaptionInsertionPlan {
 
 const STANDALONE_BLOCK_ID = /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u;
 
+function hasWhitespaceOnlyGap(source: string, from: number, to: number): boolean {
+  // Relocation carries only the recognized object and caption ranges. Extra
+  // authored content between them, including another object ID, must survive.
+  return from <= to && /^[ \t\r\n]*$/u.test(source.slice(from, to));
+}
+
 interface CaptionLineMatch {
   readonly line: SemanticSourceLine;
   readonly kind: CaptionKind;
@@ -132,7 +138,8 @@ function targetForObject(
   if (above != null && below != null) return null;
   const existing = above ?? below;
   if (existing?.exact === true && existing.placement === "above") return null;
-  if (existing?.placement === "below" && !existing.canRelocateIds) return null;
+  if (existing?.placement === "below"
+    && (!existing.canRelocateIds || !hasWhitespaceOnlyGap(source, object.to, existing.line.from))) return null;
   if (existing != null) {
     return {
       kind: existing.kind,
@@ -266,7 +273,8 @@ export function createCaptionInsertionPlanForTarget(
   }
 
   if (target.action === "relocate") {
-    if (target.objectFrom >= target.from) return null;
+    if (target.objectFrom >= target.from
+      || !hasWhitespaceOnlyGap(source, target.objectTo, target.from)) return null;
     const objectSource = source.slice(target.objectFrom, target.objectTo);
     // A supported standalone ID may already have the one permitted blank
     // line before it. Do not add a second blank and detach the moved caption.

@@ -284,4 +284,37 @@ describe("caption context menu", () => {
     expect(testEditor.transactions).toHaveLength(1);
   });
 
+  it.each([
+    { kind: "Figure", object: "![[cat.png]]" },
+    { kind: "Table", object: "| A |\n| --- |\n| 1 |" },
+    { kind: "Equation", object: "$$\nx\n$$" },
+    { kind: "Code", object: "```js\nx\n```" },
+  ])("offers no destructive relocation for a $kind with a second object ID", ({ kind, object }) => {
+    const source = `${object}\n^object-id\n^second-object-id\n\n${kind}: Title\n\nSee @[[#^second-object-id]].`;
+    const testMenu = createMenu();
+    const testEditor = createEditor(source, 1);
+    addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, fileInfo(), translate);
+    expect(testMenu.titles).toEqual([]);
+    expect(testMenu.click).toBeNull();
+    expect(modal.options).toBeNull();
+    expect(testEditor.transactions).toHaveLength(0);
+    expect(testEditor.getValue()).toBe(source);
+  });
+
+  it("offers no Structural table relocation across a second object ID", () => {
+    const table = "| A |\n| --- |\n| 1 |";
+    const source = `${table}\n^object-id\n^second-object-id\n\nTable: Title\n\nSee @[[#^second-object-id]].`;
+    const testMenu = createMenu();
+    const testEditor = createEditor(source, 1);
+    addStructuralTableCaptionContextMenuItem(
+      {} as App, testMenu.menu, testEditor.editor, fileInfo(), translate,
+      { version: "1", from: 0, to: table.length, source: table, path: "note.md" },
+    );
+    expect(testMenu.titles).toEqual([]);
+    expect(testMenu.click).toBeNull();
+    expect(modal.options).toBeNull();
+    expect(testEditor.transactions).toHaveLength(0);
+    expect(testEditor.getValue()).toBe(source);
+  });
+
 });

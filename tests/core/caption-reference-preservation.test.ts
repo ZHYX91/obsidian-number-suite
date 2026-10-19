@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { bindCaptionObjects } from "../../src/core/caption-objects";
-import { createCaptionInsertionPlan, findCaptionInsertionTarget } from "../../src/core/caption-insertion";
+import {
+  createCaptionInsertionPlan,
+  createCaptionInsertionPlanForTarget,
+  findCaptionInsertionTarget,
+} from "../../src/core/caption-insertion";
 import { parseDocumentSemantics } from "../../src/core/document-semantics";
 
 const CASES = [
@@ -45,6 +49,35 @@ describe("caption edit identity contracts", () => {
     const source = `![[cat.png]]\n\nFigure: Cat\n${tail}`;
     expect(findCaptionInsertionTarget(source, source.indexOf("cat.png"))).toBeNull();
     expect(createCaptionInsertionPlan(source, source.indexOf("cat.png"), "Cat")).toBeNull();
+  });
+
+  it.each([
+    { kind: "Figure", object: "![[cat.png]]" },
+    { kind: "Table", object: "| A |\n| --- |\n| 1 |" },
+    { kind: "Equation", object: "$$\nx\n$$" },
+    { kind: "Code", object: "```js\nx\n```" },
+  ])("leaves extra $kind object IDs outside the edit range untouched", ({ kind, object }) => {
+    for (const newline of ["\n", "\r\n"]) {
+      const source = [object, "^object-id", "^second-object-id", "", `${kind}: Title`,
+        "", "See @[[#^second-object-id]]."].join("\n").replace(/\n/gu, newline);
+      expect(findCaptionInsertionTarget(source, 1)).toBeNull();
+      expect(createCaptionInsertionPlan(source, 1, "Edited title")).toBeNull();
+    }
+  });
+
+  it("rejects a retained relocation target that skips authored content", () => {
+    const initial = "![[cat.png]]\n^object-id\n\nFigure: Title";
+    const target = findCaptionInsertionTarget(initial, 1);
+    expect(target?.action).toBe("relocate");
+    if (target == null) throw new Error("Missing supported relocation target");
+    const extra = "^second-object-id\n";
+    const source = `${initial.slice(0, target.from)}${extra}${initial.slice(target.from)}`;
+    expect(createCaptionInsertionPlanForTarget(source, {
+      ...target,
+      from: target.from + extra.length,
+      to: target.to + extra.length,
+      line: target.line + 1,
+    }, "Edited title")).toBeNull();
   });
 
   it("retains the exact authored ID suffix and CRLF while the visible title changes", () => {
