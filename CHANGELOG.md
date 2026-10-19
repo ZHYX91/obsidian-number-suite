@@ -4,6 +4,9 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+- Preserve caption block IDs and reference ownership when moving or normalizing captions.
+- Verify Structural Tables source snapshots before offering caption writes, with a clear Source-mode fallback for unavailable targets.
+- Expand all localized user guides and add consistent guide and issue links in General settings.
 - Keep headings, captions, and code examples inside list and blockquote containers out of document numbering while preserving ordinary references in their text.
 
 ## 0.5.6 - 2026-10-18

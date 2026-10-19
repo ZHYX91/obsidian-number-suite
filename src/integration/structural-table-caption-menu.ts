@@ -11,14 +11,16 @@ import {
   addCaptionContextMenuItem,
   addStructuralTableCaptionContextMenuItem,
 } from "../commands/caption-insertion";
+import { findCaptionInsertionTarget } from "../core/caption-insertion";
 import {
-  findCaptionInsertionTarget,
-  findCaptionInsertionTargetForTable,
-} from "../core/caption-insertion";
+  readStructuralTableSourceSnapshot,
+  resolveStructuralTableSource,
+  type StructuralTableSourceSnapshot,
+} from "./structural-table-source";
 import type { CaptionKind } from "../core/document-semantics";
 import type { Translate } from "../config/i18n";
 
-const STRUCTURAL_TABLE_HOST_SELECTOR = ".structural-tables-live-preview[data-structural-source-table-index]";
+const STRUCTURAL_TABLE_HOST_SELECTOR = ".structural-tables-live-preview";
 const CARRIER_TARGET_SELECTOR = [
   `${STRUCTURAL_TABLE_HOST_SELECTOR} th`,
   `${STRUCTURAL_TABLE_HOST_SELECTOR} td`,
@@ -36,7 +38,7 @@ const CARRIER_TARGET_SELECTOR = [
 interface ResolvedCarrierContext {
   readonly kind: CaptionKind;
   readonly offset: number;
-  readonly sourceTableIndex: number | null;
+  readonly structuralSnapshot: StructuralTableSourceSnapshot | null;
 }
 
 function carrierKind(target: Element): CaptionKind | null {
@@ -179,19 +181,28 @@ export class CaptionCarrierMenuBridge {
     if (target == null || !("nodeType" in target) || target.nodeType !== 1) return;
     const element = target as Element;
     const context = this.resolveContext(element, event);
-    if (context == null) return;
     const markdownView = this.markdownViewFor(element);
     if (markdownView == null) return;
+    if (context == null) {
+      if (element.closest(STRUCTURAL_TABLE_HOST_SELECTOR) != null) {
+        this.contributedEvents.add(event);
+        Menu.forEvent(event).addItem((item) => item
+          .setTitle(this.getTranslate()("caption.menu.table.unavailable"))
+          .setIcon("table-properties")
+          .setDisabled(true));
+      }
+      return;
+    }
     this.contributedEvents.add(event);
     const menu = Menu.forEvent(event);
-    if (context.sourceTableIndex != null) {
+    if (context.structuralSnapshot != null) {
       addStructuralTableCaptionContextMenuItem(
         this.app,
         menu,
         markdownView.editor,
         markdownView,
         this.getTranslate(),
-        context.sourceTableIndex,
+        context.structuralSnapshot,
       );
       return;
     }
@@ -213,18 +224,18 @@ export class CaptionCarrierMenuBridge {
     const source = markdownView.editor.getValue();
     const structuralHost = target.closest<HTMLElement>(STRUCTURAL_TABLE_HOST_SELECTOR);
     if (structuralHost != null) {
-      const sourceTableIndex = Number(structuralHost.dataset.structuralSourceTableIndex);
-      if (!Number.isInteger(sourceTableIndex) || sourceTableIndex < 0) return null;
-      const resolved = findCaptionInsertionTargetForTable(source, sourceTableIndex);
+      const snapshot = readStructuralTableSourceSnapshot(structuralHost.dataset);
+      if (snapshot == null) return null;
+      const resolved = resolveStructuralTableSource(source, markdownView.file?.path ?? null, snapshot);
       return resolved == null ? null : {
         kind: "Table",
-        offset: resolved.objectFrom,
-        sourceTableIndex,
+        offset: resolved.from,
+        structuralSnapshot: snapshot,
       };
     }
     const root = carrierRoot(target, kind);
     const offset = uniqueCaptionCarrierOffset(source, kind, domOffsets(root, event));
-    return offset == null ? null : { kind, offset, sourceTableIndex: null };
+    return offset == null ? null : { kind, offset, structuralSnapshot: null };
   }
 
   private markdownViewFor(target: Node): MarkdownView | null {

@@ -1564,3 +1564,7 @@
     min-width: 44px;
   }
 }
+
+.number-suite-caption-preview code {
+  white-space: pre-wrap;
+}

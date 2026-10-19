@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createCaptionInsertionPlan,
   findCaptionInsertionTarget,
-  findCaptionInsertionTargetForTable,
+  findCaptionInsertionTargetForTableRange,
 } from "../../src/core/caption-insertion";
 
 function offsetOf(source: string, needle: string): number {
@@ -52,7 +52,7 @@ describe("caption insertion", () => {
     }
   });
 
-  it("maps Structural Tables takeover indexes and keeps multi-row headers intact", () => {
+  it("verifies exact table ranges and keeps multi-row headers intact", () => {
     const source = [
       "Intro",
       "",
@@ -65,15 +65,16 @@ describe("caption insertion", () => {
       "| --- | --- |",
       "| Miao | 1 |",
     ].join("\n");
-    const first = findCaptionInsertionTargetForTable(source, 0);
-    const second = findCaptionInsertionTargetForTable(source, 1);
+    const secondFrom = source.indexOf("| Name");
+    const first = findCaptionInsertionTargetForTableRange(source, source.indexOf("| Region"), secondFrom - 2);
+    const second = findCaptionInsertionTargetForTableRange(source, secondFrom, source.length);
 
     expect(first).toMatchObject({ kind: "Table", action: "insert", line: 2 });
     expect(second).toMatchObject({ kind: "Table", action: "insert", line: 7 });
     expect(createCaptionInsertionPlan(source, offsetOf(source, "Quarter"), "Sales")?.result).toContain(
       "Table: Sales\n\n| Region | Sales |\n| Quarter | Q1 |",
     );
-    expect(findCaptionInsertionTargetForTable(source, 2)).toBeNull();
+    expect(findCaptionInsertionTargetForTableRange(source, 2, source.length)).toBeNull();
   });
 
   it("stores Figure and Table captions above their objects", () => {

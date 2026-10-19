@@ -12,9 +12,12 @@ import type { Translate } from "../config/i18n";
 import {
   createCaptionInsertionPlanForTarget,
   findCaptionInsertionTarget,
-  findCaptionInsertionTargetForTable,
   type CaptionInsertionTarget,
 } from "../core/caption-insertion";
+import {
+  resolveStructuralTableCaptionTarget,
+  type StructuralTableSourceSnapshot,
+} from "../integration/structural-table-source";
 import { CaptionInsertionModal } from "../ui/caption-insertion-modal";
 
 const contributedCaptionMenus = new WeakSet<Menu>();
@@ -69,7 +72,7 @@ export function addStructuralTableCaptionContextMenuItem(
   editor: Editor,
   info: MarkdownView | MarkdownFileInfo,
   translate: Translate,
-  sourceTableIndex: number,
+  snapshot: StructuralTableSourceSnapshot,
 ): void {
   addResolvedCaptionContextMenuItem(
     app,
@@ -77,7 +80,7 @@ export function addStructuralTableCaptionContextMenuItem(
     editor,
     info,
     translate,
-    (source) => findCaptionInsertionTargetForTable(source, sourceTableIndex),
+    (source) => resolveStructuralTableCaptionTarget(source, info.file?.path ?? null, snapshot),
   );
 }
 

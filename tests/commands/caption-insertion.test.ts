@@ -12,6 +12,9 @@ import {
   type MenuItem,
 } from "obsidian";
 
+import structuralContract from "../fixtures/structural-table-source-contract.json";
+import { parseDocumentSemantics } from "../../src/core/document-semantics";
+
 import type { Translate } from "../../src/config/i18n";
 import type { CaptionInsertionModalOptions } from "../../src/ui/caption-insertion-modal";
 
@@ -193,7 +196,7 @@ describe("caption context menu", () => {
     expect(testMenu.titles).toEqual([]);
   });
 
-  it("adds the Table action for a Structural Tables-owned widget by source index", async () => {
+  it("adds the Table action for a Structural Tables-owned widget by verified source range", async () => {
     const source = [
       "Cursor is outside the rendered table.",
       "",
@@ -210,7 +213,13 @@ describe("caption context menu", () => {
       testEditor.editor,
       fileInfo(),
       translate,
-      0,
+      {
+        version: "1",
+        from: source.indexOf("| Region"),
+        to: source.length,
+        path: "note.md",
+        source: source.slice(source.indexOf("| Region")),
+      },
     );
 
     expect(testMenu.titles).toEqual(["caption.menu.table.insert"]);
@@ -221,4 +230,58 @@ describe("caption context menu", () => {
       "Table: Quarterly sales\n\n| Region | Sales |\n| Quarter | Q1 |",
     );
   });
+  it("writes to the second identical Structural table without moving the first table or its references", async () => {
+    const fixture = structuralContract.cases.find(({ id }) => id === "identical-tables-have-distinct-ranges");
+    if (fixture === undefined) throw new Error("Missing identical-tables contract fixture");
+    const table = fixture.tables[1];
+    if (table === undefined) throw new Error("Missing second table");
+    const testMenu = createMenu();
+    const testEditor = createEditor(fixture.source, 0);
+    addStructuralTableCaptionContextMenuItem(
+      {} as App, testMenu.menu, testEditor.editor, fileInfo(fixture.sourcePath), translate,
+      { version: "1", ...table, path: fixture.sourcePath },
+    );
+    testMenu.click?.();
+    await modal.options?.onConfirm("Second table");
+    expect(testEditor.transactions).toHaveLength(1);
+    expect(testEditor.getValue()).toBe(
+      `${fixture.source.slice(0, table.from)}Table: Second table\n\n${fixture.source.slice(table.from)}`,
+    );
+  });
+
+  it.each(["source", "path"] as const)("refuses a Structural table confirmation after the %s changes", async (change) => {
+    const source = "| A | B |\n| --- | --- |\n| 1 | 2 |";
+    const testMenu = createMenu();
+    const testEditor = createEditor(source, 0);
+    const info = fileInfo();
+    addStructuralTableCaptionContextMenuItem(
+      {} as App, testMenu.menu, testEditor.editor, info, translate,
+      { version: "1", from: 0, to: source.length, source, path: "note.md" },
+    );
+    testMenu.click?.();
+    if (change === "source") testEditor.setValue(`New paragraph.\n\n${source}`);
+    else Object.assign(info, fileInfo("different.md"));
+    const currentSource = testEditor.getValue();
+    await modal.options?.onConfirm("Sales");
+    expect(testEditor.transactions).toHaveLength(0);
+    expect(testEditor.getValue()).toBe(currentSource);
+    expect(notices()).toEqual(["notice.stalePreview"]);
+  });
+
+  it("keeps caption reference ownership through the confirmed editor transaction", async () => {
+    const source = "![[Miao.png]]\n\nFigure: Miao\n^fig-miao\n\nSee [[#^fig-miao]].";
+    const testMenu = createMenu();
+    const testEditor = createEditor(source, 4);
+    addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, fileInfo(), translate);
+    testMenu.click?.();
+    await modal.options?.onConfirm("Miao sleeping");
+    const result = testEditor.getValue();
+    const semantics = parseDocumentSemantics(result);
+    expect(result).toContain("Figure: Miao sleeping\n^fig-miao\n\n![[Miao.png]]");
+    expect(semantics.blockOwners.get("block:fig-miao"))
+      .toBe(semantics.captions[0]?.line);
+    expect(result).toContain("See [[#^fig-miao]].");
+    expect(testEditor.transactions).toHaveLength(1);
+  });
+
 });

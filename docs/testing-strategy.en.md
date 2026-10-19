@@ -19,6 +19,8 @@ The Chinese document is the normative source for verification layers, gates, and
 This file is its synchronized English translation. `ACCEPTANCE.md` is an executable checklist and
 cannot weaken this strategy.
 
+Caption editing regressions assert block-owner and caption/object binding invariants after the actual plan and confirmed editor transaction. The fixed `tests/fixtures/structural-table-source-contract.json` is shared with the provider repository: each project consumes its checked-in copy using its real parser/producer or consumer. Headerless and short-delimiter tables, repeated identical tables, external IDs, UTF-16/CRLF offsets and quoted containers test disagreement boundaries. Consumers reject partial, unknown, stale or wrong-path snapshots, and confirmation refuses changed source or files. Tests do not fetch another repository or depend on its runtime.
+
 <!-- section: evidence-levels -->
 ## Evidence levels
 

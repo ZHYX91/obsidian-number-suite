@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, access } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 const englishPath = "README.md";
 const chinesePath = "docs/i18n/README.zh-CN.md";
@@ -75,16 +76,42 @@ assert.deepEqual(
 const editions = [{"label":"English","path":"README.md"},{"label":"简体中文","path":"docs/i18n/README.zh-CN.md"},{"label":"繁體中文","path":"docs/i18n/README.zh-TW.md"},{"label":"日本語","path":"docs/i18n/README.ja.md"},{"label":"한국어","path":"docs/i18n/README.ko.md"},{"label":"Deutsch","path":"docs/i18n/README.de.md"},{"label":"Français","path":"docs/i18n/README.fr.md"},{"label":"Español","path":"docs/i18n/README.es.md"},{"label":"Português (Brasil)","path":"docs/i18n/README.pt-BR.md"},{"label":"Русский","path":"docs/i18n/README.ru.md"},{"label":"Tiếng Việt","path":"docs/i18n/README.vi.md"},{"label":"العربية","path":"docs/i18n/README.ar.md"}];
 function editionLinks(filePath) {
   return editions.map(({label,path}) => {
-    const href = filePath === "README.md" ? path : path === "README.md" ? "../../README.md" : path.slice("docs/i18n/".length);
+    const href = filePath === "README.md" ? `https://github.com/ZHYX91/obsidian-number-suite/blob/main/${path}` : path === "README.md" ? "../../README.md" : path.slice("docs/i18n/".length);
     return `[${label}](${href})`;
   }).join(" · ");
 }
+async function validateReadmeTargets(filePath, source) {
+  const repository = "ZHYX91/obsidian-number-suite";
+  const blobPrefix = `https://github.com/${repository}/blob/main/`;
+  const rawPrefix = `https://raw.githubusercontent.com/${repository}/main/`;
+  const visible = source.replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gmu, "").replace(/`[^`\n]*`/gu, "");
+  for (const match of visible.matchAll(/(!?)\[[^\]]*\]\(([^)\s]+)\)/gu)) {
+    const [ , image, target] = match;
+    if (target.startsWith("#")) continue;
+    let repositoryPath;
+    const prefix = target.startsWith(blobPrefix) ? blobPrefix : target.startsWith(rawPrefix) ? rawPrefix : null;
+    if (prefix !== null) {
+      assert.equal(filePath, "README.md", `${filePath}: repository links must be relative`);
+      assert.equal(prefix, image === "!" ? rawPrefix : blobPrefix, `${filePath}: use canonical image/document URLs`);
+      repositoryPath = resolve(target.slice(prefix.length).split(/[?#]/u)[0]);
+    } else if (/^[a-z][a-z0-9+.-]*:/iu.test(target)) {
+      continue;
+    } else {
+      assert.notEqual(filePath, "README.md", "Root README links must work in the Obsidian catalog");
+      repositoryPath = resolve(dirname(filePath), decodeURIComponent(target.split(/[?#]/u)[0]));
+    }
+    const inside = relative(process.cwd(), repositoryPath);
+    assert.ok(!isAbsolute(inside) && inside !== ".." && !inside.startsWith("../"), `${filePath}: target leaves the repository: ${target}`);
+    await access(repositoryPath);
+  }
+}
+
 for (const {path} of editions) {
   const content = await readFile(path, "utf8");
   assert.match(content, /^# Number Suite\n/u, `${path} must begin with its title`);
   assert.equal(content.split("\n")[2], editionLinks(path), `${path} must link to every README language`);
   assert.match(content, /^## /mu, `${path} must contain usable instructions`);
-  assert.ok(content.length > 700, `${path} guide is too short`);
+  await validateReadmeTargets(path, content);
 }
 for (const { path } of editions.slice(2)) {
   const locale = /README\.([^.]+)\.md$/u.exec(path)?.[1];
@@ -94,6 +121,14 @@ for (const { path } of editions.slice(2)) {
   assert.ok(match, `${locale}: missing setting label for the README quick start`);
   const settingLabel = JSON.parse(`"${match[1]}"`);
   const source = await readFile(path, "utf8");
+  assert.deepEqual(
+    [...source.matchAll(/<!-- section: ([a-z0-9-]+) -->/gu)].map((match) => match[1]),
+    ["installation", "quick-start", "captions", "numbering", "settings", "limitations", "privacy-and-support"],
+    `${path}: localized guides must cover installation, everyday use, settings, limitations and help`,
+  );
+  for (const token of ["`main.js`", "`manifest.json`", "`styles.css`", "@[[", "Structural Tables", "H7", "Properties"]) {
+    assert.ok(source.includes(token), `${path}: missing practical workflow information: ${token}`);
+  }
   assert.ok(source.includes(settingLabel), `${path}: quick start must use the actual localized control label`);
   assert.doesNotMatch(source, /`Show virtual numbers`/u, `${path}: stale English-only button label`);
 }

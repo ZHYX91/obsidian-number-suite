@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-03
+last_synced: 2026-10-19
 ---
 
 # Number Suite — UX specification
@@ -175,14 +175,12 @@ references remain as pills.
 
 In editing mode, the context menu offers Figure on a standalone image, Table on any row of a
 top-level Markdown table, Equation on a standalone display equation, and Code on a top-level fenced
-code block. It resolves the actual pointer target before falling back to the cursor. A focused dialog
-also contributes Add Table caption to a Structural Tables-owned rendered table menu and resolves
-the complete source range, including every consecutive header row, before showing that dialog. It
+code block. It resolves the actual pointer target before falling back to the cursor. The same action appears in a Structural Tables-owned menu only after its file, exact source text and visual range are verified. An unavailable or outdated provider snapshot has a disabled explanation directing the user to Source mode; it never falls back to a different table ordinal. The dialog
 prefills a safe image-title suggestion when available, shows the exact stored caption preview, and
 keeps confirmation disabled for an empty title. All new captions go above their objects; a legacy
 Figure immediately below its image offers a move-above repair. A nearby case-only keyword mismatch
 changes to a repair action, and an adjacent caption of any type removes the action. Inline and table-cell
-images, math, and code are ineligible. Caption creation never creates an ID.
+images, math, and code are ineligible. Caption creation never creates an ID. Existing inline and standalone block IDs remain attached to their caption when it is repaired or moved.
 
 The default-on image/Figure hover setting applies the same structured tooltip to a bound image and
 caption: rendered caption title first, meaningful replacement/alt text second. Equal values collapse

@@ -202,11 +202,9 @@ The modal collects and previews one
 single-line title; confirmation revalidates the file path, entire editor source, and original target
 before applying exactly one editor change.
 
-`StructuralTableCaptionMenuBridge` observes only Structural Tables' public rendered host class and
-`data-structural-source-table-index` marker. It contributes the same action to `Menu.forEvent`, maps
-that index through Number Suite's independent Markdown table scanner, preserves multi-row headers,
-and fails closed if the host, Markdown view, index, or source table cannot be resolved. Number Suite
-does not import Structural Tables code and remains independently installable.
+`CaptionCarrierMenuBridge` observes Structural Tables' public owned-widget host and versioned source snapshot. Version `1` requires `data-structural-source-version`, `data-structural-source-from`, `data-structural-source-to`, `data-structural-source-path`, and `data-structural-source`. Offsets are UTF-16; the exclusive end omits the last line ending and any external block-ID line. The original table text must exactly equal the current editor slice, the path must match, and Number Suite must recognize a table with those exact visual bounds. An ordinal is never a write target. Legacy, incomplete, stale, unsupported, or unknown-version snapshots produce a disabled menu explanation with a Source-mode editing alternative. A valid table that already has a correctly placed caption needs no action. Both plugins remain independently installable; no provider runtime import is used.
+
+Caption normalization and relocation preserve authored indentation, inline ID suffixes and supported following standalone IDs. The edit moves the complete caption identity, while retaining separate object IDs and original reference tokens. Relocation is unavailable for multiple standalone ID lines or comment-decorated ID lines that the current binding grammar cannot preserve. The final result must still bind the caption to the same object; a blank line already consumed before a standalone ID is not added again between the moved ID and object.
 
 Stable-reference context actions use a separate pure `StableReferencePlan`. Target recognition is
 limited to the heading or fixed caption at the actual context-menu position. Existing inline or immediately

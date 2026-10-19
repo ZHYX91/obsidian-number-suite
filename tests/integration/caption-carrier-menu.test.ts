@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { addCaptionContextMenuItem } from "../../src/commands/caption-insertion";
 import type { Translate } from "../../src/config/i18n";
+import sourceContract from "../fixtures/structural-table-source-contract.json";
 import {
   CaptionCarrierMenuBridge,
   uniqueCaptionCarrierOffset,
@@ -21,8 +22,8 @@ import {
 const translate = ((key: string) => key) as Translate;
 const cleanups: (() => void)[] = [];
 
-function menuItems(menu: Menu): ReadonlyArray<Readonly<{ title: string }>> {
-  return (menu as unknown as { items: Array<{ title: string }> }).items;
+function menuItems(menu: Menu): ReadonlyArray<Readonly<{ title: string; disabled: boolean }>> {
+  return (menu as unknown as { items: Array<{ title: string; disabled: boolean }> }).items;
 }
 
 interface CarrierCase {
@@ -188,7 +189,7 @@ describe("caption carrier menu bridge", () => {
     },
   );
 
-  it("keeps the Structural Tables source-index path and native menu idempotent", () => {
+  it("keeps verified Structural Tables source identity and the native menu idempotent", () => {
     const testCase: CarrierCase = {
       label: "Structural Tables cell",
       source: "| A |\n| --- |\n| 1 |",
@@ -201,6 +202,13 @@ describe("caption carrier menu bridge", () => {
       sourceOffset: 17,
     };
     const { app, target } = fixture(testCase);
+    Object.assign(target.closest<HTMLElement>(".structural-tables-live-preview")!.dataset, {
+      structuralSourceVersion: "1",
+      structuralSourceFrom: "0",
+      structuralSourceTo: String(testCase.source.length),
+      structuralSourcePath: "note.md",
+      structuralSource: testCase.source,
+    });
     target.addEventListener("contextmenu", (event) => {
       Menu.forEvent(event).addItem((item) => item.setTitle("Structural action"));
     });
@@ -213,6 +221,93 @@ describe("caption carrier menu bridge", () => {
       "Structural action",
       "caption.menu.table.insert",
     ]);
+  });
+
+  it("does not claim a verified table is unavailable when its caption already needs no change", () => {
+    const source = "Table: Results\n\n| A |\n| --- |\n| 1 |";
+    const { app, target } = fixture({
+      label: "already captioned", source,
+      markup: '<div class="structural-tables-live-preview"><table><tr><td>1</td></tr></table></div>',
+      targetSelector: "td", expectedTitle: "", sourceOffset: source.indexOf("| A"),
+    });
+    Object.assign(target.closest<HTMLElement>(".structural-tables-live-preview")!.dataset, {
+      structuralSourceVersion: "1", structuralSourceFrom: String(source.indexOf("| A")),
+      structuralSourceTo: String(source.length), structuralSourcePath: "note.md",
+      structuralSource: source.slice(source.indexOf("| A")),
+    });
+    new CaptionCarrierMenuBridge(app, () => translate, () => {}).register(component());
+    const event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event))).toEqual([]);
+  });
+
+  for (const sample of sourceContract.cases) {
+    for (const [index, table] of sample.tables.entries()) {
+      it(`keeps the shared source contract target: ${sample.id}, table ${index}`, () => {
+        expect(sourceContract.schema).toBe("structural-tables.source-snapshot.v1");
+        const testCase: CarrierCase = {
+          label: sample.id,
+          source: sample.source,
+          markup: `<div class="structural-tables-live-preview" data-structural-source-table-index="${index}"><table><tr><td>Cell</td></tr></table></div>`,
+          targetSelector: "td",
+          expectedTitle: "caption.menu.table.insert",
+          sourceOffset: table.from,
+        };
+        const { app, target, markdownView } = fixture(testCase);
+        markdownView.file!.path = sample.sourcePath;
+        Object.assign(target.closest<HTMLElement>(".structural-tables-live-preview")!.dataset, {
+          structuralSourceVersion: "1",
+          structuralSourceFrom: String(table.from),
+          structuralSourceTo: String(table.to),
+          structuralSourcePath: sample.sourcePath,
+          structuralSource: table.source,
+        });
+        const offsets: Array<number | null> = [];
+        new CaptionCarrierMenuBridge(app, () => translate, (_editor, offset) => offsets.push(offset))
+          .register(component());
+        const event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+        target.dispatchEvent(event);
+        expect(offsets).toEqual([table.numberSuiteCaptionSupported ? table.from : null]);
+        expect(menuItems(Menu.forEvent(event)).map(({ title, disabled }) => ({ title, disabled })))
+          .toEqual([{
+            title: table.numberSuiteCaptionSupported ? "caption.menu.table.insert" : "caption.menu.table.unavailable",
+            disabled: !table.numberSuiteCaptionSupported,
+          }]);
+      });
+    }
+  }
+
+  it.each([
+    "structuralSourceVersion", "structuralSourceFrom", "structuralSourceTo",
+    "structuralSourcePath", "structuralSource", "unknown-version", "wrong-path",
+    "stale-source", "invalid-range", "legacy-index-only",
+  ])("rejects %s without using the legacy ordinal or cursor", (problem) => {
+    const source = "| A |\n| --- |\n| 1 |";
+    const { app, target } = fixture({
+      label: problem, source,
+      markup: '<div class="structural-tables-live-preview" data-structural-source-table-index="0"><table><tr><td>1</td></tr></table></div>',
+      targetSelector: "td", expectedTitle: "caption.menu.table.unavailable", sourceOffset: 0,
+    });
+    const data = target.closest<HTMLElement>(".structural-tables-live-preview")!.dataset;
+    Object.assign(data, {
+      structuralSourceVersion: "1", structuralSourceFrom: "0",
+      structuralSourceTo: String(source.length), structuralSourcePath: "note.md",
+      structuralSource: source,
+    });
+    if (problem.startsWith("structuralSource")) delete data[problem];
+    else if (problem === "unknown-version") data.structuralSourceVersion = "2";
+    else if (problem === "wrong-path") data.structuralSourcePath = "another.md";
+    else if (problem === "stale-source") data.structuralSource = source.replace("1", "2");
+    else if (problem === "invalid-range") data.structuralSourceFrom = "-1";
+    else for (const key of Object.keys(data)) if (key !== "structuralSourceTableIndex") delete data[key];
+    const offsets: Array<number | null> = [];
+    new CaptionCarrierMenuBridge(app, () => translate, (_editor, offset) => offsets.push(offset))
+      .register(component());
+    const event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(offsets).toEqual([null]);
+    expect(menuItems(Menu.forEvent(event)).map(({ title, disabled }) => ({ title, disabled })))
+      .toEqual([{ title: "caption.menu.table.unavailable", disabled: true }]);
   });
 
   it("blocks cursor fallback when the current pointer carrier cannot be mapped uniquely", () => {
