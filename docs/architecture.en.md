@@ -49,6 +49,8 @@ and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 r
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
 containers remain available. A nested fence cannot change protection state outside its container.
+Skipped literal lines may end an already-open inline comment, but never open a new comment or
+contribute references of their own.
 
 `numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level skip-first
 ordinals, resets, empty-template structural semantics, exclusions, and skipped-level strategy.

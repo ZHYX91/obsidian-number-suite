@@ -52,6 +52,8 @@ fixtures. They assert protected bytes and untouched change ranges, the next docu
 number, and continued ordinary reference resolution. LF, CRLF, CR, unclosed container fences, and
 H7-H9 boundaries are included. Expected behavior comes from the document contract rather than
 reusing the implementation's container classifier to generate expected results.
+Pending comments must end across skipped literal lines without activating comment openers or
+references in code examples; ordinary references before and after the comment remain intact.
 
 Coverage thresholds are regression floors, not quality targets or host acceptance. New critical
 branches need behavioral assertions even when aggregate coverage stays above threshold.

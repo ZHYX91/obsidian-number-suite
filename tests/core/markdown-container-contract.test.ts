@@ -64,6 +64,44 @@ describe("Markdown container contracts", () => {
     expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Visible"]);
   });
 
+  it.each(["\n", "\r\n", "\r"])("ends a pending comment across nested literal lines with %j line endings", (newline) => {
+    const container = ["- item <!--", "  ```", "  -->"].join(newline);
+    const source = `${container}${newline}# Real${newline}${newline}## Later`;
+    const plan = planHeadingTransform(source, "write", OPTIONS);
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Real", "Later"]);
+    expect(plan.result).toBe(`${container}${newline}# 1 Real${newline}${newline}## 1.1 Later`);
+    expect(plan.changes).toHaveLength(2);
+    expect(plan.changes.every((change) => change.from > container.length)).toBe(true);
+  });
+
+  it.each([
+    { opening: "<!--", closing: "-->" },
+    { opening: "%%", closing: "%%" },
+  ])("only ends the existing $opening comment inside a nested literal", ({ opening, closing }) => {
+    const container = `- item ${opening}\n  \`\`\`md\n  ${closing} ${opening} literal @[[#^hidden]] [^hidden]`;
+    const source = `${container}\n# Visible\nText @[[#^visible]] [^visible]`;
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Visible"]);
+    expect(parseDocumentSemantics(source).references.map((reference) => reference.target)).toEqual(["visible"]);
+    expect(parseDocumentNotes(source).references.map((reference) => reference.id)).toEqual(["visible"]);
+    expect(planHeadingTransform(source, "write", OPTIONS).result)
+      .toBe(`${container}\n# 1 Visible\nText @[[#^visible]] [^visible]`);
+  });
+
+  it("does not start a comment from a nested code example", () => {
+    const container = "- ```md\n  <!-- %% @[[#^hidden]] [^hidden]\n  ```";
+    const source = `${container}\n# Visible\nText @[[#^visible]] [^visible]`;
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Visible"]);
+    expect(parseDocumentSemantics(source).references.map((reference) => reference.target)).toEqual(["visible"]);
+    expect(parseDocumentNotes(source).references.map((reference) => reference.id)).toEqual(["visible"]);
+  });
+
+  it("keeps ordinary references on both sides of a nested multiline comment", () => {
+    const source = "- Before[^before] <!-- hidden\n  [^hidden]\n  --> after[^after]\n\n# Visible";
+    expect(parseDocumentNotes(source).references.map((reference) => source.slice(reference.from, reference.to)))
+      .toEqual(["[^before]", "[^after]"]);
+    expect(parseAtxHeadings(source).map((heading) => heading.content)).toEqual(["Visible"]);
+  });
+
   it("keeps Number Suite H7-H9 as document blocks after a list", () => {
     for (const level of [7, 8, 9]) {
       const source = `- Item\n${"#".repeat(level)} Visible`;
