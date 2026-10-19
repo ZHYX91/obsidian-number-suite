@@ -4,6 +4,7 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+- Follow Obsidian's cursor preference for references, settings controls and heading-map panning instead of forcing browser hand cursors.
 - Keep headings, captions, and code examples inside list and blockquote containers out of document numbering while preserving ordinary references in their text.
 - Keep numbering the rest of the note after a multiline comment crosses a list-contained code example.
 
