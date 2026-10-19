@@ -2,6 +2,10 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Follow Obsidian's cursor preference for references, settings controls and heading-map panning instead of forcing browser hand cursors.
+
 ## 0.5.6 - 2026-10-18
 
 - Add ten UI translations alongside English and Simplified Chinese, with scoped Arabic right-to-left layouts and live heading-map translation.
