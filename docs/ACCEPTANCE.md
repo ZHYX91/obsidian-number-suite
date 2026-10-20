@@ -83,6 +83,9 @@ scoped pass into a claim that every product scenario passed.
 - [ ] Zoom at each canvas boundary and with a tree smaller than the viewport; the pointer anchor
   must stay fixed. Use ordinary/Shift wheel, blank-canvas drag, Ctrl/Cmd-wheel, +, -, 0, zoom buttons
   and Fit. Collapse and expand a large branch without moving the clicked parent under the pointer.
+- [ ] On desktop, hover settings tabs, scheme summaries and same-file references, then drag the
+  blank map canvas. These controls follow Obsidian's cursor preference before, during and after
+  panning; text fields retain their text cursor. Check both the default and pointer preference.
 - [ ] Search inside a collapsed branch. Verify the handle describes its visible state, toggle it,
   use Enter and Shift+Enter to traverse multiple matches, then clear search and check the original
   saved collapse intent is restored.
