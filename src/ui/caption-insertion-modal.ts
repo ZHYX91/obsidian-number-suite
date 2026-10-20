@@ -12,7 +12,8 @@ export interface CaptionInsertionModalOptions {
   readonly app: App;
   readonly target: CaptionInsertionTarget;
   readonly translate: Translate;
-  readonly onConfirm: (title: string) => Promise<void>;
+  readonly onConfirm: (title: string) => Promise<boolean | void>;
+  readonly onApplied?: () => void;
 }
 
 function kindLabel(target: CaptionInsertionTarget, t: Translate): string {
@@ -83,7 +84,10 @@ export class CaptionInsertionModal extends Modal {
           this.applying = true;
           button.setDisabled(true);
           void this.options.onConfirm(value.trim())
-            .then(() => this.close())
+            .then((applied) => {
+              this.close();
+              if (applied === true) this.options.onApplied?.();
+            })
             .catch((error: unknown) => {
               this.applying = false;
               button.setDisabled(false);

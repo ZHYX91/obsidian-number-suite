@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Notice,
+  MarkdownView,
   TFile,
   type App,
   type Editor,
@@ -90,6 +91,7 @@ function createEditor(initial: string, cursorOffset: number): TestEditor {
     getCursor: () => position(cursorOffset),
     posToOffset: (pos: EditorPosition) => pos.ch,
     offsetToPos: (offset: number) => position(offset),
+    focus: vi.fn(),
     transaction: (transaction: EditorTransaction) => {
       transactions.push(transaction);
       const changes = Array.isArray(transaction.changes) ? transaction.changes : [transaction.changes];
@@ -117,6 +119,43 @@ beforeEach(() => {
 });
 
 describe("caption context menu", () => {
+  it.each(["current", "file-rebound", "editor-rebound", "detached", "inactive", "source-changed"])(
+    "restores focus after closing only for the current committed editor: %s", async (state) => {
+      const testEditor = createEditor("![[cat.png]]", 4);
+      const view = Object.assign(new MarkdownView(null as never), fileInfo(), {
+        editor: testEditor.editor,
+        containerEl: { isConnected: true } as HTMLElement,
+      });
+      let activeView: MarkdownView | null = view;
+      const app = { workspace: { getActiveViewOfType: () => activeView } } as unknown as App;
+      const testMenu = createMenu();
+      addCaptionContextMenuItem(app, testMenu.menu, testEditor.editor, view, translate);
+      testMenu.click?.();
+      expect(await modal.options?.onConfirm("Cat")).toBe(true);
+      expect(testEditor.editor.focus).not.toHaveBeenCalled();
+      if (state === "file-rebound") Object.assign(view, fileInfo());
+      if (state === "editor-rebound") view.editor = createEditor(testEditor.getValue(), 0).editor;
+      if (state === "detached") Object.assign(view.containerEl, { isConnected: false });
+      if (state === "inactive") activeView = null;
+      if (state === "source-changed") testEditor.setValue(`${testEditor.getValue()}\nNew text`);
+      modal.options?.onApplied?.();
+      expect(testEditor.editor.focus).toHaveBeenCalledTimes(state === "current" ? 1 : 0);
+    },
+  );
+
+  it("refuses a same-path file rebind before confirming without restoring focus", async () => {
+    const testEditor = createEditor("![[cat.png]]", 4);
+    const info = fileInfo();
+    const testMenu = createMenu();
+    addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, info, translate);
+    testMenu.click?.();
+    Object.assign(info, fileInfo());
+    expect(await modal.options?.onConfirm("Cat")).toBe(false);
+    modal.options?.onApplied?.();
+    expect(testEditor.transactions).toHaveLength(0);
+    expect(testEditor.editor.focus).not.toHaveBeenCalled();
+  });
+
   it("adds a bounded Figure action and applies its confirmed plan", async () => {
     const testMenu = createMenu();
     const testEditor = createEditor("![[Miao.png]]", 4);

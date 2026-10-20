@@ -1,10 +1,10 @@
 import {
   Notice,
+  MarkdownView,
   type App,
   type Editor,
   type EditorChange,
   type MarkdownFileInfo,
-  type MarkdownView,
   type Menu,
 } from "obsidian";
 
@@ -100,6 +100,9 @@ function addResolvedCaptionContextMenuItem(
   if (contributedCaptionMenus.has(menu)) return;
   contributedCaptionMenus.add(menu);
   const path = file.path;
+  const sourceView = info instanceof MarkdownView ? info : null;
+  const isCurrentEditor = (): boolean => info.file === file && file.path === path
+    && (sourceView === null || (sourceView.editor === editor && sourceView.containerEl.isConnected));
 
   menu.addItem((item) => item
     .setTitle(menuTitle(target, translate))
@@ -110,6 +113,7 @@ function addResolvedCaptionContextMenuItem(
       Code: "square-code",
     }[target.kind])
     .onClick(() => {
+      let appliedSource: string | null = null;
       new CaptionInsertionModal({
         app,
         target,
@@ -118,21 +122,30 @@ function addResolvedCaptionContextMenuItem(
           const currentTarget = resolveTarget(editor.getValue());
           const plan = createCaptionInsertionPlanForTarget(source, target, title);
           if (
-            info.file?.path !== path
+            !isCurrentEditor()
             || editor.getValue() !== source
             || currentTarget == null
             || !sameTarget(currentTarget, target)
             || plan == null
           ) {
             new Notice(translate("notice.stalePreview"));
-            return;
+            return false;
           }
           applyChanges(editor, plan.changes);
+          appliedSource = plan.result;
           new Notice(translate(target.action === "insert"
             ? "caption.notice.inserted"
             : target.action === "relocate"
               ? "caption.notice.relocated"
               : "caption.notice.normalized"));
+          return true;
+        },
+        onApplied: () => {
+          // The native table cell may have been rebuilt by the transaction.
+          // Restore focus after Modal.close(), using the original editor only.
+          if (sourceView !== null && isCurrentEditor()
+            && app.workspace.getActiveViewOfType(MarkdownView) === sourceView
+            && editor.getValue() === appliedSource) editor.focus();
         },
       }).open();
     }));

@@ -50,6 +50,23 @@ vi.mock("obsidian", async (importOriginal) => ({
 
 beforeEach(() => { installDomFixture(); });
 
+it.each([true, false])("runs the applied callback after close only for a successful write: %s", async (applied) => {
+  const target = findCaptionInsertionTarget("![[cat.png]]", 4);
+  if (target === null) throw new Error("Expected an insertion target");
+  const events: string[] = [];
+  const modal = new CaptionInsertionModal({
+    app: new App(), target, translate: createTranslator("en"),
+    onConfirm: async () => { events.push("apply"); return applied; },
+    onApplied: () => { events.push("focus"); },
+  });
+  vi.spyOn(modal, "close").mockImplementation(() => { events.push("close"); });
+  modal.onOpen();
+  const buttons = modal.contentEl.querySelectorAll("button");
+  buttons[1]?.click();
+  await Promise.resolve();
+  expect(events).toEqual(applied ? ["apply", "close", "focus"] : ["apply", "close"]);
+});
+
 it("previews the retained caption IDs exactly while editing only the visible title", () => {
   const source = "![[cat.png]]\n\n  Figure: Cat ^cat-id\n^second-id";
   const target = findCaptionInsertionTarget(source, source.indexOf("cat.png"));
