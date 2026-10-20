@@ -268,6 +268,8 @@ number-suite:
 - 处理顶层 ATX H1-H6，以及 Number Suite/DocWen 的 H7-H9 扩展标题。Setext 标题、块引用、
   列表、注释、frontmatter、围栏代码和 HTML 块都不是编号目标；Obsidian 原生标题索引仍以
   宿主自身支持的语法为准。
+- 列表和引用块里的标题、题注不参与整篇编号。其中普通正文的脚注和交叉引用仍可使用，
+  围栏代码示例保持原样。
 - 不支持 Canvas、Obsidian 内置大纲、Backlinks、Search Results 或 PDF 导出集成；Number
   Suite 提供自己的 H1-H9 与题注侧栏大纲。
 - Source Mode 装饰默认关闭，使实体 Markdown 始终直接可见。

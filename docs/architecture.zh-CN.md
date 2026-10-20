@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-09-23
+last_synced: 2026-10-19
 ---
 
 # Number Suite — 架构
@@ -39,6 +39,12 @@ frontmatter、围栏代码、HTML/Obsidian 注释和块；10 个及以上井号�
 `template-compiler.ts` 将占位符编译为用于渲染、校验和模板前缀识别的 AST。
 `number-parser.ts` 对插件、模板和人工前缀提供来源、样式、规则及置信度；
 `prefix-analysis.ts` 是显示与写入共享入口。
+
+`markdown-containers.ts` 使用打包在插件内的纯 Lezer Markdown 解析器，每次保护扫描只解析一次
+列表、引用块及其中的代码和 HTML 块，再线性投影到物理行；原始偏移和 CRLF、CR 行尾保持不变。
+Number Suite H7-H9 仍作为块边界。共享保护区分顶层声明与普通正文：容器内的标题、题注和对象
+不参与整篇编号，普通正文中的脚注和语义引用仍可识别。容器内的围栏不会改变容器外的保护状态。
+跳过的字面量行可以结束此前已经打开的行内注释，但不能开启新注释，也不提供自身的引用。
 
 `numbering-engine.ts` 管理 H1-H9 计数、首个显示数字、整篇文件逐级 skip-first 顺序、重置、
 空模板结构语义、排除和跨级策略。`frontmatter.ts` 把单一 `number-suite` 指令列表与只读兼容的

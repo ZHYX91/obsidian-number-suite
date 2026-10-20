@@ -156,7 +156,7 @@ function tableCells(text: string): string[] | null {
 }
 
 function tableDelimiterColumnCount(line: SemanticSourceLine): number | null {
-  if (!line.available) return null;
+  if (!line.available || !line.topLevel) return null;
   const cells = tableCells(line.text);
   if (cells == null) return null;
   const delimiterCells = cells.filter((cell) => cell.trim().length > 0);
@@ -167,7 +167,7 @@ function tableDelimiterColumnCount(line: SemanticSourceLine): number | null {
 }
 
 function tableRowColumnCount(line: SemanticSourceLine | undefined): number | null {
-  if (line == null || !line.available || line.text.trim().length === 0) return null;
+  if (line == null || !line.available || !line.topLevel || line.text.trim().length === 0) return null;
   if (/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(line.text)) return null;
   return tableCells(line.text)?.length ?? null;
 }
@@ -186,7 +186,7 @@ function includeFollowingBlockId(
 function imageObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
   for (const line of lines) {
-    if (!line.available) continue;
+    if (!line.available || !line.topLevel) continue;
     const image = standaloneImageText(line.text);
     if (image == null) continue;
     const lastLine = includeFollowingBlockId(lines, line.number);
@@ -248,7 +248,7 @@ function equationObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] 
   const output: CaptionObject[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const opening = lines[index];
-    if (opening == null || !opening.available || !/^ {0,3}\$\$/u.test(opening.text)) continue;
+    if (opening == null || !opening.available || !opening.topLevel || !/^ {0,3}\$\$/u.test(opening.text)) continue;
     const trimmed = withoutBlockId(opening.text).trim();
     let last = index;
     if (!(trimmed.length > 4 && trimmed.endsWith("$$"))) {
@@ -288,7 +288,7 @@ function codeObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const opening = lines[index];
-    if (opening == null || opening.available) continue;
+    if (opening == null || opening.available || !opening.topLevel) continue;
     if (index > 0 && lines[index - 1]?.available === false) continue;
     const match = /^ {0,3}(`{3,}|~{3,})[^\r\n]*$/u.exec(opening.text);
     const run = match?.[1];

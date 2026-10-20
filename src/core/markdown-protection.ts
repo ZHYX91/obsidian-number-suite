@@ -1,9 +1,11 @@
 import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
+import { scanMarkdownContainerLines } from "./markdown-containers";
 
 export interface MarkdownProtectedLine extends PhysicalSourceLine {
   readonly available: boolean;
   readonly commentMaskedText: string;
   readonly headingAvailable: boolean;
+  readonly topLevel: boolean;
 }
 
 export interface MarkdownProtectionOptions {
@@ -64,12 +66,14 @@ export function scanMarkdownProtectedLines(
   options: MarkdownProtectionOptions = {},
 ): MarkdownProtectedLine[] {
   const lines = scanPhysicalLines(source);
+  const containers = scanMarkdownContainerLines(lines);
   const output: MarkdownProtectedLine[] = [];
   let state: ProtectedBlockState | null = null;
   let inParagraph = false;
   let inlineComment: CommentKind | null = null;
 
   for (const line of lines) {
+    const container = containers[line.number];
     const trimmed = line.text.trim();
     let available = true;
     let commentMaskedText = line.text;
@@ -96,8 +100,23 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
+    } else if (container?.literal === true) {
+      available = false;
+      // A pending comment must still end while these lines are skipped. Do
+      // not scan the literal tail: code may contain unrelated comment openers.
+      if (inlineComment != null) {
+        const ending = inlineComment === "html" ? "-->" : "%%";
+        if (line.text.includes(ending)) inlineComment = null;
+      }
     } else if (inlineComment != null) {
       const comments = scanInlineComments(line.text, inlineComment);
+      commentMaskedText = comments.masked;
+      inlineComment = comments.state;
+      headingAvailable = false;
+    } else if (container?.nested === true) {
+      // Ordinary list/quote references remain meaningful. Nested fences and
+      // HTML must not start a document-level protection state after they end.
+      const comments = scanInlineComments(line.text);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
@@ -150,7 +169,8 @@ export function scanMarkdownProtectedLines(
       }
     }
 
-    output.push({ ...line, available, commentMaskedText, headingAvailable: available && headingAvailable });
+    const topLevel = container?.nested !== true;
+    output.push({ ...line, available, commentMaskedText, topLevel, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
     // heading, fence, thematic break or other block without a blank line.
     inParagraph = available && trimmed.length > 0

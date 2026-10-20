@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-03
+last_synced: 2026-10-19
 ---
 
 # Number Suite — Testing strategy
@@ -46,6 +46,14 @@ The pure sidebar outline projection covers H1-H9 hierarchy, captions, display la
 regions, and block-ID removal; targeted current-note tests cover sidebar focus and duplicate-view
 failure.
 Broader recognition requires false-positive fixtures first.
+
+Container contracts run real parsers and heading plans on list, quote, nested-fence, and HTML
+fixtures. They assert protected bytes and untouched change ranges, the next document heading's
+number, and continued ordinary reference resolution. LF, CRLF, CR, unclosed container fences, and
+H7-H9 boundaries are included. Expected behavior comes from the document contract rather than
+reusing the implementation's container classifier to generate expected results.
+Pending comments must end across skipped literal lines without activating comment openers or
+references in code examples; ordinary references before and after the comment remain intact.
 
 Coverage thresholds are regression floors, not quality targets or host acceptance. New critical
 branches need behavioral assertions even when aggregate coverage stays above threshold.
