@@ -4,6 +4,7 @@ All notable changes to Number Suite are documented here.
 
 ## 0.5.7 - 2026-10-20
 
+- Keep current-note controls readable in narrow sidebars when a numbering scheme has a long name.
 - Follow Obsidian's cursor preference for references, settings controls and heading-map panning instead of forcing browser hand cursors.
 - Preserve additional object block IDs by refusing caption relocation across source outside the recognized object and caption ranges.
 - Preserve caption block IDs and reference ownership when moving or normalizing captions.
