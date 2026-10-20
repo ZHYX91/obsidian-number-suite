@@ -101,7 +101,7 @@ IME, mobile, pop-out windows, third-party themes, and long-document latency requ
 environments; automated DOM tests cannot replace them. Detailed steps remain in the
 [runtime checklist](ACCEPTANCE.md).
 
-Host acceptance is an optional quality check and does not gate authorized publication.
+Select representative acceptance on the exact candidate by change impact. Desktop interaction, settings or lifecycle changes require relevant real-host scenarios; mobile interaction or shared runtime behavior affecting mobile requires relevant Android emulator scenarios. Documentation-only or host-independent logic changes may omit hosts with a recorded reason. Confirmed serious product defects affecting a release block that release. Missing host/tool evidence stays unverified and is assessed by risk; it does not automatically block publication or add a separate approval step. Claim acceptance only for observed passing scope. The full host matrix is not required for every release, and CI does not automatically enforce host coverage.
 When mobile acceptance is selected, use an isolated Android 15 / API 35 emulator.
 Install and hash-check the final candidate, then cover sidebar open/close, both tabs, H1-H9 and
 caption outline navigation, 44-pixel touch targets, current-note controls, Live Preview, Reading
