@@ -4,8 +4,9 @@ This is a non-authoritative execution checklist. The normative evidence rules ar
 [testing strategy](testing-strategy.en.md) and its [Chinese source](testing-strategy.zh-CN.md).
 
 Automated checks are necessary but do not prove Obsidian runtime behavior. When host acceptance is selected, run the relevant scenarios in a disposable Vault using the exact
-packaged candidate. Record incomplete, skipped, or failed checks honestly; host acceptance does not
-block explicitly authorized publication. Never use a production Vault for these scenarios.
+packaged candidate. Select affected real desktop and Android scenarios by risk. Confirmed serious
+product defects block the affected release; missing host evidence is assessed and recorded by risk.
+Record incomplete, skipped, or failed checks honestly. Never use a production Vault for these scenarios.
 
 ## Test setup
 
@@ -255,3 +256,7 @@ Use `Regional numbers.md` to keep authored years, decimal values, quantities and
 unchanged during cleanup and concealment. Check live map state across English/Arabic switching,
 seven settings tabs, mixed-direction input and independent persistence of language and scheme.
 Desktop and Android results are separate; report unavailable interactions as unverified.
+
+## Current safety regressions
+
+Run the `caption-container-write-safety` scenario with `Caption and container safety.md` in the exact candidate. Keep desktop, Android and companion-plugin observations separate. Follow the executable steps and expected results in `acceptance/product-scenarios.json`; preserve full-note baselines and actual undo/redo observations.

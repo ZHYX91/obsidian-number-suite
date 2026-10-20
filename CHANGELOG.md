@@ -2,9 +2,15 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.5.7 - 2026-10-20
 
+- Keep current-note controls readable in narrow sidebars when a numbering scheme has a long name.
 - Follow Obsidian's cursor preference for references, settings controls and heading-map panning instead of forcing browser hand cursors.
+- Preserve additional object block IDs by refusing caption relocation across source outside the recognized object and caption ranges.
+- Preserve caption block IDs and reference ownership when moving or normalizing captions.
+- Restore the originating editor focus after confirming a caption so keyboard undo works immediately.
+- Verify Structural Tables source snapshots before offering caption writes, with a clear Source-mode fallback for unavailable targets.
+- Expand all localized user guides and add consistent guide and issue links in General settings.
 - Keep headings, captions, and code examples inside list and blockquote containers out of document numbering while preserving ordinary references in their text.
 - Keep numbering the rest of the note after a multiline comment crosses a list-contained code example.
 

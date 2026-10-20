@@ -7,7 +7,7 @@ import {
   type SettingDefinitionItem,
 } from "obsidian";
 
-import { createTranslator, uiTextDirection, type Translate } from "../config/i18n";
+import { createTranslator, resolvedUiLocale, uiTextDirection, type Translate } from "../config/i18n";
 import { languageOptions } from "../config/language-options";
 import {
   DEFAULT_SETTINGS,
@@ -282,6 +282,18 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addButton((button) => button.setButtonText(t("settings.reset.button")).setWarning().onClick(() => {
         this.openResetModal(t);
       }));
+    const help = new Setting(container).setName(t("settings.help"));
+    const locale = resolvedUiLocale(this.plugin.settings.language);
+    const guidePath = locale === "en" ? "README.md"
+      : `docs/i18n/README.${locale === "zh" ? "zh-CN" : locale}.md`;
+    help.controlEl.createEl("a", {
+      text: t("settings.help.guide"),
+      attr: { href: `https://github.com/ZHYX91/obsidian-number-suite/blob/main/${guidePath}` },
+    });
+    help.controlEl.createEl("a", {
+      text: t("settings.help.report"),
+      attr: { href: "https://github.com/ZHYX91/obsidian-number-suite/issues/new/choose" },
+    });
     renderExportGuide(container, t);
   }
 

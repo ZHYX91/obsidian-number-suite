@@ -1,6 +1,6 @@
 # Number Suite
 
-[English](README.md) · [简体中文](docs/i18n/README.zh-CN.md) · [繁體中文](docs/i18n/README.zh-TW.md) · [日本語](docs/i18n/README.ja.md) · [한국어](docs/i18n/README.ko.md) · [Deutsch](docs/i18n/README.de.md) · [Français](docs/i18n/README.fr.md) · [Español](docs/i18n/README.es.md) · [Português (Brasil)](docs/i18n/README.pt-BR.md) · [Русский](docs/i18n/README.ru.md) · [Tiếng Việt](docs/i18n/README.vi.md) · [العربية](docs/i18n/README.ar.md)
+[English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md) · [繁體中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-TW.md) · [日本語](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ja.md) · [한국어](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ko.md) · [Deutsch](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.de.md) · [Français](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.fr.md) · [Español](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.es.md) · [Português (Brasil)](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.pt-BR.md) · [Русский](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ru.md) · [Tiếng Việt](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.vi.md) · [العربية](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ar.md)
 
 Want numbered headings without changing your notes? Turn on **Show virtual numbers**. Number Suite can also display numbers for captions, references, footnotes, and endnotes. To put heading numbers into Markdown, run **Write numbers** or **Renumber** separately, review the preview, and confirm. You can also hide numbers already written in a note without deleting them. Everything runs locally.
 
@@ -77,9 +77,7 @@ it. If it is not available in your catalog, use the manual installation below.
 
 ### Manual installation
 
-Download `main.js`, `manifest.json`, and `styles.css` from one matching GitHub Release. Place those
-three files in `.obsidian/plugins/number-suite/`, then reload Obsidian and enable the plugin.
-Do not mix files from different versions.
+Download the versioned ZIP from [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases), extract it, and place the `number-suite` folder inside `.obsidian/plugins/`. You can also place `main.js`, `manifest.json`, and `styles.css` from the same release in `.obsidian/plugins/number-suite/`. Reload Obsidian and enable the plugin. Do not mix files from different versions.
 
 <!-- section: usage -->
 ## Usage
@@ -108,8 +106,7 @@ does not guess and rewrite those links.
 Use **Open heading mind map** from the command palette or the map button in Document outline to open
 the current Markdown note as an ordered heading tree. A file card connects all top-level headings
 and remains visible even when the note has none. It shows the file name, a file icon and the number
-of top-level headings; it never replaces a same-name H1. The initial overview shows two structural
-heading depths at readable size. Click the file name above the map to return from a subtree, or the
+of top-level headings; it never replaces a same-name H1. The initial overview shows the first two levels of the heading tree at a readable size. Click the file name above the map to return from a subtree, or the
 zoom percentage to restore 100%. The left heading-card handle shows the virtual number that is
 actually displayed, or a reliably recognized visible stored number; otherwise it falls back to the
 heading level. The right handle always shows the count of direct child headings and toggles only that
@@ -142,8 +139,7 @@ recognized caption is displayed as one filled pill; its optional number is part 
 `[[#...]]` links remain entirely Obsidian's.
 The caption keyword controls its semantic label and counter, while the adjacent standalone block is
 its visual carrier. Any caption type may bind an image, Markdown table, display equation, or fenced
-code block, so a `Figure:` caption can label a table that lays out a composite figure. Zero or one
-blank line may separate the pair; two blank lines separate them. A caption with candidates on both
+code block, so a `Figure:` caption can label a table that lays out a composite figure. Keep the caption beside its object, with at most one blank line between them. Leave two blank lines to separate them. A caption with candidates on both
 sides, or an object with multiple candidate captions, stays unbound. An unbound caption remains a
 numbered, referenceable caption pill but has no object placement or object hover behavior.
 Caption alignment is independent from caption numbering. Figure and Equation captions are centered
@@ -162,8 +158,7 @@ Figure caption; right-click any row of a top-level Markdown table for Table, a s
 display equation for Equation, or a top-level fenced code block for Code. The action follows the
 actual right-click target, so an image does not need to be selected first. The same Table action is
 contributed to the rendered context menu when Structural Tables owns a table in Live Preview,
-including ordinary-table takeover and multi-row structural headers. Either plugin also continues
-to work normally when the other is absent.
+including ordinary-table takeover and multi-row structural headers. Number Suite checks the file, original text, and exact table position before offering the action. If an older Structural Tables version does not provide that information, or the table syntax is unsupported, the menu explains that the action is unavailable. Add or edit the caption in Source mode in that case. Either plugin also works independently.
 
 The dialog previews the exact Markdown line before one bounded editor transaction. All newly
 created captions are stored above their objects. A legacy Figure caption found immediately below
@@ -172,7 +167,7 @@ its image offers a bounded move-above action. If the adjacent keyword differs on
 of any type suppresses a second caption action. Existing exact captions, note
 embeds, inline images, inline math, inline code, and images/math/code inside table cells do not offer
 an independent caption action. Cross-references may still be written inside table cells. Creating a
-caption never creates a block ID.
+caption never creates a block ID. Moving or normalizing an existing caption preserves its inline and following block IDs, so existing block references keep pointing to that caption.
 
 **Show image and Figure-caption hover details** is on by default. Hovering either member of a bound
 Figure pair shows the rendered caption and non-size wiki replacement text or Markdown alt text.
@@ -232,6 +227,8 @@ scanning.
 <!-- section: settings -->
 ## Settings
 
+Open **Settings → Number Suite → General** for the **User guide** and **Report an issue** links.
+
 Settings use one accessible seven-tab surface on every supported Obsidian version: General,
 Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
 and batch. The tab itself identifies the current section, so its content starts directly with the
@@ -254,8 +251,7 @@ upper/lower Latin letters, and upper/lower Roman numerals.
 
 An empty Hn template does not output a number, but that heading remains structural: it increments
 its counter, resets deeper counters, and can be referenced by descendant templates. A non-empty Hn
-template must include an Hn placeholder and must not reference a deeper heading level. Scheme
-templates are the per-level rule used by the numbering core. Templates must be single-line, must not
+template must include an Hn placeholder and must not reference a deeper heading level. Each heading level uses its own template. Templates must be single-line, must not
 start with whitespace, and must not contain HTML comments or U+2060 source markers. A bare letter or
 Roman-numeral counter is rejected unless the template adds an explicit delimiter, such as
 `{1.letter_lower}.`.
@@ -340,10 +336,9 @@ filter the chosen scope, exclude configured folders, and produce an exact previe
 
 Current-note changes use one editor transaction. Batch operations preview all targets, revalidate
 their exact content, persist bounded recovery data, and avoid overwriting concurrent edits. These
-safeguards reduce risk but do not make first-run testing in an ordinary or production vault
-appropriate. Use an isolated test vault for acceptance.
+safeguards stop the plugin from applying an outdated preview. Keep your usual backups when making changes across many notes.
 
-Report security or data-loss concerns through [GitHub Security Advisories](SECURITY.md) without
+Report security or data-loss concerns through [GitHub Security Advisories](https://github.com/ZHYX91/obsidian-number-suite/blob/main/SECURITY.md) without
 including private vault content.
 
 <!-- section: development -->
@@ -358,16 +353,16 @@ npm run check
 
 Project documents:
 
-- [Product requirements](docs/product-requirements.en.md)
-- [UX specification](docs/ux-spec.en.md)
-- [Architecture](docs/architecture.en.md)
-- [Testing strategy](docs/testing-strategy.en.md)
+- [Product requirements](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/product-requirements.en.md)
+- [UX specification](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/ux-spec.en.md)
+- [Architecture](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/architecture.en.md)
+- [Testing strategy](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/testing-strategy.en.md)
 
 Project links:
 
-- [Contributing guide](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
-- [Changelog](CHANGELOG.md)
+- [Contributing guide](https://github.com/ZHYX91/obsidian-number-suite/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/ZHYX91/obsidian-number-suite/blob/main/SECURITY.md)
+- [Changelog](https://github.com/ZHYX91/obsidian-number-suite/blob/main/CHANGELOG.md)
 
 <!-- section: support -->
 ## Support
@@ -383,4 +378,4 @@ Markdown, the selected scheme, and the exact action taken. Do not attach private
 <!-- section: license -->
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/ZHYX91/obsidian-number-suite/blob/main/LICENSE)

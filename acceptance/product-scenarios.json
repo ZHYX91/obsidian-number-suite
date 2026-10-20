@@ -13,6 +13,32 @@
   },
   "scenarios": [
     {
+      "id": "caption-container-write-safety",
+      "title": "Container protection and caption reference preservation",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": [
+          "touch.longPress"
+        ]
+      },
+      "steps": [
+        "In a narrow desktop sidebar and Android portrait sidebar, open current-note overrides and select a long scheme name. Labels and descriptions must remain readable and the dropdown must stay within the panel; verify the selection can be changed.",
+        "Open Caption and container safety in Live Preview and Reading View. Record the full source. Virtual numbering must include only Visible before, Visible after and Final visible heading. Preview write/renumber, cancel, then apply and undo once: list/quote headings, fenced caption and all protected bytes must remain unchanged.",
+        "Use the image menu to normalize and move the lowercase figure caption above its carrier. Inspect the exact preview, confirm, follow the caption-id cross-reference, undo and redo. Preserve caption-id and image-id and reference ownership; a confirmed operation must be one host undo step.",
+        "Attempt relocation across object-one and object-two: no write action may discard or reassign the second ID. Open a valid preview, change the original source in another pane, then confirm; stale confirmation must write nothing.",
+        "When the exact Structural Tables companion is installed in the declared interoperability environment, leave the cursor in the first byte-identical table and open the second table menu. The caption preview and write must target the second table only. Repeat both plugin load orders and disable/re-enable. With the old companion, require safe Source-mode fallback instead of ordinal or cursor substitution.",
+        "On Android use the real long-press menu, soft keyboard and on-screen undo/redo. Record each observed path and any environment-specific omission separately."
+      ],
+      "expected": [
+        "Display-only mode preserves full source bytes. Writes touch only previewed top-level targets and one undo restores the exact baseline.",
+        "Authored block IDs and their reference owners survive normalization/relocation. Ambiguous or stale targets are refused with zero writes. Companion behavior is reported separately from the clean single-plugin baseline."
+      ]
+    },
+    {
       "id": "regional-language-and-rtl",
       "title": "Language switching, scoped RTL and regional numeric safety",
       "surfaces": [

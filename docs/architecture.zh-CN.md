@@ -163,10 +163,10 @@ Markdown 表格、块公式和围栏代码块，并将题注类型与承载对�
 计划；图片下方的旧 Figure 生成有界迁移计划。弹窗采集并预览单行题名；确认
 时复核文件路径、完整编辑器源码和原目标，再应用精确的一处编辑器变更。
 
-`StructuralTableCaptionMenuBridge` 只观察 Structural Tables 公开的渲染宿主类和
-`data-structural-source-table-index` 标记。它把同一操作加入 `Menu.forEvent`，再由 Number Suite
-自己的 Markdown 表格扫描器映射该序号并保留多行表头；宿主、Markdown 视图、序号或源码表格
-任一项无法解析时均失败关闭。Number Suite 不导入 Structural Tables 代码，并保持独立可安装。
+`CaptionCarrierMenuBridge` 读取 Structural Tables 公开的自有渲染宿主和带版本的源码快照。版本 `1` 必须提供 `data-structural-source-version`、`data-structural-source-from`、`data-structural-source-to`、`data-structural-source-path` 和 `data-structural-source`。偏移按 UTF-16 计数；右开区间末端不包含末行换行符和外部独立块 ID 行。原表格文本必须与当前编辑器切片完全一致，路径必须一致，且 Number Suite 须在完全相同的视觉边界识别出表格。表格序号不能作为写入目标。旧版、字段不全、过期、不支持或未知版本的快照会显示停用菜单说明，并提示改用源码模式编辑。来源有效且已有正确位置题注的表格无需操作。两个插件保持独立可安装，不引入提供方运行时依赖。
+
+题注修正与迁移保留原缩进、行内 ID 后缀和支持的后续独立 ID。编辑移动完整的题注身份，同时保留对象自己的 ID 和原引用标记。多个独立 ID 行，或当前关联语法不能保留的带注释 ID 行不提供迁移操作。结果须继续把题注关联到同一对象；独立 ID 前已占用一个空行时，不再在移动后的 ID 和对象之间添加第二个空行。
+目标识别和计划构造均拒绝跨越已识别对象与题注范围之间的非空白内容，包括对象的第二个独立块 ID。
 
 稳定引用右键操作使用独立的纯 `StableReferencePlan`，只识别真实右键位置的标题或固定题注。
 已有行内或紧随其后的块 ID 时不写入；否则在合法目标位置生成防冲突块 ID（题注行内、标题下一

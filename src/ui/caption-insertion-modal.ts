@@ -2,16 +2,18 @@ import { App, Modal, Setting, type ButtonComponent } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { applyModalDirection } from "./modal-direction";
-import type {
-  CaptionInsertionAction,
-  CaptionInsertionTarget,
+import {
+  formatCaptionInsertionSource,
+  type CaptionInsertionAction,
+  type CaptionInsertionTarget,
 } from "../core/caption-insertion";
 
 export interface CaptionInsertionModalOptions {
   readonly app: App;
   readonly target: CaptionInsertionTarget;
   readonly translate: Translate;
-  readonly onConfirm: (title: string) => Promise<void>;
+  readonly onConfirm: (title: string) => Promise<boolean | void>;
+  readonly onApplied?: () => void;
 }
 
 function kindLabel(target: CaptionInsertionTarget, t: Translate): string {
@@ -46,9 +48,9 @@ export class CaptionInsertionModal extends Modal {
     const previewCode = preview.createEl("code");
 
     const update = (): void => {
-      const normalized = value.trim();
-      previewCode.setText(`${target.kind}: ${normalized}`);
-      confirmButton?.setDisabled(normalized.length === 0);
+      const caption = formatCaptionInsertionSource(target, value);
+      previewCode.setText(caption ?? "");
+      confirmButton?.setDisabled(caption === null);
     };
 
     new Setting(contentEl)
@@ -78,11 +80,14 @@ export class CaptionInsertionModal extends Modal {
             : "caption.modal.confirm.normalize"))
         .setCta()
         .onClick(() => {
-          if (this.applying || value.trim().length === 0) return;
+          if (this.applying || formatCaptionInsertionSource(target, value) === null) return;
           this.applying = true;
           button.setDisabled(true);
           void this.options.onConfirm(value.trim())
-            .then(() => this.close())
+            .then((applied) => {
+              this.close();
+              if (applied === true) this.options.onApplied?.();
+            })
             .catch((error: unknown) => {
               this.applying = false;
               button.setDisabled(false);

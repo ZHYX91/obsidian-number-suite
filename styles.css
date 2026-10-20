@@ -873,6 +873,29 @@
   margin-block-end: var(--size-4-3);
 }
 
+.number-suite-note-control-section .setting-item {
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+}
+
+.number-suite-note-control-section .setting-item-info {
+  flex: 1 1 12rem;
+  margin-inline-end: 0;
+  min-inline-size: 0;
+}
+
+.number-suite-note-control-section .setting-item-control {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.number-suite-note-control-section .setting-item-control select {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
 .number-suite-note-control-summary {
   display: grid;
   font-size: var(--font-ui-small);
@@ -1563,4 +1586,8 @@
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+.number-suite-caption-preview code {
+  white-space: pre-wrap;
 }

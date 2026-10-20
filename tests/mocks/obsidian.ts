@@ -16,6 +16,7 @@ export class MenuItem {
   title = "";
   icon: unknown = null;
   callback: (() => void) | null = null;
+  disabled = false;
 
   setTitle(title: string): this {
     this.title = title;
@@ -24,6 +25,11 @@ export class MenuItem {
 
   setIcon(icon: unknown): this {
     this.icon = icon;
+    return this;
+  }
+
+  setDisabled(disabled: boolean): this {
+    this.disabled = disabled;
     return this;
   }
 
