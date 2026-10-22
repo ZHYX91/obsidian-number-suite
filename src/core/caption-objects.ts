@@ -288,8 +288,9 @@ function codeObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const opening = lines[index];
-    if (opening == null || opening.available || !opening.topLevel) continue;
-    if (index > 0 && lines[index - 1]?.available === false) continue;
+    // Availability alone does not identify a code fence: frontmatter, HTML,
+    // comments and closing fences are all unavailable too.
+    if (opening?.fenceOpening !== true || !opening.topLevel) continue;
     const match = /^ {0,3}(`{3,}|~{3,})[^\r\n]*$/u.exec(opening.text);
     const run = match?.[1];
     if (run == null) continue;
