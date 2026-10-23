@@ -129,9 +129,25 @@ for (const { path } of editions.slice(2)) {
   for (const token of ["`main.js`", "`manifest.json`", "`styles.css`", "@[[", "Structural Tables", "H7", "Properties"]) {
     assert.ok(source.includes(token), `${path}: missing practical workflow information: ${token}`);
   }
+  for (const advancedPath of ["../advanced.en.md", "../advanced.zh-CN.md"]) {
+    assert.ok(source.includes(`](${advancedPath})`),
+      `${path}: compact guide must identify its advanced-language reference`);
+  }
   assert.ok(source.includes(settingLabel), `${path}: quick start must use the actual localized control label`);
   assert.doesNotMatch(source, /`Show virtual numbers`/u, `${path}: stale English-only button label`);
 }
+for (const file of ["docs/advanced.en.md", "docs/advanced.zh-CN.md"]) {
+  const content = await readFile(file, "utf8");
+  for (const syntax of ["H7", "Figure:", "Table:", "Equation:", "Code:", "@[[", "[^endnote:id]"]) {
+    assert.ok(content.includes(syntax), `${file}: missing detailed syntax: ${syntax}`);
+  }
+  await validateReadmeTargets(file, content);
+}
+assert.ok(english.includes("blob/main/docs/advanced.en.md"),
+  "Root README must direct advanced users to the full reference");
+assert.ok(chinese.includes("](../advanced.zh-CN.md)"),
+  "Chinese README must link to its advanced reference");
+
 assert.doesNotMatch(english, /Choose from 12 interface languages/u);
 assert.doesNotMatch(chinese, /使用英文或简体中文界面/u);
 assert.match(english, /## Features/u, "Root README must be the English canonical document");

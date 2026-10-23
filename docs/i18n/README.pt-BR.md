@@ -4,6 +4,8 @@
 
 O Number Suite mostra números em títulos, legendas, referências, notas de rodapé e notas de fim no Obsidian. A exibição na tela não modifica o Markdown. Gravar os números no texto é uma operação separada.
 
+Este é um **guia resumido** para tarefas comuns. Os detalhes sobre H7–H9, vínculo entre legendas e objetos, referências estáveis, notas de rodapé e notas finais ficam nos guias avançados em [inglês](../advanced.en.md) e [chinês simplificado](../advanced.zh-CN.md).
+
 <!-- section: installation -->
 ## Instalação
 
