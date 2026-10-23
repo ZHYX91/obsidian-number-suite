@@ -1,4 +1,5 @@
 import { navigateToLine } from "../adapters/navigate-to-line";
+import { parser as markdownParser } from "@lezer/markdown";
 import {
   App,
   MarkdownView,
@@ -20,6 +21,9 @@ import {
   type NumberSuiteSettings,
 } from "../config/settings";
 import { parseAtxHeadings } from "../core/heading-parser";
+import { scanSemanticSourceLines } from "../core/document-semantics";
+import { isMarkdownSourceEscaped, maskInlineProtectedSyntax } from "../core/markdown-protection";
+import { scanPhysicalLines } from "../core/source-lines";
 import { WORD_JOINER } from "../core/markers";
 import { createDisplayPlan } from "../application/display-plan";
 import {
@@ -48,11 +52,21 @@ const sharedCaptionOrigins = new WeakMap<HTMLElement, Readonly<{
   sourcePlacement: "above" | "below";
 }>>();
 const captionLayoutCleanup = new WeakMap<HTMLElement, () => void>();
+const referenceOriginalNodes = new WeakMap<HTMLElement, readonly ChildNode[]>();
+
+interface ReadingReferenceCandidate {
+  readonly from: number;
+  readonly line: number;
+  readonly target: string;
+  readonly originalLabel: string;
+}
 
 interface CachedReadingPlan {
   readonly headings: readonly ParsedHeading[];
   readonly displayPlan: readonly DisplayDecorationPlan[];
   readonly semanticPlan: readonly SemanticDisplayDecoration[];
+  readonly referenceCandidates: readonly ReadingReferenceCandidate[];
+  readonly unverifiedReferenceLines: ReadonlySet<number>;
 }
 
 interface ReadingPlanCacheEntry extends CachedReadingPlan {
@@ -133,7 +147,10 @@ function cleanupSemantic(container: HTMLElement): void {
     else virtual.remove();
   }
   for (const anchor of container.querySelectorAll<HTMLElement>("[data-number-suite-reference]")) {
-    anchor.textContent = anchor.dataset.numberSuiteReferenceOriginal ?? anchor.textContent;
+    const originalNodes = referenceOriginalNodes.get(anchor);
+    if (originalNodes != null) anchor.replaceChildren(...originalNodes);
+    else anchor.textContent = anchor.dataset.numberSuiteReferenceOriginal ?? anchor.textContent;
+    referenceOriginalNodes.delete(anchor);
     if (anchor.dataset.numberSuiteReferenceAriaPresent === "true") {
       anchor.setAttribute("aria-label", anchor.dataset.numberSuiteReferenceAriaOriginal ?? "");
     } else {
@@ -270,6 +287,7 @@ interface RenderedCaptionObject {
   readonly root: HTMLElement;
   readonly alignmentTarget: HTMLElement;
   readonly hoverTarget: HTMLElement | null;
+  readonly placementTarget?: HTMLElement;
   readonly sectionScoped?: boolean;
 }
 
@@ -316,22 +334,51 @@ function captionSharesCarrierRoot(caption: HTMLElement, objectKind: string): boo
   return caption.matches(selector) || caption.querySelector(selector) != null;
 }
 
-function renderedSectionCodeObject(
+function renderedSectionObject(
   caption: HTMLElement,
   item: SemanticDisplayDecoration,
   context: MarkdownPostProcessorContext,
 ): RenderedCaptionObject | null {
-  if (item.objectKind !== "Code" || item.sourcePlacement == null
+  if (item.objectKind == null || item.sourcePlacement == null
     || item.objectFirstLine == null || item.objectLastLine == null) return null;
   const section = caption.parentElement;
   if (!section?.matches(".el-p") || !section.parentElement?.matches(".markdown-preview-section")) return null;
   const sibling = item.sourcePlacement === "above" ? section.nextElementSibling : section.previousElementSibling;
-  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement) || !sibling.matches(".el-pre")) return null;
+  const sectionSelector = item.objectKind === "Figure" ? ".el-p"
+    : item.objectKind === "Table" ? ".el-table"
+      : item.objectKind === "Equation" ? ".el-div" : ".el-pre";
+  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement)
+    || !sibling.matches(sectionSelector)) return null;
   const renderedSection = context.getSectionInfo(sibling);
-  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine
-    || renderedSection.lineEnd !== item.objectLastLine) return null;
-  const code = sibling.querySelectorAll<HTMLElement>("pre");
-  return code.length === 1 ? { root: sibling, alignmentTarget: code[0]!, hoverTarget: null, sectionScoped: true } : null;
+  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine) return null;
+  // Native image paragraphs include their immediately following block-ID line.
+  const imageIdTail = item.objectKind === "Figure"
+    && renderedSection.lineEnd === item.objectLastLine + 1
+    && /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u.test(
+      renderedSection.text.replace(/\r\n?/gu, "\n").split("\n")[renderedSection.lineEnd] ?? "",
+    );
+  if (renderedSection.lineEnd !== item.objectLastLine && !imageIdTail) return null;
+  // Certify the actual carrier, not all nested wrapper matches for that carrier.
+  const selector = item.objectKind === "Figure" ? "img"
+    : item.objectKind === "Equation" && sibling.querySelector("mjx-container[display='true']") != null
+      ? "mjx-container[display='true']" : captionObjectSelector(item.objectKind);
+  const targets = sibling.querySelectorAll<HTMLElement>(selector);
+  if (targets.length !== 1) return null;
+  const target = targets[0]!;
+  let placementTarget = target;
+  while (placementTarget.parentElement !== sibling) {
+    if (placementTarget.parentElement == null) return null;
+    placementTarget = placementTarget.parentElement;
+  }
+  // Move the carrier's inner wrapper with it: translating a table inside its
+  // stationary overflow wrapper would clip the visually relocated table.
+  return {
+    root: sibling,
+    alignmentTarget: target,
+    placementTarget,
+    hoverTarget: item.captionKind === "Figure" ? target : null,
+    sectionScoped: true,
+  };
 }
 
 interface SharedCaptionCandidate {
@@ -437,14 +484,19 @@ function splitSharedCaptionRoot(
   return caption;
 }
 
-function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, sectionPlacement?: "above" | "below"): void {
+function alignRenderedCaption(
+  caption: HTMLElement,
+  target: HTMLElement,
+  sectionPlacement?: "above" | "below",
+  placementTarget = target,
+): void {
   captionLayoutCleanup.get(caption)?.();
   const view = caption.ownerDocument.defaultView;
   if (view == null) return;
   let active = true;
   let frame: number | null = null;
   const captionTranslate = caption.style.getPropertyValue("translate");
-  const targetTranslate = target.style.getPropertyValue("translate");
+  const targetTranslate = placementTarget.style.getPropertyValue("translate");
   let captionOffset = 0;
   let targetBlockOffset = 0;
   const update = (): void => {
@@ -472,7 +524,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
       captionOffset = sectionPlacement === "above" ? top - captionTop : top + targetRect.height + gap - captionTop;
       targetBlockOffset = sectionPlacement === "above" ? top + captionRect.height + gap - targetTop : top - targetTop;
       caption.style.setProperty("translate", `0 ${captionOffset}px`);
-      target.style.setProperty("translate", `0 ${targetBlockOffset}px`);
+      placementTarget.style.setProperty("translate", `0 ${targetBlockOffset}px`);
     }
   };
   const schedule = (): void => {
@@ -481,6 +533,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
   const Observer = view.ResizeObserver;
   const observer = Observer == null ? null : new Observer(schedule);
   observer?.observe(target);
+  if (placementTarget !== target) observer?.observe(placementTarget);
   observer?.observe(caption);
   captionLayoutCleanup.set(caption, () => {
     active = false;
@@ -489,7 +542,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
     frame = null;
     if (sectionPlacement != null) {
       if (captionTranslate.length === 0) caption.style.removeProperty("translate");
-      if (targetTranslate.length === 0) target.style.removeProperty("translate");
+      if (targetTranslate.length === 0) placementTarget.style.removeProperty("translate");
     }
   });
   schedule();
@@ -514,7 +567,7 @@ function placeRenderedCaption(
     if (displayPlacement === "above") object.root.before(node);
     else object.root.after(node);
   }
-  alignRenderedCaption(caption, object.alignmentTarget, object.sectionScoped ? displayPlacement : undefined);
+  alignRenderedCaption(caption, object.alignmentTarget, object.sectionScoped ? displayPlacement : undefined, object.placementTarget);
 }
 
 function annotateUnboundImages(container: HTMLElement): void {
@@ -548,36 +601,111 @@ function precedingAtText(anchor: HTMLElement): Text | null {
   return null;
 }
 
-function enhanceReference(
+/** Ordinary wiki links also occupy source order, including an entity-encoded or escaped @ prefix. */
+function readingReferenceSource(source: string): Readonly<{
+  referenceCandidates: readonly ReadingReferenceCandidate[];
+  unverifiedReferenceLines: ReadonlySet<number>;
+}> {
+  const lines = scanSemanticSourceLines(source);
+  // Keep native HTML and fence boundaries even when they are unavailable to the
+  // semantic scanner; blanking both would hide HTML blocks from this safety gate.
+  const parserLines = scanPhysicalLines(source).map((line) => (
+    line.frontmatter ? "" : lines[line.number]?.commentMaskedText ?? line.text
+  ));
+  const htmlRanges: Array<{ from: number; to: number }> = [];
+  markdownParser.parse(parserLines.join("\n")).iterate({
+    enter(node) {
+      if (node.name !== "HTMLTag" && node.name !== "HTMLBlock") return undefined;
+      htmlRanges.push({ from: node.from, to: node.to });
+      return false;
+    },
+  });
+  const candidates: ReadingReferenceCandidate[] = [];
+  const unverifiedLines = new Set<number>();
+  let parserOffset = 0;
+  let htmlIndex = 0;
+  for (const line of lines) {
+    const parserEnd = parserOffset + (parserLines[line.number]?.length ?? 0);
+    while ((htmlRanges[htmlIndex]?.to ?? Infinity) <= parserOffset) htmlIndex += 1;
+    if ((htmlRanges[htmlIndex]?.from ?? Infinity) < parserEnd) unverifiedLines.add(line.number);
+    parserOffset = parserEnd + 1;
+    if (!line.available) continue;
+    const masked = maskInlineProtectedSyntax(line.commentMaskedText);
+    for (const match of masked.matchAll(/\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu)) {
+      const target = match[1]?.trim();
+      if (target == null || target.length === 0) continue;
+      if (line.text[match.index - 1] === "!" || isMarkdownSourceEscaped(line.text, match.index)) {
+        unverifiedLines.add(line.number);
+      }
+      candidates.push({
+        from: line.from + match.index,
+        line: line.number,
+        target,
+        originalLabel: match[2] ?? target,
+      });
+    }
+  }
+  return { referenceCandidates: candidates, unverifiedReferenceLines: unverifiedLines };
+}
+
+function bindRenderedReferences(
   container: HTMLElement,
-  target: string,
+  candidates: readonly ReadingReferenceCandidate[],
+  plan: readonly SemanticDisplayDecoration[],
+): ReadonlyArray<Readonly<{ anchor: HTMLElement; item: SemanticDisplayDecoration }>> {
+  const planByFrom = new Map(plan.filter((item) => item.kind === "reference")
+    .map((item) => [item.from, item]));
+  const candidatesByTarget = new Map<string, ReadingReferenceCandidate[]>();
+  for (const candidate of candidates) {
+    const group = candidatesByTarget.get(candidate.target) ?? [];
+    group.push(candidate);
+    candidatesByTarget.set(candidate.target, group);
+  }
+  const anchors = [...container.querySelectorAll<HTMLElement>("a.internal-link")]
+    .filter((anchor) => anchor.closest("pre, code") == null);
+  const bindings: Array<{ anchor: HTMLElement; item: SemanticDisplayDecoration }> = [];
+  for (const [target, group] of candidatesByTarget) {
+    if (!group.some((candidate) => planByFrom.has(candidate.from - 1))) continue;
+    const expected = `#${target}`;
+    const rendered = anchors.filter((anchor) => (
+      (anchor.getAttribute("data-href") ?? anchor.getAttribute("href")) === expected
+    ));
+    // Validate the fixed source order; text can reject a pairing, never select another link.
+    // Bind ordinary links as well, before moving caption DOM, so literal @ cannot steal a pill.
+    if (rendered.length !== group.length || rendered.some((anchor, index) => (
+      anchor.textContent !== group[index]?.originalLabel
+    ))) continue;
+    for (let index = 0; index < group.length; index += 1) {
+      const candidate = group[index];
+      const anchor = rendered[index];
+      const item = candidate == null ? null : planByFrom.get(candidate.from - 1);
+      if (anchor != null && item?.target === target) bindings.push({ anchor, item });
+    }
+  }
+  return bindings;
+}
+
+function enhanceReference(
+  anchor: HTMLElement,
   label: string,
   targetLine: number,
   targetKind: "heading" | "caption",
 ): boolean {
-  const expected = `#${target}`;
-  const anchors = container.querySelectorAll<HTMLElement>("a.internal-link");
-  for (const anchor of anchors) {
-    if (anchor.dataset.numberSuiteReference === "true") continue;
-    const dataHref = anchor.getAttribute("data-href");
-    const href = anchor.getAttribute("href");
-    if ((dataHref != null && dataHref !== expected) || (dataHref == null && href !== expected)) continue;
-    const text = precedingAtText(anchor);
-    if (text == null) continue;
-    text.deleteData(text.length - 1, 1);
-    anchor.dataset.numberSuiteReferenceOriginal = anchor.textContent ?? "";
-    anchor.dataset.numberSuiteReferenceAriaPresent = String(anchor.hasAttribute("aria-label"));
-    anchor.dataset.numberSuiteReferenceAriaOriginal = anchor.getAttribute("aria-label") ?? "";
-    anchor.dataset.numberSuiteReferenceAtRemoved = "true";
-    anchor.dataset.numberSuiteReferenceLine = String(targetLine);
-    anchor.dataset.numberSuiteReferenceKind = targetKind;
-    anchor.textContent = label;
-    anchor.classList.add("number-suite-reference-pill");
-    anchor.setAttribute("aria-label", label);
-    anchor.dataset.numberSuiteReference = "true";
-    return true;
-  }
-  return false;
+  const text = precedingAtText(anchor);
+  if (text == null || anchor.dataset.numberSuiteReference === "true") return false;
+  text.deleteData(text.length - 1, 1);
+  referenceOriginalNodes.set(anchor, [...anchor.childNodes]);
+  anchor.dataset.numberSuiteReferenceOriginal = anchor.textContent ?? "";
+  anchor.dataset.numberSuiteReferenceAriaPresent = String(anchor.hasAttribute("aria-label"));
+  anchor.dataset.numberSuiteReferenceAriaOriginal = anchor.getAttribute("aria-label") ?? "";
+  anchor.dataset.numberSuiteReferenceAtRemoved = "true";
+  anchor.dataset.numberSuiteReferenceLine = String(targetLine);
+  anchor.dataset.numberSuiteReferenceKind = targetKind;
+  anchor.textContent = label;
+  anchor.classList.add("number-suite-reference-pill");
+  anchor.setAttribute("aria-label", label);
+  anchor.dataset.numberSuiteReference = "true";
+  return true;
 }
 
 function noteReferenceRoots(container: HTMLElement): HTMLElement[] {
@@ -648,7 +776,7 @@ function enhanceNoteDefinitions(
   container: HTMLElement,
   plan: readonly SemanticDisplayDecoration[],
 ): boolean {
-  const items = [...container.querySelectorAll<HTMLElement>("li.footnote-item, section.footnotes li")];
+  const items = [...container.querySelectorAll<HTMLElement>("li.footnote-item, section.footnotes > ol > li")];
   if (items.length === 0) return false;
   const definitions = orderedNoteDefinitions(plan);
   if (items.length !== definitions.length) return false;
@@ -817,7 +945,7 @@ export class HeadingReadingProcessor {
       };
       this.cache.set(file.path, cached);
     }
-    const { headings, displayPlan, semanticPlan } = cached;
+    const { headings, displayPlan, semanticPlan, referenceCandidates, unverifiedReferenceLines } = cached;
     const section = context.getSectionInfo(container);
     if (section == null) {
       return;
@@ -902,6 +1030,14 @@ export class HeadingReadingProcessor {
     const sectionSemantic = semanticPlan.filter((item) => (
       item.line >= section.lineStart && item.line <= section.lineEnd
     ));
+    // Native HTML may hide, create or reparent links. Preserve this section's native links
+    // rather than treating a matching total or matching aliases as source identity.
+    const referenceSourceVerified = ![...unverifiedReferenceLines].some((line) => (
+      line >= section.lineStart && line <= section.lineEnd
+    ));
+    const referenceBindings = referenceSourceVerified ? bindRenderedReferences(container, referenceCandidates.filter((candidate) => (
+      candidate.line >= section.lineStart && candidate.line <= section.lineEnd
+    )), sectionSemantic) : [];
     const roots = captionRoots(container);
     let alignmentRootIndex = 0;
     for (const item of sectionSemantic) {
@@ -959,7 +1095,7 @@ export class HeadingReadingProcessor {
               item.objectKind,
               item.captionKind,
               item.sourcePlacement,
-            ) ?? renderedSectionCodeObject(root, item, context);
+            ) ?? renderedSectionObject(root, item, context);
             if (object != null) {
               placeRenderedCaption(root, object, item.displayPlacement);
               if (settings.showImageCaptionTooltips && object.hoverTarget != null) {
@@ -978,14 +1114,12 @@ export class HeadingReadingProcessor {
         }
       }
     }
-    for (const item of sectionSemantic) {
+    for (const { anchor, item } of referenceBindings) {
       if (
-        item.kind === "reference"
-        && item.target != null
-        && item.targetLine != null
+        item.targetLine != null
         && item.targetKind != null
       ) {
-        enhanceReference(container, item.target, item.label, item.targetLine, item.targetKind);
+        enhanceReference(anchor, item.label, item.targetLine, item.targetKind);
       }
     }
     this.ensureReferenceNavigation(container, file);
@@ -1057,6 +1191,7 @@ export class HeadingReadingProcessor {
     return {
       headings,
       displayPlan,
+      ...readingReferenceSource(source),
       semanticPlan: createSemanticDisplayPlan(source, headings, {
         showCaptionNumbers: settings.showCaptionNumbers,
         centeredCaptionKinds: centeredCaptionKinds(settings),

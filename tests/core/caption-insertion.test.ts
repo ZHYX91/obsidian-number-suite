@@ -77,6 +77,20 @@ describe("caption insertion", () => {
     expect(findCaptionInsertionTargetForTableRange(source, 2, source.length)).toBeNull();
   });
 
+  it("does not offer a table action on a following heading or move a caption across it", () => {
+    const table = "| H |\n| --- |\n| A |";
+    const source = `${table}\n# Heading | Content\n\nTable: Below`;
+    const headingOffset = offsetOf(source, "Heading");
+    expect(findCaptionInsertionTarget(source, headingOffset)).toBeNull();
+    expect(createCaptionInsertionPlan(source, headingOffset, "Below")).toBeNull();
+    expect(findCaptionInsertionTargetForTableRange(source, 0, table.length)).toMatchObject({
+      kind: "Table",
+      action: "insert",
+    });
+    expect(createCaptionInsertionPlan(source, offsetOf(source, " A "), "Actual table")?.result)
+      .toBe(`Table: Actual table\n\n${source}`);
+  });
+
   it("stores Figure and Table captions above their objects", () => {
     const image = "Before\r\n![[Miao.png]]\r\nAfter";
     expect(createCaptionInsertionPlan(image, offsetOf(image, "Miao"), "A cat")?.result).toBe(

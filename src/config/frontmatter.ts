@@ -189,13 +189,17 @@ function parseCanonical(
       continue;
     }
     const levelMatch = /^heading\.(first-number|skip-first)\.h([1-9])$/u.exec(key);
-    const level = Number(levelMatch?.[2]) as HeadingLevel;
-    const parsed = levelMatch?.[1] === "first-number"
+    if (levelMatch == null) {
+      issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      continue;
+    }
+    const level = Number(levelMatch[2]) as HeadingLevel;
+    const parsed = levelMatch[1] === "first-number"
       ? (/^[1-9]\d*$/u.test(rawValue) ? positiveInteger(Number(rawValue)) : null)
       : (/^(?:0|[1-9]\d*)$/u.test(rawValue) ? nonNegativeInteger(Number(rawValue)) : null);
     if (parsed == null) {
       issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
-    } else if (levelMatch?.[1] === "first-number") {
+    } else if (levelMatch[1] === "first-number") {
       values.starts[level] = parsed;
     } else {
       values.skipFirst[level] = parsed;

@@ -168,6 +168,9 @@ function tableDelimiterColumnCount(line: SemanticSourceLine): number | null {
 
 function tableRowColumnCount(line: SemanticSourceLine | undefined): number | null {
   if (line == null || !line.available || !line.topLevel || line.text.trim().length === 0) return null;
+  // A standalone heading ends a table even when its title contains pipes.
+  // Use Number Suite's H1-H9 boundary for both body rows and multi-row headers.
+  if (/^ {0,3}#{1,9}(?:[ \t]|$)/u.test(line.text)) return null;
   if (/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(line.text)) return null;
   return tableCells(line.text)?.length ?? null;
 }

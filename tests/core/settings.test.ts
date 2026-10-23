@@ -193,6 +193,37 @@ describe("settings", () => {
     }).issues[0]?.code).toBe("conflict");
   });
 
+  it.each([
+    "heading.first-number.h0",
+    "heading.first-number.h10",
+    "heading.first-number.foo",
+    "heading.skip-first.h0",
+    "heading.skip-first.h10",
+    "heading.skip-first.foo",
+  ])("rejects an unsupported heading level in %s", (key) => {
+    const overrides = parseNoteOverrides({ "number-suite": [`${key}=2`] });
+
+    expect(overrides.issues).toEqual([{
+      code: "invalid-value",
+      field: key.startsWith("heading.first-number.") ? "heading.first-number" : "heading.skip-first",
+      message: `Invalid number-suite item: ${key}=2`,
+    }]);
+    expect(overrides.starts).toEqual({});
+    expect(overrides.skipFirst).toEqual({});
+    expect(resolveNoteSettings(DEFAULT_SETTINGS, overrides).valid).toBe(false);
+  });
+
+  it.each([1, 9])("accepts both heading-number directives at H%s", (level) => {
+    const overrides = parseNoteOverrides({
+      "number-suite": [`heading.first-number.h${level}=2`, `heading.skip-first.h${level}=0`],
+    });
+
+    expect(overrides.issues).toEqual([]);
+    expect(overrides.starts).toEqual({ [level]: 2 });
+    expect(overrides.skipFirst).toEqual({ [level]: 0 });
+    expect(resolveNoteSettings(DEFAULT_SETTINGS, overrides).valid).toBe(true);
+  });
+
   it("keeps current and retired custom templates available to cleanup", () => {
     const configured = sanitizeSettings({
       selectedSchemeId: "custom-guide",

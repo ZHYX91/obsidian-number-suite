@@ -216,4 +216,54 @@ describe("caption object binding", () => {
     expect(source.slice(object?.visualFrom, object?.visualTo)).toBe("![[miao.png]]");
     expect(source.slice(object?.from, object?.to)).toBe("![[miao.png]]\n\n^miao");
   });
+
+  it.each(["\n", "\r\n", "\r"])("ends tables before standalone H1-H9 headings with %j endings", (newline) => {
+    const table = ["| H |", "| --- |", "| A |"].join(newline);
+    for (const level of [1, 2, 6, 7, 8, 9]) {
+      for (const indent of ["", "   "]) {
+        const source = `${table}${newline}${indent}${"#".repeat(level)} Heading | Content${newline}${newline}Table: Next section`;
+        const objects = scanCaptionObjects(source).filter(({ kind }) => kind === "Table");
+        expect(objects).toHaveLength(1);
+        expect(source.slice(objects[0]?.visualFrom, objects[0]?.visualTo)).toBe(table);
+        expect(bindCaptionObjects(source)).toEqual([]);
+      }
+    }
+  });
+
+  it("keeps a heading out of a following multi-row structural table header", () => {
+    const heading = "# Heading | Content";
+    const table = "| Region | Sales |\n| Quarter | Q1 |\n| --- || --- |\n| North | 10 |";
+    const source = `${heading}\n${table}`;
+    const objects = scanCaptionObjects(source).filter(({ kind }) => kind === "Table");
+    expect(objects).toHaveLength(1);
+    expect(source.slice(objects[0]?.visualFrom, objects[0]?.visualTo)).toBe(table);
+  });
+
+  it.each([
+    "- List | Content",
+    "1. List | Content",
+    "> Quote | Content",
+    "```ts | Example\nconst value = 1;\n```",
+    "<div data-example=\"A|B\">\nContent\n</div>",
+    "[^note]: Note | Content",
+    "***",
+  ])("ends a table before another Markdown block: %s", (following) => {
+    const table = "| H |\n| --- |\n| A |";
+    const source = `${table}\n${following}`;
+    const objects = scanCaptionObjects(source).filter(({ kind }) => kind === "Table");
+    expect(objects).toHaveLength(1);
+    expect(source.slice(objects[0]?.visualFrom, objects[0]?.visualTo)).toBe(table);
+  });
+
+  it.each([
+    "| # Heading | Content |",
+    "#NoSpace | Content",
+    "\\# Heading | Content",
+    "########## Heading | Content",
+  ])("retains heading-like text that is a table row: %s", (row) => {
+    const source = `| H |\n| --- |\n${row}`;
+    const objects = scanCaptionObjects(source).filter(({ kind }) => kind === "Table");
+    expect(objects).toHaveLength(1);
+    expect(source.slice(objects[0]?.visualFrom, objects[0]?.visualTo)).toBe(source);
+  });
 });

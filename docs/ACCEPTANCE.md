@@ -260,3 +260,32 @@ Desktop and Android results are separate; report unavailable interactions as unv
 ## Current safety regressions
 
 Run the `caption-container-write-safety` scenario with `Caption and container safety.md` in the exact candidate. Keep desktop, Android and companion-plugin observations separate. Follow the executable steps and expected results in `acceptance/product-scenarios.json`; preserve full-note baselines and actual undo/redo observations.
+
+## Parser and reference boundary regressions
+
+Select these scenario IDs from `acceptance/product-scenarios.json`. Their setup, steps and expected
+results are the repeatable contract; the files below are copied from `acceptance/fixtures` into a
+temporary Vault before use. Record desktop and Android emulator outcomes independently, including
+unverified interactions. Preserve complete source baselines and compare them after display-only
+checks, cancellation, refusal and each single editor undo.
+
+| Scenario ID | Fixture notes | Scope |
+| --- | --- | --- |
+| `parser-caption-write-boundaries` | `Boundary table.md`, `Boundary caption syntax.md` | A pipe-containing heading terminates a table; stable caption IDs cannot split multiline syntax. Closed syntax and a valid adjacent table remain writable. |
+| `properties-orphan-cleanup` | `Boundary invalid Properties.md`, `Boundary valid Properties.md`, `Boundary orphan cleanup.md` | Invalid H10/unknown-level directives fail closed; H1/H9 still work. Confirmed prefix cleanup and marker stripping work with missing parents while ambiguous prefixes stay intact. |
+| `semantic-reference-note-boundaries` | `Boundary reference labels.md`, `Boundary ambiguous references.md`, `Boundary nested notes.md` | Aliased/unaliased title and block targets, escaped/entity/HTML links, escaped backticks and mixed notes with nested lists preserve source ownership and native restoration. |
+| `reading-caption-section-placement` | `Boundary section placement.md` | Investigate Figure, Table and Equation placement independently across actual native Reading View sections, with Live Preview controls. |
+| `caption-multiline-math-investigation` | `Boundary caption math.md` | Establish whether the native host renders multiline inline math, then inspect stable-ID safety with closed-math and plain-caption controls. |
+
+`Boundary orphan cleanup.md` intentionally contains three literal U+2060 WORD JOINER characters:
+two surrounding the owned `2` on the first H2 and one before the one-sided marker's `2` on the last
+H2. Preserve those bytes. Select Hierarchical, missing-parent Skip and plugin-owned cleanup for
+this scenario; do not generate new markers as a substitute for the checked-in input. Keep pasted
+cross-reference links in a separate scratch note so that a paste cannot consume the undo intended
+to verify a plugin write.
+
+For placement, report each carrier, view, selected side and native section relationship separately.
+A caption pill alone does not establish binding, and a same-section pass does not establish
+cross-section placement. For inline math, record actual native rendering before classifying a
+preview or write; unsupported multiline math is an unverified boundary, not an assumed defect.
+Neither investigation is a completed acceptance result until the exact candidate runs in the host.

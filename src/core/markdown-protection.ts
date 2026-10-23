@@ -248,7 +248,7 @@ function blankRange(characters: string[], from: number, to: number): void {
 
 function maskCodeSpans(text: string, characters: string[]): void {
   for (let index = 0; index < text.length;) {
-    if (text[index] !== "`") {
+    if (text[index] !== "`" || isMarkdownSourceEscaped(text, index)) {
       index += 1;
       continue;
     }

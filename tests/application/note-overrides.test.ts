@@ -134,4 +134,38 @@ describe("current note overrides", () => {
       ],
     });
   });
+
+  it.each([
+    "heading.first-number.h0=2",
+    "heading.first-number.h10=2",
+    "heading.first-number.foo=2",
+    "heading.skip-first.h0=2",
+    "heading.skip-first.h10=2",
+    "heading.skip-first.foo=2",
+  ])("preserves %s when an unrelated control change is rejected", (directive) => {
+    const values: Record<string, unknown> = {
+      "number-suite": [directive],
+      tags: ["keep"],
+    };
+    const before = structuredClone(values);
+
+    expect(() => applyNoteOverrideChange(values, { kind: "show-virtual", value: "on" }))
+      .toThrow(`Invalid number-suite item: ${directive}`);
+    expect(values).toEqual(before);
+    expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS).valid).toBe(false);
+  });
+
+  it("preserves valid H1 and H9 overrides while changing an unrelated control", () => {
+    const entries = [
+      "heading.first-number.h1=2",
+      "heading.first-number.h9=3",
+      "heading.skip-first.h1=1",
+      "heading.skip-first.h9=2",
+    ];
+    const values: Record<string, unknown> = { "number-suite": [...entries], tags: ["keep"] };
+
+    expect(applyNoteOverrideChange(values, { kind: "show-virtual", value: "on" })).toBe(true);
+    expect(values).toEqual({ "number-suite": ["heading.virtual=true", ...entries], tags: ["keep"] });
+    expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS).valid).toBe(true);
+  });
 });
