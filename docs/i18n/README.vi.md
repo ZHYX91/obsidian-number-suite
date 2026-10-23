@@ -4,6 +4,8 @@
 
 Number Suite hiển thị số thứ tự cho tiêu đề, chú thích, liên kết tham chiếu, chú thích chân trang và cuối tài liệu trong Obsidian. Chỉ hiển thị trên màn hình sẽ không sửa tệp Markdown; ghi số vào nội dung là thao tác riêng.
 
+Đây là **hướng dẫn ngắn** cho các thao tác thường dùng. Chi tiết về H7–H9, liên kết chú thích với đối tượng, tham chiếu ổn định, chú thích chân trang và chú thích cuối nằm trong bản nâng cao [tiếng Anh](../advanced.en.md) và [tiếng Trung giản thể](../advanced.zh-CN.md).
+
 <!-- section: installation -->
 ## Cài đặt
 
