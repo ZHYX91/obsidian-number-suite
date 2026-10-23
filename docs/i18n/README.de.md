@@ -4,6 +4,8 @@
 
 Number Suite zeigt Nummern für Überschriften, Beschriftungen, Verweise, Fußnoten und Endnoten in Obsidian an. Für die Anzeige muss die Markdown-Datei nicht geändert werden. Nummern in den Text zu schreiben ist ein eigener Schritt.
 
+Dies ist eine **Kurzanleitung** für die üblichen Aufgaben. Details zu H7–H9, zur Zuordnung von Beschriftungen, stabilen Verweisen sowie Fuß- und Endnoten stehen im [englischen](../advanced.en.md) oder [chinesischen Vertiefungsleitfaden](../advanced.zh-CN.md).
+
 <!-- section: installation -->
 ## Installation
 
