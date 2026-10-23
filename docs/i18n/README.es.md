@@ -4,6 +4,8 @@
 
 Number Suite muestra números en títulos, leyendas, referencias, notas al pie y notas finales de Obsidian. Puedes verlos sin modificar Markdown. Guardar números dentro del texto requiere otra operación.
 
+Esta es una **guía breve** para las tareas habituales. La sintaxis avanzada de H7–H9, la asociación entre leyendas y objetos, las referencias estables y las notas se explican en las guías detalladas en [inglés](../advanced.en.md) y [chino simplificado](../advanced.zh-CN.md).
+
 <!-- section: installation -->
 ## Instalación
 
