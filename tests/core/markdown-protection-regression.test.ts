@@ -49,6 +49,36 @@ describe("shared Markdown protection", () => {
     expect(parseAtxHeadings("Text <!--\n```\n-->\n## Visible").map((h) => h.content)).toEqual(["Visible"]);
     expect(parseAtxHeadings("```invalid`info\n## Visible").map((h) => h.content)).toEqual(["Visible"]);
   });
+
+  it.each([1, 3])("keeps references between backticks escaped by %i backslashes", (slashes) => {
+    const escapedTick = `${"\\".repeat(slashes)}\``;
+    const source = `# Title\n\n${escapedTick} @[[#Title]] [^note] ${escapedTick}`;
+    const references = parseDocumentSemantics(source).references;
+    const notes = parseDocumentNotes(source).references;
+    expect(references.map(({ target }) => target)).toEqual(["Title"]);
+    expect(references.map(({ from, to }) => source.slice(from, to))).toEqual(["@[[#Title]]"]);
+    expect(notes.map(({ id }) => id)).toEqual(["note"]);
+    expect(notes.map(({ from, to }) => source.slice(from, to))).toEqual(["[^note]"]);
+  });
+
+  it.each([0, 2, 4])("still masks code spans after %i backslashes", (slashes) => {
+    const source = `${"\\".repeat(slashes)}\`@[[#Hidden]] [^hidden]\` @[[#Visible]] [^visible]`;
+    expect(parseDocumentSemantics(source).references.map(({ target }) => target)).toEqual(["Visible"]);
+    expect(parseDocumentNotes(source).references.map(({ id }) => id)).toEqual(["visible"]);
+  });
+
+  it("allows an unescaped backtick after an escaped backtick to open a code span", () => {
+    const source = "\\`` @[[#Hidden]] [^hidden] ` @[[#Visible]] [^visible]";
+    expect(parseDocumentSemantics(source).references.map(({ target }) => target)).toEqual(["Visible"]);
+    expect(parseDocumentNotes(source).references.map(({ id }) => id)).toEqual(["visible"]);
+  });
+
+  it("does not let a backslash inside code escape the closing backtick", () => {
+    const source = "`@[[#Hidden]] [^hidden]\\` @[[#Visible]] [^visible]";
+    expect(parseDocumentSemantics(source).references.map(({ target }) => target)).toEqual(["Visible"]);
+    expect(parseDocumentNotes(source).references.map(({ id }) => id)).toEqual(["visible"]);
+  });
+
   it("keeps headings inside CommonMark HTML blocks out of every heading transform", () => {
     const source = [
       "</div>",

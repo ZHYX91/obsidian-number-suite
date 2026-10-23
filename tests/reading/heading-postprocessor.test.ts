@@ -1004,6 +1004,188 @@ describe("HeadingReadingProcessor", () => {
     expect(paragraph.querySelector("a.number-suite-reference-pill")?.textContent).toBe("Heading");
   });
 
+  it("keeps an escaped ordinary link before a real same-target reference unchanged", async () => {
+    const source = "# Heading\n\n\\@[[#Heading|literal]] and @[[#Heading|real]]";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: true,
+      showCrossReferences: true,
+      selectedSchemeId: "hierarchical",
+    }));
+    container.innerHTML = '<h1>Heading</h1><p>@<a class="internal-link" data-href="#Heading">literal</a>'
+      + ' and @<a class="internal-link" data-href="#Heading">real</a></p>';
+    const [literal, reference] = [...container.querySelectorAll("a")];
+
+    await processor.process(container, context);
+
+    expect(literal?.textContent).toBe("literal");
+    expect(literal?.classList.contains("number-suite-reference-pill")).toBe(false);
+    expect(reference?.textContent).toBe("1 real");
+    expect(reference?.classList.contains("number-suite-reference-pill")).toBe(true);
+    expect(container.querySelector("p")?.textContent).toBe("@literal and 1 real");
+
+    await processor.process(container, context);
+    expect(container.querySelector("p")?.textContent).toBe("@literal and 1 real");
+    cleanupNumberSuiteReadingDom(container);
+    expect(container.querySelector("p")?.textContent).toBe("@literal and @real");
+  });
+
+  it("maps repeated aliases across paragraphs and restores formatted link children", async () => {
+    const source = "# Heading\n\n\\@[[#Heading|literal]]\n\n"
+      + "**@[[#Heading|first]]** and @[[#Heading|second]] and [[#Heading|ordinary]]";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: true,
+      selectedSchemeId: "hierarchical",
+    }));
+    container.innerHTML = '<h1>Heading</h1><p>@<a class="internal-link" data-href="#Heading">literal</a></p>'
+      + '<p><strong>@<a class="internal-link" data-href="#Heading" aria-label="Original"><em>first</em></a></strong>'
+      + ' and @<a class="internal-link" data-href="#Heading">second</a>'
+      + ' and <a class="internal-link" data-href="#Heading">ordinary</a></p>';
+    const links = [...container.querySelectorAll("a")];
+    const formattedChild = links[1]?.firstChild;
+    const original = [...container.querySelectorAll("p")].map((paragraph) => paragraph.innerHTML);
+    for (let repeat = 0; repeat < 2; repeat += 1) {
+      await processor.process(container, context);
+      expect(links.map((link) => link.textContent)).toEqual(["literal", "1 first", "1 second", "ordinary"]);
+      expect(links.map((link) => link.classList.contains("number-suite-reference-pill")))
+        .toEqual([false, true, true, false]);
+    }
+
+    cleanupNumberSuiteReadingDom(container);
+    expect([...container.querySelectorAll("p")].map((paragraph) => paragraph.innerHTML)).toEqual(original);
+    expect(links[1]?.firstChild).toBe(formattedChild);
+    expect(links[1]?.getAttribute("aria-label")).toBe("Original");
+  });
+
+  it("excludes code and comments from rendered reference candidate counts", async () => {
+    const source = [
+      "# Heading",
+      "`@[[#Heading|inline]]` <!-- @[[#Heading|html]] --> %% @[[#Heading|comment]] %%",
+      "",
+      "```markdown",
+      "@[[#Heading|fence]]",
+      "```",
+      "",
+      "@[[#Heading|real]]",
+    ].join("\n");
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = '<h1>Heading</h1><p><code>@[[#Heading|inline]]</code></p>'
+      + '<pre><code>@[[#Heading|fence]]</code></pre>'
+      + '<p>@<a class="internal-link" data-href="#Heading">real</a></p>';
+    const originalCode = [...container.querySelectorAll("code")].map((code) => code.textContent);
+
+    await processor.process(container, context);
+
+    expect(container.querySelector("a.number-suite-reference-pill")?.textContent).toBe("real");
+    expect([...container.querySelectorAll("code")].map((code) => code.textContent)).toEqual(originalCode);
+  });
+
+  it.each([
+    { literal: "literal", real: "real", ordinary: "ordinary", escaped: "\\" },
+    { literal: "same", real: "same", ordinary: "same", escaped: "\\" },
+    { literal: "same", real: "same", ordinary: "same", escaped: "" },
+  ])("rejects a same-count HTML/entity substitution with $literal/$real/$ordinary aliases and $escaped escape", async ({
+    literal, real, ordinary, escaped,
+  }) => {
+    const source = `# Heading\n\n<code>${escaped}@[[#Heading|${literal}]]</code>`
+      + ` and @[[#Heading|${real}]] and &#64;[[#Heading|${ordinary}]]`;
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = `<h1>Heading</h1><p><code>@[[#Heading|${literal}]]</code>`
+      + ` and @<a class="internal-link" data-href="#Heading">${real}</a>`
+      + ` and @<a class="internal-link" data-href="#Heading">${ordinary}</a></p>`;
+    const original = container.querySelector("p")?.innerHTML;
+
+    await processor.process(container, context);
+
+    expect(container.querySelector(".number-suite-reference-pill")).toBeNull();
+    expect(container.querySelector("p")?.innerHTML).toBe(original);
+  });
+
+  it("keeps ordinary entity text and entity-prefixed wiki links compatible with verified references", async () => {
+    const source = "# Heading\n\nA &amp; B, &#64;[[#Heading|ordinary]], @[[#Heading|real]]";
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = '<h1>Heading</h1><p>A &amp; B, @<a class="internal-link" data-href="#Heading">ordinary</a>'
+      + ', @<a class="internal-link" data-href="#Heading">real</a></p>';
+    const [ordinary, reference] = [...container.querySelectorAll("a")];
+
+    await processor.process(container, context);
+
+    expect(ordinary?.classList.contains("number-suite-reference-pill")).toBe(false);
+    expect(reference?.classList.contains("number-suite-reference-pill")).toBe(true);
+    expect(container.querySelector("p")?.textContent).toBe("A & B, @ordinary, real");
+  });
+
+  it("preserves native references in a section containing an original HTML block", async () => {
+    const source = "# Heading\n\n<div>\nRaw HTML\n</div>\n\n@[[#Heading|real]]";
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = '<h1>Heading</h1><div>Raw HTML</div>'
+      + '<p>@<a class="internal-link" data-href="#Heading">real</a></p>';
+    const paragraph = container.querySelector("p")!;
+    const original = paragraph.innerHTML;
+
+    await processor.process(container, context);
+
+    expect(container.querySelector(".number-suite-reference-pill")).toBeNull();
+    expect(paragraph.innerHTML).toBe(original);
+    await processor.process(paragraph, {
+      ...context,
+      getSectionInfo: () => ({ text: source, lineStart: 6, lineEnd: 6 }),
+    });
+    expect(paragraph.querySelector("a.number-suite-reference-pill")?.textContent).toBe("real");
+  });
+
+  it("keeps HTML examples inside Markdown fences out of the unsafe section gate", async () => {
+    const source = "# Heading\n\n```html\n<div>\n@[[#Heading|example]]\n</div>\n```\n\n@[[#Heading|real]]";
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = '<h1>Heading</h1><pre><code>&lt;div&gt;\n@[[#Heading|example]]\n&lt;/div&gt;</code></pre>'
+      + '<p>@<a class="internal-link" data-href="#Heading">real</a></p>';
+    const originalCode = container.querySelector("code")?.innerHTML;
+
+    await processor.process(container, context);
+
+    expect(container.querySelector("a.number-suite-reference-pill")?.textContent).toBe("real");
+    expect(container.querySelector("code")?.innerHTML).toBe(originalCode);
+  });
+
+  it.each([1, 3])("leaves a target unchanged when its two source candidates render as %s links", async (count) => {
+    const source = "# Heading\n\n\\@[[#Heading|literal]] and @[[#Heading|real]]";
+    const { processor, context, container } = harness(source, settings({ showVirtualNumbers: false }));
+    container.innerHTML = "<h1>Heading</h1><p>"
+      + Array.from({ length: count }, (_, index) => (
+        `@<a class="internal-link" data-href="#Heading">link ${index}</a>`
+      )).join(" and ") + "</p>";
+    const original = container.querySelector("p")?.innerHTML;
+
+    await processor.process(container, context);
+
+    expect(container.querySelector(".number-suite-reference-pill")).toBeNull();
+    expect(container.querySelector("p")?.innerHTML).toBe(original);
+  });
+
+  it("binds reference source order before moving a caption across a table", async () => {
+    const source = "# Heading\n\nFigure: First @[[#Heading|caption]]\n\n"
+      + "| A |\n| --- |\n| @[[#Heading|cell]] |";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: false,
+      figureCaptionPlacement: "below",
+    }));
+    container.innerHTML = '<h1>Heading</h1><p>Figure: First @<a class="internal-link" data-href="#Heading">caption</a></p>'
+      + '<table><tbody><tr><td>@<a class="internal-link" data-href="#Heading">cell</a></td></tr></tbody></table>';
+    const caption = container.querySelector("p");
+    const table = container.querySelector("table");
+    const originalCaption = caption?.innerHTML;
+    const originalTable = table?.innerHTML;
+
+    await processor.process(container, context);
+
+    expect(caption?.previousElementSibling).toBe(table);
+    expect(caption?.querySelector("a.number-suite-reference-pill")?.textContent).toBe("caption");
+    expect(table?.querySelector("a.number-suite-reference-pill")?.textContent).toBe("cell");
+    cleanupNumberSuiteReadingDom(container);
+    expect(caption?.nextElementSibling).toBe(table);
+    expect(caption?.innerHTML).toBe(originalCaption);
+    expect(table?.innerHTML).toBe(originalTable);
+  });
+
   it("resolves a unique caption title without requiring a block ID", async () => {
     const { processor, context, container, navigation } = harness(
       "Figure: Miao\nSee @[[#Figure: Miao]]",
@@ -1081,6 +1263,31 @@ describe("HeadingReadingProcessor", () => {
       .toEqual(["footnote", "endnote"]);
     await processor.process(container, context);
     expect([...paragraph.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
+  });
+
+  it.each([true, false])("ignores nested note-body lists with definition classes: %s", async (classified) => {
+    const source = "Foot[^a] and end[^endnote:x].\n\n[^a]: Footnote\n    - Nested item\n[^endnote:x]: Endnote";
+    const { processor, context, container } = harness(source, settings({ showNoteNumbers: true }));
+    const itemClass = classified ? ' class="footnote-item"' : "";
+    container.innerHTML = '<p>Foot<sup class="footnote-ref"><a>[1]</a></sup>'
+      + ' and end<sup class="footnote-ref"><a>[2]</a></sup>.</p>'
+      + `<section class="footnotes"><ol><li${itemClass}>Footnote<ul><li value="7">Nested item</li></ul></li>`
+      + `<li${itemClass}>Endnote</li></ol></section>`;
+    const definitions = [...container.querySelectorAll<HTMLElement>("section.footnotes > ol > li")];
+    const nested = container.querySelector<HTMLElement>("ul > li");
+
+    await processor.process(container, context);
+
+    expect([...container.querySelectorAll("sup a")].map((link) => link.textContent)).toEqual(["[1]", "[E1]"]);
+    expect(definitions.map((item) => item.dataset.numberSuiteNoteLabel)).toEqual(["1", "E1"]);
+    expect(definitions.map((item) => item.getAttribute("value"))).toEqual(["1", "1"]);
+    expect(nested?.getAttribute("value")).toBe("7");
+    expect(nested?.dataset.numberSuiteNoteLabel).toBeUndefined();
+
+    cleanupNumberSuiteReadingDom(container);
+    expect(definitions.map((item) => item.getAttribute("value"))).toEqual([null, null]);
+    expect(nested?.getAttribute("value")).toBe("7");
+    expect([...container.querySelectorAll("sup a")].map((link) => link.textContent)).toEqual(["[1]", "[2]"]);
   });
 
   it("fully restores note ARIA, list values, captions, and headings during unload cleanup", async () => {

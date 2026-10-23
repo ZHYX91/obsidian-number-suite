@@ -89,7 +89,8 @@ export function planHeadingTransform(
       });
       continue;
     }
-    if (item.warning != null) {
+    // Cleanup depends on prefix ownership, not on whether a new label can be generated.
+    if (item.warning != null && operation !== "remove" && operation !== "strip-markers") {
       warnings.push({
         line: heading.line,
         heading: content,

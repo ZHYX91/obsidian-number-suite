@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { blockTargetKey, parseDocumentSemantics } from "../../src/core/document-semantics";
 import { createStableReferencePlan } from "../../src/core/stable-reference";
 
 describe("stable cross-reference planning", () => {
@@ -40,6 +41,50 @@ describe("stable cross-reference planning", () => {
       insert: " ^ns-caption-miao",
       after: "Figure: Miao ^ns-caption-miao",
     });
+  });
+
+  it.each([
+    "Figure: Title <!-- hidden\ncomment -->",
+    "Figure: Title %% hidden\ncomment %%",
+    "Figure: Title <!-- unclosed",
+    "Figure: Title %% unclosed",
+  ])("refuses an ID that would be hidden inside a caption comment: %s", (source) => {
+    expect(createStableReferencePlan(source, 8)).toBeNull();
+  });
+
+  it.each(["\n", "\r\n", "\r"])("does not split multiline caption syntax with %j endings", (newline) => {
+    for (const lines of [
+      ["Figure: Title `hidden", "continued`"],
+      ["Figure: Title ``hidden", "continued``"],
+      ["Figure: Title <span", "data-x=\"value\">text</span>"],
+      ["Figure: Title [link](target", "\"tooltip\")"],
+      ["Figure: Title ![image](target", "\"tooltip\")"],
+      ["Figure: Title *emphasized", "continued*"],
+      ["Figure: Title ~~removed", "continued~~"],
+    ]) {
+      const source = ["# Earlier", "", ...lines].join(newline);
+      expect(createStableReferencePlan(source, source.indexOf("Title"))).toBeNull();
+    }
+  });
+
+  it.each([
+    "Figure: Title <!-- hidden -->",
+    "Figure: Title %% hidden %%",
+    "Figure: Title `literal`",
+    "Figure: Title `unmatched",
+    "Figure: Title <span>text</span>",
+    "Figure: Title [link](target \"tooltip\")",
+    "Figure: Title *emphasized*",
+    "Figure: Title ~~removed~~",
+  ])("keeps a new caption ID bound outside closed protected syntax: %s", (source) => {
+    const plan = createStableReferencePlan(source, 8);
+    expect(plan?.change).not.toBeNull();
+    const change = plan?.change;
+    if (plan == null || change == null) throw new Error("Expected a caption ID plan");
+    const result = source.slice(0, change.from) + change.insert + source.slice(change.to);
+    expect(result).toBe(`${source} ^${plan.blockId}`);
+    expect(parseDocumentSemantics(result).blockOwners.get(blockTargetKey(plan.blockId)))
+      .toBe(plan.target.line);
   });
 
   it("creates a collision-safe ID and preserves CRLF", () => {

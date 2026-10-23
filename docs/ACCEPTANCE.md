@@ -260,3 +260,17 @@ Desktop and Android results are separate; report unavailable interactions as unv
 ## Current safety regressions
 
 Run the `caption-container-write-safety` scenario with `Caption and container safety.md` in the exact candidate. Keep desktop, Android and companion-plugin observations separate. Follow the executable steps and expected results in `acceptance/product-scenarios.json`; preserve full-note baselines and actual undo/redo observations.
+
+## Parser and reference boundary regressions
+
+Use separate temporary notes where the cases require different Properties or heading structures.
+Run the affected interactions in desktop and Android emulator hosts when available; record each
+unavailable host as unverified. Keep the original source for byte comparisons and undo checks.
+
+- [ ] Put `# Heading | Content` immediately after the final row of a Markdown table, then a blank line and `Table: Below`. The heading must stay outside the table target. Right-clicking the heading must not offer a table caption action, and acting on the table must not move the caption across that heading.
+- [ ] Put a multiline HTML or `%%` comment after a visible `Figure: Title`, then repeat with a multiline code span, link, or HTML tag. Copy cross-reference must not split the syntax, create a hidden ID, or copy an unresolved new link. Repeat with the syntax closed on the caption line; a confirmed new ID must resolve to that caption and be removable with one editor undo.
+- [ ] Set `number-suite` to a list containing `heading.first-number.h10=2`, then repeat with `heading.skip-first.foo=2`. Current note must show invalid Properties and preserve the list when an unrelated control is changed. Valid H1 and H9 directives must still work.
+- [ ] In a note containing only an H2 with a confirmed plugin-marked prefix, select the hierarchical scheme and the missing-parent skip strategy. Previewed Remove numbers must remove the prefix; Remove source markers must retain its visible number. Neither operation may change an unmarked year, decimal, measurement, or one-sided marker.
+- [ ] Reference one heading in a paragraph with `\@[[#Heading|literal]] and @[[#Heading|real]]`. In Reading View the escaped ordinary link must remain unchanged and only the real semantic reference may be enhanced. Repeat with a native HTML code element and an entity-prefixed ordinary link, including identical aliases; unverifiable source/DOM correspondence must preserve native links. Switch views and disable the plugin to verify both original labels and `@` characters are restored.
+- [ ] Mix a footnote and an endnote, with an ordinary nested list inside one definition body. Reading View must number the two definitions consistently with their references and leave the nested list untouched. Disable the plugin and verify the original native labels return.
+- [ ] Surround a normal semantic reference or footnote marker with escaped literal backticks. It must still participate in semantic display; the same marker inside an actual code span must remain literal. Verify both Live Preview and Reading View without Markdown writes.

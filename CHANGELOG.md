@@ -2,6 +2,16 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Stop table caption targets at independent Markdown headings so relocation cannot cross a section boundary.
+- Offer a new stable-reference ID only outside multiline inline syntax and when the resulting source binds it to the original target.
+- Reject invalid heading-level override paths and preserve them when an unrelated note control is changed.
+- Allow confirmed number and marker cleanup when the missing-parent strategy skips new numbering.
+- Match Reading View references to source occurrences without changing escaped ordinary links.
+- Keep lists inside note bodies out of footnote and endnote definition numbering.
+- Recognize references and notes between escaped literal backticks while preserving real code spans.
+
 ## 0.5.8 - 2026-10-23
 
 - Recognize code caption objects immediately after frontmatter or another fenced code block.

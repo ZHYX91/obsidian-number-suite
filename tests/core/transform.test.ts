@@ -109,6 +109,66 @@ describe("heading transforms", () => {
       .toBe("# 1 Heading");
   });
 
+  it.each(["remove", "strip-markers"] as const)(
+    "preserves ambiguous and unowned prefixes with missing parents during %s",
+    (operation) => {
+      const configured = options({
+        numbering: {
+          scheme: BUILT_IN_SCHEMES.hierarchical,
+          missingLevelStrategy: "skip",
+          starts: {},
+        },
+        cleanupScope: "plugin",
+      });
+      const source = [
+        "## 3.14 Pi",
+        "## 2026 Annual",
+        "## 6 kg load",
+        "## 1.1 Manual",
+        `## ${WORD_JOINER}2 One-sided marker`,
+      ].join("\n");
+      const plan = planHeadingTransform(source, operation, configured);
+      expect(plan.result).toBe(source);
+      expect(plan.changes).toEqual([]);
+    },
+  );
+
+  it.each(["remove", "strip-markers"] as const)(
+    "cleans confirmed plugin prefixes even when missing parents skip new numbering during %s",
+    (operation) => {
+      const configured = options({
+        numbering: {
+          scheme: BUILT_IN_SCHEMES.hierarchical,
+          missingLevelStrategy: "skip",
+          starts: {},
+        },
+        cleanupScope: "plugin",
+      });
+      const source = `## ${WORD_JOINER}2${WORD_JOINER} Title\r\n`;
+      const plan = planHeadingTransform(source, operation, configured);
+      expect(plan.result).toBe(operation === "remove" ? "## Title\r\n" : "## 2 Title\r\n");
+      expect(plan.changes).toHaveLength(1);
+      expect(plan.warnings).toEqual([]);
+    },
+  );
+
+  it.each(["write", "renumber"] as const)(
+    "still skips new numbering when a required parent is missing during %s",
+    (operation) => {
+      const source = `## ${WORD_JOINER}2${WORD_JOINER} Title`;
+      const plan = planHeadingTransform(source, operation, options({
+        numbering: {
+          scheme: BUILT_IN_SCHEMES.hierarchical,
+          missingLevelStrategy: "skip",
+          starts: {},
+        },
+      }));
+      expect(plan.result).toBe(source);
+      expect(plan.changes).toEqual([]);
+      expect(plan.warnings.map((warning) => warning.code)).toEqual(["missing-parent"]);
+    },
+  );
+
   it("can remove its expected unmarked single-level numbers after preview", () => {
     const source = "# 1 First\n# 2 Second";
     const plan = planHeadingTransform(source, "remove", options());
