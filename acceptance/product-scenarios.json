@@ -13,6 +13,127 @@
   },
   "scenarios": [
     {
+      "id": "parser-caption-write-boundaries",
+      "title": "Table termination and stable caption IDs at inline syntax boundaries",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": [
+          "touch.longPress"
+        ]
+      },
+      "steps": [
+        "Use a clean temporary Vault with only the candidate plugin. Enable Live Preview, Reading View and caption numbering; record the full source baselines for Boundary table.md and Boundary caption syntax.md. Inspect first without editing.",
+        "In Boundary table.md, open the context menu on Heading | Content in editing mode. It must not be a table-caption target. Inspect the first table menu: no caption write may cross that heading to claim Below the intervening heading. The heading remains a heading in both display modes.",
+        "On the second table, preview moving Valid adjacent caption above the table, cancel once, then confirm. Verify only the second table-caption pair changes. Undo once through the host and compare the complete note with its baseline.",
+        "In Boundary caption syntax.md, try Copy cross-reference on HTML comment and Obsidian comment, then Multiline link. Each action must refuse without writing or copying a new unresolved reference. These are the representative host paths; the code/tag/image/emphasis/strike variants remain available for a distinct failure investigation and are otherwise covered by source tests.",
+        "On Closed HTML comment, inspect the stable-reference preview, cancel once, then confirm. Verify the new ID is outside the closed syntax, belongs to that caption and the copied link resolves to it. Keep pasted links in a separate scratch note so one editor undo in the fixture restores its exact baseline. Other Closed examples are optional diagnostic controls, not required host repetitions.",
+        "On Android perform the table and caption menus through actual long press, use the soft keyboard for scratch-note paste, and use on-screen undo. Record unsupported menu paths as unverified, separate from desktop results."
+      ],
+      "expected": [
+        "The intervening heading never becomes a table row, and table operations never capture a caption beyond it. The valid adjacent pair remains writable with an exact preview and one undo.",
+        "Multiline syntax is never split by a hidden or unowned block ID. Closed syntax permits a resolvable stable reference. Canceled/refused actions and display-only operations preserve full source bytes."
+      ]
+    },
+    {
+      "id": "properties-orphan-cleanup",
+      "title": "Invalid heading directives and cleanup with a missing parent",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Record complete source baselines for Boundary invalid Properties.md, Boundary valid Properties.md and Boundary orphan cleanup.md. In global settings choose Hierarchical, the missing-parent Skip strategy and the plugin-owned cleanup scope. Keep source-marker writing disabled; the cleanup fixture already contains literal U+2060 markers.",
+        "Open Boundary invalid Properties.md and Current note. Verify heading.first-number.h10=2 is invalid; attempt to change virtual numbering. The operation must be rejected and both number-suite and acceptance-keep must remain unchanged. The heading.skip-first.foo=2 variant is covered by automated tests; use an editor copy only if investigating a distinct host issue.",
+        "Open Boundary valid Properties.md as the valid control. Verify Current note accepts it and H1 starts at 2. H9 and preservation of all supported directives are covered by source tests; do not duplicate every setting change in each host.",
+        "In Boundary orphan cleanup.md, preview Remove numbers, cancel once, then confirm. Only the balanced U+2060-2-U+2060 prefix on the first H2 may disappear; the year, decimal, measurement, unmarked manual prefix and one-sided marker must remain. Undo once and compare the whole file.",
+        "From the restored baseline, preview Remove source markers and confirm. Only the two balanced markers on the first H2 disappear; its visible 2 remains. Undo once and verify exact restoration. Automated tests cover the unchanged write/renumber missing-parent behavior.",
+        "On Android use the visible host undo control after each cleanup write; record preview, write and undo results separately. Restore the saved global settings at the end."
+      ],
+      "expected": [
+        "Unsupported heading directives fail closed and rejected control changes preserve the source Properties. Valid H1/H9 directives still work and survive unrelated valid changes.",
+        "Missing parents do not block removal of a confirmed owned prefix or stripping of its markers. Unowned and ambiguous prefixes remain unchanged; each confirmed cleanup is restored by one editor undo."
+      ]
+    },
+    {
+      "id": "semantic-reference-note-boundaries",
+      "title": "Reference ownership, escaped backticks and nested note lists",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Enable virtual heading numbers with Hierarchical, cross-references, note numbering and formatted note labels in both Live Preview and Reading View. Record full source baselines for Boundary reference labels.md, Boundary ambiguous references.md and Boundary nested notes.md. Place the editor cursor in ordinary text when inspecting inactive display.",
+        "In Boundary reference labels.md inspect and follow all four first-paragraph references: aliased/unaliased title targets and aliased/unaliased block-ID targets must bind to Heading. Check literal versus real in the next paragraph: the escaped ordinary link retains its native label and @, and only the semantic reference receives a pill. Check the reference between escaped backticks is enhanced and the actual code span stays literal. Remaining formatted/entity paragraphs are diagnostic inputs for a distinct mapping issue, with source tests covering those variants.",
+        "In Boundary ambiguous references.md inspect the second paragraph, which combines native HTML code and an entity-prefixed link with identical aliases. Capture actual native rendering and correspondence. When source-to-DOM correspondence is unverifiable, preserve native links and @ characters with no partial decoration. The other alias variants need no duplicate host run unless this representative case exposes a distinct issue.",
+        "In Boundary nested notes.md verify plain and ticks are footnotes 1 and 2, final is endnote E1, and repeated references reuse their numbers. The literal marker inside actual code remains literal. Inspect native definition backlinks and the nested bullet/ordered lists: list text, numbering and nesting must remain unchanged.",
+        "Switch views, switch away and back, then disable the plugin. Compare labels, @ characters, formatted link children, note definitions and nested lists with the native baseline. Re-enable and verify restoration without duplicate decorations or source writes.",
+        "On Android repeat in portrait with touch navigation, open and dismiss the soft keyboard in ordinary body text, and switch views. Record desktop and Android observations independently; no write or undo operation is needed for this display-only scenario."
+      ],
+      "expected": [
+        "Only semantically verified references are enhanced and navigate to their actual target. Ambiguous mappings preserve native rendering. Escaped literal backticks do not suppress otherwise valid references or footnotes, while actual code spans remain protected.",
+        "Footnote/endnote numbering follows source semantics without consuming nested list items. Disabling the plugin restores native rendered content and all note bytes remain unchanged."
+      ]
+    },
+    {
+      "id": "reading-caption-section-placement",
+      "title": "Figure, Table and Equation placement across native Reading View sections",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Boundary section placement.md in the exact native host with caption numbering enabled. Record its full bytes/hash and mtime. Keep the three caption-carrier pairs separated as authored; record host version and whether each pair actually occupies separate native Reading View sections.",
+        "In Reading View set Figure, Table and Equation placement above, inspect all three, then set all three below and inspect again. Observe each caption against the visible img, inner table or display-math rectangle with one compact gap. A numbered pill alone is insufficient evidence of binding or movement. Use Figure in Live Preview as the representative editor control; expand to the other carriers only for distinct failures.",
+        "Record each observed type/view/placement result and native source-section relationship. If separate native sections cannot be established, mark that cross-section claim unverified even when same-section placement works. Do not substitute a synthetic DOM pass for native placement evidence or claim unexecuted combinations passed.",
+        "Enter the Figure caption in Live Preview, inspect exact source at its authored location, move out and check visual placement returns. In Source mode inspect unchanged Markdown, then follow its block-ID reference and confirm caption/carrier ownership remains distinct. Source tests cover the other reference variants.",
+        "Switch notes/views and disable/re-enable the plugin. Native source location must return on disable and placement must restore on enable. On Android use touch, the soft keyboard and portrait width. Compare bytes/hash/mtime at the end and restore saved placement settings."
+      ],
+      "expected": [
+        "Report the actual native placement result for each caption type and view independently. Caption position follows its selected side of the intended carrier when binding succeeds; a cross-section defect is a finding only when reproduced.",
+        "Visual placement, source reveal, lifecycle changes and reference navigation never rewrite Markdown or reassign caption/carrier IDs. Missing cross-section evidence is recorded explicitly."
+      ]
+    },
+    {
+      "id": "caption-multiline-math-investigation",
+      "title": "Native multiline inline-math rendering and stable caption ID ownership",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": [
+          "touch.longPress"
+        ]
+      },
+      "steps": [
+        "Record the source baseline of Boundary caption math.md and inspect Multiline math, Closed math and Plain math control in Live Preview and Reading View. First record whether this host actually renders the multiline dollar-delimited text as one inline-math expression; do not assume it does.",
+        "Try Copy cross-reference on Multiline math. Record refusal or the exact preview without applying an unreviewed insertion. If a proposed insertion visibly bisects syntax rendered as one math expression, cancel and record the finding. If it can safely be confirmed, verify the new ID resolves to the visible caption, then use one host undo to restore the baseline. Keep pasted links in a separate scratch note.",
+        "Use Closed math and Plain math control as positive controls: inspect, confirm, verify each copied target and undo once. On Android use actual long press, scratch-note paste with the soft keyboard and on-screen undo.",
+        "Report native rendering, preview, write/no-write and ID ownership as separate observations. If the host does not support multiline inline math, record that case as unverified for multiline-math safety rather than declaring a reproduced defect or a general pass."
+      ],
+      "expected": [
+        "This investigation establishes actual native syntax and stable-ID behavior without presuming a product failure. A confirmed supported caption reference must resolve to its intended owner and undo must restore the exact baseline.",
+        "No accepted operation may hide an ID inside a rendered expression or split the expression. Cancellation and refusal leave source unchanged; unsupported native math remains an explicit limitation."
+      ]
+    },
+    {
       "id": "code-caption-fence-boundaries",
       "title": "Code caption fence boundaries and protected note continuations",
       "surfaces": [

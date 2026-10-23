@@ -263,14 +263,29 @@ Run the `caption-container-write-safety` scenario with `Caption and container sa
 
 ## Parser and reference boundary regressions
 
-Use separate temporary notes where the cases require different Properties or heading structures.
-Run the affected interactions in desktop and Android emulator hosts when available; record each
-unavailable host as unverified. Keep the original source for byte comparisons and undo checks.
+Select these scenario IDs from `acceptance/product-scenarios.json`. Their setup, steps and expected
+results are the repeatable contract; the files below are copied from `acceptance/fixtures` into a
+temporary Vault before use. Record desktop and Android emulator outcomes independently, including
+unverified interactions. Preserve complete source baselines and compare them after display-only
+checks, cancellation, refusal and each single editor undo.
 
-- [ ] Put `# Heading | Content` immediately after the final row of a Markdown table, then a blank line and `Table: Below`. The heading must stay outside the table target. Right-clicking the heading must not offer a table caption action, and acting on the table must not move the caption across that heading.
-- [ ] Put a multiline HTML or `%%` comment after a visible `Figure: Title`, then repeat with a multiline code span, link, or HTML tag. Copy cross-reference must not split the syntax, create a hidden ID, or copy an unresolved new link. Repeat with the syntax closed on the caption line; a confirmed new ID must resolve to that caption and be removable with one editor undo.
-- [ ] Set `number-suite` to a list containing `heading.first-number.h10=2`, then repeat with `heading.skip-first.foo=2`. Current note must show invalid Properties and preserve the list when an unrelated control is changed. Valid H1 and H9 directives must still work.
-- [ ] In a note containing only an H2 with a confirmed plugin-marked prefix, select the hierarchical scheme and the missing-parent skip strategy. Previewed Remove numbers must remove the prefix; Remove source markers must retain its visible number. Neither operation may change an unmarked year, decimal, measurement, or one-sided marker.
-- [ ] Reference one heading in a paragraph with `\@[[#Heading|literal]] and @[[#Heading|real]]`. In Reading View the escaped ordinary link must remain unchanged and only the real semantic reference may be enhanced. Repeat with a native HTML code element and an entity-prefixed ordinary link, including identical aliases; unverifiable source/DOM correspondence must preserve native links. Switch views and disable the plugin to verify both original labels and `@` characters are restored.
-- [ ] Mix a footnote and an endnote, with an ordinary nested list inside one definition body. Reading View must number the two definitions consistently with their references and leave the nested list untouched. Disable the plugin and verify the original native labels return.
-- [ ] Surround a normal semantic reference or footnote marker with escaped literal backticks. It must still participate in semantic display; the same marker inside an actual code span must remain literal. Verify both Live Preview and Reading View without Markdown writes.
+| Scenario ID | Fixture notes | Scope |
+| --- | --- | --- |
+| `parser-caption-write-boundaries` | `Boundary table.md`, `Boundary caption syntax.md` | A pipe-containing heading terminates a table; stable caption IDs cannot split multiline syntax. Closed syntax and a valid adjacent table remain writable. |
+| `properties-orphan-cleanup` | `Boundary invalid Properties.md`, `Boundary valid Properties.md`, `Boundary orphan cleanup.md` | Invalid H10/unknown-level directives fail closed; H1/H9 still work. Confirmed prefix cleanup and marker stripping work with missing parents while ambiguous prefixes stay intact. |
+| `semantic-reference-note-boundaries` | `Boundary reference labels.md`, `Boundary ambiguous references.md`, `Boundary nested notes.md` | Aliased/unaliased title and block targets, escaped/entity/HTML links, escaped backticks and mixed notes with nested lists preserve source ownership and native restoration. |
+| `reading-caption-section-placement` | `Boundary section placement.md` | Investigate Figure, Table and Equation placement independently across actual native Reading View sections, with Live Preview controls. |
+| `caption-multiline-math-investigation` | `Boundary caption math.md` | Establish whether the native host renders multiline inline math, then inspect stable-ID safety with closed-math and plain-caption controls. |
+
+`Boundary orphan cleanup.md` intentionally contains three literal U+2060 WORD JOINER characters:
+two surrounding the owned `2` on the first H2 and one before the one-sided marker's `2` on the last
+H2. Preserve those bytes. Select Hierarchical, missing-parent Skip and plugin-owned cleanup for
+this scenario; do not generate new markers as a substitute for the checked-in input. Keep pasted
+cross-reference links in a separate scratch note so that a paste cannot consume the undo intended
+to verify a plugin write.
+
+For placement, report each carrier, view, selected side and native section relationship separately.
+A caption pill alone does not establish binding, and a same-section pass does not establish
+cross-section placement. For inline math, record actual native rendering before classifying a
+preview or write; unsupported multiline math is an unverified boundary, not an assumed defect.
+Neither investigation is a completed acceptance result until the exact candidate runs in the host.
