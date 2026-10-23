@@ -287,6 +287,7 @@ interface RenderedCaptionObject {
   readonly root: HTMLElement;
   readonly alignmentTarget: HTMLElement;
   readonly hoverTarget: HTMLElement | null;
+  readonly placementTarget?: HTMLElement;
   readonly sectionScoped?: boolean;
 }
 
@@ -333,22 +334,51 @@ function captionSharesCarrierRoot(caption: HTMLElement, objectKind: string): boo
   return caption.matches(selector) || caption.querySelector(selector) != null;
 }
 
-function renderedSectionCodeObject(
+function renderedSectionObject(
   caption: HTMLElement,
   item: SemanticDisplayDecoration,
   context: MarkdownPostProcessorContext,
 ): RenderedCaptionObject | null {
-  if (item.objectKind !== "Code" || item.sourcePlacement == null
+  if (item.objectKind == null || item.sourcePlacement == null
     || item.objectFirstLine == null || item.objectLastLine == null) return null;
   const section = caption.parentElement;
   if (!section?.matches(".el-p") || !section.parentElement?.matches(".markdown-preview-section")) return null;
   const sibling = item.sourcePlacement === "above" ? section.nextElementSibling : section.previousElementSibling;
-  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement) || !sibling.matches(".el-pre")) return null;
+  const sectionSelector = item.objectKind === "Figure" ? ".el-p"
+    : item.objectKind === "Table" ? ".el-table"
+      : item.objectKind === "Equation" ? ".el-div" : ".el-pre";
+  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement)
+    || !sibling.matches(sectionSelector)) return null;
   const renderedSection = context.getSectionInfo(sibling);
-  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine
-    || renderedSection.lineEnd !== item.objectLastLine) return null;
-  const code = sibling.querySelectorAll<HTMLElement>("pre");
-  return code.length === 1 ? { root: sibling, alignmentTarget: code[0]!, hoverTarget: null, sectionScoped: true } : null;
+  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine) return null;
+  // Native image paragraphs include their immediately following block-ID line.
+  const imageIdTail = item.objectKind === "Figure"
+    && renderedSection.lineEnd === item.objectLastLine + 1
+    && /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u.test(
+      renderedSection.text.replace(/\r\n?/gu, "\n").split("\n")[renderedSection.lineEnd] ?? "",
+    );
+  if (renderedSection.lineEnd !== item.objectLastLine && !imageIdTail) return null;
+  // Certify the actual carrier, not all nested wrapper matches for that carrier.
+  const selector = item.objectKind === "Figure" ? "img"
+    : item.objectKind === "Equation" && sibling.querySelector("mjx-container[display='true']") != null
+      ? "mjx-container[display='true']" : captionObjectSelector(item.objectKind);
+  const targets = sibling.querySelectorAll<HTMLElement>(selector);
+  if (targets.length !== 1) return null;
+  const target = targets[0]!;
+  let placementTarget = target;
+  while (placementTarget.parentElement !== sibling) {
+    if (placementTarget.parentElement == null) return null;
+    placementTarget = placementTarget.parentElement;
+  }
+  // Move the carrier's inner wrapper with it: translating a table inside its
+  // stationary overflow wrapper would clip the visually relocated table.
+  return {
+    root: sibling,
+    alignmentTarget: target,
+    placementTarget,
+    hoverTarget: item.captionKind === "Figure" ? target : null,
+    sectionScoped: true,
+  };
 }
 
 interface SharedCaptionCandidate {
@@ -454,14 +484,19 @@ function splitSharedCaptionRoot(
   return caption;
 }
 
-function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, sectionPlacement?: "above" | "below"): void {
+function alignRenderedCaption(
+  caption: HTMLElement,
+  target: HTMLElement,
+  sectionPlacement?: "above" | "below",
+  placementTarget = target,
+): void {
   captionLayoutCleanup.get(caption)?.();
   const view = caption.ownerDocument.defaultView;
   if (view == null) return;
   let active = true;
   let frame: number | null = null;
   const captionTranslate = caption.style.getPropertyValue("translate");
-  const targetTranslate = target.style.getPropertyValue("translate");
+  const targetTranslate = placementTarget.style.getPropertyValue("translate");
   let captionOffset = 0;
   let targetBlockOffset = 0;
   const update = (): void => {
@@ -489,7 +524,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
       captionOffset = sectionPlacement === "above" ? top - captionTop : top + targetRect.height + gap - captionTop;
       targetBlockOffset = sectionPlacement === "above" ? top + captionRect.height + gap - targetTop : top - targetTop;
       caption.style.setProperty("translate", `0 ${captionOffset}px`);
-      target.style.setProperty("translate", `0 ${targetBlockOffset}px`);
+      placementTarget.style.setProperty("translate", `0 ${targetBlockOffset}px`);
     }
   };
   const schedule = (): void => {
@@ -498,6 +533,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
   const Observer = view.ResizeObserver;
   const observer = Observer == null ? null : new Observer(schedule);
   observer?.observe(target);
+  if (placementTarget !== target) observer?.observe(placementTarget);
   observer?.observe(caption);
   captionLayoutCleanup.set(caption, () => {
     active = false;
@@ -506,7 +542,7 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, section
     frame = null;
     if (sectionPlacement != null) {
       if (captionTranslate.length === 0) caption.style.removeProperty("translate");
-      if (targetTranslate.length === 0) target.style.removeProperty("translate");
+      if (targetTranslate.length === 0) placementTarget.style.removeProperty("translate");
     }
   });
   schedule();
@@ -531,7 +567,7 @@ function placeRenderedCaption(
     if (displayPlacement === "above") object.root.before(node);
     else object.root.after(node);
   }
-  alignRenderedCaption(caption, object.alignmentTarget, object.sectionScoped ? displayPlacement : undefined);
+  alignRenderedCaption(caption, object.alignmentTarget, object.sectionScoped ? displayPlacement : undefined, object.placementTarget);
 }
 
 function annotateUnboundImages(container: HTMLElement): void {
@@ -1059,7 +1095,7 @@ export class HeadingReadingProcessor {
               item.objectKind,
               item.captionKind,
               item.sourcePlacement,
-            ) ?? renderedSectionCodeObject(root, item, context);
+            ) ?? renderedSectionObject(root, item, context);
             if (object != null) {
               placeRenderedCaption(root, object, item.displayPlacement);
               if (settings.showImageCaptionTooltips && object.hoverTarget != null) {

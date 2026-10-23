@@ -2,7 +2,7 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.5.9 - 2026-10-24
 
 - Stop table caption targets at independent Markdown headings so relocation cannot cross a section boundary.
 - Offer a new stable-reference ID only outside multiline inline syntax and when the resulting source binds it to the original target.
@@ -11,6 +11,11 @@ All notable changes to Number Suite are documented here.
 - Match Reading View references to source occurrences without changing escaped ordinary links.
 - Keep lists inside note bodies out of footnote and endnote definition numbering.
 - Recognize references and notes between escaped literal backticks while preserving real code spans.
+
+- Place Figure, Table and Equation captions across certified native Reading View sections, including scrollable table wrappers.
+- Refuse new caption IDs inside multiline math expressions.
+- Clarify caption and extended-heading guidance in the translated documentation.
+- Update development test dependencies to address security advisories.
 
 ## 0.5.8 - 2026-10-23
 

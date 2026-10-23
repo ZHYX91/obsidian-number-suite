@@ -94,6 +94,22 @@ describe("stable cross-reference planning", () => {
     expect(plan?.change?.insert).toBe("\r\n^ns-h-miao-2");
   });
 
+  it.each(["\n", "\r\n", "\r"])("refuses insertion inside multiline math with %j", (newline) => {
+    for (const delimiter of ["$", "$$"]) {
+      expect(createStableReferencePlan(`Figure: Title ${delimiter}x +${newline}y${delimiter}`, 8)).toBeNull();
+    }
+  });
+
+  it.each([
+    "Figure: Title $x + y$",
+    "Figure: Title \\$x +\ny\\$",
+    "Figure: Title `$x`\ny$",
+    "Figure: Title $5\nordinary currency",
+    "Figure: Title $x\n\ny$",
+  ])("keeps closed or non-math dollar text writable: %s", (source) => {
+    expect(createStableReferencePlan(source, 8)?.change).toBeTruthy();
+  });
+
   it("uses a deterministic fallback for non-Latin titles and escapes aliases", () => {
     const plan = createStableReferencePlan("# 结果|附录]", 4);
     expect(plan?.blockId).toMatch(/^ns-h-[a-z0-9]+$/u);

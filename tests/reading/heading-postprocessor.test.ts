@@ -775,6 +775,67 @@ describe("HeadingReadingProcessor", () => {
     expect(code.style.getPropertyValue("translate")).toBe("");
   });
 
+  it.each(READING_CARRIER_CASES.flatMap((carrier) =>
+    (["above", "below"] as const).flatMap((sourcePlacement) =>
+      (["above", "below"] as const).map((displayPlacement) => ({ carrier, sourcePlacement, displayPlacement })),
+    ),
+  ))("places certified native $carrier.objectKind sections source-$sourcePlacement display-$displayPlacement", async ({ carrier, sourcePlacement, displayPlacement }) => {
+    const objectLines = carrier.objectSource.split("\n").length;
+    const imageTail = carrier.objectKind === "Figure" ? "\n^image-id" : "";
+    const objectSource = carrier.objectSource + imageTail;
+    // Caption kind deliberately differs from several carrier kinds.
+    const source = sourcePlacement === "above"
+      ? `Figure: Pair\n\n${objectSource}` : `${objectSource}\n\nFigure: Pair`;
+    const { processor, container } = harness(source, settings({
+      showCaptionNumbers: true, figureCaptionPlacement: displayPlacement,
+    }));
+    container.className = "markdown-preview-section";
+    const objectSection = document.createElement("div");
+    objectSection.className = carrier.objectKind === "Figure" ? "el-p"
+      : carrier.objectKind === "Table" ? "el-table" : carrier.objectKind === "Equation" ? "el-div" : "el-pre";
+    const wrapper = document.createElement("div");
+    wrapper.style.overflow = "auto";
+    const carrierRoot = carrier.createRoot();
+    wrapper.append(carrierRoot);
+    objectSection.append(wrapper);
+    const target = carrier.objectKind === "Figure" ? carrierRoot.querySelector<HTMLElement>("img")! : carrierRoot;
+    const captionSection = document.createElement("div");
+    captionSection.className = "el-p";
+    const caption = document.createElement("p");
+    caption.textContent = "Figure: Pair";
+    caption.style.fontSize = "16px";
+    captionSection.append(caption);
+    if (sourcePlacement === "above") container.append(captionSection, objectSection);
+    else container.append(objectSection, captionSection);
+    const originalOrder = [...container.children];
+    const offset = (element: HTMLElement): number => Number.parseFloat(element.style.getPropertyValue("translate").split(" ")[1] ?? "0");
+    const captionTop = sourcePlacement === "above" ? 100 : 160;
+    const objectTop = sourcePlacement === "above" ? 160 : 100;
+    caption.getBoundingClientRect = () => new DOMRect(0, captionTop + offset(caption), 160, 32);
+    target.getBoundingClientRect = () => new DOMRect(0, objectTop + offset(wrapper), 400, 48);
+    const objectStart = sourcePlacement === "above" ? 2 : 0;
+    const captionLine = sourcePlacement === "above" ? 0 : objectLines + (imageTail ? 1 : 0) + 1;
+    const context = {
+      sourcePath: "note.md",
+      getSectionInfo: (element: HTMLElement) => element === captionSection
+        ? { text: source, lineStart: captionLine, lineEnd: captionLine }
+        : element === objectSection ? { text: source, lineStart: objectStart, lineEnd: objectStart + objectLines - 1 + (imageTail ? 1 : 0) } : null,
+    } as unknown as MarkdownPostProcessorContext;
+    for (let pass = 0; pass < 2; pass += 1) {
+      await processor.process(captionSection, context);
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      expect([...container.children]).toEqual(originalOrder);
+      const captionRect = caption.getBoundingClientRect();
+      const objectRect = target.getBoundingClientRect();
+      expect(displayPlacement === "above" ? objectRect.top - captionRect.bottom : captionRect.top - objectRect.bottom).toBe(4);
+    }
+    processor.dispose();
+    expect(caption.textContent).toBe("Figure: Pair");
+    expect(caption.style.getPropertyValue("translate")).toBe("");
+    expect(wrapper.style.getPropertyValue("translate")).toBe("");
+    expect([...container.children]).toEqual(originalOrder);
+  });
+
   it("keeps a source-below caption attached to its rendered carrier", async () => {
     const source = "![[miao.png]]\n\nFigure: Miao";
     const { processor, context, container } = harness(source, settings({
