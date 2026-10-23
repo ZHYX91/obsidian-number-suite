@@ -52,6 +52,7 @@ const sharedCaptionOrigins = new WeakMap<HTMLElement, Readonly<{
   sourcePlacement: "above" | "below";
 }>>();
 const captionLayoutCleanup = new WeakMap<HTMLElement, () => void>();
+const captionTargetLayoutCleanup = new WeakMap<HTMLElement, () => void>();
 const referenceOriginalNodes = new WeakMap<HTMLElement, readonly ChildNode[]>();
 
 interface ReadingReferenceCandidate {
@@ -209,6 +210,7 @@ function cleanupSemantic(container: HTMLElement): void {
   if (container.matches(".number-suite-caption-object")) captionObjects.push(container);
   captionObjects.push(...container.querySelectorAll<HTMLElement>(".number-suite-caption-object"));
   for (const object of captionObjects) {
+    captionTargetLayoutCleanup.get(object)?.();
     object.classList.remove("number-suite-caption-object");
     delete object.dataset.numberSuiteCaptionPlacement;
   }
@@ -493,6 +495,9 @@ function alignRenderedCaption(
   placementTarget = target,
 ): void {
   captionLayoutCleanup.get(caption)?.();
+  // A native section may survive while Obsidian replaces its caption paragraph.
+  // Retire the former binding before reading the section's original translation.
+  captionTargetLayoutCleanup.get(placementTarget)?.();
   const view = caption.ownerDocument.defaultView;
   if (view == null) return;
   let active = true;
@@ -537,7 +542,8 @@ function alignRenderedCaption(
   observer?.observe(target);
   if (placementTarget !== target) observer?.observe(placementTarget);
   observer?.observe(caption);
-  captionLayoutCleanup.set(caption, () => {
+  const cleanup = (): void => {
+    if (!active) return;
     active = false;
     observer?.disconnect();
     if (frame != null) view.cancelAnimationFrame(frame);
@@ -546,7 +552,13 @@ function alignRenderedCaption(
       if (captionTranslate.length === 0) caption.style.removeProperty("translate");
       if (targetTranslate.length === 0) placementTarget.style.removeProperty("translate");
     }
-  });
+    if (captionTargetLayoutCleanup.get(placementTarget) === cleanup) {
+      captionTargetLayoutCleanup.delete(placementTarget);
+    }
+    if (captionLayoutCleanup.get(caption) === cleanup) captionLayoutCleanup.delete(caption);
+  };
+  captionLayoutCleanup.set(caption, cleanup);
+  captionTargetLayoutCleanup.set(placementTarget, cleanup);
   schedule();
 }
 

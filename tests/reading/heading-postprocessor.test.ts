@@ -802,7 +802,7 @@ describe("HeadingReadingProcessor", () => {
     const target = carrier.objectKind === "Figure" ? carrierRoot.querySelector<HTMLElement>("img")! : carrierRoot;
     const captionSection = document.createElement("div");
     captionSection.className = "el-p";
-    const caption = document.createElement("p");
+    let caption = document.createElement("p");
     caption.textContent = "Figure: Pair";
     caption.style.fontSize = "16px";
     captionSection.append(caption);
@@ -822,7 +822,15 @@ describe("HeadingReadingProcessor", () => {
         ? { text: source, lineStart: captionLine, lineEnd: captionLine }
         : element === objectSection ? { text: source, lineStart: objectStart, lineEnd: objectStart + objectLines - 1 + (imageTail ? 1 : 0) } : null,
     } as unknown as MarkdownPostProcessorContext;
-    for (let pass = 0; pass < 2; pass += 1) {
+    for (let pass = 0; pass < 3; pass += 1) {
+      if (pass === 2) {
+        // Native rerenders can replace the paragraph while keeping its carrier.
+        caption = document.createElement("p");
+        caption.textContent = "Figure: Pair";
+        caption.style.fontSize = "16px";
+        caption.getBoundingClientRect = () => new DOMRect(0, captionTop + offset(caption), 160, 32);
+        captionSection.replaceChildren(caption);
+      }
       await processor.process(captionSection, context);
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       expect([...container.children]).toEqual(originalOrder);
