@@ -4,6 +4,8 @@
 
 Number Suite 可在 Obsidian 的標題、圖表標題、參照、註腳與章末註記旁顯示編號。只在畫面上顯示時，不會修改 Markdown；要把編號寫入檔案，得另行執行操作。
 
+這是常用操作的**簡明指南**。H7–H9、題注與物件綁定、穩定參照及註腳的完整說明，請看[英文進階指南](../advanced.en.md)或[簡體中文進階指南](../advanced.zh-CN.md)。
+
 <!-- section: installation -->
 ## 安裝
 
