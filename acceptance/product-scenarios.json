@@ -13,6 +13,31 @@
   },
   "scenarios": [
     {
+      "id": "code-caption-fence-boundaries",
+      "title": "Code caption fence boundaries and protected note continuations",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": [
+          "touch.longPress"
+        ]
+      },
+      "steps": [
+        "Open Code fence boundaries.md in Live Preview and Reading View. The frontmatter-adjacent code block must bind its existing Code caption. Inspect both views without editing and verify the full Markdown bytes remain unchanged.",
+        "In editing mode, open the context menu inside frontmatterValue. Inspect the preview that moves the existing caption above the entire code block, cancel once, then confirm. Undo once and verify the exact original source is restored.",
+        "Open the context menu inside secondValue in the immediately adjacent tilde-fenced block. Add a Code caption using its preview, verify only the second complete object is targeted, then undo once. The first block must remain unchanged.",
+        "In Source mode, open context menus inside plainProtected, footnoteProtected and endnoteProtected, including a fence boundary. None may offer a Code caption action. Repeat for the commentProtected and htmlProtected lookalikes; verify all protected source bytes remain unchanged.",
+        "On Android, perform the affected context actions through real long press, the soft keyboard and on-screen undo. Record observed view/menu behavior and any unverified path separately."
+      ],
+      "expected": [
+        "Real top-level code objects immediately after frontmatter or another fence remain caption targets, and existing captions bind in both display modes.",
+        "Footnote/endnote continuations, comments and HTML never become Code caption targets. Canceled operations and display-only use do not write; one host undo restores each confirmed write exactly."
+      ]
+    },
+    {
       "id": "caption-container-write-safety",
       "title": "Container protection and caption reference preservation",
       "surfaces": [

@@ -42,6 +42,8 @@ export interface SemanticDisplayDecoration {
   readonly displayPlacement?: CaptionPlacement;
   readonly objectFrom?: number;
   readonly objectTo?: number;
+  readonly objectFirstLine?: number;
+  readonly objectLastLine?: number;
   readonly objectKind?: CaptionKind;
   readonly tooltipTitle?: string;
   readonly tooltipBody?: string;
@@ -217,6 +219,8 @@ export function createSemanticDisplayPlan(
         displayPlacement: options.captionPlacements?.[caption.kind] ?? "above",
         objectFrom: binding.object.visualFrom,
         objectTo: binding.object.visualTo,
+        objectFirstLine: binding.object.visualFirstLine,
+        objectLastLine: binding.object.visualLastLine,
         objectKind: binding.object.kind,
       }),
       ...(options.showImageCaptionTooltips === true && caption.kind === "Figure" && binding != null ? {

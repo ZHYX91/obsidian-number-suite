@@ -54,6 +54,7 @@ export interface SemanticSourceLine {
   readonly number: number;
   readonly available: boolean;
   readonly topLevel: boolean;
+  readonly fenceOpening?: boolean;
 }
 
 const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
@@ -70,6 +71,7 @@ export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
     to: line.to,
     number: line.number,
     topLevel: line.topLevel,
+    fenceOpening: line.fenceOpening && !protectedNoteLines.has(line.number),
     available: line.available && !protectedNoteLines.has(line.number),
   }));
 }

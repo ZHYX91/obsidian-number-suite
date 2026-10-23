@@ -5,6 +5,8 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   readonly available: boolean;
   readonly commentMaskedText: string;
   readonly headingAvailable: boolean;
+  /** True only for an actual top-level fenced-code opening, never a protected lookalike. */
+  readonly fenceOpening: boolean;
   readonly topLevel: boolean;
 }
 
@@ -78,6 +80,7 @@ export function scanMarkdownProtectedLines(
     let available = true;
     let commentMaskedText = line.text;
     let headingAvailable = true;
+    let fenceOpening = false;
 
     if (line.frontmatter) {
       available = false;
@@ -128,6 +131,7 @@ export function scanMarkdownProtectedLines(
         ? null : fenceMatch?.[1];
       if (fence != null) {
         available = false;
+        fenceOpening = true;
         state = {
           kind: "fence",
           character: fence[0] as "`" | "~",
@@ -170,7 +174,7 @@ export function scanMarkdownProtectedLines(
     }
 
     const topLevel = container?.nested !== true;
-    output.push({ ...line, available, commentMaskedText, topLevel, headingAvailable: available && headingAvailable && topLevel });
+    output.push({ ...line, available, commentMaskedText, topLevel, fenceOpening, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
     // heading, fence, thematic break or other block without a blank line.
     inParagraph = available && trimmed.length > 0

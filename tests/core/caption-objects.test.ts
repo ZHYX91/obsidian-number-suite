@@ -170,6 +170,46 @@ describe("caption object binding", () => {
     ]);
   });
 
+  it.each(["\n", "\r\n", "\r"])("recognizes a fence immediately following frontmatter with %j endings", (eol) => {
+    const source = ["---", "title: Example", "---", "```ts", "const x = 1;", "```", "Code: Demo"].join(eol);
+    const codes = scanCaptionObjects(source).filter(({ kind }) => kind === "Code");
+    expect(codes).toHaveLength(1);
+    expect(source.slice(codes[0]!.visualFrom, codes[0]!.visualTo)).toBe(["```ts", "const x = 1;", "```"].join(eol));
+    expect(bindCaptionObjects(source).map(({ sourcePlacement }) => sourcePlacement)).toEqual(["below"]);
+  });
+
+  it("recognizes both adjacent code fences without a separating blank line", () => {
+    const source = ["```ts", "one();", "```", "```js", "two();", "```"].join("\n");
+    const codes = scanCaptionObjects(source).filter(({ kind }) => kind === "Code");
+    expect(codes.map(({ firstLine, visualLastLine }) => [firstLine, visualLastLine])).toEqual([[0, 2], [3, 5]]);
+  });
+
+  it("does not accept fence-like lines inside frontmatter, HTML, comments or indented code", () => {
+    const source = ["---", "sample: |", "  ```ts", "---", "<!--", "```js", "hidden()", "```", "-->", "<div>", "```sh", "hidden", "```", "", "    ```python", "    hidden", "    ```"].join("\n");
+    expect(scanCaptionObjects(source).filter(({ kind }) => kind === "Code")).toEqual([]);
+  });
+
+  it.each(["\n", "\r\n", "\r"])("excludes code fences in footnote and endnote continuations with %j endings", (eol) => {
+    for (const label of ["note", "footnote:note", "endnote:note"]) {
+      for (const indent of ["  ", "   "]) {
+        for (const fence of ["```", "~~~"]) {
+          const source = [
+            `[^${label}]: Note`,
+            `${indent}${fence}ts`,
+            `${indent}hidden();`,
+            `${indent}${fence}`,
+            "",
+            "```js",
+            "visible();",
+            "```",
+          ].join(eol);
+          const codes = scanCaptionObjects(source).filter(({ kind }) => kind === "Code");
+          expect(codes.map(({ firstLine, visualLastLine }) => [firstLine, visualLastLine])).toEqual([[5, 7]]);
+        }
+      }
+    }
+  });
+
   it("keeps visual object bounds separate from following block IDs", () => {
     const source = "Figure: Miao\n\n![[miao.png]]\n\n^miao";
     const object = bindCaptionObjects(source)[0]?.object;

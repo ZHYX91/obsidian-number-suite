@@ -38,6 +38,8 @@ import { applySemanticTooltip, clearSemanticTooltip } from "../ui/semantic-toolt
 const captionOrigins = new WeakMap<HTMLElement, Readonly<{
   parent: Node;
   anchor: Comment;
+  node: HTMLElement;
+  objectRoot: HTMLElement;
 }>>();
 const sharedCaptionOrigins = new WeakMap<HTMLElement, Readonly<{
   carrier: HTMLElement;
@@ -154,12 +156,14 @@ function cleanupSemantic(container: HTMLElement): void {
     const origin = captionOrigins.get(caption);
     if (origin != null) {
       if (origin.anchor.parentNode != null) {
-        origin.anchor.before(caption);
+        origin.anchor.before(origin.node);
         origin.anchor.remove();
       } else {
-        origin.parent.appendChild(caption);
+        origin.parent.appendChild(origin.node);
       }
       captionOrigins.delete(caption);
+      origin.objectRoot.classList.remove("number-suite-caption-object");
+      delete origin.objectRoot.dataset.numberSuiteCaptionPlacement;
     }
     caption.classList.remove(
       "number-suite-caption-centered",
@@ -266,6 +270,7 @@ interface RenderedCaptionObject {
   readonly root: HTMLElement;
   readonly alignmentTarget: HTMLElement;
   readonly hoverTarget: HTMLElement | null;
+  readonly sectionScoped?: boolean;
 }
 
 function captionObjectSelector(kind: string): string {
@@ -309,6 +314,24 @@ function renderedCaptionObject(
 function captionSharesCarrierRoot(caption: HTMLElement, objectKind: string): boolean {
   const selector = captionObjectSelector(objectKind);
   return caption.matches(selector) || caption.querySelector(selector) != null;
+}
+
+function renderedSectionCodeObject(
+  caption: HTMLElement,
+  item: SemanticDisplayDecoration,
+  context: MarkdownPostProcessorContext,
+): RenderedCaptionObject | null {
+  if (item.objectKind !== "Code" || item.sourcePlacement == null
+    || item.objectFirstLine == null || item.objectLastLine == null) return null;
+  const section = caption.parentElement;
+  if (!section?.matches(".el-p") || !section.parentElement?.matches(".markdown-preview-section")) return null;
+  const sibling = item.sourcePlacement === "above" ? section.nextElementSibling : section.previousElementSibling;
+  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement) || !sibling.matches(".el-pre")) return null;
+  const renderedSection = context.getSectionInfo(sibling);
+  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine
+    || renderedSection.lineEnd !== item.objectLastLine) return null;
+  const code = sibling.querySelectorAll<HTMLElement>("pre");
+  return code.length === 1 ? { root: sibling, alignmentTarget: code[0]!, hoverTarget: null, sectionScoped: true } : null;
 }
 
 interface SharedCaptionCandidate {
@@ -414,12 +437,16 @@ function splitSharedCaptionRoot(
   return caption;
 }
 
-function alignRenderedCaption(caption: HTMLElement, target: HTMLElement): void {
+function alignRenderedCaption(caption: HTMLElement, target: HTMLElement, sectionPlacement?: "above" | "below"): void {
   captionLayoutCleanup.get(caption)?.();
   const view = caption.ownerDocument.defaultView;
   if (view == null) return;
   let active = true;
   let frame: number | null = null;
+  const captionTranslate = caption.style.getPropertyValue("translate");
+  const targetTranslate = target.style.getPropertyValue("translate");
+  let captionOffset = 0;
+  let targetBlockOffset = 0;
   const update = (): void => {
     frame = null;
     if (!active) return;
@@ -435,6 +462,18 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement): void {
       : targetOffset;
     caption.classList.add("number-suite-caption-object-aligned");
     caption.style.setProperty("--number-suite-caption-inline-offset", `${offset}px`);
+    if (sectionPlacement != null && captionTranslate.length === 0 && targetTranslate.length === 0) {
+      // Native Reading View caches each section's position. Keep its section
+      // ownership/order intact and offset only the two certified visible blocks.
+      const captionTop = captionRect.top - captionOffset;
+      const targetTop = targetRect.top - targetBlockOffset;
+      const top = Math.min(captionTop, targetTop);
+      const gap = Number.parseFloat(view.getComputedStyle(caption).fontSize) * 0.25 || 4;
+      captionOffset = sectionPlacement === "above" ? top - captionTop : top + targetRect.height + gap - captionTop;
+      targetBlockOffset = sectionPlacement === "above" ? top + captionRect.height + gap - targetTop : top - targetTop;
+      caption.style.setProperty("translate", `0 ${captionOffset}px`);
+      target.style.setProperty("translate", `0 ${targetBlockOffset}px`);
+    }
   };
   const schedule = (): void => {
     if (active && frame == null) frame = view.requestAnimationFrame(update);
@@ -448,6 +487,10 @@ function alignRenderedCaption(caption: HTMLElement, target: HTMLElement): void {
     observer?.disconnect();
     if (frame != null) view.cancelAnimationFrame(frame);
     frame = null;
+    if (sectionPlacement != null) {
+      if (captionTranslate.length === 0) caption.style.removeProperty("translate");
+      if (targetTranslate.length === 0) target.style.removeProperty("translate");
+    }
   });
   schedule();
 }
@@ -459,16 +502,19 @@ function placeRenderedCaption(
 ): void {
   caption.dataset.numberSuiteCaptionPlacement = displayPlacement;
   if (caption.parentNode == null) return;
+  const node = caption;
   if (!captionOrigins.has(caption)) {
     const anchor = caption.ownerDocument.createComment("number-suite-caption-origin");
-    caption.before(anchor);
-    captionOrigins.set(caption, { parent: caption.parentNode, anchor });
+    node.before(anchor);
+    captionOrigins.set(caption, { parent: node.parentNode!, anchor, node, objectRoot: object.root });
   }
   object.root.classList.add("number-suite-caption-object");
   object.root.dataset.numberSuiteCaptionPlacement = displayPlacement;
-  if (displayPlacement === "above") object.root.before(caption);
-  else object.root.after(caption);
-  alignRenderedCaption(caption, object.alignmentTarget);
+  if (!object.sectionScoped) {
+    if (displayPlacement === "above") object.root.before(node);
+    else object.root.after(node);
+  }
+  alignRenderedCaption(caption, object.alignmentTarget, object.sectionScoped ? displayPlacement : undefined);
 }
 
 function annotateUnboundImages(container: HTMLElement): void {
@@ -913,7 +959,7 @@ export class HeadingReadingProcessor {
               item.objectKind,
               item.captionKind,
               item.sourcePlacement,
-            );
+            ) ?? renderedSectionCodeObject(root, item, context);
             if (object != null) {
               placeRenderedCaption(root, object, item.displayPlacement);
               if (settings.showImageCaptionTooltips && object.hoverTarget != null) {
