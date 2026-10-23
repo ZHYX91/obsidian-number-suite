@@ -4,6 +4,8 @@
 
 Number Suite affiche des numéros pour les titres, légendes, renvois, notes de bas de page et notes de fin dans Obsidian. L’affichage seul ne modifie pas Markdown. L’écriture des numéros dans un fichier est une opération distincte.
 
+Ceci est un **guide abrégé** pour les tâches courantes. Les détails sur H7–H9, les liens entre légendes et objets, les références stables ainsi que les notes de bas de page et de fin figurent dans les guides approfondis en [anglais](../advanced.en.md) ou en [chinois simplifié](../advanced.zh-CN.md).
+
 <!-- section: installation -->
 ## Installation
 
