@@ -16,6 +16,8 @@ block ID such as `######## Deep topic ^deep-topic` for reliable interoperation a
 each extended heading in its own paragraph, with a blank line around it, when Reading View
 enhancement is required. The Markdown source remains canonical and unchanged by display-only use.
 
+## Captions and objects
+
 Caption and cross-reference display never writes Markdown. A caption is a top-level paragraph that
 starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. A
 recognized caption is displayed as one filled pill; its optional number is part of that pill. Normal

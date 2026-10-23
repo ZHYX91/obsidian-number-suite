@@ -14,6 +14,8 @@ H7-H9 不是 Obsidian/CommonMark 原生标题层级，因此 Obsidian 内置大�
 增强时，每个扩展标题应单独成段，并在前后留空行。纯显示使用始终以 Markdown 源码为准且
 不修改源码。
 
+## 题注与对应对象
+
 题注与交叉引用显示从不写入 Markdown。题注必须是以 `Figure:`、`Table:`、`Equation:` 或
 `Code:` 精确开头的顶层段落；`Listing:` 不是兼容别名。识别出的整条题注显示为实心胶囊，
 可选编号位于胶囊内部。普通 `[[#...]]` 链接完全交由 Obsidian。
