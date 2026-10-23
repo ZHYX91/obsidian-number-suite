@@ -728,6 +728,41 @@ describe("HeadingReadingProcessor", () => {
     }
   });
 
+  it("places and restores a code caption across separately owned Reading View sections", async () => {
+    const source = "---\ntitle: Example\n---\n```js\nconst x = 1;\n```\nCode: Example";
+    const { processor, container } = harness(source, settings({ showCaptionNumbers: true }));
+    container.className = "markdown-preview-section";
+    const objectSection = document.createElement("div");
+    objectSection.className = "el-pre";
+    objectSection.append(document.createElement("pre"));
+    const captionSection = document.createElement("div");
+    captionSection.className = "el-p";
+    const caption = document.createElement("p");
+    caption.textContent = "Code: Example";
+    captionSection.append(caption);
+    container.append(objectSection, captionSection);
+    const context = {
+      sourcePath: "note.md",
+      getSectionInfo: (element: HTMLElement) => element === captionSection
+        ? { text: source, lineStart: 6, lineEnd: 6 }
+        : element === objectSection ? { text: source, lineStart: 3, lineEnd: 5 } : null,
+    } as unknown as MarkdownPostProcessorContext;
+
+    await processor.process(captionSection, context);
+    expect([...container.children]).toEqual([captionSection, objectSection]);
+    expect(caption.textContent).toBe("Code 1: Example");
+    expect(objectSection.classList.contains("number-suite-caption-object")).toBe(true);
+
+    await processor.process(captionSection, context);
+    expect([...container.children]).toEqual([captionSection, objectSection]);
+    expect(caption.textContent).toBe("Code 1: Example");
+
+    processor.dispose();
+    expect([...container.children]).toEqual([objectSection, captionSection]);
+    expect(caption.textContent).toBe("Code: Example");
+    expect(objectSection.classList.contains("number-suite-caption-object")).toBe(false);
+  });
+
   it("keeps a source-below caption attached to its rendered carrier", async () => {
     const source = "![[miao.png]]\n\nFigure: Miao";
     const { processor, context, container } = harness(source, settings({
@@ -746,6 +781,36 @@ describe("HeadingReadingProcessor", () => {
     expect(caption.textContent).toBe("Figure 1: Miao");
     expect(caption.dataset.numberSuiteCaptionPlacement).toBe("below");
     expect(imageParagraph.classList.contains("number-suite-caption-object")).toBe(true);
+  });
+
+  it.each([
+    { lineStart: 0, lineEnd: 2, codeCount: 1 },
+    { lineStart: 3, lineEnd: 6, codeCount: 1 },
+    { lineStart: 3, lineEnd: 5, codeCount: 2 },
+  ])("refuses an uncertified neighboring code section: %j", async ({ lineStart, lineEnd, codeCount }) => {
+    const source = "---\ntitle: Example\n---\n```js\nconst x = 1;\n```\nCode: Example";
+    const { processor, container } = harness(source, settings({ showCaptionNumbers: true }));
+    container.className = "markdown-preview-section";
+    const objectSection = document.createElement("div");
+    objectSection.className = "el-pre";
+    for (let index = 0; index < codeCount; index += 1) objectSection.append(document.createElement("pre"));
+    const captionSection = document.createElement("div");
+    captionSection.className = "el-p";
+    const caption = document.createElement("p");
+    caption.textContent = "Code: Example";
+    captionSection.append(caption);
+    container.append(objectSection, captionSection);
+    const context = {
+      sourcePath: "note.md",
+      getSectionInfo: (element: HTMLElement) => element === captionSection
+        ? { text: source, lineStart: 6, lineEnd: 6 }
+        : { text: source, lineStart, lineEnd },
+    } as unknown as MarkdownPostProcessorContext;
+
+    await processor.process(captionSection, context);
+    expect([...container.children]).toEqual([objectSection, captionSection]);
+    expect(objectSection.classList.contains("number-suite-caption-object")).toBe(false);
+    processor.dispose();
   });
 
   it.each((['above', 'below'] as const).flatMap((sourcePlacement) => (

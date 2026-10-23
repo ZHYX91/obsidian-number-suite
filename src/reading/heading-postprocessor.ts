@@ -38,6 +38,8 @@ import { applySemanticTooltip, clearSemanticTooltip } from "../ui/semantic-toolt
 const captionOrigins = new WeakMap<HTMLElement, Readonly<{
   parent: Node;
   anchor: Comment;
+  node: HTMLElement;
+  objectRoot: HTMLElement;
 }>>();
 const sharedCaptionOrigins = new WeakMap<HTMLElement, Readonly<{
   carrier: HTMLElement;
@@ -154,12 +156,14 @@ function cleanupSemantic(container: HTMLElement): void {
     const origin = captionOrigins.get(caption);
     if (origin != null) {
       if (origin.anchor.parentNode != null) {
-        origin.anchor.before(caption);
+        origin.anchor.before(origin.node);
         origin.anchor.remove();
       } else {
-        origin.parent.appendChild(caption);
+        origin.parent.appendChild(origin.node);
       }
       captionOrigins.delete(caption);
+      origin.objectRoot.classList.remove("number-suite-caption-object");
+      delete origin.objectRoot.dataset.numberSuiteCaptionPlacement;
     }
     caption.classList.remove(
       "number-suite-caption-centered",
@@ -311,6 +315,24 @@ function captionSharesCarrierRoot(caption: HTMLElement, objectKind: string): boo
   return caption.matches(selector) || caption.querySelector(selector) != null;
 }
 
+function renderedSectionCodeObject(
+  caption: HTMLElement,
+  item: SemanticDisplayDecoration,
+  context: MarkdownPostProcessorContext,
+): RenderedCaptionObject | null {
+  if (item.objectKind !== "Code" || item.sourcePlacement == null
+    || item.objectFirstLine == null || item.objectLastLine == null) return null;
+  const section = caption.parentElement;
+  if (!section?.matches(".el-p") || !section.parentElement?.matches(".markdown-preview-section")) return null;
+  const sibling = item.sourcePlacement === "above" ? section.nextElementSibling : section.previousElementSibling;
+  if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement) || !sibling.matches(".el-pre")) return null;
+  const renderedSection = context.getSectionInfo(sibling);
+  if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine
+    || renderedSection.lineEnd !== item.objectLastLine) return null;
+  const code = sibling.querySelectorAll<HTMLElement>("pre");
+  return code.length === 1 ? { root: sibling, alignmentTarget: code[0]!, hoverTarget: null } : null;
+}
+
 interface SharedCaptionCandidate {
   readonly captionNodes: readonly ChildNode[];
   readonly carrierNodes: readonly ChildNode[];
@@ -459,15 +481,17 @@ function placeRenderedCaption(
 ): void {
   caption.dataset.numberSuiteCaptionPlacement = displayPlacement;
   if (caption.parentNode == null) return;
+  const section = caption.parentElement;
+  const node = section?.matches(".el-p") && section.parentNode === object.root.parentNode ? section : caption;
   if (!captionOrigins.has(caption)) {
     const anchor = caption.ownerDocument.createComment("number-suite-caption-origin");
-    caption.before(anchor);
-    captionOrigins.set(caption, { parent: caption.parentNode, anchor });
+    node.before(anchor);
+    captionOrigins.set(caption, { parent: node.parentNode!, anchor, node, objectRoot: object.root });
   }
   object.root.classList.add("number-suite-caption-object");
   object.root.dataset.numberSuiteCaptionPlacement = displayPlacement;
-  if (displayPlacement === "above") object.root.before(caption);
-  else object.root.after(caption);
+  if (displayPlacement === "above") object.root.before(node);
+  else object.root.after(node);
   alignRenderedCaption(caption, object.alignmentTarget);
 }
 
@@ -913,7 +937,7 @@ export class HeadingReadingProcessor {
               item.objectKind,
               item.captionKind,
               item.sourcePlacement,
-            );
+            ) ?? renderedSectionCodeObject(root, item, context);
             if (object != null) {
               placeRenderedCaption(root, object, item.displayPlacement);
               if (settings.showImageCaptionTooltips && object.hoverTarget != null) {

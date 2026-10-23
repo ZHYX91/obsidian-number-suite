@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-10-19
+last_synced: 2026-10-23
 ---
 
 # Number Suite — 架构
@@ -140,7 +140,7 @@ Markdown 表格、块公式和围栏代码块，并将题注类型与承载对�
 源码行目标。阅读视图保留原生 Obsidian 链接元素，同时保存原文本、ARIA 和移除的 `@`，清理
 时全部恢复。嵌入 Markdown 按 `context.sourcePath` 键控，
 计数与目标不会在宿主文件和嵌入源码之间泄漏。题注对齐和视觉位置不依赖是否存在虚拟题注
-编号；阅读视图按真实对象类型寻找承载对象，并用稳定注释锚点恢复题注移动前的 DOM 位置。图片与图题的提示元数据交给文档级结构化
+编号；阅读视图按真实对象类型寻找承载对象，并用稳定注释锚点恢复题注移动前的 DOM 位置。代码题注处于独立原生 section 时，仅在相邻承载 section 与计划的精确源码行一致时移动；清理时恢复完整题注 section 及承载装饰。图片与图题的提示元数据交给文档级结构化
 提示控制器，并在清理时删除。
 
 脚注/尾注也只进入显示装饰计划。CodeMirror 替换引用与定义标记的可见标签；当选择范围触及

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-19
+last_synced: 2026-10-23
 ---
 
 # Number Suite — Architecture
@@ -175,7 +175,7 @@ Reading View preserves the native Obsidian link element while storing its origin
 removed `@`; cleanup restores all of them. Embedded Markdown is keyed by `context.sourcePath`, so counters and targets never leak
 between the embedding file and embedded source. Caption alignment and visual placement remain
 independent from whether a virtual caption number is present. Reading View locates carriers by their
-actual object kind and records stable comment anchors for display-only movement and cleanup. Image and caption tooltip metadata feeds one document-level
+actual object kind and records stable comment anchors for display-only movement and cleanup. Code captions in separate native sections move only when the adjacent carrier section matches the exact planned source lines; the complete caption section and carrier decorations are restored on cleanup. Image and caption tooltip metadata feeds one document-level
 structured tooltip controller and is removed during cleanup.
 
 Footnotes and endnotes also enter only the display decoration plan. CodeMirror replaces visible
