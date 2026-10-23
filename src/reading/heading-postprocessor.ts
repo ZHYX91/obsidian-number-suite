@@ -370,8 +370,10 @@ function renderedSectionObject(
     if (placementTarget.parentElement == null) return null;
     placementTarget = placementTarget.parentElement;
   }
-  // Move the carrier's inner wrapper with it: translating a table inside its
-  // stationary overflow wrapper would clip the visually relocated table.
+  // Native table sections own horizontal scrolling. Translate that certified
+  // section with its contents so the table cannot escape its clipping boundary.
+  // Section order and source ownership stay unchanged.
+  if (item.objectKind === "Table") placementTarget = sibling;
   return {
     root: sibling,
     alignmentTarget: target,

@@ -795,6 +795,7 @@ describe("HeadingReadingProcessor", () => {
       : carrier.objectKind === "Table" ? "el-table" : carrier.objectKind === "Equation" ? "el-div" : "el-pre";
     const wrapper = document.createElement("div");
     wrapper.style.overflow = "auto";
+    if (carrier.objectKind === "Table") objectSection.style.overflow = "auto";
     const carrierRoot = carrier.createRoot();
     wrapper.append(carrierRoot);
     objectSection.append(wrapper);
@@ -812,7 +813,7 @@ describe("HeadingReadingProcessor", () => {
     const captionTop = sourcePlacement === "above" ? 100 : 160;
     const objectTop = sourcePlacement === "above" ? 160 : 100;
     caption.getBoundingClientRect = () => new DOMRect(0, captionTop + offset(caption), 160, 32);
-    target.getBoundingClientRect = () => new DOMRect(0, objectTop + offset(wrapper), 400, 48);
+    target.getBoundingClientRect = () => new DOMRect(0, objectTop + offset(wrapper) + offset(objectSection), 400, 48);
     const objectStart = sourcePlacement === "above" ? 2 : 0;
     const captionLine = sourcePlacement === "above" ? 0 : objectLines + (imageTail ? 1 : 0) + 1;
     const context = {
@@ -828,11 +829,16 @@ describe("HeadingReadingProcessor", () => {
       const captionRect = caption.getBoundingClientRect();
       const objectRect = target.getBoundingClientRect();
       expect(displayPlacement === "above" ? objectRect.top - captionRect.bottom : captionRect.top - objectRect.bottom).toBe(4);
+      if (carrier.objectKind === "Table") {
+        expect(wrapper.style.getPropertyValue("translate")).toBe("");
+        expect(objectSection.style.overflow).toBe("auto");
+      }
     }
     processor.dispose();
     expect(caption.textContent).toBe("Figure: Pair");
     expect(caption.style.getPropertyValue("translate")).toBe("");
     expect(wrapper.style.getPropertyValue("translate")).toBe("");
+    expect(objectSection.style.getPropertyValue("translate")).toBe("");
     expect([...container.children]).toEqual(originalOrder);
   });
 
