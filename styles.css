@@ -907,6 +907,12 @@
   display: contents;
 }
 
+/* Native sections keep their cached layout box while certified carriers move
+   visually. Their inner table wrapper continues to own horizontal scrolling. */
+.markdown-preview-section > .el-table.number-suite-caption-object {
+  overflow: visible;
+}
+
 .number-suite-note-control-summary-row > div {
   border-block-end: 1px solid var(--background-modifier-border);
   min-width: 0;
