@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.5.8 - 2026-10-23
+
+- Recognize code caption objects immediately after frontmatter or another fenced code block.
+- Keep code in footnote and endnote continuations out of caption targets and writes.
+- Align the Simplified Chinese guide's General tab label with the interface.
+
 ## 0.5.7 - 2026-10-20
 
 - Keep current-note controls readable in narrow sidebars when a numbering scheme has a long name.

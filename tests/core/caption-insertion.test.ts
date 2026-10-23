@@ -117,6 +117,27 @@ describe("caption insertion", () => {
     expect(findCaptionInsertionTarget("| A |\n| --- |\n| $x$ |", 20)).toMatchObject({ kind: "Table" });
   });
 
+  it.each(["\n", "\r\n", "\r"])("refuses caption targets and writes inside note code continuations with %j endings", (eol) => {
+    for (const label of ["note", "footnote:note", "endnote:note"]) {
+      for (const indent of ["  ", "   "]) {
+        for (const fence of ["```", "~~~"]) {
+          const source = [
+            `Body[^${label}]`,
+            "",
+            `[^${label}]: Note`,
+            `${indent}${fence}ts`,
+            `${indent}hidden();`,
+            `${indent}${fence}`,
+          ].join(eol);
+          for (const offset of [source.indexOf(`${fence}ts`), source.indexOf("hidden();"), source.lastIndexOf(fence)]) {
+            expect(findCaptionInsertionTarget(source, offset)).toBeNull();
+            expect(createCaptionInsertionPlan(source, offset, "Demo")).toBeNull();
+          }
+        }
+      }
+    }
+  });
+
   it("offers a bounded migration for legacy Figure captions below images", () => {
     const source = "![[Miao.png]]\n\nFigure: Miao\n\nNext";
     expect(findCaptionInsertionTarget(source, offsetOf(source, "Miao.png"))).toMatchObject({
