@@ -14,7 +14,9 @@ export function captureSourceBinding(app: App, editor: Editor, info: MarkdownVie
       if (file == null || path == null || info.file !== file || file.path !== path
         || app.vault.getAbstractFileByPath(path) !== file || editor.getValue() !== expectedSource) return false;
       if (view !== null) return view.editor === editor && view.getMode() === "source" && view.containerEl.isConnected;
-      if (info.editor != null) return info.editor === editor;
+      if (info.editor != null && info.editor !== editor) return false;
+      // File-info can retain an Editor after its owning pane closes or changes mode.
+      // Require a live editable owner even when that retained reference still matches.
       return app.workspace.getLeavesOfType("markdown").some((leaf) => leaf.view instanceof MarkdownView
         && leaf.view.file === file && leaf.view.editor === editor
         && leaf.view.getMode() === "source" && leaf.view.containerEl.isConnected);

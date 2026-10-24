@@ -31,6 +31,7 @@ async function writeClipboard(text: string): Promise<void> {
 }
 
 async function copyWithNotice(plan: StableReferencePlan, t: Translate, created: boolean, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return;
   try {
     await writeClipboard(plan.link);
     if (signal?.aborted) return;

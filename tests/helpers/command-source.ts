@@ -1,13 +1,18 @@
 import { MarkdownView, type App, type Editor, type MarkdownFileInfo } from "obsidian";
 
-/** Supply the file registry and file-info editor binding used by the host. */
+/** Supply a registered file and a live source view for command fixtures. */
 export function commandSourceApp(app: App, editor: Editor, info: MarkdownView | MarkdownFileInfo): App {
   const file = info.file;
   const path = file?.path;
-  if (!(info instanceof MarkdownView) && info.editor == null) info.editor = editor;
+  const view = info instanceof MarkdownView ? info : Object.assign(new MarkdownView(null as never), {
+    file,
+    editor,
+    getMode: () => "source",
+    containerEl: { isConnected: true },
+  });
   return {
     ...app,
     vault: app.vault ?? { getAbstractFileByPath: (candidate: string) => candidate === path ? file : null },
-    workspace: app.workspace ?? { getLeavesOfType: () => [] },
+    workspace: app.workspace ?? { getLeavesOfType: () => [{ view }] },
   } as App;
 }

@@ -132,6 +132,35 @@ beforeEach(() => {
 });
 
 describe("caption context menu", () => {
+  it.each(["closed", "detached", "reading", "editor-replaced"])(
+    "rejects file-info confirmation and focus after its owner is %s", async (state) => {
+      const testMenu = createMenu();
+      const testEditor = createEditor("![[cat.png]]", 4);
+      const info = { ...fileInfo(), editor: testEditor.editor } as MarkdownFileInfo;
+      let mode = "source";
+      const view = Object.assign(new MarkdownView(null as never), {
+        file: info.file, editor: testEditor.editor, getMode: () => mode, containerEl: { isConnected: true },
+      });
+      let leaves = [{ view }];
+      const app = {
+        vault: { getAbstractFileByPath: () => info.file },
+        workspace: { getLeavesOfType: () => leaves, getActiveViewOfType: () => view },
+      } as unknown as App;
+      addCaptionContextMenuItemImpl(app, testMenu.menu, testEditor.editor, info, translate);
+      testMenu.click?.();
+      expect(modal.options).not.toBeNull();
+      if (state === "closed") leaves = [];
+      if (state === "detached") Object.assign(view.containerEl, { isConnected: false });
+      if (state === "reading") mode = "preview";
+      if (state === "editor-replaced") view.editor = createEditor(testEditor.getValue(), 4).editor;
+      expect(await modal.options?.onConfirm("Cat")).toBe(false);
+      modal.options?.onApplied?.();
+      expect(testEditor.transactions).toHaveLength(0);
+      expect(testEditor.editor.focus).not.toHaveBeenCalled();
+      expect(notices()).toEqual(["notice.stalePreview"]);
+    },
+  );
+
   it.each(["menu", "confirm"])("rejects caption %s callbacks after unload", async (phase) => {
     const testMenu = createMenu();
     const testEditor = createEditor("![Cat](cat.png)", 5);
@@ -185,14 +214,16 @@ describe("caption context menu", () => {
     expect(testEditor.editor.focus).not.toHaveBeenCalled();
   });
 
-  it("adds a bounded Figure action and applies its confirmed plan", async () => {
+  it.each([false, true])("adds a bounded Figure action and applies its confirmed plan with file-info editor=%s", async (hasEditor) => {
     const testMenu = createMenu();
     const testEditor = createEditor("![[Miao.png]]", 4);
+    const info = fileInfo();
+    if (hasEditor) info.editor = testEditor.editor;
     addCaptionContextMenuItem(
       {} as App,
       testMenu.menu,
       testEditor.editor,
-      fileInfo(),
+      info,
       translate,
     );
 
