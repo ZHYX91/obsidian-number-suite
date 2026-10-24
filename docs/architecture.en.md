@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-23
+last_synced: 2026-10-24
 ---
 
 # Number Suite — Architecture
@@ -190,7 +190,7 @@ labels, and list values on reprocessing, view changes, and plugin disable.
 
 Current-note work creates an immutable `TransformPlan`, then revalidates file, the uniquely matching
 editor view, and source at confirmation before applying one editor transaction. This remains true
-when the action starts from a focused sidebar. Batch work saves open editors, plans every
+when the action starts from a focused sidebar. Current-note, caption, and stable-reference actions pin the original registered TFile, editor binding, source mode, and exact text. File-info callbacks, with or without an editor property, must resolve to a connected source-mode MarkdownView in the current workspace with the same file and editor objects. A retained editor reference alone is insufficient. Their menu and modal callbacks share a per-instance abort signal; unload closes those modals and rejects new editor or clipboard operations. Clipboard dispatch checks that signal again after the editor transaction, since synchronous host listeners can unload the plugin during that transaction. An already dispatched clipboard operation may settle, without a late notice or focus change. Batch work saves open editors, plans every
 file, shows an aggregate preview, revalidates all sources, persists a bounded recovery snapshot,
 then performs exact-content conditional replacements. Failure rolls back only files that still
 contain plugin output. Concurrent edits are preserved and recovery remains available.
@@ -217,6 +217,10 @@ position (inline on captions, following line for headings), exact
 before/after preview, and readable aliased `@[[#^id|title]]` link. Confirmation revalidates the file,
 full source, target, and generated ID before one editor transaction; clipboard output follows the
 explicit user action.
+
+The Reading View DOM ownership maps, caption origins, reversible offsets, and cleanup are isolated in `reading-dom-lifecycle.ts`. The postprocessor still validates source bindings and consumes the shared semantic plan; cleanup never writes Markdown.
+
+Batch settlement uses an App-owned queue keyed by `Symbol.for("number-suite.batch-settlement.v1")`, so a new plugin module cannot read or replace recovery until an earlier owner settles. Disposal checks precede forward file writes and run again inside `Vault.process`; dispatched writes finish, then exact compensation and recovery persistence settle under the same owner. Compensation bypasses the forward-lifecycle guard but retains identity and exact-content checks. A disposed owner emits no new notices.
 
 <!-- section: persistence -->
 ## Persistence

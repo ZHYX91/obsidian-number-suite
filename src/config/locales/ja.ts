@@ -1,5 +1,13 @@
 /** ja interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_JA: Readonly<Record<string, string>> = {
+  "panel.modes.title": "表示とファイル操作",
+  "panel.modes.source": "保存済みの見出し",
+  "panel.modes.goal": "目的",
+  "panel.modes.action": "設定またはコマンド",
+  "panel.modes.markdown": "見出しの Markdown",
+  "panel.modes.unchanged": "変更なし",
+  "panel.modes.rewritten": "書き換え",
+  "panel.modes.properties": "例では認識可能な見出し番号を使っています。ノートごとの表示設定はプロパティに保存されますが、見出しの本文は書き換えません。",
   "command.mode.normal": "表示効果をオフにして元の表示に戻す",
   "command.mode.show": "見出しの仮想番号の表示を切り替える",
   "command.mode.conceal": "書き込まれた見出し番号の非表示を切り替える",

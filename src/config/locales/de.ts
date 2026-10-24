@@ -1,5 +1,13 @@
 /** de interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_DE: Readonly<Record<string, string>> = {
+  "panel.modes.title": "Anzeige und Dateiaktionen",
+  "panel.modes.source": "Gespeicherte Überschrift",
+  "panel.modes.goal": "Ziel",
+  "panel.modes.action": "Einstellung oder Befehl",
+  "panel.modes.markdown": "Überschrift im Markdown",
+  "panel.modes.unchanged": "Unverändert",
+  "panel.modes.rewritten": "Geändert",
+  "panel.modes.properties": "Die Beispiele verwenden erkannte Nummernpräfixe. Anzeigeoptionen für diese Notiz werden in den Eigenschaften gespeichert; der Überschriftentext bleibt unverändert.",
   "command.mode.normal": "Anzeigeeffekte abschalten und Originalansicht wiederherstellen",
   "command.mode.show": "Virtuelle Überschriftennummern ein- oder ausschalten",
   "command.mode.conceal": "Gespeicherte Überschriftennummern ein- oder ausblenden",

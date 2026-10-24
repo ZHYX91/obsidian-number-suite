@@ -18,6 +18,7 @@ import {
   resolveStructuralTableCaptionTarget,
   type StructuralTableSourceSnapshot,
 } from "../integration/structural-table-source";
+import { captureSourceBinding } from "./source-binding";
 import { CaptionInsertionModal } from "../ui/caption-insertion-modal";
 
 const contributedCaptionMenus = new WeakSet<Menu>();
@@ -54,6 +55,7 @@ export function addCaptionContextMenuItem(
   info: MarkdownView | MarkdownFileInfo,
   translate: Translate,
   contextOffset?: number,
+  signal?: AbortSignal,
 ): void {
   const cursorOffset = contextOffset ?? editor.posToOffset(editor.getCursor("head"));
   addResolvedCaptionContextMenuItem(
@@ -63,6 +65,7 @@ export function addCaptionContextMenuItem(
     info,
     translate,
     (source) => findCaptionInsertionTarget(source, cursorOffset),
+    signal,
   );
 }
 
@@ -73,6 +76,7 @@ export function addStructuralTableCaptionContextMenuItem(
   info: MarkdownView | MarkdownFileInfo,
   translate: Translate,
   snapshot: StructuralTableSourceSnapshot,
+  signal?: AbortSignal,
 ): void {
   addResolvedCaptionContextMenuItem(
     app,
@@ -81,6 +85,7 @@ export function addStructuralTableCaptionContextMenuItem(
     info,
     translate,
     (source) => resolveStructuralTableCaptionTarget(source, info.file?.path ?? null, snapshot),
+    signal,
   );
 }
 
@@ -91,18 +96,18 @@ function addResolvedCaptionContextMenuItem(
   info: MarkdownView | MarkdownFileInfo,
   translate: Translate,
   resolveTarget: (source: string) => CaptionInsertionTarget | null,
+  signal?: AbortSignal,
 ): void {
+  if (signal?.aborted) return;
   const file = info.file;
   if (file == null || file.extension.toLowerCase() !== "md") return;
-  const source = editor.getValue();
+  const binding = captureSourceBinding(app, editor, info);
+  const { source, view: sourceView } = binding;
   const target = resolveTarget(source);
   if (target == null) return;
   if (contributedCaptionMenus.has(menu)) return;
   contributedCaptionMenus.add(menu);
-  const path = file.path;
-  const sourceView = info instanceof MarkdownView ? info : null;
-  const isCurrentEditor = (): boolean => info.file === file && file.path === path
-    && (sourceView === null || (sourceView.editor === editor && sourceView.containerEl.isConnected));
+
 
   menu.addItem((item) => item
     .setTitle(menuTitle(target, translate))
@@ -113,16 +118,20 @@ function addResolvedCaptionContextMenuItem(
       Code: "square-code",
     }[target.kind])
     .onClick(() => {
+      if (signal?.aborted) return;
+      if (!binding.isCurrent()) { new Notice(translate("notice.stalePreview")); return; }
       let appliedSource: string | null = null;
       new CaptionInsertionModal({
         app,
         target,
         translate,
+        ...(signal === undefined ? {} : { signal }),
         onConfirm: async (title) => {
+          if (signal?.aborted) return false;
           const currentTarget = resolveTarget(editor.getValue());
           const plan = createCaptionInsertionPlanForTarget(source, target, title);
           if (
-            !isCurrentEditor()
+            !binding.isCurrent()
             || editor.getValue() !== source
             || currentTarget == null
             || !sameTarget(currentTarget, target)
@@ -143,7 +152,7 @@ function addResolvedCaptionContextMenuItem(
         onApplied: () => {
           // The native table cell may have been rebuilt by the transaction.
           // Restore focus after Modal.close(), using the original editor only.
-          if (sourceView !== null && isCurrentEditor()
+          if (!signal?.aborted && appliedSource !== null && sourceView !== null && binding.isCurrent(appliedSource)
             && app.workspace.getActiveViewOfType(MarkdownView) === sourceView
             && editor.getValue() === appliedSource) editor.focus();
         },

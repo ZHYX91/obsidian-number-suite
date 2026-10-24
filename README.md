@@ -2,7 +2,7 @@
 
 [English](https://github.com/ZHYX91/obsidian-number-suite/blob/main/README.md) · [简体中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-CN.md) · [繁體中文](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.zh-TW.md) · [日本語](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ja.md) · [한국어](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ko.md) · [Deutsch](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.de.md) · [Français](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.fr.md) · [Español](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.es.md) · [Português (Brasil)](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.pt-BR.md) · [Русский](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ru.md) · [Tiếng Việt](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.vi.md) · [العربية](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/i18n/README.ar.md)
 
-Want numbered headings without changing your notes? Turn on **Show virtual numbers**. Number Suite can also display numbers for captions, references, footnotes, and endnotes. To put heading numbers into Markdown, run **Write numbers** or **Renumber** separately, review the preview, and confirm. You can also hide numbers already written in a note without deleting them. Everything runs locally.
+Turn on **Show virtual numbers** to display heading numbers without rewriting heading text. Number Suite can also display numbers for captions, references, footnotes, and endnotes. To put heading numbers into Markdown, run **Write numbers** or **Renumber** separately, review the preview, and confirm. You can also hide numbers already written in a note without deleting them. Everything runs locally.
 
 <!-- section: screenshots -->
 ## Screenshots
@@ -14,6 +14,8 @@ without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
+The sidebar and write-preview images below render the actual plugin components with a synthetic note in a browser fixture; they are not Obsidian host captures.
+
 ### Check settings for this note
 
 Use the Current note tab in the Number Suite sidebar to compare global defaults, per-note
@@ -23,8 +25,7 @@ overrides, and effective values before changing the note.
 
 ### Review changes before writing to Markdown
 
-Review every proposed before-and-after change and any warning before Number Suite writes to
-Markdown.
+Expand each file to review its changes and warnings before applying. Only changed numbering text is highlighted; Before and After labels remain visible.
 
 ![Number Suite preview of heading number writes](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-write-preview-en.png)
 
@@ -64,7 +65,7 @@ Markdown.
 ## Requirements and compatibility
 
 - Obsidian `1.12.7` or later.
-- Desktop and Android Obsidian. Android 15 / API 35 is the baseline mobile acceptance profile.
+- Desktop and Android Obsidian.
 - iOS behavior is not currently verified.
 
 <!-- section: installation -->
@@ -82,15 +83,19 @@ Download the versioned ZIP from [GitHub Releases](https://github.com/ZHYX91/obsi
 <!-- section: usage -->
 ## Usage
 
-**Not sure where to start?** To see heading numbers without changing your note, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** tab and review the preview before applying.
+To see heading numbers without rewriting the headings, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** tab and review the preview before applying.
 
-| Source state | Desired result | Action | Changes Markdown |
+| Source state | Desired result | Action | Rewrites heading text |
 |---|---|---|---|
 | No stored number | Show a number only in Obsidian | Enable virtual numbers | No |
 | No stored number | Save calculated numbers | Write heading numbers | Yes |
 | Stored number | Hide it visually | Enable concealment | No |
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
+
+The Current note tab includes a **Display and file operations** guide with source, goal, action, and heading-text examples. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
+
+Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
 
 Concealment has one global recognition rule: either only numbers carrying Number Suite source
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
@@ -210,7 +215,7 @@ note to the canonical list and removes only the old Number Suite fields. Equival
 are accepted; conflicts, duplicate directives, unknown directives, invalid values, and unavailable
 schemes fail closed.
 
-Current-note number fields save after a short typing pause, on Enter, or when leaving the field.
+Current-note number fields keep a local draft while you type and commit a valid value on Enter or when leaving the field.
 Failed input remains available for Retry, and outline navigation stays in the originating pane.
 
 <!-- section: limitations -->
@@ -247,7 +252,7 @@ remote fonts, or remote assets. Virtual display and concealment never call file-
 Opening a batch tool enumerates the Vault's folder tree and Markdown file list so Number Suite can
 filter the chosen scope, exclude configured folders, and produce an exact preview before writing.
 
-Current-note changes use one editor transaction. Batch operations preview all targets, revalidate
+Current-note heading transforms use one editor transaction. Per-note settings are saved separately in Properties. Batch operations preview all targets, revalidate
 their exact content, persist bounded recovery data, and avoid overwriting concurrent edits. These
 safeguards stop the plugin from applying an outdated preview. Keep your usual backups when making changes across many notes.
 

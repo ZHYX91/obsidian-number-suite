@@ -113,6 +113,7 @@ export class CaptionCarrierMenuBridge {
       filePath: string | null,
       timerWindow: Window | null,
     ) => void,
+    private readonly signal?: AbortSignal,
   ) {}
 
   register(component: Component): void {
@@ -176,7 +177,7 @@ export class CaptionCarrierMenuBridge {
   }
 
   private contribute(event: MouseEvent): void {
-    if (this.contributedEvents.has(event)) return;
+    if (this.signal?.aborted || this.contributedEvents.has(event)) return;
     const target = event.currentTarget;
     if (target == null || !("nodeType" in target) || target.nodeType !== 1) return;
     const element = target as Element;
@@ -203,6 +204,7 @@ export class CaptionCarrierMenuBridge {
         markdownView,
         this.getTranslate(),
         context.structuralSnapshot,
+        this.signal,
       );
       return;
     }
@@ -213,6 +215,7 @@ export class CaptionCarrierMenuBridge {
       markdownView,
       this.getTranslate(),
       context.offset,
+      this.signal,
     );
   }
 

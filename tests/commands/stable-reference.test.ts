@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Notice,
+  MarkdownView,
   TFile,
   type App,
   type Editor,
@@ -27,10 +28,18 @@ vi.mock("../../src/ui/stable-reference-modal", () => ({
   },
 }));
 
-import { addStableReferenceContextMenuItem } from "../../src/commands/stable-reference";
+import { addStableReferenceContextMenuItem as addStableReferenceContextMenuItemImpl } from "../../src/commands/stable-reference";
+
+
+import { commandSourceApp } from "../helpers/command-source";
+
+function addStableReferenceContextMenuItem(...args: Parameters<typeof addStableReferenceContextMenuItemImpl>): void {
+  const [app, menu, editor, info, ...rest] = args;
+  addStableReferenceContextMenuItemImpl(commandSourceApp(app, editor, info), menu, editor, info, ...rest);
+}
 
 const translate = ((key: string) => key) as Translate;
-const clipboard = vi.fn(async (_text: string) => undefined);
+const clipboard = vi.fn(async (_text: string): Promise<void> => undefined);
 
 function notices(): string[] {
   return (Notice as unknown as { readonly messages: string[] }).messages;
@@ -86,10 +95,114 @@ beforeEach(() => {
 });
 
 describe("stable cross-reference context menu", () => {
-  it("previews one block-ID write, then applies and copies it", async () => {
+  it.each([
+    [false, "closed"], [false, "detached"], [false, "reading"], [false, "editor-replaced"],
+    [true, "closed"], [true, "detached"], [true, "reading"], [true, "editor-replaced"],
+  ] as const)("rejects file-info callbacks with existing ID=%s after owner is %s", async (hasId, state) => {
+    const menu = createMenu();
+    const editor = createEditor(hasId ? "Figure: Miao ^figure-id" : "Figure: Miao", 8);
+    const info = { ...fileInfo(), editor: editor.editor } as MarkdownFileInfo;
+    let mode = "source";
+    const view = Object.assign(new MarkdownView(null as never), {
+      file: info.file, editor: editor.editor, getMode: () => mode, containerEl: { isConnected: true },
+    });
+    let leaves = [{ view }];
+    const app = {
+      vault: { getAbstractFileByPath: () => info.file },
+      workspace: { getLeavesOfType: () => leaves },
+    } as unknown as App;
+    addStableReferenceContextMenuItemImpl(app, menu.menu, editor.editor, info, translate);
+    if (!hasId) { menu.click?.(); expect(modal.options).not.toBeNull(); }
+    if (state === "closed") leaves = [];
+    if (state === "detached") Object.assign(view.containerEl, { isConnected: false });
+    if (state === "reading") mode = "preview";
+    if (state === "editor-replaced") view.editor = createEditor(editor.getValue(), 8).editor;
+    if (hasId) menu.click?.();
+    else await modal.options?.onConfirm();
+    await Promise.resolve();
+    expect(editor.transactions).toHaveLength(0);
+    expect(clipboard).not.toHaveBeenCalled();
+    expect(notices()).toEqual(["notice.stalePreview"]);
+  });
+
+  it("does not dispatch a clipboard write when the transaction synchronously unloads its owner", async () => {
     const menu = createMenu();
     const editor = createEditor("# Architecture\nBody", 4);
-    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate);
+    const owner = new AbortController();
+    const apply = editor.editor.transaction.bind(editor.editor);
+    editor.editor.transaction = (transaction, origin) => {
+      apply(transaction, origin);
+      owner.abort();
+    };
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate, undefined, owner.signal);
+    menu.click?.();
+    expect(modal.options).not.toBeNull();
+    await modal.options?.onConfirm();
+    expect(owner.signal.aborted).toBe(true);
+    expect(editor.transactions).toHaveLength(1);
+    expect(editor.getValue()).toBe("# Architecture\n^ns-h-architecture\nBody");
+    expect(clipboard).not.toHaveBeenCalled();
+    expect(notices()).toEqual([]);
+  });
+
+  it.each(["file", "editor", "registry", "unloaded"])("rejects a retained creation callback after %s", async (change) => {
+    const menu = createMenu();
+    const editor = createEditor("# Architecture\nBody", 4);
+    const info = fileInfo();
+    const registry = new Map([[info.file!.path, info.file]]);
+    const app = { vault: { getAbstractFileByPath: (path: string) => registry.get(path) ?? null } } as unknown as App;
+    const owner = new AbortController();
+    addStableReferenceContextMenuItem(app, menu.menu, editor.editor, info, translate, undefined, owner.signal);
+    menu.click?.();
+    expect(modal.options).not.toBeNull();
+    if (change === "file") Object.assign(info, { file: fileInfo().file });
+    if (change === "editor") info.editor = createEditor(editor.getValue(), 4).editor;
+    if (change === "registry") registry.clear();
+    if (change === "unloaded") owner.abort();
+    await modal.options?.onConfirm();
+    expect(editor.transactions).toHaveLength(0);
+    expect(clipboard).not.toHaveBeenCalled();
+    expect(notices()).toEqual(change === "unloaded" ? [] : ["notice.stalePreview"]);
+  });
+
+  it.each([false, true])("rejects a stale menu after unload with existing ID=%s", async (hasId) => {
+    const menu = createMenu();
+    const editor = createEditor(hasId ? "Figure: Miao ^figure-id" : "Figure: Miao", 8);
+    const owner = new AbortController();
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate, undefined, owner.signal);
+    owner.abort();
+    menu.click?.();
+    await Promise.resolve();
+    expect(modal.options).toBeNull();
+    expect(clipboard).not.toHaveBeenCalled();
+    expect(editor.transactions).toHaveLength(0);
+    expect(notices()).toEqual([]);
+  });
+
+  it.each(["resolve", "reject"])("settles an accepted clipboard write on %s without a late notice after unload", async (outcome) => {
+    let release!: () => void;
+    clipboard.mockImplementationOnce(() => new Promise<void>((resolve, reject) => {
+      release = outcome === "resolve" ? resolve : () => { reject(new Error("Clipboard rejected")); };
+    }));
+    const menu = createMenu();
+    const editor = createEditor("Figure: Miao ^figure-id", 8);
+    const owner = new AbortController();
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate, undefined, owner.signal);
+    menu.click?.();
+    expect(clipboard).toHaveBeenCalledOnce();
+    owner.abort();
+    release();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(notices()).toEqual([]);
+  });
+
+  it.each([false, true])("previews one block-ID write, then applies and copies it with file-info editor=%s", async (hasEditor) => {
+    const menu = createMenu();
+    const editor = createEditor("# Architecture\nBody", 4);
+    const info = fileInfo();
+    if (hasEditor) info.editor = editor.editor;
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, info, translate);
 
     expect(menu.titles).toEqual(["reference.menu.copy"]);
     menu.click?.();
@@ -101,10 +214,12 @@ describe("stable cross-reference context menu", () => {
     expect(notices()).toContain("reference.notice.createdCopied");
   });
 
-  it("reuses an existing ID and copies immediately without opening a modal", async () => {
+  it.each([false, true])("reuses an existing ID without opening a modal with file-info editor=%s", async (hasEditor) => {
     const menu = createMenu();
     const editor = createEditor("Figure: Miao ^figure-id", 8);
-    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate);
+    const info = fileInfo();
+    if (hasEditor) info.editor = editor.editor;
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, info, translate);
     menu.click?.();
     await Promise.resolve();
     await Promise.resolve();

@@ -22,6 +22,8 @@ Cần Obsidian 1.12.7 trở lên trên máy tính hoặc Android. Chưa xác min
 2. Mở Live Preview hoặc chế độ đọc. Số xuất hiện cạnh tiêu đề nhưng nội dung tệp không thay đổi.
 3. Muốn lưu số vào Markdown, mở ghi chú hiện tại trong thanh bên Number Suite. Chọn ghi số hoặc đánh số lại, kiểm tra bản xem trước rồi xác nhận.
 
+Phần hướng dẫn trong ghi chú hiện tại so sánh văn bản gốc, mục tiêu và thao tác. Tùy chọn riêng của ghi chú được lưu vào Properties; bản thân việc hiển thị không viết lại tiêu đề. Bản xem trước thu gọn theo tệp và hiện số thay đổi, cảnh báo. Mở từng tệp rồi tải thêm để xem hết kết quả. Tắt plugin sẽ dừng các lần ghi mới của xử lý hàng loạt hoặc hoàn tác; lần ghi đã gửi vẫn có thể hoàn tất. Nếu không thể khôi phục an toàn, hãy giữ `recovery.json` trong thư mục plugin và kiểm tra các ghi chú trước.
+
 <!-- section: captions -->
 ## Chú thích và tham chiếu
 
@@ -43,7 +45,7 @@ Có kiểu phân cấp thông thường, ví dụ cho văn bản hành chính v�
 <!-- section: settings -->
 ## Tìm phần cài đặt
 
-Cài đặt chung gồm phần tổng quát, tiêu đề, chú thích, tham chiếu, chú thích chân trang và cuối tài liệu, thao tác tệp và chế độ xem. Ngôn ngữ giao diện và kiểu đánh số được chọn riêng. Phần ghi chú hiện tại ở thanh bên phải cho phép đổi riêng từng ghi chú. Chọn theo cài đặt chung sẽ xóa đúng phần ghi đè đó, giữ nguyên Properties khác. Dàn ý tài liệu và sơ đồ tư duy tiêu đề chỉ đọc giúp chuyển đến dòng gốc.
+Bảy thẻ cài đặt gồm: Chung, Đánh số tiêu đề, Chú thích, Tham chiếu chéo, Chú thích chân trang và cuối tài liệu, Ghi số và dọn dẹp, Hiển thị và hàng loạt. Ngôn ngữ giao diện và kiểu đánh số được chọn riêng. Phần ghi chú hiện tại ở thanh bên phải cho phép đổi riêng từng ghi chú. Chọn theo cài đặt chung sẽ xóa đúng phần ghi đè đó, giữ nguyên Properties khác. Dàn ý tài liệu và sơ đồ tư duy tiêu đề chỉ đọc giúp chuyển đến dòng gốc.
 
 <!-- section: limitations -->
 ## Phạm vi và giới hạn

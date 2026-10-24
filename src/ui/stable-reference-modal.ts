@@ -5,6 +5,7 @@ import { applyModalDirection } from "./modal-direction";
 import type { StableReferencePlan } from "../core/stable-reference";
 
 export interface StableReferenceModalOptions {
+  readonly signal?: AbortSignal;
   readonly app: App;
   readonly plan: StableReferencePlan;
   readonly translate: Translate;
@@ -13,12 +14,16 @@ export interface StableReferenceModalOptions {
 
 export class StableReferenceModal extends Modal {
   private applying = false;
+  private closed = false;
+  private readonly abort = (): void => { this.applying = false; this.close(); };
 
   constructor(private readonly options: StableReferenceModalOptions) {
     super(options.app);
   }
 
   override onOpen(): void {
+    if (this.options.signal?.aborted) { this.close(); return; }
+    this.options.signal?.addEventListener("abort", this.abort, { once: true });
     const { contentEl, titleEl } = this;
     const { plan, translate: t } = this.options;
     titleEl.setText(t("reference.modal.title"));
@@ -43,13 +48,14 @@ export class StableReferenceModal extends Modal {
     actions.addButton((button) => {
       confirmButton = button;
       button.setButtonText(t("reference.modal.confirm")).setCta().onClick(() => {
-        if (this.applying) return;
+        if (this.closed || this.options.signal?.aborted || this.applying) return;
         this.applying = true;
         confirmButton?.setDisabled(true);
         void this.options.onConfirm()
           .then(() => this.close())
           .catch((error: unknown) => {
             this.applying = false;
+            if (this.closed) return;
             confirmButton?.setDisabled(false);
             console.error("Number Suite stable-reference creation failed", error);
           });
@@ -59,6 +65,8 @@ export class StableReferenceModal extends Modal {
   }
 
   override onClose(): void {
+    this.closed = true;
+    this.options.signal?.removeEventListener("abort", this.abort);
     this.contentEl.empty();
   }
 }

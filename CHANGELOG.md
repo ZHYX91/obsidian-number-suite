@@ -2,6 +2,16 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.6.0 - 2026-10-25
+
+- Group write-preview changes and warnings by file, with counts, independent expansion and pagination, and highlights limited to changed numbering text.
+- Explain display choices and file operations in the Current note tab; retain local number-field drafts until Enter or focus leaves the field.
+- Stop new batch and Undo writes after unload while allowing already dispatched writes and safe compensation to settle; retain recovery information when concurrent edits prevent restoration.
+- Bind current-note transforms, caption insertion, and stable-reference actions to the original file, exact source, editor, and live editable pane; reject stale previews, replacement files, detached panes, and retained file-info references without a current owner.
+- Cancel old command, menu, caption, and modal callbacks when the plugin unloads, and recheck the source owner immediately before copying an existing stable reference.
+- Preserve an already accepted clipboard operation while suppressing obsolete completion or failure notices after unload.
+- Clarify preview, numbering, note-Property, recovery, and caption guidance across all twelve user-guide languages, and identify browser-fixture illustrations separately from host captures.
+
 ## 0.5.9 - 2026-10-24
 
 - Stop table caption targets at independent Markdown headings so relocation cannot cross a section boundary.

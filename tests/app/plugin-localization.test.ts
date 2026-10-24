@@ -1,6 +1,15 @@
 // @vitest-environment happy-dom
-import type { App, Command, PluginManifest } from "obsidian";
+import { MarkdownView, Notice, TFile, type App, type Command, type PluginManifest } from "obsidian";
 import { describe, expect, it, vi } from "vitest";
+
+import type { PreviewModalOptions } from "../../src/ui/preview-modal";
+const preview = vi.hoisted(() => ({ options: null as PreviewModalOptions | null }));
+vi.mock("../../src/ui/preview-modal", () => ({
+  ChangePreviewModal: class {
+    constructor(options: PreviewModalOptions) { preview.options = options; }
+    open(): void {}
+  },
+}));
 
 vi.mock("obsidian", async (importOriginal) => ({
   ...await importOriginal<Record<string, unknown>>(),
@@ -24,6 +33,39 @@ import { cloneSettings, normalizePluginData } from "../../src/config/settings";
 import { SettingsPersistenceSession } from "../../src/config/settings-persistence-session";
 
 describe("plugin localization lifecycle", () => {
+  it("invalidates the actual registered current-note command when the plugin unloads", async () => {
+    const containerEl = document.createElement("div");
+    document.body.append(containerEl);
+    const file = new (TFile as unknown as new (path: string) => TFile)("note.md");
+    const transaction = vi.fn();
+    const editor = { getValue: () => "# A", offsetToPos: (ch: number) => ({ line: 0, ch }), transaction };
+    const view = Object.assign(new MarkdownView({} as never), { file, editor, containerEl, getMode: () => "source" });
+    const app = {
+      vault: { getAbstractFileByPath: () => file },
+      workspace: {
+        getActiveViewOfType: () => view,
+        getLeavesOfType: () => [],
+        iterateAllLeaves: (callback: (leaf: { view: MarkdownView }) => void) => callback({ view }),
+      },
+    } as unknown as App;
+    const plugin = new NumberSuitePlugin(app, { id: "number-suite", name: "Number Suite" } as PluginManifest);
+    plugin.settings.selectedSchemeId = "hierarchical";
+    const runtime = plugin as unknown as { registerCommands(): void; localizedCommands: Array<{ command: Command }> };
+    runtime.registerCommands();
+    const command = runtime.localizedCommands.find(({ command }) => command.id.endsWith(":write-numbers-current-note"))!.command;
+    command.checkCallback!(false);
+    const options = preview.options!;
+    expect(options.signal?.aborted).toBe(false);
+    const notices = (Notice as unknown as { messages: string[] }).messages;
+    notices.length = 0;
+    plugin.onunload();
+    expect(options.signal?.aborted).toBe(true);
+    await options.onConfirm(options.documents);
+    expect(transaction).not.toHaveBeenCalled();
+    expect(notices).toEqual([]);
+    containerEl.remove();
+  });
+
   it("updates host command objects and ribbon through scheduled and immediate language saves", async () => {
     const plugin = new NumberSuitePlugin({ workspace: {
       getLeavesOfType: () => [], iterateAllLeaves: () => {},

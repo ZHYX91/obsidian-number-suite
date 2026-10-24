@@ -22,6 +22,8 @@ Requiere Obsidian 1.12.7 o posterior en escritorio o Android. El comportamiento 
 2. Abre la vista previa en directo o la vista de lectura. Los números aparecen junto a los títulos, pero el archivo sigue igual.
 3. Para guardar los números en Markdown, abre la nota actual en la barra lateral de Number Suite. Elige escribir números o renumerar, revisa la vista previa y confirma.
 
+La guía de la nota actual compara el texto de origen, el objetivo y la acción. Las opciones de cada nota se guardan en Properties; la visualización no reescribe los títulos. La vista previa agrupa cambios y avisos por archivo y muestra sus cantidades. Despliega un archivo y carga más resultados para revisarlos todos. Desactivar el complemento detiene nuevas escrituras de lotes o de Deshacer; una escritura ya iniciada puede terminar. Si no se puede revertir con seguridad, conserva `recovery.json` en la carpeta del complemento y revisa primero las notas.
+
 <!-- section: captions -->
 ## Leyendas y referencias
 
@@ -43,7 +45,7 @@ Hay estilos jerárquicos, ejemplos para documentos oficiales y jurídicos chinos
 <!-- section: settings -->
 ## Dónde ajustar las opciones
 
-Los ajustes globales se dividen en General, títulos, leyendas, referencias, notas al pie y finales, operaciones de archivos y vistas. El idioma y el estilo de numeración se eligen por separado. La sección de nota actual en la barra lateral derecha permite cambiar solo una nota. Volver a seguir los ajustes globales elimina esa excepción y conserva las demás Properties. El esquema del documento y el mapa mental de títulos, de solo lectura, permiten saltar al texto original.
+Las siete pestañas de ajustes son: General, Numeración de títulos, Leyendas, Referencias cruzadas, Notas al pie y finales, Escritura y limpieza, Vista y lotes. El idioma y el estilo de numeración se eligen por separado. La sección de nota actual en la barra lateral derecha permite cambiar solo una nota. Volver a seguir los ajustes globales elimina esa excepción y conserva las demás Properties. El esquema del documento y el mapa mental de títulos, de solo lectura, permiten saltar al texto original.
 
 <!-- section: limitations -->
 ## Alcance y límites

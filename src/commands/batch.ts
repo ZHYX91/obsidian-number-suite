@@ -8,6 +8,7 @@ import type {
 import type { TransformOperation, TransformPlan } from "../core/types";
 import { digestText } from "../core/text-digest";
 import { ContentConflictError } from "../application/conditional-replace";
+import { withBatchSettlement } from "../adapters/obsidian/batch-settlement";
 import { BatchOperationModal, FolderScopeModal, type BatchScope } from "../ui/batch-modals";
 import { ChangePreviewModal, type PreviewDocument } from "../ui/preview-modal";
 import { createSourcePlan } from "./transform-options";
@@ -51,6 +52,13 @@ class BatchWriteUncertainError extends Error {
   }
 }
 
+class BatchDisposedError extends Error {
+  constructor() {
+    super("The batch owner was unloaded; no further forward writes are allowed.");
+    this.name = "BatchDisposedError";
+  }
+}
+
 function isBatchConflict(error: unknown): boolean {
   return error instanceof BatchChangedError
     || error instanceof ContentConflictError
@@ -78,15 +86,17 @@ export class BatchController {
   private async runExclusive(translate: Translate, operation: () => Promise<void>): Promise<void> {
     if (this.disposed) return;
     if (this.operationActive) {
-      new Notice(translate("notice.batchBusy"));
+      this.notify(translate("notice.batchBusy"));
       return;
     }
     this.operationActive = true;
     try {
-      await operation();
+      await withBatchSettlement(this.app, async () => {
+        if (!this.disposed) await operation();
+      });
     } catch (error: unknown) {
       console.error("Number Suite batch preflight failed", error);
-      if (!this.disposed) new Notice(translate("notice.batchFailed"));
+      if (!this.disposed) this.notify(translate("notice.batchFailed"));
     } finally {
       this.operationActive = false;
     }
@@ -96,6 +106,14 @@ export class BatchController {
     this.disposed = true;
   }
 
+  private assertActive(): void {
+    if (this.disposed) throw new BatchDisposedError();
+  }
+
+  private notify(message: string): void {
+    if (!this.disposed) new Notice(message);
+  }
+
   open(translate: Translate): void {
     if (this.disposed) return;
     new FolderScopeModal(this.app, translate, (scope) => {
@@ -103,7 +121,7 @@ export class BatchController {
       new BatchOperationModal(this.app, translate, files.length, (operation) => {
         void this.preview(scope, operation, translate).catch((error: unknown) => {
           console.error("Number Suite batch preview failed", error);
-          new Notice(translate("notice.batchFailed"));
+          this.notify(translate("notice.batchFailed"));
         });
       }).open();
     }).open();
@@ -118,7 +136,7 @@ export class BatchController {
     if (this.disposed) return;
     const snapshot = this.persistence.getLastBatch();
     if (snapshot == null) {
-      new Notice(translate("notice.noBatch"));
+      this.notify(translate("notice.noBatch"));
       return;
     }
     const preflight: BoundBatchFile[] = [];
@@ -127,12 +145,13 @@ export class BatchController {
     for (const item of snapshot.files) {
       const file = this.app.vault.getAbstractFileByPath(item.path);
       if (!(file instanceof TFile)) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       const current = await this.app.vault.cachedRead(file);
+      this.assertActive();
       if (!this.fileBindingIsCurrent(file, item.path)) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       bindings.set(item.path, file);
@@ -140,28 +159,30 @@ export class BatchController {
       preflight.push({ file, path: item.path, before: current, after: item.before });
     }
     if (!(await this.synchronizeOpenMarkdownViews(expectedSources, bindings))) {
-      new Notice(translate("notice.undoConflict"));
+      this.notify(translate("notice.undoConflict"));
       return;
     }
     const verified: BoundBatchFile[] = [];
     for (const item of preflight) {
       if (!this.fileBindingIsCurrent(item.file, item.path)) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       const current = await this.app.vault.cachedRead(item.file);
+      this.assertActive();
       if (!this.fileBindingIsCurrent(item.file, item.path)) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       const snapshotFile = snapshot.files.find((candidate) => candidate.path === item.path);
       if (snapshotFile == null) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       const matchesAfter = await digestText(current) === snapshotFile.afterHash;
+      this.assertActive();
       if (current !== snapshotFile.before && !matchesAfter) {
-        new Notice(translate("notice.undoConflict"));
+        this.notify(translate("notice.undoConflict"));
         return;
       }
       verified.push({
@@ -176,6 +197,7 @@ export class BatchController {
     if (this.disposed) return;
     try {
       for (const item of verified) {
+        this.assertActive();
         if (
           !this.bindingsAreCurrent(verified)
           || !this.openMarkdownViewsMatch(remainingSources, bindings)
@@ -191,8 +213,9 @@ export class BatchController {
         }
         remainingSources.delete(item.path);
       }
+      this.assertActive();
       await this.persistence.setLastBatch(null);
-      new Notice(translate("notice.undoDone", { count: restored.length }));
+      this.notify(translate("notice.undoDone", { count: restored.length }));
     } catch (error) {
       console.error("Number Suite batch restore failed", error);
       const rollbackFailures = await this.rollbackBoundExactly(restored);
@@ -206,7 +229,7 @@ export class BatchController {
           console.error("Number Suite could not retain the recovery snapshot", persistenceError);
         }
       }
-      new Notice(translate(isBatchConflict(error)
+      this.notify(translate(isBatchConflict(error)
         ? "notice.undoConflict"
         : "notice.batchFailed"));
     }
@@ -246,7 +269,11 @@ export class BatchController {
       expected: expectedSources.get(view.file?.path ?? "") ?? "",
     }));
     if (!this.openMarkdownViewsMatch(expectedSources, expectedFiles, relevantViews)) return false;
-    await Promise.all(relevantViews.map(async (view) => view.save()));
+    for (const view of relevantViews) {
+      this.assertActive();
+      await view.save();
+      this.assertActive();
+    }
     const currentViews = this.openMarkdownViews();
     if (originalBindings.some(({ view, path, file, expected }) => (
       !currentViews.includes(view)
@@ -298,7 +325,9 @@ export class BatchController {
     item: BoundBatchFile,
     expected: string,
     replacement: string,
+    compensating = false,
   ): Promise<void> {
+    if (!compensating) this.assertActive();
     if (
       !this.fileBindingIsCurrent(item.file, item.path)
       || !this.openMarkdownViewsCompatible(item, expected, replacement)
@@ -308,6 +337,7 @@ export class BatchController {
     let replacementAccepted = false;
     try {
       await this.app.vault.process(item.file, (current) => {
+        if (!compensating) this.assertActive();
         if (
           !this.fileBindingIsCurrent(item.file, item.path)
           || !this.openMarkdownViewsCompatible(item, expected, replacement)
@@ -336,7 +366,7 @@ export class BatchController {
     const failures: unknown[] = [];
     for (const item of [...replacements].reverse()) {
       try {
-        await this.replaceBoundExactly(item, item.after, item.before);
+        await this.replaceBoundExactly(item, item.after, item.before, true);
       } catch (error) {
         failures.push(error);
       }
@@ -363,8 +393,9 @@ export class BatchController {
     let invalidFrontmatter = 0;
     for (const file of this.filesForScope(scope)) {
       const source = await this.previewSource(file);
+      if (this.disposed) return;
       if (source == null) {
-        new Notice(translate("notice.batchChanged"));
+        this.notify(translate("notice.batchChanged"));
         return;
       }
       const result = createSourcePlan(source, operation, this.getSettings());
@@ -378,10 +409,10 @@ export class BatchController {
       }
     }
     if (invalidFrontmatter > 0) {
-      new Notice(translate("notice.batchSkippedInvalid", { count: invalidFrontmatter }));
+      this.notify(translate("notice.batchSkippedInvalid", { count: invalidFrontmatter }));
     }
     if (documents.length === 0 && (operation !== "remove" && operation !== "renumber" || candidates.length === 0)) {
-      new Notice(translate("notice.batchNone"));
+      this.notify(translate("notice.batchNone"));
       return;
     }
     if (this.disposed) return;
@@ -428,13 +459,13 @@ export class BatchController {
     const seen = new Set<string>();
     for (const document of documents) {
       if (seen.has(document.path)) {
-        new Notice(translate("notice.batchChanged"));
+        this.notify(translate("notice.batchChanged"));
         return;
       }
       seen.add(document.path);
       const file = this.app.vault.getAbstractFileByPath(document.path);
       if (!(file instanceof TFile)) {
-        new Notice(translate("notice.batchChanged"));
+        this.notify(translate("notice.batchChanged"));
         return;
       }
       bindings.set(document.path, file);
@@ -449,17 +480,18 @@ export class BatchController {
       !this.bindingsAreCurrent(files)
       || !(await this.synchronizeOpenMarkdownViews(expectedSources, bindings))
     ) {
-      new Notice(translate("notice.batchChanged"));
+      this.notify(translate("notice.batchChanged"));
       return;
     }
     for (const item of files) {
       if (!this.fileBindingIsCurrent(item.file, item.path)) {
-        new Notice(translate("notice.batchChanged"));
+        this.notify(translate("notice.batchChanged"));
         return;
       }
       const current = await this.app.vault.cachedRead(item.file);
+      this.assertActive();
       if (!this.fileBindingIsCurrent(item.file, item.path) || current !== item.before) {
-        new Notice(translate("notice.batchChanged"));
+        this.notify(translate("notice.batchChanged"));
         return;
       }
     }
@@ -475,7 +507,7 @@ export class BatchController {
     };
     const limit = this.getSettings().batchBackupLimitMb;
     if (snapshotSizeBytes(pendingSnapshot) > limit * 1024 * 1024) {
-      new Notice(translate("notice.batchTooLarge", { limit }));
+      this.notify(translate("notice.batchTooLarge", { limit }));
       return;
     }
     const previousSnapshot = this.persistence.getLastBatch();
@@ -485,6 +517,7 @@ export class BatchController {
     try {
       await this.persistence.setLastBatch(pendingSnapshot);
       for (const item of files) {
+        this.assertActive();
         if (
           !this.bindingsAreCurrent(files)
           || !this.openMarkdownViewsMatch(remainingSources, bindings)
@@ -503,8 +536,9 @@ export class BatchController {
         status: "applied",
         files: pendingSnapshot.files.map((item) => ({ ...item })),
       };
+      this.assertActive();
       await this.persistence.setLastBatch(appliedSnapshot);
-      new Notice(translate("notice.batchApplied", { count: modified.length }));
+      this.notify(translate("notice.batchApplied", { count: modified.length }));
     } catch (error) {
       console.error("Number Suite batch failed", error);
       const rollbackFailures = await this.rollbackBoundExactly(modified);
@@ -518,7 +552,7 @@ export class BatchController {
           console.error("Number Suite could not restore the previous recovery snapshot", persistenceError);
         }
       }
-      new Notice(translate(isBatchConflict(error)
+      this.notify(translate(isBatchConflict(error)
         ? "notice.batchChanged"
         : "notice.batchFailed"));
     }
