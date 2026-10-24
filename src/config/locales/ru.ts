@@ -1,5 +1,13 @@
 /** ru interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_RU: Readonly<Record<string, string>> = {
+  "panel.modes.title": "Отображение и операции с файлом",
+  "panel.modes.source": "Сохранённый заголовок",
+  "panel.modes.goal": "Цель",
+  "panel.modes.action": "Настройка или команда",
+  "panel.modes.markdown": "Заголовок в Markdown",
+  "panel.modes.unchanged": "Без изменений",
+  "panel.modes.rewritten": "Изменён",
+  "panel.modes.properties": "В примерах используются распознаваемые числовые префиксы. Настройки отображения для отдельной заметки сохраняются в свойствах и не меняют текст заголовков.",
   "command.mode.normal": "Отключить оформление и вернуть исходный вид",
   "command.mode.show": "Переключить виртуальные номера заголовков",
   "command.mode.conceal": "Показать или скрыть записанные номера заголовков",

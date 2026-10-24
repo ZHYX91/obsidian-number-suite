@@ -16,6 +16,7 @@ export function installDomFixture(): void {
     createDiv(this: HTMLElement, options: ElementOptions) { return create.call(this, "div", options); },
     createSpan(this: HTMLElement, options: ElementOptions) { return create.call(this, "span", options); },
     setText(this: HTMLElement, text: string) { this.textContent = text; },
+    appendText(this: HTMLElement, text: string) { this.append(text); },
     addClass(this: HTMLElement, name: string) { this.classList.add(name); },
     removeClass(this: HTMLElement, name: string) { this.classList.remove(name); },
   });

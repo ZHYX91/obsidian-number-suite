@@ -1,5 +1,13 @@
 /** pt-BR interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
+  "panel.modes.title": "Exibição e operações de arquivo",
+  "panel.modes.source": "Título salvo",
+  "panel.modes.goal": "Objetivo",
+  "panel.modes.action": "Configuração ou comando",
+  "panel.modes.markdown": "Título em Markdown",
+  "panel.modes.unchanged": "Inalterado",
+  "panel.modes.rewritten": "Alterado",
+  "panel.modes.properties": "Os exemplos usam prefixos numéricos reconhecidos. As opções de exibição desta nota são salvas nas propriedades; elas não reescrevem o texto dos títulos.",
   "command.mode.normal": "Desativar efeitos de exibição e restaurar a aparência original",
   "command.mode.show": "Alternar numeração virtual dos títulos",
   "command.mode.conceal": "Alternar a ocultação dos números já escritos",

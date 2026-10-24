@@ -22,6 +22,8 @@ Requer Obsidian 1.12.7 ou mais recente no computador ou Android. O funcionamento
 2. Abra a pré-visualização ao vivo ou o modo de leitura. Os números aparecem ao lado dos títulos, mas o arquivo não muda.
 3. Para salvar números no Markdown, abra a nota atual na barra lateral do Number Suite. Escolha escrever ou renumerar, confira a prévia e confirme.
 
+O guia da nota atual compara o texto original, o objetivo e a ação. As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
+
 <!-- section: captions -->
 ## Legendas e referências
 
@@ -43,7 +45,7 @@ Há estilos hierárquicos, exemplos para documentos oficiais e jurídicos chines
 <!-- section: settings -->
 ## Onde ajustar as opções
 
-As configurações globais estão divididas em Geral, títulos, legendas, referências, notas de rodapé e de fim, operações de arquivo e visualizações. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties. O sumário do documento e o mapa mental de títulos, somente para leitura, levam ao texto original.
+As sete abas de configurações são: Geral, Numeração de títulos, Legendas, Referências cruzadas, Notas de rodapé e de fim, Gravar e limpar, Exibição e lote. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties. O sumário do documento e o mapa mental de títulos, somente para leitura, levam ao texto original.
 
 <!-- section: limitations -->
 ## Escopo e limitações

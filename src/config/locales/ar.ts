@@ -1,5 +1,13 @@
 /** ar interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_AR: Readonly<Record<string, string>> = {
+  "panel.modes.title": "العرض وعمليات الملفات",
+  "panel.modes.source": "العنوان المحفوظ",
+  "panel.modes.goal": "الهدف",
+  "panel.modes.action": "الإعداد أو الأمر",
+  "panel.modes.markdown": "العنوان في Markdown",
+  "panel.modes.unchanged": "دون تغيير",
+  "panel.modes.rewritten": "يُعاد كتابته",
+  "panel.modes.properties": "تستخدم الأمثلة بادئات ترقيم يمكن التعرف عليها. تُحفظ خيارات العرض الخاصة بالملاحظة في الخصائص، ولا تعيد كتابة نص العناوين.",
   "command.mode.normal": "إيقاف تأثيرات العرض وإظهار النص الأصلي",
   "command.mode.show": "تبديل إظهار أرقام العناوين الافتراضية",
   "command.mode.conceal": "تبديل إخفاء أرقام العناوين المكتوبة",

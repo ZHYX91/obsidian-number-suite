@@ -1,5 +1,13 @@
 /** zh-TW interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
+  "panel.modes.title": "顯示與檔案操作",
+  "panel.modes.source": "原有標題",
+  "panel.modes.goal": "目標",
+  "panel.modes.action": "設定或命令",
+  "panel.modes.markdown": "標題 Markdown",
+  "panel.modes.unchanged": "不變",
+  "panel.modes.rewritten": "改寫",
+  "panel.modes.properties": "範例使用可辨識的標題編號。目前筆記的顯示選項會儲存到屬性，但不會改寫標題文字。",
   "command.mode.normal": "關閉顯示效果並恢復原樣",
   "command.mode.show": "切換顯示虛擬標題序號",
   "command.mode.conceal": "切換是否隱藏已有標題序號",

@@ -21,6 +21,7 @@ import { noteSchemeOptions, schemeDisplayName } from "../config/scheme-labels";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 import { renderNoteOverridesGuide } from "./settings/note-overrides-guide";
+import { renderNoteOperationGuide } from "./note-operation-guide";
 
 export interface NoteControlActions {
   readonly refreshDisplay: () => void;
@@ -220,6 +221,7 @@ export class NoteControlPane {
     this.renderSaveStatus();
     this.summaryHost = this.contentEl.createDiv();
     this.renderSummary(snapshot, settings, this.summaryHost);
+    renderNoteOperationGuide(this.contentEl, this.t);
     this.renderOverrides(snapshot, settings);
     this.renderActions();
   }

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-03
+last_synced: 2026-10-24
 ---
 
 # Number Suite — Product requirements
@@ -25,8 +25,7 @@ cannot change product requirements.
 
 Number Suite lets users control separately whether heading numbers are stored in Markdown and
 whether they are visible in Obsidian. Users must be able to keep clean source, save stored numbers,
-conceal stored numbers, or replace their visual presentation with calculated numbers while every
-file change remains previewable, explainable, and recoverable where practical.
+conceal stored numbers, or replace their visual presentation with calculated numbers while heading transformations remain previewable, explainable, and recoverable where practical. Explicit note settings save Properties separately and expose save status.
 
 <!-- section: users-and-jobs -->
 ## Users and core jobs
@@ -43,7 +42,7 @@ file change remains previewable, explainable, and recoverable where practical.
 The product handles top-level native ATX H1-H6 headings plus the exact Number Suite/DocWen H7-H9
 extension and supports Live Preview, Reading View, current-note writes, batch operations, built-in and custom schemes, exact-title exclusions,
 per-note Properties, display-only caption numbers, footnote/endnote numbers, same-file semantic
-cross references, a Number Suite H1-H9-and-caption sidebar outline, and English/Chinese UI. One Markdown file is the scope for heading schemes, each
+cross references, a Number Suite H1-H9-and-caption sidebar outline, and the 12 supported interface languages. One Markdown file is the scope for heading schemes, each
 caption-type counter, footnote/endnote counters, and reference resolution; embedded files remain
 governed by their own source and settings.
 
@@ -122,8 +121,8 @@ governed by their own source and settings.
     below its image offers a bounded migration. The actual context-menu target takes precedence over
     the editor cursor. Inline and table-cell images, math, and code never become independent caption
     targets. A Structural Tables-owned Live Preview widget contributes the same Table action through
-    its rendered menu and maps its public source-table index back to the complete Markdown range;
-    an uncertain mapping fails closed. An adjacent case-only keyword mismatch is normalized instead of duplicated. Every action
+    its rendered menu and authenticates the versioned file path, exact source text, and UTF-16 range;
+    a table ordinal is never a write target and uncertain mappings fail closed. An adjacent case-only keyword mismatch is normalized instead of duplicated. Every action
     requires a title preview, an immutable bounded plan, exact source revalidation, and one editor
     transaction; unsupported, protected, stale, ambiguous, or already captioned targets fail closed.
     An adjacent caption of any semantic type makes the carrier already captioned.
@@ -142,6 +141,8 @@ governed by their own source and settings.
 - Source markers remain off by default and have a removal path that keeps visible numbers.
 - The plugin contains no networking, telemetry, advertisements, or remote assets.
 - Stored-heading edits can break heading links; the plugin warns instead of guessing link rewrites.
+
+- Unload stops new batch and Undo forward writes. A dispatched host write must settle; exact compensation may continue without overwriting later edits. A newly enabled instance waits before taking ownership of recovery data.
 
 <!-- section: non-goals -->
 ## Non-goals

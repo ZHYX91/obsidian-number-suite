@@ -22,6 +22,8 @@ Obsidian 1.12.7 ou plus récent est requis, sur ordinateur ou Android. Le foncti
 2. Ouvrez l’aperçu en direct ou le mode Lecture. Les numéros apparaissent près des titres, sans modifier le texte enregistré.
 3. Pour inscrire les numéros dans Markdown, ouvrez l’onglet de la note actuelle dans la barre latérale de Number Suite. Choisissez l’écriture ou la renumérotation, vérifiez l’aperçu, puis confirmez.
 
+Le guide de la note actuelle compare le texte source, le résultat voulu et l’action. Les choix propres à une note sont enregistrés dans ses Properties ; l’affichage lui-même ne réécrit pas les titres. L’aperçu regroupe les changements et avertissements par fichier, avec leurs nombres. Dépliez un fichier et chargez la suite pour tout examiner. Désactiver le module arrête les nouvelles écritures de traitement par lot et d’annulation ; une écriture déjà lancée peut se terminer. Si le retour en arrière ne peut pas être effectué sans écraser une modification, conservez `recovery.json` dans le dossier du module et vérifiez les notes.
+
 <!-- section: captions -->
 ## Légendes et renvois
 
@@ -43,7 +45,7 @@ Plusieurs styles sont proposés : hiérarchique, exemples administratifs et juri
 <!-- section: settings -->
 ## Où régler les options
 
-Les paramètres globaux regroupent Général, titres, légendes, renvois, notes de bas de page et de fin, opérations sur les fichiers et vues. La langue et le style de numérotation se choisissent séparément. Dans la barre latérale droite, « Note actuelle » permet de modifier une seule note. Revenir au réglage global supprime uniquement cette exception et conserve les autres Properties. Le plan du document et la carte mentale des titres, en lecture seule, permettent de rejoindre le texte source.
+Les sept onglets des paramètres sont : Général, Numérotation des titres, Légendes, Renvois, Notes de bas de page et de fin, Écriture et nettoyage, Affichage et lot. La langue et le style de numérotation se choisissent séparément. Dans la barre latérale droite, « Note actuelle » permet de modifier une seule note. Revenir au réglage global supprime uniquement cette exception et conserve les autres Properties. Le plan du document et la carte mentale des titres, en lecture seule, permettent de rejoindre le texte source.
 
 <!-- section: limitations -->
 ## Portée et limites

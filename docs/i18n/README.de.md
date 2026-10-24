@@ -22,6 +22,8 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 2. Öffne die Live-Vorschau oder Leseansicht. Die Nummern erscheinen neben den Überschriften, der gespeicherte Text bleibt unverändert.
 3. Sollen die Nummern in Markdown stehen, öffne rechts die aktuelle Notiz in Number Suite. Wähle Schreiben oder Neu nummerieren und prüfe die Vorschau vor dem Bestätigen.
 
+Die Anleitung in „Aktuelle Notiz“ vergleicht Quelltext, Ziel und passende Aktion. Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
+
 <!-- section: captions -->
 ## Beschriftungen und Verweise
 
@@ -43,7 +45,7 @@ Es gibt hierarchische Stile sowie Beispiele für chinesische Amts- und Rechtstex
 <!-- section: settings -->
 ## Einstellungen finden
 
-Die globalen Einstellungen sind in Allgemein, Überschriften, Beschriftungen, Querverweise, Fuß- und Endnoten, Dateioperationen und Ansichten gegliedert. Sprache und Nummerierungsstil werden getrennt gewählt. In „Aktuelle Notiz“ in der rechten Seitenleiste kannst du einzelne Werte überschreiben. „Globaler Einstellung folgen“ entfernt nur diese Ausnahme und lässt andere Properties unverändert. Dokumentgliederung und schreibgeschützte Überschriften-Mindmap führen direkt zur ursprünglichen Zeile.
+Die sieben globalen Einstellungsbereiche heißen: Allgemein, Überschriftennummerierung, Beschriftungen, Querverweise, Fuß- und Endnoten, Schreiben und Bereinigen, Anzeige und Stapel. Sprache und Nummerierungsstil werden getrennt gewählt. In „Aktuelle Notiz“ in der rechten Seitenleiste kannst du einzelne Werte überschreiben. „Globaler Einstellung folgen“ entfernt nur diese Ausnahme und lässt andere Properties unverändert. Dokumentgliederung und schreibgeschützte Überschriften-Mindmap führen direkt zur ursprünglichen Zeile.
 
 <!-- section: limitations -->
 ## Umfang und Grenzen

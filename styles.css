@@ -1088,6 +1088,17 @@
   margin-block: 0.25rem 0.75rem;
 }
 
+.number-suite-note-operation-guide {
+  margin-block: 0.8rem;
+  overflow-x: auto;
+}
+
+.number-suite-note-operation-guide summary { cursor: pointer; font-weight: var(--font-semibold); }
+.number-suite-note-operation-guide p { color: var(--text-muted); font-size: var(--font-ui-small); }
+.number-suite-note-operation-guide table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-smaller); }
+.number-suite-note-operation-guide th,
+.number-suite-note-operation-guide td { padding: 0.4rem; border: 1px solid var(--background-modifier-border); text-align: start; }
+
 .number-suite-preview-risk {
   background: color-mix(in srgb, var(--text-error) 10%, var(--background-secondary));
   border-inline-start: 3px solid var(--text-error);
@@ -1117,16 +1128,41 @@
 }
 
 .number-suite-diff code {
+  color: var(--text-normal);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.number-suite-diff-before code {
-  color: var(--text-error);
+.number-suite-diff-before .number-suite-diff-changed {
+  background: color-mix(in srgb, var(--text-error) 18%, var(--background-secondary));
+  text-decoration: line-through;
 }
 
-.number-suite-diff-after code {
-  color: var(--color-green);
+.number-suite-diff-after .number-suite-diff-changed {
+  background: color-mix(in srgb, var(--color-green) 18%, var(--background-secondary));
+  text-decoration: underline;
+}
+
+.number-suite-diff-changed {
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+}
+
+.number-suite-preview-document {
+  border-block-end: 1px solid var(--background-modifier-border);
+  padding-block: 0.6rem;
+}
+
+.number-suite-preview-document > summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.number-suite-preview-path { font-weight: var(--font-semibold); }
+.number-suite-preview-count { color: var(--text-muted); margin-inline-start: 0.8rem; }
+.number-suite-preview-document > summary:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 3px;
 }
 
 .number-suite-warning-list {

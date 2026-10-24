@@ -1,5 +1,13 @@
 /** ko interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_KO: Readonly<Record<string, string>> = {
+  "panel.modes.title": "표시 및 파일 작업",
+  "panel.modes.source": "저장된 제목",
+  "panel.modes.goal": "목표",
+  "panel.modes.action": "설정 또는 명령",
+  "panel.modes.markdown": "제목 Markdown",
+  "panel.modes.unchanged": "변경 없음",
+  "panel.modes.rewritten": "변경됨",
+  "panel.modes.properties": "예시는 인식 가능한 제목 번호를 사용합니다. 현재 노트의 표시 설정은 속성에 저장되며, 제목 텍스트는 바꾸지 않습니다.",
   "command.mode.normal": "표시 효과를 끄고 원본 모습으로 돌아가기",
   "command.mode.show": "가상 제목 번호 표시 전환",
   "command.mode.conceal": "작성된 제목 번호 숨기기 전환",

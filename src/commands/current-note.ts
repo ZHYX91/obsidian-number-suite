@@ -4,6 +4,7 @@ import type { Translate } from "../config/i18n";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 import { ChangePreviewModal } from "../ui/preview-modal";
+import { captureSourceBinding } from "./source-binding";
 import { createSourcePlan } from "./transform-options";
 
 export function runCurrentNoteOperation(
@@ -12,7 +13,9 @@ export function runCurrentNoteOperation(
   operation: TransformOperation,
   translate: Translate,
   targetPath?: string,
+  signal?: AbortSignal,
 ): void {
+  if (signal?.aborted) return;
   const matchingViews = (): MarkdownView[] => {
     if (targetPath == null) {
       const active = app.workspace.getActiveViewOfType(MarkdownView);
@@ -40,7 +43,8 @@ export function runCurrentNoteOperation(
     new Notice(translate("notice.editModeRequired"));
     return;
   }
-  const source = view.editor.getValue();
+  const binding = captureSourceBinding(app, view.editor, view);
+  const { source } = binding;
   const result = createSourcePlan(source, operation, settings);
   if (result.status === "disabled") {
     new Notice(translate("notice.noteDisabled"));
@@ -63,9 +67,11 @@ export function runCurrentNoteOperation(
     operation,
     documents: [{ path, plan }],
     translate,
+    ...(signal === undefined ? {} : { signal }),
     ...(operation === "remove" || operation === "renumber" ? {
       cleanupScope: settings.cleanupScope,
       onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => {
+        if (signal?.aborted) return [];
         const replanned = createSourcePlan(source, operation, settings, scope);
         return replanned.status === "ready" && replanned.plan != null
           ? [{ path, plan: replanned.plan }]
@@ -73,19 +79,19 @@ export function runCurrentNoteOperation(
       },
     } : {}),
     onConfirm: async (documents = [{ path, plan }]) => {
+      if (signal?.aborted) return;
       const currentMatches = matchingViews();
       if (
         currentMatches.length !== 1
         || currentMatches[0] !== view
-        || view.file?.path !== path
-        || view.editor.getValue() !== source
+        || !binding.isCurrent()
       ) {
         new Notice(translate("notice.stalePreview"));
         return;
       }
       const selected = documents[0]?.plan;
       if (selected == null) return;
-      applyEditorPlan(view.editor, selected.changes);
+      applyEditorPlan(binding.editor, selected.changes);
       new Notice(translate("notice.applied", { count: selected.changes.length }));
     },
   }).open();

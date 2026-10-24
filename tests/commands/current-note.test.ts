@@ -44,10 +44,12 @@ function harness(source = "# A") {
   };
   const view = new MarkdownView({} as never);
   view.file = new FileConstructor("note.md");
-  Object.assign(view, { editor, getMode: () => mode });
+  Object.assign(view, { editor, getMode: () => mode, containerEl: { isConnected: true } });
+  const files = new Map([[view.file.path, view.file]]);
   let active: MarkdownView | null = view;
   let openViews: MarkdownView[] = [view];
   const app = {
+    vault: { getAbstractFileByPath: (path: string) => files.get(path) ?? null },
     workspace: {
       getActiveViewOfType: () => active,
       iterateAllLeaves: (callback: (leaf: { readonly view: MarkdownView }) => void) => {
@@ -57,6 +59,8 @@ function harness(source = "# A") {
   } as unknown as App;
   return {
     app,
+    files,
+    editor,
     transactions,
     view,
     setActive: (next: MarkdownView | null) => { active = next; },
@@ -72,6 +76,24 @@ beforeEach(() => {
 });
 
 describe("current-note operations", () => {
+  it.each(["file", "editor", "unregistered", "detached", "preview", "unloaded"])("rejects a retained preview after %s", async (change) => {
+    const test = harness();
+    const controller = new AbortController();
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key, undefined, controller.signal);
+    expect(preview.options).not.toBeNull();
+    const replacement = harness();
+    if (change === "file") test.view.file = replacement.view.file;
+    if (change === "editor") test.view.editor = replacement.editor as never;
+    if (change === "unregistered") test.files.clear();
+    if (change === "detached") Object.assign(test.view.containerEl, { isConnected: false });
+    if (change === "preview") test.setMode("preview");
+    if (change === "unloaded") controller.abort();
+    await preview.options?.onConfirm();
+    expect(test.transactions).toHaveLength(0);
+    expect(replacement.transactions).toHaveLength(0);
+    expect(notices()).toEqual(change === "unloaded" ? [] : ["notice.stalePreview"]);
+  });
+
   it("requires an active editing view", () => {
     const test = harness();
     test.setActive(null);

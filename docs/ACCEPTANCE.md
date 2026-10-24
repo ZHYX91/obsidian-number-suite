@@ -166,6 +166,8 @@ const value = 1;
 
 - [ ] Open different notes in two panes with different Properties view modes.
 - [ ] Open a pop-out window and verify styling and independent view state.
+- [ ] Exercise caption and stable-reference callbacks supplied through ordinary file-info when the host provides that shape, with and without its editor property. Close or detach the original pane, switch it to Reading View, or replace its editor before confirming; no new transaction, clipboard write, or focus restoration may occur. The same callback in a connected source-mode owner must still work.
+- [ ] Unload the plugin from a synchronous listener during a stable-reference editor transaction. The accepted transaction remains applied, but no new clipboard write starts. Separately unload after a clipboard write has started; it may settle without a late notice.
 - [ ] Edit a heading to another heading of the same character length; decorations must update.
 - [ ] Toggle `heading.virtual` and `heading.hide-stored` through Current note; verify the single `number-suite` text list updates and both independent states refresh immediately.
 - [ ] Set H1-H9 first-number and skip-first values; verify `heading.first-number.hN` and `heading.skip-first.hN` remain distinct and skipped headings do not consume counters.
