@@ -23,7 +23,12 @@ describe("large preview feedback", () => {
     Object.assign(modal, { titleEl: document.createElement("h2"), modalEl: document.createElement("div") });
     modal.onOpen();
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(500);
-    expect(modal.contentEl.querySelectorAll("li")).toHaveLength(200);
+    expect(modal.contentEl.querySelectorAll("li")).toHaveLength(0);
+    const warningGroup = modal.contentEl.querySelectorAll<HTMLDetailsElement>("details")[1]!;
+    expect(warningGroup.querySelector("summary")?.textContent).toContain("201");
+    warningGroup.open = true;
+    warningGroup.dispatchEvent(new Event("toggle"));
+    expect(warningGroup.querySelectorAll("li")).toHaveLength(200);
     modal.contentEl.querySelector<HTMLButtonElement>(".number-suite-preview-more")?.click();
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(501);
     [...modal.contentEl.querySelectorAll("button")].find((button) => button.textContent?.includes("继续查看警告"))?.click();

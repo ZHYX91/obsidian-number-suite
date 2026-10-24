@@ -4,6 +4,7 @@ import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
 import { applyModalDirection } from "./modal-direction";
 import type { CleanupScope, TransformOperation, TransformPlan } from "../core/types";
+import { changedTextParts, renderPreviewDifference } from "./preview-diff";
 
 export interface PreviewDocument {
   path: string;
@@ -31,13 +32,15 @@ export class ChangePreviewModal extends Modal {
   private applying = false;
   private documents: readonly PreviewDocument[];
   private cleanupScope: CleanupScope | null;
-  private visibleChangeLimit = CHANGE_PAGE_SIZE;
-  private visibleWarningLimit = WARNING_PAGE_SIZE;
+  private readonly visibleChangeLimits = new Map<string, number>();
+  private readonly visibleWarningLimits = new Map<string, number>();
+  private readonly expandedPaths = new Set<string>();
 
   constructor(private readonly options: PreviewModalOptions) {
     super(options.app);
     this.documents = options.documents;
     this.cleanupScope = options.cleanupScope ?? null;
+    if (this.documents[0] !== undefined) this.expandedPaths.add(this.documents[0].path);
   }
 
   override onOpen(): void {
@@ -73,61 +76,8 @@ export class ChangePreviewModal extends Modal {
       text: t("preview.warningLinks"),
     });
 
-    let renderedChanges = 0;
     for (const document of this.documents) {
-      if (this.documents.length > 1 && (document.plan.changes.length > 0 || document.plan.warnings.length > 0)) {
-        contentEl.createEl("h3", { text: document.path });
-      }
-      for (const change of document.plan.changes) {
-        if (renderedChanges >= this.visibleChangeLimit) break;
-        renderedChanges += 1;
-        const card = contentEl.createDiv({ cls: "number-suite-change" });
-        card.dataset.ruleId = change.ruleId;
-        card.createDiv({
-          cls: "number-suite-change-meta",
-          text: t("preview.line", { line: change.line + 1, level: change.level }),
-        });
-        const before = card.createDiv({ cls: "number-suite-diff number-suite-diff-before" });
-        before.createEl("strong", { text: `${t("preview.before")}: ` });
-        before.createEl("code", { text: visibleMarkers(change.before) });
-        const after = card.createDiv({ cls: "number-suite-diff number-suite-diff-after" });
-        after.createEl("strong", { text: `${t("preview.after")}: ` });
-        after.createEl("code", { text: visibleMarkers(change.after) });
-      }
-    }
-    if (renderedChanges < changes) {
-      const reveal = contentEl.createEl("button", {
-        cls: "number-suite-preview-more",
-        text: t("preview.moreChanges", { count: changes - renderedChanges }),
-      });
-      reveal.type = "button";
-      reveal.addEventListener("click", () => {
-        this.visibleChangeLimit = Math.min(changes, this.visibleChangeLimit + CHANGE_PAGE_SIZE);
-        this.render();
-      });
-    }
-
-    const warningEntries = this.documents.flatMap((document) => (
-      document.plan.warnings.map((warning) => ({ path: document.path, warning }))
-    ));
-    if (warningEntries.length > 0) {
-      contentEl.createEl("h3", { text: t("preview.warnings") });
-      const list = contentEl.createEl("ul", { cls: "number-suite-warning-list" });
-      for (const entry of warningEntries.slice(0, this.visibleWarningLimit)) {
-        list.createEl("li", {
-          text: `${entry.path}:${entry.warning.line + 1} — ${t(`preview.warning.${entry.warning.code}`)}`,
-        });
-      }
-      if (warningEntries.length > this.visibleWarningLimit) {
-        const reveal = contentEl.createEl("button", {
-          text: t("preview.moreWarnings", { count: warningEntries.length - this.visibleWarningLimit }),
-        });
-        reveal.type = "button";
-        reveal.addEventListener("click", () => {
-          this.visibleWarningLimit += WARNING_PAGE_SIZE;
-          this.render();
-        });
-      }
+      this.renderDocument(contentEl, document);
     }
 
     const actions = new Setting(contentEl);
@@ -159,14 +109,64 @@ export class ChangePreviewModal extends Modal {
     applyModalDirection(this.modalEl, t);
   }
 
+  private renderDocument(container: HTMLElement, document: PreviewDocument): void {
+    const t = this.options.translate;
+    const section = container.createEl("details", { cls: "number-suite-preview-document" });
+    section.open = this.expandedPaths.has(document.path);
+    const summary = section.createEl("summary");
+    summary.createSpan({ text: document.path, cls: "number-suite-preview-path", attr: { dir: "auto" } });
+    summary.createSpan({ cls: "number-suite-preview-count", text: t("preview.summary", {
+      changes: document.plan.changes.length, warnings: document.plan.warnings.length,
+    }) });
+    const body = section.createDiv();
+    const renderBody = (): void => {
+      body.empty();
+      const changeLimit = this.visibleChangeLimits.get(document.path) ?? CHANGE_PAGE_SIZE;
+      for (const change of document.plan.changes.slice(0, changeLimit)) {
+        const card = body.createDiv({ cls: "number-suite-change" });
+        card.dataset.ruleId = change.ruleId;
+        card.createDiv({ cls: "number-suite-change-meta", text: t("preview.line", { line: change.line + 1, level: change.level }) });
+        const parts = changedTextParts(visibleMarkers(change.before), visibleMarkers(change.after));
+        const before = card.createDiv({ cls: "number-suite-diff number-suite-diff-before" });
+        before.createEl("strong", { text: `${t("preview.before")}: ` });
+        renderPreviewDifference(before, parts.prefix, parts.before, parts.suffix);
+        const after = card.createDiv({ cls: "number-suite-diff number-suite-diff-after" });
+        after.createEl("strong", { text: `${t("preview.after")}: ` });
+        renderPreviewDifference(after, parts.prefix, parts.after, parts.suffix);
+      }
+      const more = (label: string, reveal: () => void): void => {
+        const button = body.createEl("button", { text: label, cls: "number-suite-preview-more", attr: { type: "button" } });
+        button.addEventListener("click", () => { reveal(); renderBody(); summary.focus(); });
+      };
+      if (document.plan.changes.length > changeLimit) more(t("preview.moreChanges", { count: document.plan.changes.length - changeLimit }),
+        () => this.visibleChangeLimits.set(document.path, changeLimit + CHANGE_PAGE_SIZE));
+      const warningLimit = this.visibleWarningLimits.get(document.path) ?? WARNING_PAGE_SIZE;
+      if (document.plan.warnings.length > 0) {
+        body.createEl("h3", { text: t("preview.warnings") });
+        const list = body.createEl("ul", { cls: "number-suite-warning-list" });
+        for (const warning of document.plan.warnings.slice(0, warningLimit)) list.createEl("li", {
+          text: `${document.path}:${warning.line + 1} — ${t(`preview.warning.${warning.code}`)}`,
+        });
+        if (document.plan.warnings.length > warningLimit) more(t("preview.moreWarnings", { count: document.plan.warnings.length - warningLimit }),
+          () => this.visibleWarningLimits.set(document.path, warningLimit + WARNING_PAGE_SIZE));
+      }
+      applyModalDirection(this.modalEl, t);
+    };
+    if (section.open) renderBody();
+    section.addEventListener("toggle", () => {
+      if (section.open) { this.expandedPaths.add(document.path); if (!body.hasChildNodes()) renderBody(); }
+      else { this.expandedPaths.delete(document.path); body.empty(); }
+    });
+  }
+
   private async changeCleanupScope(scope: CleanupScope): Promise<void> {
     if (this.applying || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
     this.applying = true;
     try {
       this.documents = await this.options.onCleanupScopeChange(scope);
       this.cleanupScope = scope;
-      this.visibleChangeLimit = CHANGE_PAGE_SIZE;
-      this.visibleWarningLimit = WARNING_PAGE_SIZE;
+      this.visibleChangeLimits.clear();
+      this.visibleWarningLimits.clear();
       this.applying = false;
       this.render();
     } catch (error: unknown) {

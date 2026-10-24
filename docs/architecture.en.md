@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-23
+last_synced: 2026-10-24
 ---
 
 # Number Suite — Architecture
@@ -217,6 +217,10 @@ position (inline on captions, following line for headings), exact
 before/after preview, and readable aliased `@[[#^id|title]]` link. Confirmation revalidates the file,
 full source, target, and generated ID before one editor transaction; clipboard output follows the
 explicit user action.
+
+The Reading View DOM ownership maps, caption origins, reversible offsets, and cleanup are isolated in `reading-dom-lifecycle.ts`. The postprocessor still validates source bindings and consumes the shared semantic plan; cleanup never writes Markdown.
+
+Batch settlement uses an App-owned queue keyed by `Symbol.for("number-suite.batch-settlement.v1")`, so a new plugin module cannot read or replace recovery until an earlier owner settles. Disposal checks precede forward file writes and run again inside `Vault.process`; dispatched writes finish, then exact compensation and recovery persistence settle under the same owner. Compensation bypasses the forward-lifecycle guard but retains identity and exact-content checks. A disposed owner emits no new notices.
 
 <!-- section: persistence -->
 ## Persistence

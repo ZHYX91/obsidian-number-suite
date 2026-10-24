@@ -3,6 +3,14 @@ import { NUMBER_SUITE_LOCALE_OVERRIDES } from "./locale-overrides";
 import { isUiLanguage, type UiLanguage, type UiLocale } from "./language-options";
 
 const EN = {
+  "panel.modes.title": "Display and file operations",
+  "panel.modes.source": "Stored heading",
+  "panel.modes.goal": "Goal",
+  "panel.modes.action": "Control or command",
+  "panel.modes.markdown": "Heading Markdown",
+  "panel.modes.unchanged": "Unchanged",
+  "panel.modes.rewritten": "Rewritten",
+  "panel.modes.properties": "Examples use recognized heading prefixes. Per-note display choices save Properties; they do not rewrite heading text.",
   "command.mode.normal": "Disable display effects and restore source appearance",
   "command.mode.show": "Toggle virtual heading numbers",
   "command.mode.conceal": "Toggle hiding stored heading numbers",
@@ -452,6 +460,14 @@ const EN = {
 type MessageKey = keyof typeof EN;
 
 const ZH: Record<MessageKey, string> = {
+  "panel.modes.title": "显示与文件操作",
+  "panel.modes.source": "原有标题",
+  "panel.modes.goal": "目标",
+  "panel.modes.action": "设置或命令",
+  "panel.modes.markdown": "标题 Markdown",
+  "panel.modes.unchanged": "不变",
+  "panel.modes.rewritten": "改写",
+  "panel.modes.properties": "示例使用可识别的标题序号。当前笔记的显示选项会保存到属性，但不会改写标题正文。",
   "command.mode.normal": "关闭显示效果并恢复原样",
   "command.mode.show": "切换显示虚拟标题序号",
   "command.mode.conceal": "切换是否隐藏已有标题序号",

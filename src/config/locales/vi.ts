@@ -1,5 +1,13 @@
 /** vi interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_VI: Readonly<Record<string, string>> = {
+  "panel.modes.title": "Hiển thị và thao tác tệp",
+  "panel.modes.source": "Tiêu đề đã lưu",
+  "panel.modes.goal": "Mục tiêu",
+  "panel.modes.action": "Thiết lập hoặc lệnh",
+  "panel.modes.markdown": "Tiêu đề Markdown",
+  "panel.modes.unchanged": "Không đổi",
+  "panel.modes.rewritten": "Viết lại",
+  "panel.modes.properties": "Các ví dụ dùng tiền tố đánh số có thể nhận diện. Lựa chọn hiển thị riêng cho ghi chú được lưu vào thuộc tính, không viết lại nội dung tiêu đề.",
   "command.mode.normal": "Tắt hiệu ứng hiển thị và khôi phục giao diện gốc",
   "command.mode.show": "Bật hoặc tắt số ảo của tiêu đề",
   "command.mode.conceal": "Bật hoặc tắt ẩn số tiêu đề đã ghi",

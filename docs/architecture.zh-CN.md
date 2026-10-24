@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-10-23
+last_synced: 2026-10-24
 ---
 
 # Number Suite — 架构
@@ -173,6 +173,10 @@ Markdown 表格、块公式和围栏代码块，并将题注类型与承载对�
 行）、精确前后预览和带可读别名的
 `@[[#^id|题名]]` 链接。确认时复核文件、全文源码、目标和生成 ID，再应用一次编辑器事务；剪贴
 板写入只发生在用户明确触发该操作之后。
+
+阅读视图的 DOM 所有权映射、题注原位置、可恢复偏移及清理由 `reading-dom-lifecycle.ts` 负责；后处理器仍验证源码绑定并消费共用语义计划，清理不写入 Markdown。
+
+批处理结算使用 App 上以 `Symbol.for("number-suite.batch-settlement.v1")` 标识的队列；新插件模块须等旧所有者结算后才能读取或替换恢复记录。正向文件写入前及 `Vault.process` 回调内均检查卸载状态；已派发写入结束后，由同一所有者完成精确补偿和恢复持久化。补偿仅绕过正向生命周期检查，仍保留文件身份及精确内容验证。已卸载的所有者不再发出 Notice。
 
 <!-- section: persistence -->
 ## 持久化

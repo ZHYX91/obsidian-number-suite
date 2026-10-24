@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-19
+last_synced: 2026-10-24
 ---
 
 # Number Suite — UX specification
@@ -23,7 +23,7 @@ specification.
 ## Interaction principles
 
 - Always distinguish source-file state from visual state in Obsidian.
-- Show itemized results and risks before any file modification.
+- Show itemized results and risks before heading transformations. Explicit note-Property changes save directly and expose persistence status.
 - Keep defaults conservative; preserve ambiguous text and explain why.
 - Keep global, current-note override, and effective values distinguishable.
 - Keep mobile, narrow-window, keyboard, and touch operation accessible without hover dependence.
@@ -98,8 +98,10 @@ The Current note tab first shows note name and path, then a Setting / Global / C
 Effective summary for virtual display, concealment, scheme, and full ignore. Display and concealment
 use Follow global / On / Off tri-state controls. Scheme selection shows available names and never
 requires internal IDs. Selecting the sidebar must not make the targeted editor ambiguous: a
-file-changing action resolves the one open editor for that note and fails closed if zero or multiple
+heading-transform action resolves the one open editor for that note and fails closed if zero or multiple
 matching editors exist.
+
+A collapsed Display and file operations guide follows the effective summary. Its table compares source, goal, action, and heading text changes, and explains that per-note display choices persist Properties.
 
 Current-note content uses quiet grouped surfaces for each effective-value set, with subdued section
 labels, whitespace, and effective-value emphasis instead of stacked full-width dividers. Its helper
@@ -134,10 +136,12 @@ Discard and reload remains available even when external Properties are invalid.
 <!-- section: previews-and-warnings -->
 ## Previews and warnings
 
-Current-note and batch previews identify file, line, before/after text, recognition provenance, and
+Current-note and batch previews identify file, line, before/after text, and
 warnings. A stale preview cancels as a whole. Ambiguous or multiple prefixes, empty headings,
 missing parents, and unsupported prefixes explain why no modification occurs. Stored operations
 warn about heading-link risk.
+
+Each file has a native disclosure summary with its change and warning counts. The first file opens initially; other bodies render on expansion. Pagination belongs to each file. Only the changed numbering substring is emphasized; unchanged heading text stays neutral and Before/After labels remain visible.
 
 Warning-only files appear in the preview but never enter the write or recovery set. Changes and
 warnings can be expanded until every result is visible. Normal diagnostics use localized reasons,
@@ -220,7 +224,7 @@ and number. Sidebar tabs, outline rows, collapse controls, heading-map card bodi
 handles, and action buttons expose visible keyboard focus; interactive controls have at least
 44-pixel touch height on coarse-pointer devices. Heading-map selection and search matches cannot be
 communicated by color alone, and a zero-child handle must not pretend to be actionable. Summaries
-reflow on narrow screens without dropping fields. Android physical devices and iOS are outside the acceptance scope.
+reflow on narrow screens without dropping fields. Emulator results must not be presented as physical-device acceptance.
 
 <!-- section: error-recovery -->
 ## Errors and recovery

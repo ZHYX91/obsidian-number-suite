@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-19
+last_synced: 2026-10-24
 ---
 
 # Number Suite — Testing strategy
@@ -63,6 +63,8 @@ references in code examples; ordinary references before and after the comment re
 Coverage thresholds are regression floors, not quality targets or host acceptance. New critical
 branches need behavioral assertions even when aggregate coverage stays above threshold.
 
+Batch lifecycle tests pause pending recovery persistence, conditional-write callbacks, and accepted writes; they verify no next forward write after unload, exact compensation, preserved concurrent edits, retained recovery, silent settlement, and ownership across immediate re-enable. DOM tests exercise per-file preview expansion, pagination, collapse, Unicode-safe prefix differences, and the Properties/heading distinction in the note guide. Component screenshots and synthetic browser timing are not real Obsidian, Android, native IME, or screen-reader acceptance.
+
 <!-- section: canonical-gate -->
 ## Canonical gate
 
@@ -79,7 +81,7 @@ contract. `release:check` adds version, tag, and clean-worktree checks.
 <!-- section: host-acceptance -->
 ## Host acceptance
 
-First runs use an isolated acceptance vault. At minimum, verify the ribbon-opened sidebar, both
+For selected host scenarios, use an isolated acceptance vault and verify the affected parts of the ribbon-opened sidebar, both
 internal tabs, H1-H9-and-caption outline navigation, current-note controls, independent
 display/concealment, Live Preview, Reading View, previewed writes and undo, source accessibility,
 plugin-disable cleanup, same-length edits, Properties persistence, and link-risk messaging. Batch

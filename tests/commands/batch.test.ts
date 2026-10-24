@@ -69,6 +69,8 @@ function harness(
   return {
     contents,
     controller: new BatchController(app, () => DEFAULT_SETTINGS, persistence),
+    reloadController: (ensureLoaded = persistence.ensureLoaded) => new BatchController(app, () => DEFAULT_SETTINGS,
+      { ...persistence, ensureLoaded }),
     addView: (path: string, initialValue: string) => {
       const view = new MarkdownView({} as never);
       view.file = files.get(path) ?? null;
@@ -526,6 +528,108 @@ describe("BatchController apply", () => {
 });
 
 describe("batch write boundary recovery", () => {
+  it("stops before the first write when unloaded during pending recovery persistence", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    test.setPersistenceHook((_next, call) => { if (call === 1) test.controller.dispose(); });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"), previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(test.processCalls()).toBe(0);
+    expect([...test.contents.values()]).toEqual(["before-a", "before-b"]);
+    expect(test.getStored()).toBeNull();
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([]);
+  });
+
+  it("checks ownership again inside a dispatched process callback", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    test.setProcessHook(() => test.controller.dispose());
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"), previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(test.processCalls()).toBe(1);
+    expect([...test.contents.values()]).toEqual(["before-a", "before-b"]);
+    expect(test.getStored()).toBeNull();
+  });
+
+  it("settles an accepted write after unload without dispatching the next forward write", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    const paths: string[] = [];
+    test.setProcessHook((path) => { paths.push(path); });
+    test.setProcessAfterHook((_path, call) => { if (call === 1) test.controller.dispose(); });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"), previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(paths).toEqual(["a.md", "a.md"]); // Accepted commit, then exact compensation.
+    expect([...test.contents.values()]).toEqual(["before-a", "before-b"]);
+    expect(test.getStored()).toBeNull();
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([]);
+  });
+
+  it("retains pending recovery if an unloaded owner's compensation conflicts with user input", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    const open = test.addView("a.md", "before-a");
+    test.setProcessAfterHook((_path, call) => {
+      if (call === 1) {
+        open.setBuffer("new user input");
+        test.controller.dispose();
+      }
+    });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"), previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(test.contents.get("b.md")).toBe("before-b");
+    expect(open.view.editor.getValue()).toBe("new user input");
+    expect(test.getStored()?.status).toBe("pending");
+    expect(test.getStored()?.files).toHaveLength(2);
+  });
+
+  it("settles an interrupted Undo and keeps its recovery rather than restoring later files", async () => {
+    const recovery = await snapshot({ "a.md": "after-a", "b.md": "after-b" });
+    const test = harness({ "a.md": "after-a", "b.md": "after-b" }, recovery);
+    const paths: string[] = [];
+    test.setProcessHook((path) => { paths.push(path); });
+    test.setProcessAfterHook((_path, call) => { if (call === 1) test.controller.dispose(); });
+    await test.controller.undo((key) => key);
+    expect(paths).toEqual(["a.md", "a.md"]);
+    expect([...test.contents.values()]).toEqual(["after-a", "after-b"]);
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([]);
+  });
+
+  it("lets final recovery persistence settle without an unloaded success notice", async () => {
+    const test = harness({ "a.md": "before-a" });
+    test.setPersistenceHook((next) => { if (next?.status === "applied") test.controller.dispose(); });
+    await applyPreview(test.controller, previewDocument("before-a", "after-a"));
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(test.getStored()?.status).toBe("applied");
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([]);
+  });
+
+  it("waits for the old owner's settlement before a reloaded instance reads or replaces recovery", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    test.setProcessAfterHook(async (_path, call) => {
+      if (call === 1) { test.controller.dispose(); await gate; }
+    });
+    const oldOperation = applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"), previewDocument("before-b", "after-b", "b.md"),
+    ]);
+    await vi.waitFor(() => expect(test.contents.get("a.md")).toBe("after-a"));
+    const ensureLoaded = vi.fn(async () => { expect(test.getStored()).toBeNull(); });
+    const reloaded = test.reloadController(ensureLoaded);
+    const newOperation = applyPreview(reloaded, previewDocument("before-a", "new-owner"));
+    expect(ensureLoaded).not.toHaveBeenCalled();
+    release();
+    await Promise.all([oldOperation, newOperation]);
+    expect(ensureLoaded).toHaveBeenCalledOnce();
+    expect(test.contents.get("a.md")).toBe("new-owner");
+    expect(test.contents.get("b.md")).toBe("before-b");
+    expect(test.getStored()?.status).toBe("applied");
+    expect(test.getStored()?.files[0]?.afterHash).toBe(await digestText("new-owner"));
+  });
+
   it("preserves an editor edit arriving before the undo callback", async () => {
     const recovery = await snapshot({ "a.md": "after-a" });
     const test = harness({ "a.md": "after-a" }, recovery);
