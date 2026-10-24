@@ -123,8 +123,11 @@ function fixture(testCase: CarrierCase): {
     containerEl: container,
     editor,
     file: new FileConstructor("note.md"),
+    getMode: () => "source",
   });
+  const file = markdownView.file;
   const app = {
+    vault: { getAbstractFileByPath: (path: string) => path === "note.md" ? file : null },
     workspace: {
       iterateAllLeaves: (callback: (leaf: { view: MarkdownView }) => void) => {
         callback({ view: markdownView });
@@ -142,6 +145,19 @@ afterEach(() => {
 });
 
 describe("caption carrier menu bridge", () => {
+  it.each(CARRIER_CASES)("does not contribute an old $label action after owner abort", (testCase) => {
+    const { app, target, content } = fixture(testCase);
+    vi.spyOn(EditorView, "findFromDOM").mockReturnValue({
+      contentDOM: content, posAtCoords: () => testCase.sourceOffset, posAtDOM: () => testCase.sourceOffset,
+    } as unknown as EditorView);
+    const owner = new AbortController();
+    new CaptionCarrierMenuBridge(app, () => translate, () => undefined, owner.signal).register(component());
+    owner.abort();
+    const event = new MouseEvent("contextmenu", { bubbles: true, button: 2, cancelable: true });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event))).toEqual([]);
+  });
+
   it.each(CARRIER_CASES)(
     "uses the current $label pointer target and contributes exactly once",
     (testCase) => {

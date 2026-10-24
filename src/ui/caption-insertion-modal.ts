@@ -9,6 +9,7 @@ import {
 } from "../core/caption-insertion";
 
 export interface CaptionInsertionModalOptions {
+  readonly signal?: AbortSignal;
   readonly app: App;
   readonly target: CaptionInsertionTarget;
   readonly translate: Translate;
@@ -28,12 +29,16 @@ function titleKey(action: CaptionInsertionAction):
 
 export class CaptionInsertionModal extends Modal {
   private applying = false;
+  private closed = false;
+  private readonly abort = (): void => { this.applying = false; this.close(); };
 
   constructor(private readonly options: CaptionInsertionModalOptions) {
     super(options.app);
   }
 
   override onOpen(): void {
+    if (this.options.signal?.aborted) { this.close(); return; }
+    this.options.signal?.addEventListener("abort", this.abort, { once: true });
     const { contentEl, titleEl } = this;
     const { target, translate: t } = this.options;
     titleEl.setText(t(titleKey(target.action), { kind: kindLabel(target, t) }));
@@ -80,16 +85,18 @@ export class CaptionInsertionModal extends Modal {
             : "caption.modal.confirm.normalize"))
         .setCta()
         .onClick(() => {
-          if (this.applying || formatCaptionInsertionSource(target, value) === null) return;
+          if (this.closed || this.options.signal?.aborted || this.applying || formatCaptionInsertionSource(target, value) === null) return;
           this.applying = true;
           button.setDisabled(true);
           void this.options.onConfirm(value.trim())
             .then((applied) => {
+              if (this.closed || this.options.signal?.aborted) return;
               this.close();
               if (applied === true) this.options.onApplied?.();
             })
             .catch((error: unknown) => {
               this.applying = false;
+              if (this.closed) return;
               button.setDisabled(false);
               console.error("Number Suite caption insertion failed", error);
             });
@@ -100,6 +107,8 @@ export class CaptionInsertionModal extends Modal {
   }
 
   override onClose(): void {
+    this.closed = true;
+    this.options.signal?.removeEventListener("abort", this.abort);
     this.contentEl.empty();
   }
 }

@@ -32,8 +32,8 @@ vi.mock("../../src/ui/caption-insertion-modal", () => ({
 }));
 
 import {
-  addCaptionContextMenuItem,
-  addStructuralTableCaptionContextMenuItem,
+  addCaptionContextMenuItem as addCaptionContextMenuItemImpl,
+  addStructuralTableCaptionContextMenuItem as addStructuralTableCaptionContextMenuItemImpl,
 } from "../../src/commands/caption-insertion";
 
 interface TestMenu {
@@ -47,6 +47,19 @@ interface TestEditor {
   readonly transactions: EditorTransaction[];
   getValue: () => string;
   setValue: (next: string) => void;
+}
+
+
+import { commandSourceApp } from "../helpers/command-source";
+
+function addCaptionContextMenuItem(...args: Parameters<typeof addCaptionContextMenuItemImpl>): void {
+  const [app, menu, editor, info, ...rest] = args;
+  addCaptionContextMenuItemImpl(commandSourceApp(app, editor, info), menu, editor, info, ...rest);
+}
+
+function addStructuralTableCaptionContextMenuItem(...args: Parameters<typeof addStructuralTableCaptionContextMenuItemImpl>): void {
+  const [app, menu, editor, info, ...rest] = args;
+  addStructuralTableCaptionContextMenuItemImpl(commandSourceApp(app, editor, info), menu, editor, info, ...rest);
 }
 
 const translate = ((key: string) => key) as Translate;
@@ -119,12 +132,28 @@ beforeEach(() => {
 });
 
 describe("caption context menu", () => {
+  it.each(["menu", "confirm"])("rejects caption %s callbacks after unload", async (phase) => {
+    const testMenu = createMenu();
+    const testEditor = createEditor("![Cat](cat.png)", 5);
+    const owner = new AbortController();
+    addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, fileInfo(), translate, undefined, owner.signal);
+    if (phase === "confirm") { testMenu.click?.(); expect(modal.options).not.toBeNull(); }
+    owner.abort();
+    testMenu.click?.();
+    await modal.options?.onConfirm("Cat");
+    modal.options?.onApplied?.();
+    expect(testEditor.transactions).toHaveLength(0);
+    expect(notices()).toEqual([]);
+    if (phase === "menu") expect(modal.options).toBeNull();
+  });
+
   it.each(["current", "file-rebound", "editor-rebound", "detached", "inactive", "source-changed"])(
     "restores focus after closing only for the current committed editor: %s", async (state) => {
       const testEditor = createEditor("![[cat.png]]", 4);
       const view = Object.assign(new MarkdownView(null as never), fileInfo(), {
         editor: testEditor.editor,
         containerEl: { isConnected: true } as HTMLElement,
+        getMode: () => "source",
       });
       let activeView: MarkdownView | null = view;
       const app = { workspace: { getActiveViewOfType: () => activeView } } as unknown as App;

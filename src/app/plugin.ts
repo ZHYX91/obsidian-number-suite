@@ -59,6 +59,7 @@ import { registerReadingViewRefresh } from "../reading/refresh-reading-views";
 
 export default class NumberSuitePlugin extends Plugin {
   override settings: NumberSuiteSettings = cloneSettings(DEFAULT_SETTINGS);
+  private readonly commandLifecycle = new AbortController();
   private displayController: HeadingDisplayController | null = null;
   private batchController: BatchController | null = null;
   private recoverySession: RecoverySession | null = null;
@@ -124,14 +125,15 @@ export default class NumberSuitePlugin extends Plugin {
       const contextOffset = this.displayController
         ?.consumeContextMenuOffset(editor, info.file?.path ?? null);
       if (contextOffset === null) return;
-      addCaptionContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset);
-      addStableReferenceContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset);
+      addCaptionContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset, this.commandLifecycle.signal);
+      addStableReferenceContextMenuItem(this.app, menu, editor, info, this.translate(), contextOffset, this.commandLifecycle.signal);
     }));
     new CaptionCarrierMenuBridge(
       this.app,
       () => this.translate(),
       (editor, offset, filePath, timerWindow) => this.displayController
         ?.recordContextMenuOffset(editor, offset, filePath, timerWindow),
+      this.commandLifecycle.signal,
     ).register(this);
     this.tooltipController = new SemanticTooltipController(this.app, () => this.settings);
     this.tooltipController.register(this);
@@ -144,6 +146,7 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override onunload(): void {
+    this.commandLifecycle.abort();
     this.localizedCommands.length = 0;
     this.ribbonEl = null;
     this.batchController?.dispose();
@@ -354,7 +357,7 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private runCurrent(operation: TransformOperation, path?: string): void {
-    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path);
+    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path, this.commandLifecycle.signal);
   }
 
   private async updateDisplayPreference(mode: DisplayPreferenceAction): Promise<void> {

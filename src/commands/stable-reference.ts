@@ -10,6 +10,7 @@ import {
 
 import type { Translate } from "../config/i18n";
 import { createStableReferencePlan, type StableReferencePlan } from "../core/stable-reference";
+import { captureSourceBinding } from "./source-binding";
 import { StableReferenceModal } from "../ui/stable-reference-modal";
 
 function applyChange(editor: Editor, plan: StableReferencePlan): void {
@@ -29,11 +30,13 @@ async function writeClipboard(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
-async function copyWithNotice(plan: StableReferencePlan, t: Translate, created: boolean): Promise<void> {
+async function copyWithNotice(plan: StableReferencePlan, t: Translate, created: boolean, signal?: AbortSignal): Promise<void> {
   try {
     await writeClipboard(plan.link);
+    if (signal?.aborted) return;
     new Notice(t(created ? "reference.notice.createdCopied" : "reference.notice.copied"));
   } catch (error: unknown) {
+    if (signal?.aborted) return;
     console.error("Number Suite could not copy the cross-reference", error);
     new Notice(t("reference.notice.copyFailed"));
   }
@@ -46,23 +49,27 @@ export function addStableReferenceContextMenuItem(
   info: MarkdownView | MarkdownFileInfo,
   translate: Translate,
   contextOffset?: number,
+  signal?: AbortSignal,
 ): void {
+  if (signal?.aborted) return;
   const file = info.file;
   if (file == null || file.extension.toLowerCase() !== "md") return;
-  const source = editor.getValue();
+  const binding = captureSourceBinding(app, editor, info);
+  const { source } = binding;
   const cursorOffset = contextOffset ?? editor.posToOffset(editor.getCursor("head"));
   const plan = createStableReferencePlan(source, cursorOffset);
   if (plan == null) return;
-  const path = file.path;
   menu.addItem((item) => item
     .setTitle(translate("reference.menu.copy"))
     .setIcon("copy")
     .onClick(() => {
+      if (signal?.aborted) return;
+      if (!binding.isCurrent()) { new Notice(translate("notice.stalePreview")); return; }
       if (plan.change == null) {
         const current = editor.getValue();
         const refreshed = createStableReferencePlan(current, cursorOffset);
         if (
-          info.file?.path !== path
+          !binding.isCurrent()
           || current !== source
           || refreshed == null
           || refreshed.change != null
@@ -74,18 +81,20 @@ export function addStableReferenceContextMenuItem(
           new Notice(translate("notice.stalePreview"));
           return;
         }
-        void copyWithNotice(refreshed, translate, false);
+        void copyWithNotice(refreshed, translate, false, signal);
         return;
       }
       new StableReferenceModal({
         app,
         plan,
         translate,
+        ...(signal === undefined ? {} : { signal }),
         onConfirm: async () => {
+          if (signal?.aborted) return;
           const current = editor.getValue();
           const refreshed = createStableReferencePlan(current, cursorOffset);
           if (
-            info.file?.path !== path
+            !binding.isCurrent()
             || current !== source
             || refreshed == null
             || refreshed.blockId !== plan.blockId
@@ -96,7 +105,7 @@ export function addStableReferenceContextMenuItem(
             return;
           }
           applyChange(editor, plan);
-          await copyWithNotice(plan, translate, true);
+          await copyWithNotice(plan, translate, true, signal);
         },
       }).open();
     }));

@@ -190,7 +190,7 @@ labels, and list values on reprocessing, view changes, and plugin disable.
 
 Current-note work creates an immutable `TransformPlan`, then revalidates file, the uniquely matching
 editor view, and source at confirmation before applying one editor transaction. This remains true
-when the action starts from a focused sidebar. Batch work saves open editors, plans every
+when the action starts from a focused sidebar. Current-note, caption, and stable-reference actions pin the original registered TFile, editor binding, source mode, and exact text. Their menu and modal callbacks share a per-instance abort signal; unload closes those modals and rejects new editor or clipboard operations. An already dispatched clipboard operation may settle, without a late notice or focus change. Batch work saves open editors, plans every
 file, shows an aggregate preview, revalidates all sources, persists a bounded recovery snapshot,
 then performs exact-content conditional replacements. Failure rolls back only files that still
 contain plugin output. Concurrent edits are preserved and recovery remains available.

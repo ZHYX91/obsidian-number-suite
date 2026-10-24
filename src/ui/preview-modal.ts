@@ -12,6 +12,7 @@ export interface PreviewDocument {
 }
 
 export interface PreviewModalOptions {
+  readonly signal?: AbortSignal;
   app: App;
   operation: TransformOperation;
   documents: readonly PreviewDocument[];
@@ -30,6 +31,8 @@ const WARNING_PAGE_SIZE = 200;
 
 export class ChangePreviewModal extends Modal {
   private applying = false;
+  private closed = false;
+  private readonly abort = (): void => { this.applying = false; this.close(); };
   private documents: readonly PreviewDocument[];
   private cleanupScope: CleanupScope | null;
   private readonly visibleChangeLimits = new Map<string, number>();
@@ -44,10 +47,13 @@ export class ChangePreviewModal extends Modal {
   }
 
   override onOpen(): void {
+    if (this.options.signal?.aborted) { this.close(); return; }
+    this.options.signal?.addEventListener("abort", this.abort, { once: true });
     this.render();
   }
 
   private render(): void {
+    if (this.closed || this.options.signal?.aborted) return;
     const { contentEl, titleEl } = this;
     const t = this.options.translate;
     contentEl.empty();
@@ -91,7 +97,7 @@ export class ChangePreviewModal extends Modal {
         button.setWarning();
       }
       button.onClick(() => {
-        if (this.applying) return;
+        if (this.closed || this.options.signal?.aborted || this.applying) return;
         this.applying = true;
         for (const control of this.contentEl.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>("input, button, select")) {
           control.disabled = true;
@@ -160,10 +166,12 @@ export class ChangePreviewModal extends Modal {
   }
 
   private async changeCleanupScope(scope: CleanupScope): Promise<void> {
-    if (this.applying || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
+    if (this.closed || this.options.signal?.aborted || this.applying || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
     this.applying = true;
     try {
-      this.documents = await this.options.onCleanupScopeChange(scope);
+      const documents = await this.options.onCleanupScopeChange(scope);
+      if (this.closed || this.options.signal?.aborted) return;
+      this.documents = documents;
       this.cleanupScope = scope;
       this.visibleChangeLimits.clear();
       this.visibleWarningLimits.clear();
@@ -181,6 +189,8 @@ export class ChangePreviewModal extends Modal {
   }
 
   override onClose(): void {
+    this.closed = true;
+    this.options.signal?.removeEventListener("abort", this.abort);
     this.modalEl.removeClass("number-suite-preview-modal");
     this.contentEl.empty();
   }

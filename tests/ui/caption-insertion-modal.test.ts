@@ -15,7 +15,7 @@ vi.mock("obsidian", async (importOriginal) => ({
     readonly titleEl = document.createElement("h2");
     readonly modalEl = document.createElement("div");
     constructor() { this.modalEl.append(this.titleEl, this.contentEl); }
-    close(): void {}
+    close(): void { (this as unknown as { onClose(): void }).onClose(); }
   },
   Setting: class {
     constructor(readonly container: HTMLElement) {}
@@ -85,4 +85,22 @@ it("previews the retained caption IDs exactly while editing only the visible tit
   const plan = createCaptionInsertionPlanForTarget(source, target, input.value);
   expect(preview?.textContent).toBe("  Figure: A sleeping cat ^cat-id\n^second-id");
   expect(plan?.result).toContain(`${preview?.textContent}\n\n![[cat.png]]`);
+});
+
+it("closes on owner abort and ignores a pending completion's focus callback", async () => {
+  const target = findCaptionInsertionTarget("![[cat.png]]", 4)!;
+  const owner = new AbortController();
+  let finish!: (result: boolean) => void;
+  const onApplied = vi.fn();
+  const modal = new CaptionInsertionModal({ app: new App(), target, translate: createTranslator("en"),
+    signal: owner.signal, onConfirm: () => new Promise<boolean>((resolve) => { finish = resolve; }), onApplied });
+  const removed = vi.spyOn(owner.signal, "removeEventListener");
+  modal.onOpen();
+  modal.contentEl.querySelectorAll<HTMLButtonElement>("button")[1]!.click();
+  owner.abort();
+  expect(modal.contentEl.childElementCount).toBe(0);
+  expect(removed).toHaveBeenCalledWith("abort", expect.any(Function));
+  finish(true);
+  await Promise.resolve();
+  expect(onApplied).not.toHaveBeenCalled();
 });
