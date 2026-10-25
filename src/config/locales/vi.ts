@@ -406,6 +406,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "Xem thêm cảnh báo (còn {count})",
   "preview.warning.empty-heading": "Đã bỏ qua: tiêu đề không có nội dung. Thêm chữ để đánh số.",
   "preview.warning.missing-parent": "Đã bỏ qua theo quy tắc cấp thiếu. Hãy kiểm tra cấu trúc tiêu đề hoặc kiểu đánh số.",
+  "preview.warning.counter-overflow": "Đã dừng đánh số: bộ đếm vượt phạm vi số nguyên chính xác. Hãy giảm số bắt đầu rồi xem trước lại. Số thứ tự trong tệp này chưa được thay đổi.",
   "preview.warning.ambiguous-prefix": "Đầu tiêu đề có thể là số nhưng chưa xác định chắc chắn. Đã giữ nguyên văn bản. Muốn sửa, hãy điều chỉnh phạm vi nhận diện rồi xem trước lại.",
   "preview.warning.unsupported-prefix": "Đã giữ nguyên số cũ. Muốn thay thế, hãy xem trước thao tác đánh số lại.",
   "panel.summary": "Cài đặt đang áp dụng",

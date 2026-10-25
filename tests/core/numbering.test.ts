@@ -55,6 +55,91 @@ describe("numberHeadings", () => {
     expect(result.map((item) => item.label)).toEqual(["2", "2.3", "2.3.1"]);
   });
 
+  it.each([
+    [Number.MAX_SAFE_INTEGER - 1, 1],
+    [Number.MAX_SAFE_INTEGER - 1, 2],
+    [Number.MAX_SAFE_INTEGER - 1, 3],
+    [Number.MAX_SAFE_INTEGER, 1],
+    [Number.MAX_SAFE_INTEGER, 2],
+    [Number.MAX_SAFE_INTEGER, 3],
+  ])("keeps counters exact with start %s and %s headings", (start, count) => {
+    const result = numberHeadings(
+      parseAtxHeadings(Array.from({ length: count }, (_unused, index) => `# Heading ${index}`).join("\n")),
+      options({ starts: { 1: start } }),
+    );
+    expect(result.map((item) => ({ label: item.label, warning: item.warning }))).toEqual(
+      Array.from({ length: count }, (_unused, index) => index <= Number.MAX_SAFE_INTEGER - start
+        ? { label: String(start + index), warning: null }
+        : { label: null, warning: "counter-overflow" }),
+    );
+    expect(result.every((item) => item.counters.every(Number.isSafeInteger))).toBe(true);
+  });
+
+  it("does not render a descendant template with an overflowing parent counter", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Last exact\n# Overflow\n## Child\n# Still overflow\n### Grandchild"),
+      options({ starts: { 1: Number.MAX_SAFE_INTEGER } }),
+    );
+    expect(result.map((item) => item.label)).toEqual([String(Number.MAX_SAFE_INTEGER), null, null, null, null]);
+    expect(result.slice(1).map((item) => item.warning)).toEqual(Array(4).fill("counter-overflow"));
+  });
+
+  it("resets an overflowing child counter when a new parent starts", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Parent\n## Last exact\n## Overflow\n### Child\n# Next\n## Exact again"),
+      options({ starts: { 2: Number.MAX_SAFE_INTEGER } }),
+    );
+    expect(result.map((item) => item.label)).toEqual([
+      "1", `1.${Number.MAX_SAFE_INTEGER}`, null, null, "2", `2.${Number.MAX_SAFE_INTEGER}`,
+    ]);
+    expect(result[5]?.warning).toBeNull();
+  });
+
+  it("keeps independent templates and numbering roots usable after an unrelated counter overflows", () => {
+    const source = "# Last exact\n# Overflow\n## Independent";
+    const result = numberHeadings(parseAtxHeadings(source), options({
+      scheme: BUILT_IN_SCHEMES["hierarchical-h2"],
+      starts: { 1: Number.MAX_SAFE_INTEGER },
+    }));
+    expect(result.map((item) => ({ label: item.label, warning: item.warning }))).toEqual([
+      { label: null, warning: null },
+      { label: null, warning: null },
+      { label: "1", warning: null },
+    ]);
+  });
+
+  it("protects references to an overflowing structural level with an empty template", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Last exact\n# Hidden overflow\n## Child"),
+      options({
+        starts: { 1: Number.MAX_SAFE_INTEGER },
+        scheme: { ...BUILT_IN_SCHEMES.hierarchical, templates: ["", "{1.arabic}.{2.arabic}"] },
+      }),
+    );
+    expect(result[2]).toMatchObject({ label: null, warning: "counter-overflow" });
+  });
+
+  it("renders only the safe current counter when the missing-level strategy omits parents", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Last exact\n# Overflow\n### Independent current level"),
+      options({ starts: { 1: Number.MAX_SAFE_INTEGER }, missingLevelStrategy: "current-only" }),
+    );
+    expect(result[1]).toMatchObject({ label: null, warning: "counter-overflow" });
+    expect(result[2]).toMatchObject({ label: "1", warning: null });
+  });
+
+  it("does not clear the overflowing level when a same-level heading is excluded", () => {
+    const result = numberHeadings(
+      parseAtxHeadings("# Last exact\n# Overflow\n# Excluded\n# Still overflow"),
+      options({
+        starts: { 1: Number.MAX_SAFE_INTEGER },
+        scheme: { ...BUILT_IN_SCHEMES.hierarchical, exclusions: [{ title: "Excluded", scope: "heading" }] },
+      }),
+    );
+    expect(result[2]).toMatchObject({ label: null, exclusion: "heading" });
+    expect(result[3]).toMatchObject({ label: null, warning: "counter-overflow" });
+  });
+
   it("skips the first non-empty headings per level without consuming counters", () => {
     const result = numberHeadings(
       parseAtxHeadings("# Preface\n# Chapter\n## Lead\n## Topic\n# Next"),

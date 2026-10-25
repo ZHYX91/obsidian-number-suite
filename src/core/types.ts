@@ -139,7 +139,7 @@ export interface NumberedHeading {
   heading: ParsedHeading;
   label: string | null;
   counters: Counters;
-  warning: string | null;
+  warning: "missing-parent" | "counter-overflow" | null;
   exclusion: HeadingExclusionScope | null;
 }
 
@@ -165,6 +165,7 @@ export interface PlanWarning {
     | "ambiguous-prefix"
     | "empty-heading"
     | "missing-parent"
+    | "counter-overflow"
     | "unsupported-prefix";
   detail: string;
 }

@@ -26,6 +26,33 @@ function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
 }
 
 describe("heading transforms", () => {
+  it.each(["write", "renumber"] as const)("refuses all %s changes when a counter overflows", (operation) => {
+    const source = "# First\n# Overflow\n## Child";
+    const plan = planHeadingTransform(source, operation, options({
+      numbering: {
+        ...options().numbering,
+        starts: { 1: Number.MAX_SAFE_INTEGER },
+      },
+    }));
+    expect(plan.changes).toEqual([]);
+    expect(plan.result).toBe(source);
+    expect(plan.warnings.map((warning) => ({ line: warning.line, code: warning.code }))).toEqual([
+      { line: 1, code: "counter-overflow" },
+      { line: 2, code: "counter-overflow" },
+    ]);
+  });
+
+  it.each(["remove", "strip-markers"] as const)("keeps %s available when generating a number would overflow", (operation) => {
+    const source = `# ${WORD_JOINER}1${WORD_JOINER} First\n# ${WORD_JOINER}2${WORD_JOINER} Second`;
+    const plan = planHeadingTransform(source, operation, options({
+      cleanupScope: "plugin",
+      numbering: { ...options().numbering, starts: { 1: Number.MAX_SAFE_INTEGER } },
+    }));
+    expect(plan.changes).toHaveLength(2);
+    expect(plan.result).toBe(operation === "remove" ? "# First\n# Second" : "# 1 First\n# 2 Second");
+    expect(plan.warnings).toEqual([]);
+  });
+
   it("writes numbers without touching excluded regions", () => {
     const source = "---\ntitle: Test\n---\n# A\n```\n## Code\n```\n## B ##\n";
     const plan = planHeadingTransform(source, "write", options());

@@ -406,6 +406,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "عرض المزيد من التحذيرات ({count} متبقية)",
   "preview.warning.empty-heading": "تم التخطي: لا يحتوي العنوان على نص. أضف نصًا للعنوان قبل ترقيمه.",
   "preview.warning.missing-parent": "تم التخطي وفق قاعدة المستوى المفقود. تحقق من ترتيب العناوين أو نمط الترقيم.",
+  "preview.warning.counter-overflow": "توقف الترقيم لأن العداد تجاوز نطاق الأعداد الصحيحة الدقيقة. قلّل رقم البداية وأعد المعاينة. لم يتغير ترقيم هذا الملف.",
   "preview.warning.ambiguous-prefix": "احتُفظ ببادئة رقم لا يمكن التأكد منها. راجع العنوان واختر نطاق تنظيف مناسبًا من المعاينة قبل التعديل.",
   "preview.warning.unsupported-prefix": "احتُفظ ببادئة الترقيم الموجودة. يمكنك استبدالها باستخدام «إعادة الترقيم» بعد مراجعة المعاينة.",
   "panel.summary": "الإعدادات الفعلية",

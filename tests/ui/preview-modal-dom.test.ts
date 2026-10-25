@@ -6,6 +6,8 @@ import { ChangePreviewModal, type PreviewDocument } from "../../src/ui/preview-m
 import { changedTextParts } from "../../src/ui/preview-diff";
 import { createTranslator } from "../../src/config/i18n";
 import { installDomFixture } from "./dom-fixture";
+import { planHeadingTransform } from "../../src/core/transform";
+import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
 function documentPlan(path: string, count: number): PreviewDocument {
   return { path, plan: { operation: "write", source: "", result: "", warnings: [],
@@ -15,6 +17,25 @@ function documentPlan(path: string, count: number): PreviewDocument {
 
 describe("file-grouped heading preview", () => {
   beforeEach(() => { installDomFixture(); document.body.replaceChildren(); });
+  it("explains counter overflow from the real transform plan without any write preview", () => {
+    const plan = planHeadingTransform("# First\n# Overflow", "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, starts: { 1: Number.MAX_SAFE_INTEGER }, missingLevelStrategy: "fill-one" },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    const modal = new ChangePreviewModal({ app: {} as never, operation: "write",
+      documents: [{ path: "overflow.md", plan }], translate: createTranslator("en"),
+      onConfirm: async () => undefined });
+    Object.assign(modal, { titleEl: document.createElement("h2"), modalEl: document.createElement("div") });
+    modal.onOpen();
+    expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(0);
+    expect(modal.contentEl.querySelector(".number-suite-warning-list")?.textContent)
+      .toContain("Numbering stopped: a counter exceeds the exact integer range.");
+    expect(modal.contentEl.querySelector(".number-suite-preview-summary")?.textContent)
+      .toContain("0 changes");
+    modal.onClose();
+  });
+
   it("shows per-file counts, lazily opens files and pages the selected file", () => {
     const modal = new ChangePreviewModal({ app: {} as never, operation: "write",
       documents: [documentPlan("first.md", 1), documentPlan("second.md", 501)],

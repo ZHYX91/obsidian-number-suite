@@ -406,6 +406,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "경고 더 보기 ({count}개 남음)",
   "preview.warning.empty-heading": "건너뜀: 이 제목에 텍스트가 없습니다. 제목을 입력하면 번호를 매길 수 있습니다.",
   "preview.warning.missing-parent": "누락된 단계 처리 규칙에 따라 건너뛰었습니다. 제목 단계나 번호 형식을 확인하세요.",
+  "preview.warning.counter-overflow": "카운터가 정확한 정수 범위를 초과하여 번호 매기기를 중단했습니다. 시작 번호를 낮추고 다시 미리 보세요. 이 파일의 번호는 변경하지 않았습니다.",
   "preview.warning.ambiguous-prefix": "제목 앞부분이 번호인지 확실하지 않아 원문을 그대로 뒀습니다. 변경하려면 인식 범위를 조정하고 다시 미리 보세요.",
   "preview.warning.unsupported-prefix": "기존 번호는 유지했습니다. 바꾸려면 번호 다시 매기기의 미리 보기를 확인하세요.",
   "panel.summary": "실제 적용 설정",

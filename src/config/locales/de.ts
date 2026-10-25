@@ -406,6 +406,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "Weitere Warnungen anzeigen ({count} verbleibend)",
   "preview.warning.empty-heading": "Übersprungen: Diese Überschrift enthält keinen Text. Füge einen Titel hinzu, damit sie nummeriert werden kann.",
   "preview.warning.missing-parent": "Wegen der Regel für fehlende Ebenen übersprungen. Prüfe die Überschriftenhierarchie oder das Nummerierungsschema.",
+  "preview.warning.counter-overflow": "Nummerierung gestoppt: Ein Zähler überschreitet den exakten Ganzzahlbereich. Verringere den Startwert und öffne die Vorschau erneut. Die Nummerierung dieser Datei wurde nicht geändert.",
   "preview.warning.ambiguous-prefix": "Der Beginn dieser Überschrift könnte eine Nummer sein, lässt sich aber nicht eindeutig bestimmen. Der Text blieb unverändert. Passe die Erkennung an und prüfe die Vorschau erneut, wenn du ihn ändern möchtest.",
   "preview.warning.unsupported-prefix": "Die vorhandene Nummer wurde beibehalten. Zum Ersetzen eine Neunummerierung in der Vorschau prüfen.",
   "panel.summary": "Wirksame Einstellungen",

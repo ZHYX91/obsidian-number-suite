@@ -74,6 +74,23 @@ export function planHeadingTransform(
 ): TransformPlan {
   const headings = parseAtxHeadings(source);
   const numbered = numberHeadings(headings, options.numbering);
+  if (operation === "write" || operation === "renumber") {
+    const overflows = numbered.filter((item) => item.warning === "counter-overflow");
+    if (overflows.length > 0) {
+      return {
+        operation,
+        source,
+        changes: [],
+        warnings: overflows.map(({ heading }) => ({
+          line: heading.line,
+          heading: heading.content,
+          code: "counter-overflow",
+          detail: "A counter exceeds the exact integer range. No numbering changes were planned.",
+        })),
+        result: source,
+      };
+    }
+  }
   const changes: PlannedChange[] = [];
   const warnings: PlanWarning[] = [];
 

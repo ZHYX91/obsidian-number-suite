@@ -406,6 +406,7 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "Mostrar mais avisos ({count} restantes)",
   "preview.warning.empty-heading": "Ignorado: este título está vazio. Adicione texto para numerá-lo.",
   "preview.warning.missing-parent": "Ignorado pela regra de níveis ausentes. Confira a hierarquia ou o estilo de numeração.",
+  "preview.warning.counter-overflow": "Numeração interrompida: um contador excede o intervalo de inteiros exatos. Reduza o número inicial e confira a prévia novamente. A numeração deste arquivo não foi alterada.",
   "preview.warning.ambiguous-prefix": "O começo deste título pode ser um número, mas não há certeza. O texto foi mantido. Para alterá-lo, ajuste o reconhecimento e confira uma nova prévia.",
   "preview.warning.unsupported-prefix": "O número existente foi mantido. Para substituí-lo, use a renumeração com prévia.",
   "panel.summary": "Configurações em vigor",
