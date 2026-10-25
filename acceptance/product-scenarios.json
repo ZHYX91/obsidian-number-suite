@@ -13,6 +13,30 @@
   },
   "scenarios": [
     {
+      "id": "batch-preview-identity-and-overflow",
+      "title": "Batch preview file ownership and safe-integer counter limits",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Use an isolated Vault containing Batch safety/Original.md, Batch safety/Second.md and Counter overflow.md. Record their complete original source and hashes. Select Hierarchical globally, with source markers disabled.",
+        "Preview a write limited to the Batch safety folder. Keep the preview open, rename Original.md to Moved.md, and create a new Original.md with byte-identical content. Wait until the host registers both files, then confirm the original preview. Confirm a changed-batch notice, no numbering in any of the three notes, and no new recovery snapshot.",
+        "Dismiss the stale preview and restore the fixture paths. Start a fresh preview, confirm, then restore the last batch. Verify both original notes return exactly to their recorded source. This is the positive control for the same candidate.",
+        "In a separate temporary copy of Original.md use the heading '# 1. Original'. Preview Remove numbers with plugin-owned recognition, change recognition to common prefixes and verify the preview now removes '1. '. Before confirmation rename the source and create an identical replacement at its old path; confirm and verify no file is changed. Repeat replacement before changing recognition: the old preview must not produce a writable replan.",
+        "Open Counter overflow.md in Live Preview and Reading View. The first H1 may show 9007199254740991; later H1 headings and the dependent child must not display a repeated or rounded number, and the reference to Second must not acquire an invalid number. Preview Write numbers and Renumber: each must explain counter overflow and offer no Markdown changes. Cancel and compare the complete original source.",
+        "On Android use the same registered-file replacement cases and visible preview controls; record emulator outcomes separately from desktop. Preserve all user edits and report unavailable interactions as unverified."
+      ],
+      "expected": [
+        "Original file objects and paths remain bound from the preview reads through cleanup replanning and confirmation. Identical replacement text cannot authorize a write, and stale batches do not create recovery records or modify unaffected notes.",
+        "Safe counters retain their exact labels, overflowed or dependent counters remain unavailable, and write/renumber refuse the whole note with an explicit warning. Cleanup remains a separate supported operation."
+      ]
+    },
+    {
       "id": "parser-caption-write-boundaries",
       "title": "Table termination and stable caption IDs at inline syntax boundaries",
       "surfaces": [

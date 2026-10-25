@@ -406,6 +406,7 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "Voir d’autres avertissements ({count} restants)",
   "preview.warning.empty-heading": "Ignoré : ce titre est vide. Saisissez du texte pour le numéroter.",
   "preview.warning.missing-parent": "Ignoré selon la règle des niveaux manquants. Vérifiez la structure des titres ou le style de numérotation.",
+  "preview.warning.counter-overflow": "Numérotation arrêtée : un compteur dépasse la plage des entiers exacts. Réduisez le numéro de départ et relancez l’aperçu. La numérotation de ce fichier n’a pas été modifiée.",
   "preview.warning.ambiguous-prefix": "Le début de ce titre ressemble à un numéro, mais ce n’est pas certain. Le texte a été conservé. Si vous souhaitez le modifier, ajustez la reconnaissance et relancez l’aperçu.",
   "preview.warning.unsupported-prefix": "Le numéro existant a été conservé. Pour le remplacer, utilisez une renumérotation avec aperçu.",
   "panel.summary": "Réglages appliqués",

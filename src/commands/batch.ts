@@ -389,12 +389,17 @@ export class BatchController {
   ): Promise<void> {
     if (this.disposed) return;
     const documents: PreviewDocument[] = [];
-    const candidates: Array<Readonly<{ path: string; source: string }>> = [];
+    const candidates: Array<Readonly<{ file: TFile; path: string; source: string }>> = [];
     let invalidFrontmatter = 0;
-    for (const file of this.filesForScope(scope)) {
+    const selectedFiles = this.filesForScope(scope).map((file) => ({ file, path: file.path }));
+    for (const { file, path } of selectedFiles) {
+      if (!this.fileBindingIsCurrent(file, path)) {
+        this.notify(translate("notice.batchChanged"));
+        return;
+      }
       const source = await this.previewSource(file);
       if (this.disposed) return;
-      if (source == null) {
+      if (source == null || !this.fileBindingIsCurrent(file, path)) {
         this.notify(translate("notice.batchChanged"));
         return;
       }
@@ -402,9 +407,9 @@ export class BatchController {
       if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
         invalidFrontmatter += 1;
       }
-      if (result.status === "ready") candidates.push({ path: file.path, source });
+      if (result.status === "ready") candidates.push({ file, path, source });
       if (result.status === "ready" && result.plan != null) {
-        const document = { path: file.path, plan: result.plan };
+        const document = { path, plan: result.plan };
         if (planNeedsPreview(document.plan)) documents.push(document);
       }
     }
@@ -416,6 +421,14 @@ export class BatchController {
       return;
     }
     if (this.disposed) return;
+    const bindings = new Map(candidates.map(({ path, file }) => [path, file] as const));
+    const previewIsCurrent = (): boolean => {
+      if (this.disposed) return false;
+      if (candidates.every(({ file, path }) => this.fileBindingIsCurrent(file, path))) return true;
+      this.notify(translate("notice.batchChanged"));
+      return false;
+    };
+    if (!previewIsCurrent()) return;
     new ChangePreviewModal({
       app: this.app,
       operation,
@@ -423,14 +436,19 @@ export class BatchController {
       translate,
       ...(operation === "remove" || operation === "renumber" ? {
         cleanupScope: this.getSettings().cleanupScope,
-        onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => candidates.flatMap((candidate) => {
-          const replanned = createSourcePlan(candidate.source, operation, this.getSettings(), scope);
-          if (replanned.status !== "ready" || replanned.plan == null) return [];
-          const document = { path: candidate.path, plan: replanned.plan };
-          return planNeedsPreview(document.plan) ? [document] : [];
-        }),
+        onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => {
+          if (!previewIsCurrent()) return [];
+          return candidates.flatMap((candidate) => {
+            const replanned = createSourcePlan(candidate.source, operation, this.getSettings(), scope);
+            if (replanned.status !== "ready" || replanned.plan == null) return [];
+            const document = { path: candidate.path, plan: replanned.plan };
+            return planNeedsPreview(document.plan) ? [document] : [];
+          });
+        },
       } : {}),
-      onConfirm: async (selected = documents) => this.apply(selected, operation, translate),
+      onConfirm: async (selected = documents) => {
+        if (previewIsCurrent()) await this.apply(selected, operation, translate, bindings);
+      },
     }).open();
   }
 
@@ -438,16 +456,18 @@ export class BatchController {
     documents: readonly PreviewDocument[],
     operation: TransformOperation,
     translate: Translate,
+    bindings: ReadonlyMap<string, TFile>,
   ): Promise<void> {
     const changed = documents.filter((document) => planChangesSource(document.plan));
     if (changed.length === 0) return;
-    await this.runExclusive(translate, async () => this.applyExclusive(changed, operation, translate));
+    await this.runExclusive(translate, async () => this.applyExclusive(changed, operation, translate, bindings));
   }
 
   private async applyExclusive(
     documents: readonly PreviewDocument[],
     operation: TransformOperation,
     translate: Translate,
+    bindings: ReadonlyMap<string, TFile>,
   ): Promise<void> {
     await this.persistence.ensureLoaded();
     if (this.disposed) return;
@@ -455,7 +475,6 @@ export class BatchController {
       [document.path, document.plan.source] as const
     )));
     const files: BoundBatchFile[] = [];
-    const bindings = new Map<string, TFile>();
     const seen = new Set<string>();
     for (const document of documents) {
       if (seen.has(document.path)) {
@@ -463,12 +482,11 @@ export class BatchController {
         return;
       }
       seen.add(document.path);
-      const file = this.app.vault.getAbstractFileByPath(document.path);
-      if (!(file instanceof TFile)) {
+      const file = bindings.get(document.path);
+      if (file == null || !this.fileBindingIsCurrent(file, document.path)) {
         this.notify(translate("notice.batchChanged"));
         return;
       }
-      bindings.set(document.path, file);
       files.push({
         file,
         path: document.path,

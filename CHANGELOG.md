@@ -2,6 +2,11 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.6.1 - 2026-10-25
+
+- Bind batch previews to the original files before reading, and preserve those bindings when changing cleanup scope or confirming. Renamed or replacement files require a fresh preview, even when their text is unchanged.
+- Stop heading writes and renumbering when a counter exceeds the safe integer range, with a clear preview warning. Display and references omit unavailable numbers; cleanup remains available.
+
 ## 0.6.0 - 2026-10-25
 
 - Group write-preview changes and warnings by file, with counts, independent expansion and pagination, and highlights limited to changed numbering text.

@@ -7,6 +7,28 @@ import {
 } from "../../src/integration/semantic-export";
 
 describe("Number Suite interoperability snapshot", () => {
+  it("disables overflowing heading targets and their dependent descendant labels", () => {
+    const snapshot = exportSemanticSnapshotV2({
+      ...DEFAULT_SETTINGS,
+      selectedSchemeId: "hierarchical",
+      showVirtualNumbers: true,
+    }, {
+      schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,
+      authoredMarkdown: "# First\n# Overflow\n## Child",
+      frontmatter: { "number-suite": [`heading.first-number.h1=${Number.MAX_SAFE_INTEGER}`] },
+    });
+    expect(snapshot.headingTargets.map((target) => ({
+      enabled: target.enabled,
+      number: target.derivedNumber,
+    }))).toEqual([
+      { enabled: true, number: String(Number.MAX_SAFE_INTEGER) },
+      { enabled: false, number: null },
+      { enabled: false, number: null },
+    ]);
+    expect(snapshot.headingTargets.every((target) => target.counters.every(Number.isSafeInteger))).toBe(true);
+    expect(snapshot.headingTargets.slice(1).every((target) => target.display.length === 0)).toBe(true);
+  });
+
   it("exports virtual headings, captions, and resolved references without mutating source", () => {
     const source = [
       "# Scope ^scope",

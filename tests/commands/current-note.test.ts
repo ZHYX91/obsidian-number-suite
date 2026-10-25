@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MarkdownView, Notice, TFile, type App, type EditorChange } from "obsidian";
+import * as obsidian from "obsidian";
 
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
+import type { PreviewDocument } from "../../src/ui/preview-modal";
 
 const preview = vi.hoisted(() => ({
   options: null as null | {
+    readonly documents?: readonly PreviewDocument[];
     readonly cleanupScope?: string;
     readonly onCleanupScopeChange?: (scope: "plugin" | "templates" | "common") => unknown;
     readonly onConfirm: () => Promise<void>;
@@ -14,7 +17,7 @@ const preview = vi.hoisted(() => ({
 
 vi.mock("../../src/ui/preview-modal", () => ({
   ChangePreviewModal: class {
-    constructor(options: { readonly onConfirm: () => Promise<void> }) {
+    constructor(options: { readonly documents?: readonly PreviewDocument[]; readonly onConfirm: () => Promise<void> }) {
       preview.options = options;
     }
 
@@ -71,11 +74,46 @@ function harness(source = "# A") {
 }
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   notices().length = 0;
   preview.options = null;
 });
 
 describe("current-note operations", () => {
+  it.each(["write", "renumber"] as const)("shows an overflow warning from the %s command without transacting", async (operation) => {
+    const frontmatter = `number-suite:\n  - heading.first-number.h1=${Number.MAX_SAFE_INTEGER}`;
+    const source = `---\n${frontmatter}\n---\n# First\n# Overflow\n## Child`;
+    const test = harness(source);
+    vi.spyOn(obsidian, "getFrontMatterInfo").mockReturnValue({
+      exists: true, frontmatter, from: 4, to: 4 + frontmatter.length,
+      contentStart: 9 + frontmatter.length,
+    });
+    vi.spyOn(obsidian, "parseYaml").mockReturnValue({
+      "number-suite": [`heading.first-number.h1=${Number.MAX_SAFE_INTEGER}`],
+    });
+
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, operation, (key) => key);
+
+    const plan = preview.options?.documents?.[0]?.plan;
+    expect(plan?.result).toBe(source);
+    expect(plan?.changes).toEqual([]);
+    expect(plan?.warnings.map(({ code }) => code)).toEqual(["counter-overflow", "counter-overflow"]);
+    expect(notices()).toEqual([]);
+    await preview.options?.onConfirm();
+    expect(test.transactions).toEqual([]);
+    expect(test.editor.getValue()).toBe(source);
+  });
+
+  it("keeps the no-changes notice for a write with no changes or warnings", () => {
+    const test = harness("No headings here.");
+
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key);
+
+    expect(preview.options).toBeNull();
+    expect(notices()).toEqual(["notice.noChanges"]);
+    expect(test.transactions).toEqual([]);
+  });
+
   it.each(["file", "editor", "unregistered", "detached", "preview", "unloaded"])("rejects a retained preview after %s", async (change) => {
     const test = harness();
     const controller = new AbortController();

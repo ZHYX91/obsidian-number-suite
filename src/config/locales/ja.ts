@@ -406,6 +406,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "残りの警告を表示（{count} 件）",
   "preview.warning.empty-heading": "スキップ: 見出しの文字がありません。文字を追加すると番号を付けられます。",
   "preview.warning.missing-parent": "階層の飛び越しに関する規則によりスキップしました。見出し階層か番号方式を確認してください。",
+  "preview.warning.counter-overflow": "カウンターが正確に扱える整数の範囲を超えたため、番号付けを停止しました。開始番号を小さくして再度プレビューしてください。このファイルの番号は変更していません。",
   "preview.warning.ambiguous-prefix": "見出しの先頭が番号かどうか確定できないため、原文を残しました。変更したい場合は認識範囲を調整して再度プレビューしてください。",
   "preview.warning.unsupported-prefix": "既存の番号はそのまま残しました。置き換えるには、番号の振り直しのプレビューを確認してください。",
   "panel.summary": "適用中の設定",

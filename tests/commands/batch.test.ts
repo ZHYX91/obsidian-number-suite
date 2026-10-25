@@ -5,7 +5,16 @@ import { MarkdownView, Notice, TFile, type App } from "obsidian";
 import { BatchController, type BatchPersistence } from "../../src/commands/batch";
 import { DEFAULT_SETTINGS, type LastBatchSnapshot } from "../../src/config/settings";
 import { digestText } from "../../src/core/text-digest";
-import type { PreviewDocument } from "../../src/ui/preview-modal";
+import type { PreviewDocument, PreviewModalOptions } from "../../src/ui/preview-modal";
+
+const modal = vi.hoisted(() => ({ options: null as PreviewModalOptions | null }));
+
+vi.mock("../../src/ui/preview-modal", () => ({
+  ChangePreviewModal: class {
+    constructor(options: PreviewModalOptions) { modal.options = options; }
+    open(): void {}
+  },
+}));
 
 async function snapshot(contents: Readonly<Record<string, string>>): Promise<LastBatchSnapshot> {
   return {
@@ -31,6 +40,7 @@ function harness(
   let processHook: ((path: string, call: number) => void | Promise<void>) | null = null;
   let processAfterHook: ((path: string, call: number) => void | Promise<void>) | null = null;
   let persistenceHook: ((next: LastBatchSnapshot | null, call: number) => void | Promise<void>) | null = null;
+  let readHook: ((file: TFile) => void | Promise<void>) | null = null;
   let processCalls = 0;
   let persistenceCalls = 0;
   const persistedSnapshots: Array<LastBatchSnapshot | null> = [];
@@ -38,7 +48,11 @@ function harness(
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? null,
     getMarkdownFiles: () => [...files.values()],
-    cachedRead: async (file: TFile) => contents.get(file.path) ?? "",
+    cachedRead: async (file: TFile) => {
+      const source = contents.get(file.path) ?? "";
+      await readHook?.(file);
+      return source;
+    },
     process: async (file: TFile, transform: (current: string) => string) => {
       processCalls += 1;
       await processHook?.(file.path, processCalls);
@@ -68,7 +82,7 @@ function harness(
   };
   return {
     contents,
-    controller: new BatchController(app, () => DEFAULT_SETTINGS, persistence),
+    controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical" }), persistence),
     reloadController: (ensureLoaded = persistence.ensureLoaded) => new BatchController(app, () => DEFAULT_SETTINGS,
       { ...persistence, ensureLoaded }),
     addView: (path: string, initialValue: string) => {
@@ -103,6 +117,7 @@ function harness(
       return replacement;
     },
     setPersistenceHook: (hook: typeof persistenceHook) => { persistenceHook = hook; },
+    setReadHook: (hook: typeof readHook) => { readHook = hook; },
     setProcessHook: (hook: typeof processHook) => { processHook = hook; },
     setProcessAfterHook: (hook: typeof processAfterHook) => { processAfterHook = hook; },
   };
@@ -167,12 +182,7 @@ function previewDocument(source: string, result: string, path = "a.md"): Preview
 }
 
 async function applyPreview(controller: BatchController, document: PreviewDocument): Promise<void> {
-  const apply = Reflect.get(controller, "apply") as (
-    documents: readonly PreviewDocument[],
-    operation: "write",
-    translate: (key: string) => string,
-  ) => Promise<void>;
-  await apply.call(controller, [document], "write", (key) => key);
+  await applyPreviews(controller, [document]);
 }
 
 async function applyPreviews(
@@ -183,23 +193,145 @@ async function applyPreviews(
     nextDocuments: readonly PreviewDocument[],
     operation: "write",
     translate: (key: string) => string,
+    bindings: ReadonlyMap<string, TFile>,
   ) => Promise<void>;
-  await apply.call(controller, documents, "write", (key) => key);
+  const app = Reflect.get(controller, "app") as App;
+  const bindings = new Map(documents.map((document) => [
+    document.path, app.vault.getAbstractFileByPath(document.path) as TFile,
+  ]));
+  await apply.call(controller, documents, "write", (key) => key, bindings);
 }
 
 beforeEach(() => {
+  modal.options = null;
   (Notice as unknown as { readonly messages: string[] }).messages.length = 0;
 });
 
 describe("BatchController preview", () => {
-  async function preview(controller: BatchController): Promise<void> {
+  async function preview(controller: BatchController, operation: "write" | "remove" = "write"): Promise<void> {
     const run = Reflect.get(controller, "preview") as (
       scope: { folder: null; label: string },
-      operation: "write",
+      operation: "write" | "remove",
       translate: (key: string, values?: Record<string, unknown>) => string,
     ) => Promise<void>;
-    await run.call(controller, { folder: null, label: "vault" }, "write", (key) => key);
+    await run.call(controller, { folder: null, label: "vault" }, operation, (key) => key);
   }
+
+  function currentPreview(): PreviewModalOptions {
+    if (modal.options == null) throw new Error("Expected a batch preview");
+    return modal.options;
+  }
+
+  it("applies the production plan to the original file after preview", async () => {
+    const test = harness({ "a.md": "# Alpha" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    expect(shown.documents[0]?.plan.result).not.toBe("# Alpha");
+
+    await shown.onConfirm(shown.documents);
+
+    expect(test.contents.get("a.md")).toBe(shown.documents[0]?.plan.result);
+    expect(test.processCalls()).toBe(1);
+    expect(test.getStored()?.status).toBe("applied");
+  });
+
+  it("rejects a same-path same-content replacement made after preview", async () => {
+    const test = harness({ "a.md": "# Alpha", "b.md": "# Beta" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    const original = test.getFile("a.md");
+    expect(test.replaceFile("a.md")).not.toBe(original);
+
+    await shown.onConfirm(shown.documents);
+
+    expect(test.processCalls()).toBe(0);
+    expect(test.contents).toEqual(new Map([["a.md", "# Alpha"], ["b.md", "# Beta"]]));
+    expect(test.persistedSnapshots).toEqual([]);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("rejects a renamed original even when its old path has an identical replacement", async () => {
+    const test = harness({ "a.md": "# Alpha" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    test.renameFile("a.md", "moved.md");
+    test.replaceFile("a.md");
+    test.contents.set("a.md", "# Alpha");
+
+    await shown.onConfirm(shown.documents);
+
+    expect(test.processCalls()).toBe(0);
+    expect(test.contents).toEqual(new Map([["moved.md", "# Alpha"], ["a.md", "# Alpha"]]));
+    expect(test.persistedSnapshots).toEqual([]);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it.each(["replace", "rename"] as const)("rejects %s during the original preview read", async (change) => {
+    const test = harness({ "a.md": "# Alpha" });
+    test.setReadHook(() => {
+      if (change === "replace") test.replaceFile("a.md");
+      else test.renameFile("a.md", "moved.md");
+    });
+
+    await preview(test.controller);
+
+    expect(modal.options).toBeNull();
+    expect(test.processCalls()).toBe(0);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("rechecks earlier file bindings before opening a multi-file preview", async () => {
+    const test = harness({ "a.md": "# Alpha", "b.md": "# Beta" });
+    test.setReadHook((file) => { if (file.path === "b.md") test.replaceFile("a.md"); });
+
+    await preview(test.controller);
+
+    expect(modal.options).toBeNull();
+    expect(test.processCalls()).toBe(0);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("does not follow a later selected file outside its original path during earlier reads", async () => {
+    const test = harness({ "a.md": "# Alpha", "b.md": "# Beta" });
+    test.setReadHook((file) => { if (file.path === "a.md") test.renameFile("b.md", "moved.md"); });
+
+    await preview(test.controller);
+
+    expect(modal.options).toBeNull();
+    expect(test.processCalls()).toBe(0);
+    expect(test.contents.get("moved.md")).toBe("# Beta");
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("keeps the original binding when cleanup scope introduces a new changed document", async () => {
+    const test = harness({ "a.md": "# 1. Alpha" });
+    await preview(test.controller, "remove");
+    const shown = currentPreview();
+    expect(shown.documents.every((document) => document.plan.result === document.plan.source)).toBe(true);
+    const replanned = await shown.onCleanupScopeChange?.("common");
+    expect(replanned?.[0]?.plan.result).toBe("# Alpha");
+    test.replaceFile("a.md");
+
+    await shown.onConfirm(replanned ?? []);
+
+    expect(test.processCalls()).toBe(0);
+    expect(test.contents.get("a.md")).toBe("# 1. Alpha");
+    expect(test.persistedSnapshots).toEqual([]);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
+
+  it("refuses to replan a stale cleanup preview", async () => {
+    const test = harness({ "a.md": "# 1. Alpha" });
+    await preview(test.controller, "remove");
+    const shown = currentPreview();
+    test.replaceFile("a.md");
+
+    expect(await shown.onCleanupScopeChange?.("common")).toEqual([]);
+    await shown.onConfirm(shown.documents);
+
+    expect(test.processCalls()).toBe(0);
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("notice.batchChanged");
+  });
 
   it("reads open target buffers without saving target or unrelated editors", async () => {
     const test = harness({ "a.md": "# Disk A", "b.md": "# Disk B" });

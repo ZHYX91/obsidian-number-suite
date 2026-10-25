@@ -1,6 +1,7 @@
 import { renderCurrentLevel, renderTemplate } from "./schemes";
 import { matchHeadingExclusion } from "./heading-exclusions";
 import { inspectSchemeTemplates } from "./scheme-template-validation";
+import { compileTemplate } from "./template-compiler";
 import { HEADING_LEVEL_COUNT } from "./types";
 import type {
   Counters,
@@ -41,11 +42,14 @@ export function numberHeadings(
     }));
   }
   const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
+  const templateLevels = scheme.templates.map((template) => compileTemplate(template).nodes
+    .flatMap((node) => node.kind === "counter" ? [node.level] : []));
   const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options, index + 1));
   const seenNonEmpty = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
   const counters = starts.map((start) => start - 1) as Counters;
   const initialized = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const active = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
+  const overflowed = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const output: NumberedHeading[] = [];
   let excludedSubtreeLevel: number | null = null;
 
@@ -82,6 +86,7 @@ export function numberHeadings(
         counters[lower] = (starts[lower] ?? 1) - 1;
         initialized[lower] = false;
         active[lower] = false;
+        overflowed[lower] = false;
       }
       if (exclusion.scope === "subtree") excludedSubtreeLevel = heading.level;
       output.push({
@@ -106,13 +111,21 @@ export function numberHeadings(
     }
 
     const currentCounter = initialized[index] ? (counters[index] ?? 0) : (starts[index] ?? 1) - 1;
-    counters[index] = currentCounter + 1;
+    if (overflowed[index] || currentCounter >= Number.MAX_SAFE_INTEGER) {
+      overflowed[index] = true;
+      // Keep the snapshot within the exact integer range. This counter cannot be rendered
+      // until a parent heading resets it; retaining the last value would duplicate its number.
+      counters[index] = 0;
+    } else {
+      counters[index] = currentCounter + 1;
+    }
     initialized[index] = true;
     active[index] = true;
     for (let lower = index + 1; lower < HEADING_LEVEL_COUNT; lower += 1) {
       counters[lower] = (starts[lower] ?? 1) - 1;
       initialized[lower] = false;
       active[lower] = false;
+      overflowed[lower] = false;
     }
 
     if (heading.level < scheme.baseLevel) {
@@ -147,11 +160,26 @@ export function numberHeadings(
         counters[parent] = starts[parent] ?? 1;
         initialized[parent] = true;
         active[parent] = true;
+        overflowed[parent] = false;
       }
     }
 
     const currentCounters = cloneCounters(counters);
-    const rendered = missing.length > 0 && options.missingLevelStrategy === "current-only"
+    const currentOnly = missing.length > 0 && options.missingLevelStrategy === "current-only";
+    const referencedLevels = currentOnly
+      ? [heading.level]
+      : templateLevels[index] ?? [];
+    if (referencedLevels.some((level) => overflowed[level - 1])) {
+      output.push({
+        heading,
+        label: null,
+        counters: currentCounters,
+        warning: "counter-overflow",
+        exclusion: null,
+      });
+      continue;
+    }
+    const rendered = currentOnly
       ? renderCurrentLevel(template, heading.level, currentCounters)
       : renderTemplate(template, currentCounters);
     const label = /^[A-Za-z]+$/u.test(rendered.trim()) ? null : rendered;

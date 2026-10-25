@@ -32,6 +32,17 @@ function options(overrides: Partial<DisplayPlanOptions>): DisplayPlanOptions {
 }
 
 describe("display plan", () => {
+  it("does not display overflowed numbers or conceal their authored prefixes", () => {
+    const source = `# First\n# ${WORD_JOINER}2${WORD_JOINER} Overflow\n## Child`;
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      concealStoredNumbers: true,
+      numbering: { ...numbering, starts: { 1: Number.MAX_SAFE_INTEGER } },
+    }));
+    expect(plan.map((item) => ({ line: item.line, kind: item.kind, label: item.label }))).toEqual([
+      { line: 0, kind: "virtual", label: String(Number.MAX_SAFE_INTEGER) },
+    ]);
+  });
+
   it("adds virtual numbers only to unnumbered, unambiguous headings", () => {
     const source = "# Plain\n## 1.1 Stored\n## 3.14 Pi\n## Next";
     const plan = createDisplayPlan(parseAtxHeadings(source), options({}));

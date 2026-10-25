@@ -56,7 +56,12 @@ export function runCurrentNoteOperation(
       : "notice.invalidProperties"));
     return;
   }
-  if (result.plan == null || (result.plan.changes.length === 0 && operation !== "remove" && operation !== "renumber")) {
+  if (result.plan == null || (
+    result.plan.changes.length === 0
+    && result.plan.warnings.length === 0
+    && operation !== "remove"
+    && operation !== "renumber"
+  )) {
     new Notice(translate("notice.noChanges"));
     return;
   }
@@ -90,7 +95,7 @@ export function runCurrentNoteOperation(
         return;
       }
       const selected = documents[0]?.plan;
-      if (selected == null) return;
+      if (selected == null || selected.changes.length === 0) return;
       applyEditorPlan(binding.editor, selected.changes);
       new Notice(translate("notice.applied", { count: selected.changes.length }));
     },

@@ -65,6 +65,8 @@ branches need behavioral assertions even when aggregate coverage stays above thr
 
 Batch lifecycle tests pause pending recovery persistence, conditional-write callbacks, and accepted writes; they verify no next forward write after unload, exact compensation, preserved concurrent edits, retained recovery, silent settlement, and ownership across immediate re-enable. DOM tests exercise per-file preview expansion, pagination, collapse, Unicode-safe prefix differences, and the Properties/heading distinction in the note guide. Component screenshots and synthetic browser timing are not real Obsidian, Android, native IME, or screen-reader acceptance.
 
+Batch preview tests use the production planner and confirmation callback, replacing or renaming files during reads, after preview, and after cleanup-scope changes. They require zero writes to replacement files even when the path and content match. Counter tests cover safe-integer boundaries, dependent template references, display omission, and unchanged write/renumber plans on overflow; cleanup remains independently available.
+
 <!-- section: canonical-gate -->
 ## Canonical gate
 

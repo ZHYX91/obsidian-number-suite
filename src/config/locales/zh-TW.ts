@@ -406,6 +406,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "preview.moreWarnings": "繼續查看警告（剩餘 {count} 條）",
   "preview.warning.empty-heading": "已跳過：標題沒有正文。添加標題文字後才能編號。",
   "preview.warning.missing-parent": "已按缺失層級規則跳過。請檢查標題層級或編號方案。",
+  "preview.warning.counter-overflow": "編號已停止：計數超出精確整數範圍。請降低起始值並重新預覽，本檔案未作編號修改。",
   "preview.warning.ambiguous-prefix": "已保留無法確定的序號前綴。請檢查標題，並預覽合適的清理範圍後再修改。",
   "preview.warning.unsupported-prefix": "已保留現有序號前綴。如需替換，請使用帶預覽的重新編號操作。",
   "panel.summary": "生效設定",

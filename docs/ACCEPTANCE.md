@@ -205,6 +205,7 @@ Source markers are disabled by default. Before enabling them for a release claim
 
 ## Batch recovery
 
+- [ ] Run `batch-preview-identity-and-overflow` with its checked-in fixtures. Replace a previewed file with identical text at the same path, including after cleanup-scope replanning; the entire stale batch must write nothing. Verify a fresh preview and restore still work, and overflowing heading counters produce no repeated labels or writable write/renumber plan.
 - [ ] Use a temporary folder with at least ten notes and preview write, remove, and renumber.
 - [ ] Change one file after preview; the entire batch must cancel.
 - [ ] Apply a batch, then restore it; every file must be byte-identical to its original.
