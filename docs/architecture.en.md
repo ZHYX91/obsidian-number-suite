@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-10-26
 ---
 
 # Number Suite — Architecture
@@ -44,13 +44,15 @@ style, rule, and confidence for plugin, template, and manual prefixes; `prefix-a
 shared display/write entry point.
 
 `markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
-blockquote containers and their literal blocks once per protection scan. The projection is linear
+blockquote containers and root or nested code/HTML blocks once per protection scan. The projection is linear
 and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
 containers remain available. A nested fence cannot change protection state outside its container.
 Skipped literal lines may end an already-open inline comment, but never open a new comment or
 contribute references of their own.
+
+Root indented code follows the parser's actual CodeBlock boundaries, shared by note and semantic references; four spaces or a tab alone cannot mask a valid paragraph continuation. Root fences and HTML still pass through the shared state machine to preserve Obsidian comment rules and the actual opening boundary `fenceOpening` required by Code captions.
 
 `numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level skip-first
 ordinals, resets, empty-template structural semantics, exclusions, and skipped-level strategy.
@@ -97,6 +99,8 @@ and unconstrained canvas translation separate.
 
 <!-- section: interop-api -->
 ## Consumer interoperability API
+
+Export builds its line-to-unique-target-ID index once per snapshot and indexes heading display results by line; it does not rescan the source or every block owner for each heading or caption. Duplicate IDs still fail closed, and a line with multiple different IDs has no single exported target ID. Original case and reference source offsets remain unchanged.
 
 The plugin exposes a read-only `number-suite.interop.v2` API. Given source Markdown and
 sanitized note overrides, it returns a JSON-serializable consumer-neutral snapshot: UTF-16 source

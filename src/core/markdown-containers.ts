@@ -7,13 +7,20 @@ interface SourceRange {
   readonly to: number;
 }
 
+type LiteralKind = "FencedCode" | "CodeBlock" | "HTMLBlock";
+
+interface LiteralRange extends SourceRange {
+  readonly kind: LiteralKind;
+}
+
 export interface MarkdownContainerLine {
   readonly nested: boolean;
   readonly literal: boolean;
+  readonly literalKind: LiteralKind | null;
 }
 
 const CONTAINERS = new Set(["BulletList", "OrderedList", "Blockquote"]);
-const LITERALS = new Set(["FencedCode", "CodeBlock", "HTMLBlock"]);
+const LITERALS = new Set<string>(["FencedCode", "CodeBlock", "HTMLBlock"]);
 
 /**
  * Parse block structure once and project disjoint container/literal ranges to lines.
@@ -34,15 +41,15 @@ export function scanMarkdownContainerLines(
     return text;
   }).join("\n");
   const containers: SourceRange[] = [];
-  const literals: SourceRange[] = [];
+  const literals: LiteralRange[] = [];
   let depth = 0;
   parser.parse(input).iterate({
     enter(node) {
       if (CONTAINERS.has(node.name)) {
         if (depth === 0) containers.push({ from: node.from, to: node.to });
         depth += 1;
-      } else if (depth > 0 && LITERALS.has(node.name)) {
-        literals.push({ from: node.from, to: node.to });
+      } else if (LITERALS.has(node.name)) {
+        literals.push({ from: node.from, to: node.to, kind: node.name as LiteralKind });
         return false;
       }
       return undefined;
@@ -58,9 +65,11 @@ export function scanMarkdownContainerLines(
     const to = (starts[index + 1] ?? offset) - 1;
     while (containers[containerIndex] != null && containers[containerIndex]!.to <= from) containerIndex += 1;
     while (literals[literalIndex] != null && literals[literalIndex]!.to <= from) literalIndex += 1;
+    const literal = (literals[literalIndex]?.from ?? Infinity) <= to ? literals[literalIndex] : null;
     return {
       nested: (containers[containerIndex]?.from ?? Infinity) <= to,
-      literal: (literals[literalIndex]?.from ?? Infinity) <= to,
+      literal: literal != null,
+      literalKind: literal?.kind ?? null,
     };
   });
 }

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-10-26
 ---
 
 # Number Suite — Testing strategy
@@ -39,6 +39,8 @@ Reports identify their evidence level and cannot infer a higher-level pass from 
 
 <!-- section: automated-tests -->
 ## Automated tests
+
+Real Lezer and production-consumer regressions cover root/container indented code, valid four-space or tab paragraph continuations, completed-block and blank-line boundaries, CRLF/CR, and Unicode offsets. Assertions reach final first-reference note numbering, display plans, and interoperability exports, preserving Code-caption opening-fence binding and fence lookalikes inside Obsidian comments. A scale regression grows 8 heading/caption pairs to 400 and requires real Markdown parse passes to remain independent of target count while checking every target ID, reference, and duplicate-ID ambiguity. It does not establish host speed or rendering acceptance.
 
 Core tests cover scanning, template compilation, formats, prefix recognition, exclusions, counters,
 settings sanitization, immutable change plans, caption parsing, independent caption counters,

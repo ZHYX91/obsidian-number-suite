@@ -10,10 +10,6 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   readonly topLevel: boolean;
 }
 
-export interface MarkdownProtectionOptions {
-  readonly indentedCode?: boolean;
-}
-
 const RAW_HTML_TAGS = new Set(["pre", "script", "style", "textarea"]);
 const BLOCK_HTML_TAGS = new Set([
   "address", "article", "aside", "base", "basefont", "blockquote", "body",
@@ -65,7 +61,6 @@ function closesRawTag(text: string, tag: string): boolean {
  */
 export function scanMarkdownProtectedLines(
   source: string,
-  options: MarkdownProtectionOptions = {},
 ): MarkdownProtectedLine[] {
   const lines = scanPhysicalLines(source);
   const containers = scanMarkdownContainerLines(lines);
@@ -103,8 +98,11 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
-    } else if (container?.literal === true) {
+    } else if (container?.literalKind === "CodeBlock" || (container?.nested === true && container.literal)) {
       available = false;
+      // Indented code follows the parser's actual block boundary: indentation
+      // alone cannot interrupt a paragraph. Root fences/HTML retain the state
+      // machine below so Obsidian comments and caption fence openings still work.
       // A pending comment must still end while these lines are skipped. Do
       // not scan the literal tail: code may contain unrelated comment openers.
       if (inlineComment != null) {
@@ -123,8 +121,6 @@ export function scanMarkdownProtectedLines(
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
-    } else if (options.indentedCode === true && /^(?: {4}|\t)/u.test(line.text)) {
-      available = false;
     } else {
       const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line.text);
       const fence = fenceMatch?.[1]?.startsWith("`") && fenceMatch[2]?.includes("`")

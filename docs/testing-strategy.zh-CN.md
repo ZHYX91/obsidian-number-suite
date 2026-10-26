@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-10-26
 ---
 
 # Number Suite — 测试策略
@@ -34,6 +34,8 @@ last_synced: 2026-10-24
 
 <!-- section: automated-tests -->
 ## 自动测试
+
+真实 Lezer 与生产消费端回归覆盖根级/容器缩进代码、合法四空格或 Tab 段落续行、完成块与空行边界、CRLF/CR 和 Unicode 偏移。断言最终脚注首次引用编号、显示计划及互操作导出，保留 Code 题注的围栏起始绑定与 Obsidian 注释内的围栏近似文本。规模回归把 8 组标题/题注扩大到 400 组，要求真实 Markdown 解析次数不随目标数增长，并核对全部目标 ID、引用和重复 ID 歧义；这不证明宿主速度或呈现通过。
 
 核心测试覆盖扫描器、模板编译、数字格式、前缀识别、排除、计数、设置清洗、不可变变更计划、
 题注解析、独立题注计数、脚注/尾注语法、独立笔记计数、重复引用和定义容器保护。应用层测试

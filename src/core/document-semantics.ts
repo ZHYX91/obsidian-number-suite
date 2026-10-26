@@ -64,7 +64,7 @@ const SEMANTIC_REFERENCE = /@\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu;
 
 export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
   const protectedNoteLines = noteContainerLines(source);
-  return scanMarkdownProtectedLines(source, { indentedCode: true }).map((line) => ({
+  return scanMarkdownProtectedLines(source).map((line) => ({
     text: line.text,
     commentMaskedText: line.commentMaskedText,
     from: line.from,
