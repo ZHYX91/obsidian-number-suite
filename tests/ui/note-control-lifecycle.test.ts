@@ -25,13 +25,19 @@ beforeEach(installDomFixture);
 function harness(initial: Record<string, unknown> = {}) {
   let current = structuredClone(initial);
   let failure: Error | null = null;
+  let registered: TFile | null = null;
+  let pendingRead: Promise<void> | null = null;
   const write = vi.fn(async (_file: TFile, apply: (value: Record<string, unknown>) => void) => {
     if (failure != null) throw failure;
+    if (pendingRead != null) await pendingRead;
     apply(current);
   });
   const app = {
     fileManager: { processFrontMatter: write },
-    vault: { cachedRead: vi.fn().mockResolvedValue("# Fresh") },
+    vault: {
+      cachedRead: vi.fn().mockResolvedValue("# Fresh"),
+      getAbstractFileByPath: (path: string) => registered?.path === path ? registered : null,
+    },
   } as unknown as App;
   const host = document.createElement("div");
   const status = document.createElement("div");
@@ -43,15 +49,83 @@ function harness(initial: Record<string, unknown> = {}) {
   };
   const { pane, internal } = makePane();
   const file = new (TFile as unknown as new (path: string) => TFile)("A.md");
+  registered = file;
   internal.file = file;
   internal.frontmatter = structuredClone(initial);
   internal.createCoordinator(file);
-  return { app, pane, internal, file, host, status, write, makePane,
+  return { app, pane, internal, file, host, status, write, makePane, actions,
     current: () => current, external: (value: Record<string, unknown>) => { current = value; },
-    fail: (error: Error | null) => { failure = error; } };
+    fail: (error: Error | null) => { failure = error; },
+    register: (replacement: TFile | null) => { registered = replacement; },
+    deferWrite: () => {
+      let resume = () => undefined as void;
+      pendingRead = new Promise<void>((resolve) => { resume = resolve; });
+      return () => { pendingRead = null; resume(); };
+    } };
 }
 
 describe("current-note pane lifecycle", () => {
+  it("refuses a deleted/replaced original before dispatching a Properties write", async () => {
+    const h = harness();
+    const replacement = new (TFile as unknown as new (path: string) => TFile)("A.md");
+    h.internal.coordinator?.update({ kind: "show-virtual", value: "on" });
+    h.register(replacement);
+    h.external({ owner: "replacement" });
+    await h.internal.coordinator?.flush();
+    expect(h.write).not.toHaveBeenCalled();
+    expect(h.current()).toEqual({ owner: "replacement" });
+    expect(h.internal.coordinator?.state).toBe("error");
+    expect(h.internal.coordinator?.pending).toBe(true);
+    expect(h.actions.refreshDisplay).not.toHaveBeenCalled();
+    h.pane.destroy();
+  });
+
+  it.each(["delete", "replace", "rename"] as const)("rechecks the registered file inside the actual callback after %s", async (change) => {
+    const h = harness({ owner: "original" });
+    const resume = h.deferWrite();
+    const coordinator = h.internal.coordinator!;
+    coordinator.update({ kind: "show-virtual", value: "on" });
+    const writing = coordinator.flush();
+    await Promise.resolve();
+    expect(h.write).toHaveBeenCalledOnce();
+    if (change === "delete") h.register(null);
+    else if (change === "replace") {
+      h.register(new (TFile as unknown as new (path: string) => TFile)("A.md"));
+      h.external({ owner: "replacement" });
+    } else h.file.path = "Moved.md";
+    const before = structuredClone(h.current());
+    resume();
+    await writing;
+    expect(h.current()).toEqual(before);
+    expect(coordinator.state).toBe("error");
+    expect(coordinator.pending).toBe(true);
+    expect(h.actions.refreshDisplay).not.toHaveBeenCalled();
+    // A new explicit save attempt can follow the same original TFile's rename.
+    if (change === "rename") {
+      await coordinator.flush();
+      expect(coordinator.state).toBe("saved");
+      expect(h.current()["number-suite"]).toEqual(["heading.virtual=true"]);
+    }
+    h.pane.destroy();
+  });
+
+  it("keeps a valid pending save when the pane changes and permits an original rename before dispatch", async () => {
+    const h = harness();
+    h.file.path = "Moved.md";
+    const resume = h.deferWrite();
+    const coordinator = h.internal.coordinator!;
+    coordinator.update({ kind: "show-virtual", value: "off" });
+    const writing = coordinator.flush();
+    await Promise.resolve();
+    h.pane.setFile(null, false);
+    resume();
+    await writing;
+    expect(coordinator.state).toBe("saved");
+    expect(h.current()["number-suite"]).toEqual(["heading.virtual=false"]);
+    expect(h.write).toHaveBeenCalledOnce();
+    h.pane.destroy();
+  });
+
   it("enables restore after the first override without rebuilding the active inputs", async () => {
     const h = harness();
     const button = document.createElement("button");

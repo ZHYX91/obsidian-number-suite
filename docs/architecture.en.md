@@ -54,6 +54,8 @@ contribute references of their own.
 
 Root indented code follows the parser's actual CodeBlock boundaries, shared by note and semantic references; four spaces or a tab alone cannot mask a valid paragraph continuation. Root fences and HTML still pass through the shared state machine to preserve Obsidian comment rules and the actual opening boundary `fenceOpening` required by Code captions.
 
+Each note Properties save attempt captures the original TFile and its current path, then rechecks Vault registration identity and path before FileManager dispatch and inside the actual frontmatter callback. Deletion, same-path replacement, or a rename while waiting retains the unsaved draft as an error without mutating the replacement. A normal rename of the original object before a new attempt, or a valid pending save after switching/closing the control pane, remains supported.
+
 `numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level skip-first
 ordinals, resets, empty-template structural semantics, exclusions, and skipped-level strategy.
 `frontmatter.ts` resolves the single `number-suite` directive list together with read-compatible

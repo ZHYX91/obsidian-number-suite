@@ -48,6 +48,8 @@ Number Suite H7-H9 仍作为块边界。共享保护区分顶层声明与普通�
 
 根级缩进代码使用解析器的真实 CodeBlock 边界，脚注与语义引用共享此判断，不按四空格或 Tab 直接屏蔽合法段落续行。根围栏和 HTML 继续经过共享状态机，以保留 Obsidian 注释规则以及 Code 题注所需的真实围栏起始边界 `fenceOpening`。
 
+笔记 Properties 保存的每次尝试都捕获原 TFile 与当时路径，在调用 FileManager 前和实际 frontmatter 回调内复核 Vault 注册身份及路径。删除、同路径替换或等待中的改名会保留未保存草稿并报告错误，不修改替换文件。原对象在新尝试前完成的正常改名，以及切换/关闭控制面板后的合法待保存操作，不因此失效。
+
 `numbering-engine.ts` 管理 H1-H9 计数、首个显示数字、整篇文件逐级 skip-first 顺序、重置、
 空模板结构语义、排除和跨级策略。`frontmatter.ts` 把单一 `number-suite` 指令列表与只读兼容的
 旧字段一起解析；它保持 first-number 与 skip-first 的语义独立，报告冲突或无效指令，并在明确

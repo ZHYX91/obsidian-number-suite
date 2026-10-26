@@ -42,6 +42,8 @@ Reports identify their evidence level and cannot infer a higher-level pass from 
 
 Real Lezer and production-consumer regressions cover root/container indented code, valid four-space or tab paragraph continuations, completed-block and blank-line boundaries, CRLF/CR, and Unicode offsets. Assertions reach final first-reference note numbering, display plans, and interoperability exports, preserving Code-caption opening-fence binding and fence lookalikes inside Obsidian comments. A scale regression grows 8 heading/caption pairs to 400 and requires real Markdown parse passes to remain independent of target count while checking every target ID, reference, and duplicate-ID ambiguity. It does not establish host speed or rendering acceptance.
 
+Properties identity regressions drive the production control pane and save coordinator while delaying a FileManager double's actual frontmatter callback. Deletion, same-path TFile replacement, and rename before dispatch or during the read must preserve the replacement record and failed draft; valid rename retries and saves after pane switches still succeed. This verifies the added guard, not actual FileManager read/write timing or a host reproduction.
+
 Core tests cover scanning, template compilation, formats, prefix recognition, exclusions, counters,
 settings sanitization, immutable change plans, caption parsing, independent caption counters,
 footnote/endnote syntax, independent note counters, repeated references, and definition-container
