@@ -44,6 +44,7 @@ export interface SemanticDocument {
   readonly captions: readonly ParsedCaption[];
   readonly references: readonly ParsedSemanticReference[];
   readonly blockOwners: ReadonlyMap<string, number>;
+  readonly blockOwnerIds: ReadonlyMap<string, string>;
 }
 
 export interface SemanticSourceLine {
@@ -101,6 +102,7 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
   const captions: ParsedCaption[] = [];
   const references: ParsedSemanticReference[] = [];
   const blockOwners = new Map<string, number>();
+  const blockOwnerIds = new Map<string, string>();
   const ambiguousBlockIds = new Set<string>();
   let previousSemanticLine: number | null = null;
   let interveningBlankLines = 0;
@@ -108,9 +110,11 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
     const key = blockTargetKey(id);
     if (blockOwners.has(key)) {
       blockOwners.delete(key);
+      blockOwnerIds.delete(key);
       ambiguousBlockIds.add(key);
     } else if (!ambiguousBlockIds.has(key)) {
       blockOwners.set(key, line);
+      blockOwnerIds.set(key, id);
     }
   };
 
@@ -178,7 +182,7 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       });
     }
   }
-  return { captions, references, blockOwners };
+  return { captions, references, blockOwners, blockOwnerIds };
 }
 
 export function numberCaptions(captions: readonly ParsedCaption[]): NumberedCaption[] {

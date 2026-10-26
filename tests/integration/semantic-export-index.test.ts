@@ -1,4 +1,4 @@
-import { parser } from "@lezer/markdown";
+import { MarkdownParser } from "@lezer/markdown";
 import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
@@ -22,7 +22,7 @@ function indexedSource(count: number): string {
 
 describe("semantic export per-snapshot target indexes", () => {
   it("keeps real Markdown parse passes bounded as heading/caption targets grow", () => {
-    const parse = vi.spyOn(parser, "parse");
+    const parse = vi.spyOn(MarkdownParser.prototype, "parse");
     try {
       const small = snapshot(indexedSource(8));
       const smallPasses = parse.mock.calls.length;
@@ -58,5 +58,26 @@ describe("semantic export per-snapshot target indexes", () => {
     expect(exported.references).toHaveLength(4);
     expect(exported.references.map((reference) => source.slice(reference.targetSourceStartUtf16, reference.targetSourceEndUtf16)))
       .toEqual(["# Several ^first-id", "# Several ^first-id", "# Unique ^Original-Case", "Figure: Unique caption"]);
+  });
+
+  it.each([
+    "```md\n^HIDDEN-ID\n```",
+    "%%\n^HIDDEN-ID\n%%",
+    "text %% ^HIDDEN-ID",
+    "text <!-- ^HIDDEN-ID",
+  ])("takes authored ID case only from its valid owner after %j", (protectedSource) => {
+    const close = protectedSource.startsWith("text %%") ? "\n%%" : protectedSource.startsWith("text <!--") ? "\n-->" : "";
+    const source = `${protectedSource}${close}\n# Heading 🐈 ^hidden-id\n\n@[[#^hidden-id]]`;
+    const exported = snapshot(source);
+    expect(exported.headingTargets[0]).toMatchObject({ targetId: "hidden-id", authoredText: "Heading 🐈" });
+    expect(exported.references).toHaveLength(1);
+    const reference = exported.references[0]!;
+    expect(source.slice(reference.targetSourceStartUtf16, reference.targetSourceEndUtf16)).toBe("# Heading 🐈 ^hidden-id");
+  });
+
+  it("retains the export ID length boundary while using the valid owner index", () => {
+    const source = `# Heading ^${"a".repeat(129)}\n\n@[[#^${"a".repeat(129)}]]`;
+    expect(snapshot(source).headingTargets[0]?.targetId).toBeNull();
+    expect(snapshot(source).references).toHaveLength(1);
   });
 });

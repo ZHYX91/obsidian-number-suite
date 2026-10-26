@@ -10,7 +10,6 @@ import {
   numberCaptions,
   parseDocumentSemantics,
   resolveUniqueSemanticTitleTarget,
-  scanSemanticSourceLines,
   type CaptionKind,
   type SemanticDocument,
 } from "../core/document-semantics";
@@ -103,7 +102,6 @@ function targetAuthoredText(value: string): string {
 }
 
 function uniqueTargetIdsByLine(
-  source: string,
   semantics: SemanticDocument,
 ): ReadonlyMap<number, string> {
   if (semantics.blockOwners.size === 0) return new Map();
@@ -111,17 +109,10 @@ function uniqueTargetIdsByLine(
   for (const [key, line] of semantics.blockOwners) {
     ownerKeyByLine.set(line, ownerKeyByLine.has(line) ? null : key);
   }
-  const idByKey = new Map<string, string>();
-  for (const sourceLine of scanSemanticSourceLines(source)) {
-    const id = TRAILING_BLOCK_ID.exec(sourceLine.text)?.[1];
-    if (id == null) continue;
-    const key = blockTargetKey(id);
-    if (!idByKey.has(key)) idByKey.set(key, id);
-  }
   const targetIds = new Map<number, string>();
   for (const [line, key] of ownerKeyByLine) {
-    const id = key == null ? null : idByKey.get(key);
-    if (id != null) targetIds.set(line, id);
+    const id = key == null ? null : semantics.blockOwnerIds.get(key);
+    if (id != null && id.length <= 128) targetIds.set(line, id);
   }
   return targetIds;
 }
@@ -284,7 +275,7 @@ export function exportSemanticSnapshotV2(
     };
   }
   const semantics = parseDocumentSemantics(request.authoredMarkdown);
-  const targetIds = uniqueTargetIdsByLine(request.authoredMarkdown, semantics);
+  const targetIds = uniqueTargetIdsByLine(semantics);
   const parsedHeadings = parseAtxHeadings(request.authoredMarkdown);
   const headings = headingTargets(
     targetIds,

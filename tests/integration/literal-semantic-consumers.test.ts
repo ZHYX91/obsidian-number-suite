@@ -101,4 +101,36 @@ describe("literal blocks through production semantic consumers", () => {
     expect(snapshot(source).references).toHaveLength(1);
     expect(display(source).filter((entry) => entry.kind === "note-reference").map(({ label }) => label)).toEqual(["1"]);
   });
+
+  it.each(["\n", "\r\n", "\r"])("protects real code after comment-contained fence lookalikes with %j offsets", (newline) => {
+    const source = [
+      "%%", "```md", "%%", "# Target 🐈", "",
+      "    [^b] @[[#Target 🐈]]", "",
+      "正文[^a] then[^b] @[[#Target 🐈]]", "", "[^a]: A", "[^b]: B",
+    ].join(newline);
+    expect(numberDocumentNotes(parseDocumentNotes(source)).references.map(({ id, number }) => ({ id, number })))
+      .toEqual([{ id: "a", number: 1 }, { id: "b", number: 2 }]);
+    expect(display(source).filter((entry) => entry.kind === "note-reference").map(({ label, line }) => ({ label, line })))
+      .toEqual([{ label: "1", line: 7 }, { label: "2", line: 7 }]);
+    const exported = snapshot(source);
+    expect(exported.references).toHaveLength(1);
+    const reference = exported.references[0]!;
+    expect(source.slice(reference.sourceStartUtf16, reference.sourceEndUtf16)).toBe("@[[#Target 🐈]]");
+    expect(source.slice(reference.targetSourceStartUtf16, reference.targetSourceEndUtf16)).toBe("# Target 🐈");
+  });
+
+  it.each([
+    "    %%\n    [^b] @[[#Target]]",
+    ">     %%\n>     [^b] @[[#Target]]",
+    "- item\n\n      %%\n      [^b] @[[#Target]]",
+    "```md\n%%\n[^b] @[[#Target]]\n```",
+    "- ```md\n  %%\n  [^b] @[[#Target]]\n  ```",
+  ])("keeps comment delimiters literal inside actual code after a masked lookalike: %j", (code) => {
+    const source = `%%\n\`\`\`md\n%%\n# Target\n\n${code}\n\n正文[^a] then[^b] @[[#Target]]\n\n[^a]: A\n[^b]: B`;
+    expect(numberDocumentNotes(parseDocumentNotes(source)).references.map(({ id, number }) => ({ id, number })))
+      .toEqual([{ id: "a", number: 1 }, { id: "b", number: 2 }]);
+    expect(display(source).filter((entry) => entry.kind === "note-reference").map(({ label }) => label)).toEqual(["1", "2"]);
+    expect(snapshot(source).references.map(({ sourceStartUtf16, sourceEndUtf16 }) => source.slice(sourceStartUtf16, sourceEndUtf16)))
+      .toEqual(["@[[#Target]]"]);
+  });
 });
