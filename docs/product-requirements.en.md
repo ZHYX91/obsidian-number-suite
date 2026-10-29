@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-10-29
 ---
 
 # Number Suite — Product requirements
@@ -129,6 +129,8 @@ governed by their own source and settings.
 18. Heading virtual numbers use compact filled pills, whole captions use wrapping filled pills, and
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
+
+Cross-line inline code and block-equation interiors declare no captions, semantic references or notes. Protection follows exact source ranges and preserves prose outside code on the same line. Legal GFM data rows belong to their table even when boundary pipes are omitted and the first cell begins with a caption keyword; they must not be moved or converted into captions. An equation carrier remains independent of its protected interior.
 
 <!-- section: safety-requirements -->
 ## Safety requirements

@@ -1,12 +1,16 @@
+import { scanMarkdownProtectedLines } from "../core/markdown-protection";
 import { bindCaptionObjects, scanCaptionObjects } from "../core/caption-objects";
-import { numberCaptions, parseDocumentSemantics, scanSemanticSourceLines } from "../core/document-semantics";
+import { createSemanticTitleIndex, numberCaptions, parseDocumentSemantics, scanSemanticSourceLines } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
-import { numberDocumentNotes, parseDocumentNotes } from "../core/note-semantics";
+import { noteContainerLines, numberDocumentNotes, parseDocumentNotes } from "../core/note-semantics";
 
 /** Source facts only: settings, selection and composition are projected by each view. */
 export function createSemanticSnapshot(source: string) {
-  const lines = scanSemanticSourceLines(source);
-  const semantics = parseDocumentSemantics(source);
+  const protectedLines = scanMarkdownProtectedLines(source);
+  const noteLines = noteContainerLines(source, protectedLines);
+  const lines = scanSemanticSourceLines(source, protectedLines, noteLines);
+  const semantics = parseDocumentSemantics(source, lines);
+  const headings = parseAtxHeadings(source, protectedLines, noteLines);
   const objects = scanCaptionObjects(source, lines);
   return {
     source,
@@ -15,8 +19,9 @@ export function createSemanticSnapshot(source: string) {
     objects,
     bindings: bindCaptionObjects(source, lines, semantics.captions, objects),
     numberedCaptions: numberCaptions(semantics.captions),
-    headings: parseAtxHeadings(source),
-    notes: numberDocumentNotes(parseDocumentNotes(source)),
+    headings,
+    titleTargets: createSemanticTitleIndex(headings, semantics.captions),
+    notes: numberDocumentNotes(parseDocumentNotes(source, protectedLines)),
   };
 }
 

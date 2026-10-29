@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Exclude real root indented code from footnote numbering while retaining semantic references in indented paragraph continuations.
+- Reuse per-snapshot target and display indexes during semantic export, preserving duplicate-ID ambiguity and source offsets.
+- Recheck original note registration and path before deferred Properties changes, keeping stale drafts without modifying a replacement note.
+
 ## 0.6.1 - 2026-10-25
 
 - Bind batch previews to the original files before reading, and preserve those bindings when changing cleanup scope or confirming. Renamed or replacement files require a fresh preview, even when their text is unchanged.

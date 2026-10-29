@@ -64,7 +64,25 @@ export class Menu {
   }
 }
 
-export class MarkdownView {
+export class Component {
+  private readonly children = new Set<Component>();
+  private readonly cleanups: Array<() => void> = [];
+  load(): void {}
+  unload(): void {
+    for (const child of [...this.children]) this.removeChild(child);
+    for (const cleanup of this.cleanups.splice(0).reverse()) cleanup();
+  }
+  addChild<T extends Component>(child: T): T { this.children.add(child); child.load(); return child; }
+  removeChild<T extends Component>(child: T): T { this.children.delete(child); child.unload(); return child; }
+  register(cleanup: () => void): void { this.cleanups.push(cleanup); }
+  registerEvent<T>(event: T): T { return event; }
+  registerDomEvent(target: EventTarget, type: string, listener: EventListener, options?: AddEventListenerOptions): void {
+    target.addEventListener(type, listener, options);
+    this.register(() => target.removeEventListener(type, listener, options));
+  }
+}
+
+export class MarkdownView extends Component {
   file: TFile | null = null;
 
   async save(): Promise<void> {}

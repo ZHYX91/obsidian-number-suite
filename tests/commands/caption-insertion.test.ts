@@ -132,6 +132,19 @@ beforeEach(() => {
 });
 
 describe("caption context menu", () => {
+  it("inserts above an entire GFM table without relocating a caption-looking data row", async () => {
+    const source = "| Name | Value |\n| --- | --- |\nFigure: Alpha | Beta\n| Gamma | Delta |";
+    const testMenu = createMenu();
+    const testEditor = createEditor(source, 2);
+    addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, fileInfo(), translate);
+    expect(testMenu.titles).toEqual(["caption.menu.table.insert"]);
+    testMenu.click?.();
+    expect(modal.options?.target).toMatchObject({ action: "insert", kind: "Table", suggestedTitle: "" });
+    expect(await modal.options?.onConfirm("Actual")).toBe(true);
+    expect(testEditor.transactions).toHaveLength(1);
+    expect(testEditor.getValue()).toBe(`Table: Actual\n\n${source}`);
+    expect(parseDocumentSemantics(testEditor.getValue()).captions.map((caption) => caption.title)).toEqual(["Actual"]);
+  });
   it.each(["closed", "detached", "reading", "editor-replaced"])(
     "rejects file-info confirmation and focus after its owner is %s", async (state) => {
       const testMenu = createMenu();

@@ -1,3 +1,5 @@
+import { blockHtmlStart, completeCustomHtmlTag, leadingMarkup, rawHtmlStart } from "./markdown-html-blocks";
+import { blankRange, codeSpanEnd, scanInlineComments, type CommentKind } from "./markdown-comments";
 import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 import { scanMarkdownContainerLines } from "./markdown-containers";
 
@@ -8,50 +10,16 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   /** True only for an actual top-level fenced-code opening, never a protected lookalike. */
   readonly fenceOpening: boolean;
   readonly topLevel: boolean;
+  readonly inlineMaskedText: string;
+  /** Closed top-level equation carrier; its interior is never semantic prose. */
+  readonly equationLastLine?: number;
 }
-
-export interface MarkdownProtectionOptions {
-  readonly indentedCode?: boolean;
-}
-
-const RAW_HTML_TAGS = new Set(["pre", "script", "style", "textarea"]);
-const BLOCK_HTML_TAGS = new Set([
-  "address", "article", "aside", "base", "basefont", "blockquote", "body",
-  "caption", "center", "col", "colgroup", "dd", "details", "dialog", "dir",
-  "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
-  "frame", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head",
-  "header", "hr", "html", "iframe", "legend", "li", "link", "main", "menu",
-  "menuitem", "nav", "noframes", "ol", "optgroup", "option", "p", "param",
-  "search", "section", "summary", "table", "tbody", "td", "tfoot", "th",
-  "thead", "title", "tr", "track", "ul",
-]);
 
 type ProtectedBlockState =
   | Readonly<{ kind: "fence"; character: "`" | "~"; length: number }>
   | Readonly<{ kind: "until"; ending: string }>
   | Readonly<{ kind: "raw-html"; tag: string }>
   | Readonly<{ kind: "blank-html" }>;
-
-function leadingMarkup(text: string): string | null {
-  const match = /^ {0,3}(\S.*)$/u.exec(text);
-  return match?.[1] ?? (text.trim().length === 0 ? "" : null);
-}
-
-function rawHtmlStart(markup: string): string | null {
-  const match = /^<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/?>)/u.exec(markup);
-  const tag = match?.[1]?.toLowerCase() ?? null;
-  return tag != null && RAW_HTML_TAGS.has(tag) ? tag : null;
-}
-
-function blockHtmlStart(markup: string): boolean {
-  const match = /^<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s|\/?>|$)/u.exec(markup);
-  const tag = match?.[1]?.toLowerCase() ?? null;
-  return tag != null && BLOCK_HTML_TAGS.has(tag);
-}
-
-function completeCustomHtmlTag(markup: string): boolean {
-  return /^<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+(?:[^<>"']+|"[^"]*"|'[^']*')*)?\s*\/?>[ \t]*$/u.test(markup);
-}
 
 function closesRawTag(text: string, tag: string): boolean {
   return new RegExp(`</${tag}[ \\t]*>`, "iu").test(text);
@@ -65,7 +33,6 @@ function closesRawTag(text: string, tag: string): boolean {
  */
 export function scanMarkdownProtectedLines(
   source: string,
-  options: MarkdownProtectionOptions = {},
 ): MarkdownProtectedLine[] {
   const lines = scanPhysicalLines(source);
   const containers = scanMarkdownContainerLines(lines);
@@ -103,8 +70,12 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
-    } else if (container?.literal === true) {
+    } else if (container?.literalKind === "CodeBlock" || container?.literalKind === "NumberSuiteEquation"
+      || container?.literalKind === "NumberSuiteUnclosedEquation" || (container?.nested === true && container.literal)) {
       available = false;
+      // Indented code follows the parser's actual block boundary: indentation
+      // alone cannot interrupt a paragraph. Root fences/HTML retain the state
+      // machine below so Obsidian comments and caption fence openings still work.
       // A pending comment must still end while these lines are skipped. Do
       // not scan the literal tail: code may contain unrelated comment openers.
       if (inlineComment != null) {
@@ -112,19 +83,17 @@ export function scanMarkdownProtectedLines(
         if (line.text.includes(ending)) inlineComment = null;
       }
     } else if (inlineComment != null) {
-      const comments = scanInlineComments(line.text, inlineComment);
+      const comments = scanInlineComments(line.text, inlineComment, container?.inlineCode);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
     } else if (container?.nested === true) {
       // Ordinary list/quote references remain meaningful. Nested fences and
       // HTML must not start a document-level protection state after they end.
-      const comments = scanInlineComments(line.text);
+      const comments = scanInlineComments(line.text, null, container?.inlineCode);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
-    } else if (options.indentedCode === true && /^(?: {4}|\t)/u.test(line.text)) {
-      available = false;
     } else {
       const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line.text);
       const fence = fenceMatch?.[1]?.startsWith("`") && fenceMatch[2]?.includes("`")
@@ -165,7 +134,7 @@ export function scanMarkdownProtectedLines(
           }
         }
         if (available) {
-          const comments = scanInlineComments(line.text);
+          const comments = scanInlineComments(line.text, null, container?.inlineCode);
           commentMaskedText = comments.masked;
           inlineComment = comments.state;
           headingAvailable = inlineComment == null;
@@ -174,7 +143,11 @@ export function scanMarkdownProtectedLines(
     }
 
     const topLevel = container?.nested !== true;
-    output.push({ ...line, available, commentMaskedText, topLevel, fenceOpening, headingAvailable: available && headingAvailable && topLevel });
+    const inline = commentMaskedText.split("");
+    for (const range of container?.inlineCode ?? []) blankRange(inline, range.from, range.to);
+    output.push({ ...line, available, commentMaskedText, inlineMaskedText: inline.join(""), topLevel,
+      ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
+      fenceOpening, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
     // heading, fence, thematic break or other block without a blank line.
     inParagraph = available && trimmed.length > 0
@@ -189,61 +162,10 @@ export interface HtmlCommentAnalysis {
   readonly unclosedFrom: number | null;
 }
 
-type CommentKind = "html" | "obsidian";
-
-function codeSpanEnd(text: string, from: number): number | null {
-  let length = 1;
-  while (text[from + length] === "`") length += 1;
-  for (let cursor = from + length; cursor < text.length;) {
-    if (text[cursor] !== "`") { cursor += 1; continue; }
-    let closingLength = 1;
-    while (text[cursor + closingLength] === "`") closingLength += 1;
-    if (closingLength === length) return cursor + length;
-    cursor += closingLength;
-  }
-  return null;
-}
-
-function scanInlineComments(text: string, initial: CommentKind | null = null) {
-  const characters = text.split("");
-  const ranges: Array<{ from: number; to: number; kind: CommentKind }> = [];
-  let state = initial;
-  let unclosedFrom: number | null = null;
-  for (let cursor = 0; cursor < text.length;) {
-    if (state == null) {
-      if (text[cursor] === "\\") { cursor += 2; continue; }
-      if (text[cursor] === "`") {
-        const end = codeSpanEnd(text, cursor);
-        if (end != null) { cursor = end; continue; }
-        while (text[cursor] === "`") cursor += 1;
-        continue;
-      }
-      if (text.startsWith("<!--", cursor)) state = "html";
-      else if (text.startsWith("%%", cursor)) state = "obsidian";
-      else { cursor += 1; continue; }
-    }
-    const from = cursor;
-    const ending = state === "html" ? "-->" : "%%";
-    const openingLength = initial != null && cursor === 0 ? 0 : state === "html" ? 4 : 2;
-    const closing = text.indexOf(ending, cursor + openingLength);
-    const to = closing < 0 ? text.length : closing + ending.length;
-    ranges.push({ from, to, kind: state });
-    blankRange(characters, from, to);
-    if (closing < 0) { unclosedFrom = from; break; }
-    state = null;
-    cursor = to;
-  }
-  return { masked: characters.join(""), ranges, state, unclosedFrom };
-}
-
 /** Find HTML comments that are not inside a same-line Markdown code span. */
 export function analyzeInlineHtmlComments(text: string): HtmlCommentAnalysis {
   const comments = scanInlineComments(text);
   return { ranges: comments.ranges, unclosedFrom: comments.unclosedFrom };
-}
-
-function blankRange(characters: string[], from: number, to: number): void {
-  for (let index = from; index < to; index += 1) characters[index] = " ";
 }
 
 function maskCodeSpans(text: string, characters: string[]): void {
