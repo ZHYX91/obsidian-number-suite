@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-26
+last_synced: 2026-10-29
 ---
 
 # Number Suite — Architecture
@@ -44,7 +44,7 @@ style, rule, and confidence for plugin, template, and manual prefixes; `prefix-a
 shared display/write entry point.
 
 `markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
-blockquote containers and root or nested code/HTML blocks once per protection scan. The projection is linear
+blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code ranges; a second parses comment-projected blocks while retaining literal comments inside code. The projection is linear
 and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
@@ -101,6 +101,8 @@ and unconstrained canvas translation separate.
 
 <!-- section: interop-api -->
 ## Consumer interoperability API
+
+The complete source snapshot shares physical lines, code/equation protection, note containers and table boundaries. Equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
 
 Export builds its line-to-unique-target-ID index once per snapshot and indexes heading display results by line; it does not rescan the source or every block owner for each heading or caption. Duplicate IDs still fail closed, and a line with multiple different IDs has no single exported target ID. Original case and reference source offsets remain unchanged.
 
@@ -212,6 +214,8 @@ before applying exactly one editor change.
 
 `CaptionCarrierMenuBridge` observes Structural Tables' public owned-widget host and versioned source snapshot. Version `1` requires `data-structural-source-version`, `data-structural-source-from`, `data-structural-source-to`, `data-structural-source-path`, and `data-structural-source`. Offsets are UTF-16; the exclusive end omits the last line ending and any external block-ID line. The original table text must exactly equal the current editor slice, the path must match, and Number Suite must recognize a table with those exact visual bounds. An ordinal is never a write target. Legacy, incomplete, stale, unsupported, or unknown-version snapshots produce a disabled menu explanation with a Source-mode editing alternative. A valid table that already has a correctly placed caption needs no action. Both plugins remain independently installable; no provider runtime import is used.
 
+The context-menu bridge keeps document capture and direct target bubble listeners so host or plugin propagation stops remain compatible. Each target belongs to a MarkdownView child component, released on removal or movement across views; same-view detach/reattach does not duplicate binding. Closing a popout releases its document child, observer and remaining targets. Plugin unload uses the same cleanup path.
+
 Caption normalization and relocation preserve authored indentation, inline ID suffixes and supported following standalone IDs. The edit moves the complete caption identity, while retaining separate object IDs and original reference tokens. Relocation is unavailable for multiple standalone ID lines or comment-decorated ID lines that the current binding grammar cannot preserve. The final result must still bind the caption to the same object; a blank line already consumed before a standalone ID is not added again between the moved ID and object.
 Both target discovery and plan construction reject relocation when anything other than whitespace
 remains between the recognized object and caption ranges, including a second standalone object ID.
@@ -232,7 +236,7 @@ Batch settlement uses an App-owned queue keyed by `Symbol.for("number-suite.batc
 ## Persistence
 
 `data.json` stores schema-versioned settings only. A serialized save coordinator coalesces frequent
-updates and exposes pending, failure, and retry state. The latest batch snapshot is stored separately
+updates and exposes pending, failure, and retry state. Loads, saves and the final unload retry reserve their order immediately in an App-level queue keyed by plugin identity. A new instance waits for accepted old-instance saves and the final retry; a closed session rejects new settings and unknown schemas remain read-only. Actual host storage scheduling still requires separate acceptance. The latest batch snapshot is stored separately
 in `recovery.json`; settings reset cannot delete it. Plugin startup constructs a lazy recovery session
 without reading recovery files. The first batch commit boundary or batch-undo request single-flights
 that load before any recovery state is read or replaced. Templates retired by custom-scheme edits or

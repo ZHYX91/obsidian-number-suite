@@ -13,13 +13,19 @@ export function codeSpanEnd(text: string, from: number): number | null {
   return null;
 }
 
-export function scanInlineComments(text: string, initial: CommentKind | null = null) {
+export function scanInlineComments(text: string, initial: CommentKind | null = null,
+  codeRanges: readonly { from: number; to: number }[] = []) {
   const characters = text.split("");
   const ranges: Array<{ from: number; to: number; kind: CommentKind }> = [];
   let state = initial;
   let unclosedFrom: number | null = null;
+  let codeIndex = 0;
   for (let cursor = 0; cursor < text.length;) {
     if (state == null) {
+      while (codeRanges[codeIndex] != null && codeRanges[codeIndex]!.to <= cursor) codeIndex += 1;
+      const candidate = codeRanges[codeIndex];
+      const code = candidate != null && cursor >= candidate.from ? candidate : null;
+      if (code != null) { cursor = code.to; continue; }
       if (text[cursor] === "\\") { cursor += 2; continue; }
       if (text[cursor] === "`") {
         const end = codeSpanEnd(text, cursor);

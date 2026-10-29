@@ -31,6 +31,7 @@ import {
   type SettingsSaveStatus,
 } from "../config/settings-save-coordinator";
 import { SettingsPersistenceSession } from "../config/settings-persistence-session";
+import { settingsStoreScheduler } from "../config/settings-store-queue";
 import { type TransformOperation } from "../core/types";
 import { HeadingDisplayController } from "../editor/heading-display-extension";
 import {
@@ -78,10 +79,12 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   override async onload(): Promise<void> {
-    const data = normalizePluginData(await this.loadData());
+    const schedule = settingsStoreScheduler(this.app);
+    const data = normalizePluginData(await schedule(() => this.loadData()));
+    if (this.commandLifecycle.signal.aborted) return;
     this.settingsPersistence = new SettingsPersistenceSession(data, async (snapshot) => {
       await this.saveData({ schemaVersion: PERSISTENCE_SCHEMA_VERSION, settings: snapshot });
-    });
+    }, schedule);
     this.settings = this.settingsPersistence.initialSettings();
     this.recoverySession = new RecoverySession(new RecoveryStore(this.app, this.manifest));
 
@@ -150,7 +153,7 @@ export default class NumberSuitePlugin extends Plugin {
     this.localizedCommands.length = 0;
     this.ribbonEl = null;
     this.batchController?.dispose();
-    void this.settingsPersistence?.flush().catch((error: unknown) => {
+    void this.settingsPersistence?.close().catch((error: unknown) => {
       console.error("Number Suite: failed to flush settings", error);
     });
     this.readingProcessor?.dispose();

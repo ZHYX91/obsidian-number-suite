@@ -1,3 +1,4 @@
+import { scanTableBlocks } from "./markdown-table-blocks";
 import {
   parseDocumentSemantics,
   scanSemanticSourceLines,
@@ -115,66 +116,6 @@ export function imageTextAtLineOffset(text: string, offset: number): ImageText |
   return null;
 }
 
-function tableCells(text: string): string[] | null {
-  if (!text.includes("|")) return null;
-  const cells: string[] = [];
-  let current = "";
-  let escaped = false;
-  let codeTicks = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index] ?? "";
-    if (escaped) {
-      current += character;
-      escaped = false;
-      continue;
-    }
-    if (character === "\\") {
-      current += character;
-      escaped = true;
-      continue;
-    }
-    if (character === "`") {
-      let run = 1;
-      while (text[index + run] === "`") run += 1;
-      current += "`".repeat(run);
-      if (codeTicks === 0) codeTicks = run;
-      else if (codeTicks === run) codeTicks = 0;
-      index += run - 1;
-      continue;
-    }
-    if (character === "|" && codeTicks === 0) {
-      cells.push(current);
-      current = "";
-    } else {
-      current += character;
-    }
-  }
-  cells.push(current);
-  if ((cells[0] ?? "").trim() === "") cells.shift();
-  if ((cells[cells.length - 1] ?? "").trim() === "") cells.pop();
-  return cells.length === 0 ? null : cells;
-}
-
-function tableDelimiterColumnCount(line: SemanticSourceLine): number | null {
-  if (!line.available || !line.topLevel) return null;
-  const cells = tableCells(line.text);
-  if (cells == null) return null;
-  const delimiterCells = cells.filter((cell) => cell.trim().length > 0);
-  if (delimiterCells.length === 0) return null;
-  return delimiterCells.every((cell) => /^:?-{3,}:?$/u.test(cell.trim()))
-    ? delimiterCells.length
-    : null;
-}
-
-function tableRowColumnCount(line: SemanticSourceLine | undefined): number | null {
-  if (line == null || !line.available || !line.topLevel || line.text.trim().length === 0) return null;
-  // A standalone heading ends a table even when its title contains pipes.
-  // Use Number Suite's H1-H9 boundary for both body rows and multi-row headers.
-  if (/^ {0,3}#{1,9}(?:[ \t]|$)/u.test(line.text)) return null;
-  if (/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(line.text)) return null;
-  return tableCells(line.text)?.length ?? null;
-}
-
 function includeFollowingBlockId(
   lines: readonly SemanticSourceLine[],
   lastLine: number,
@@ -213,20 +154,9 @@ function imageObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
 
 function tableObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
-  const consumed = new Set<number>();
   let sourceTableIndex = 0;
-  for (let delimiter = 1; delimiter < lines.length; delimiter += 1) {
-    if (consumed.has(delimiter)) continue;
-    const delimiterLine = lines[delimiter];
-    const headerLine = lines[delimiter - 1];
-    if (delimiterLine == null || headerLine == null) continue;
-    const columns = tableDelimiterColumnCount(delimiterLine);
-    if (columns == null || tableRowColumnCount(headerLine) !== columns) continue;
-    let first = delimiter - 1;
-    while (first > 0 && tableRowColumnCount(lines[first - 1]) === columns) first -= 1;
-    let last = delimiter;
-    while (last + 1 < lines.length && tableRowColumnCount(lines[last + 1]) != null) last += 1;
-    for (let line = first; line <= last; line += 1) consumed.add(line);
+  for (const { first, last, delimiter } of scanTableBlocks(lines)) {
+    const delimiterLine = lines[delimiter]!;
     const lastWithId = includeFollowingBlockId(lines, last);
     output.push({
       kind: "Table",
@@ -251,22 +181,8 @@ function equationObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] 
   const output: CaptionObject[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const opening = lines[index];
-    if (opening == null || !opening.available || !opening.topLevel || !/^ {0,3}\$\$/u.test(opening.text)) continue;
-    const trimmed = withoutBlockId(opening.text).trim();
-    let last = index;
-    if (!(trimmed.length > 4 && trimmed.endsWith("$$"))) {
-      let closing = index + 1;
-      while (closing < lines.length) {
-        const line = lines[closing];
-        if (line == null || !line.available) break;
-        if (/^ {0,3}\$\$[ \t]*(?:\^[A-Za-z0-9-]+)?[ \t]*$/u.test(line.text)) {
-          last = closing;
-          break;
-        }
-        closing += 1;
-      }
-      if (last === index) continue;
-    }
+    if (opening?.equationLastLine == null || !opening.topLevel) continue;
+    const last = opening.equationLastLine;
     const lastWithId = includeFollowingBlockId(lines, last);
     output.push({
       kind: "Equation",
@@ -322,7 +238,7 @@ function codeObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   return output;
 }
 
-export function scanCaptionObjects(source: string, lines = scanSemanticSourceLines(source)): CaptionObject[] {
+export function scanCaptionObjects(source: string, lines: readonly SemanticSourceLine[] = scanSemanticSourceLines(source)): CaptionObject[] {
   return [
     ...imageObjects(lines),
     ...tableObjects(lines),
@@ -367,8 +283,8 @@ interface CaptionBindingCandidate {
 
 export function bindCaptionObjects(
   source: string,
-  lines = scanSemanticSourceLines(source),
-  captions = parseDocumentSemantics(source).captions,
+  lines: readonly SemanticSourceLine[] = scanSemanticSourceLines(source),
+  captions = parseDocumentSemantics(source, lines).captions,
   objects = scanCaptionObjects(source, lines),
 ): BoundCaptionObject[] {
   const captionsByLine = new Map(captions.map((caption) => [caption.line, caption]));

@@ -10,6 +10,9 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   /** True only for an actual top-level fenced-code opening, never a protected lookalike. */
   readonly fenceOpening: boolean;
   readonly topLevel: boolean;
+  readonly inlineMaskedText: string;
+  /** Closed top-level equation carrier; its interior is never semantic prose. */
+  readonly equationLastLine?: number;
 }
 
 type ProtectedBlockState =
@@ -67,7 +70,8 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
-    } else if (container?.literalKind === "CodeBlock" || (container?.nested === true && container.literal)) {
+    } else if (container?.literalKind === "CodeBlock" || container?.literalKind === "NumberSuiteEquation"
+      || container?.literalKind === "NumberSuiteUnclosedEquation" || (container?.nested === true && container.literal)) {
       available = false;
       // Indented code follows the parser's actual block boundary: indentation
       // alone cannot interrupt a paragraph. Root fences/HTML retain the state
@@ -79,14 +83,14 @@ export function scanMarkdownProtectedLines(
         if (line.text.includes(ending)) inlineComment = null;
       }
     } else if (inlineComment != null) {
-      const comments = scanInlineComments(line.text, inlineComment);
+      const comments = scanInlineComments(line.text, inlineComment, container?.inlineCode);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
     } else if (container?.nested === true) {
       // Ordinary list/quote references remain meaningful. Nested fences and
       // HTML must not start a document-level protection state after they end.
-      const comments = scanInlineComments(line.text);
+      const comments = scanInlineComments(line.text, null, container?.inlineCode);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
@@ -130,7 +134,7 @@ export function scanMarkdownProtectedLines(
           }
         }
         if (available) {
-          const comments = scanInlineComments(line.text);
+          const comments = scanInlineComments(line.text, null, container?.inlineCode);
           commentMaskedText = comments.masked;
           inlineComment = comments.state;
           headingAvailable = inlineComment == null;
@@ -139,7 +143,11 @@ export function scanMarkdownProtectedLines(
     }
 
     const topLevel = container?.nested !== true;
-    output.push({ ...line, available, commentMaskedText, topLevel, fenceOpening, headingAvailable: available && headingAvailable && topLevel });
+    const inline = commentMaskedText.split("");
+    for (const range of container?.inlineCode ?? []) blankRange(inline, range.from, range.to);
+    output.push({ ...line, available, commentMaskedText, inlineMaskedText: inline.join(""), topLevel,
+      ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
+      fenceOpening, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
     // heading, fence, thematic break or other block without a blank line.
     inParagraph = available && trimmed.length > 0

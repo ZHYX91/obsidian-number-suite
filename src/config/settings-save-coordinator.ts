@@ -1,3 +1,5 @@
+import type { SettingsTaskScheduler } from "./settings-store-queue";
+
 export type WritableSettingsSaveState = "saved" | "scheduled" | "saving" | "pending";
 
 export interface WritableSettingsSaveStatus {
@@ -38,6 +40,7 @@ export class SettingsSaveCoordinator<T> {
     private readonly persist: (snapshot: T) => Promise<void>,
     private readonly delayMs = 250,
     private readonly timers: TimerHost = defaultTimerHost,
+    private readonly scheduleTask?: SettingsTaskScheduler,
   ) {}
 
   schedule(snapshot: T): void {
@@ -61,7 +64,9 @@ export class SettingsSaveCoordinator<T> {
 
   flush(): Promise<void> {
     this.cancelTimer();
-    return this.pending == null ? this.queue : this.saveNow();
+    // Reserve the final attempt now. An in-flight failure may restore pending
+    // only later; the next plugin's load must wait for this retry too.
+    return this.saveNow();
   }
 
   subscribe(listener: (status: SettingsSaveStatus) => void): () => void {
@@ -76,7 +81,9 @@ export class SettingsSaveCoordinator<T> {
 
   private saveNow(): Promise<void> {
     this.cancelTimer();
-    const operation = this.queue.then(() => this.persistPending());
+    const operation = this.scheduleTask == null
+      ? this.queue.then(() => this.persistPending())
+      : this.scheduleTask(() => this.persistPending());
     this.queue = operation.catch(() => undefined);
     return operation;
   }

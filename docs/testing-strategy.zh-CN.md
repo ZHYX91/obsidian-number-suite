@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-10-26
+last_synced: 2026-10-29
 ---
 
 # Number Suite — 测试策略
@@ -20,6 +20,8 @@ last_synced: 2026-10-26
 题注回归在实际计划与确认后的编辑器事务之后断言块 ID 归属、题注与对象关联不变量。固定样本 `tests/fixtures/structural-table-source-contract.json` 与提供方仓库保持一致，各项目使用仓库内的副本驱动真实解析器/生产者或消费者。无表头、短分隔符、同文双表、外部 ID、UTF-16/CRLF 偏移和引用容器覆盖双方识别范围不一致的边界。消费者拒绝不完整、未知、过期和错误路径快照；确认阶段拒绝变化的源码或文件。测试不联网拉取另一仓库，也不依赖其运行时。
 对象带有额外块 ID 时，四类题注在 LF 与 CRLF 下均应拒绝迁移。迁移会跳过原文内容时，核心计划
 以及源码和 Structural Tables 两个菜单入口必须保持原始字节，不能产生编辑器事务。
+
+完整快照边界回归使用独立 Lezer 行内代码／GFM 结构判断，覆盖跨行反引号、三种换行、公式内部四类题注及引用、无边界管道数据行和零空行真实题注；分别断言显示范围、首次脚注顺序、v2 出口和真实命令的一次事务。规模测试同时约束快照解析次数和 title 标准化工作量，保留 Unicode／重复题名歧义。渲染监听测试在插件仍加载时销毁并重新加入节点，并检查关闭窗口、视图卸载与 stopPropagation；设置生命周期用存储屏障验证旧实例最终保存／失败重试先于新读取，未知 schema 不写入。
 
 <!-- section: evidence-levels -->
 ## 证据层级

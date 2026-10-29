@@ -8,12 +8,12 @@ import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import {
   blockTargetKey,
   numberCaptions,
-  parseDocumentSemantics,
-  resolveUniqueSemanticTitleTarget,
+  normalizeSemanticTarget,
+  type ResolvedSemanticTitleTarget,
   type CaptionKind,
   type SemanticDocument,
 } from "../core/document-semantics";
-import { parseAtxHeadings } from "../core/heading-parser";
+import { createSemanticSnapshot } from "../application/semantic-snapshot";
 import { numberHeadings } from "../core/numbering-engine";
 import {
   compileTemplate,
@@ -228,7 +228,7 @@ function captionTargets(
 
 function semanticReferences(
   semantics: SemanticDocument,
-  parsedHeadings: readonly ParsedHeading[],
+  titleTargets: ReadonlyMap<string, ResolvedSemanticTitleTarget | null>,
   headings: readonly NumberSuiteHeadingTargetV2[],
   captions: readonly NumberSuiteCaptionTargetV2[],
 ): NumberSuiteReferenceV2[] {
@@ -239,7 +239,7 @@ function semanticReferences(
   const output: NumberSuiteReferenceV2[] = [];
   for (const reference of semantics.references) {
     const targetLine = reference.kind === "title"
-      ? resolveUniqueSemanticTitleTarget(reference.target, parsedHeadings, semantics.captions)?.line
+      ? titleTargets.get(normalizeSemanticTarget(reference.target))?.line
       : semantics.blockOwners.get(blockTargetKey(reference.target));
     const target = targetLine == null ? null : targetByLine.get(targetLine) ?? null;
     if (target == null) continue;
@@ -274,9 +274,10 @@ export function exportSemanticSnapshotV2(
       references: [],
     };
   }
-  const semantics = parseDocumentSemantics(request.authoredMarkdown);
+  const snapshot = createSemanticSnapshot(request.authoredMarkdown);
+  const semantics = snapshot.semantics;
   const targetIds = uniqueTargetIdsByLine(semantics);
-  const parsedHeadings = parseAtxHeadings(request.authoredMarkdown);
+  const parsedHeadings = snapshot.headings;
   const headings = headingTargets(
     targetIds,
     parsedHeadings,
@@ -290,7 +291,7 @@ export function exportSemanticSnapshotV2(
     disabled,
     headingTargets: headings,
     captionTargets: captions,
-    references: semanticReferences(semantics, parsedHeadings, headings, captions),
+    references: semanticReferences(semantics, snapshot.titleTargets, headings, captions),
   };
 }
 

@@ -1,9 +1,11 @@
+import { scanTableBlocks } from "./markdown-table-blocks";
 import { WORD_JOINER } from "./markers";
 import { noteContainerLines } from "./note-semantics";
 import {
   isMarkdownSourceEscaped,
   maskInlineProtectedSyntax,
   scanMarkdownProtectedLines,
+  type MarkdownProtectedLine,
 } from "./markdown-protection";
 import type { ParsedHeading } from "./types";
 
@@ -56,6 +58,9 @@ export interface SemanticSourceLine {
   readonly available: boolean;
   readonly topLevel: boolean;
   readonly fenceOpening?: boolean;
+  readonly equationLastLine?: number | undefined;
+  readonly inlineMaskedText?: string;
+  readonly captionAvailable?: boolean;
 }
 
 const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
@@ -63,18 +68,28 @@ export const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 const SEMANTIC_REFERENCE = /@\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu;
 
-export function scanSemanticSourceLines(source: string): SemanticSourceLine[] {
-  const protectedNoteLines = noteContainerLines(source);
-  return scanMarkdownProtectedLines(source).map((line) => ({
+export function scanSemanticSourceLines(
+  source: string,
+  protectedLines: readonly MarkdownProtectedLine[] = scanMarkdownProtectedLines(source),
+  protectedNoteLines: ReadonlySet<number> = noteContainerLines(source, protectedLines),
+): SemanticSourceLine[] {
+  const lines = protectedLines.map((line) => ({
     text: line.text,
     commentMaskedText: line.commentMaskedText,
     from: line.from,
     to: line.to,
     number: line.number,
     topLevel: line.topLevel,
+    inlineMaskedText: line.inlineMaskedText,
+    equationLastLine: protectedNoteLines.has(line.number) ? undefined : line.equationLastLine,
+    captionAvailable: true,
     fenceOpening: line.fenceOpening && !protectedNoteLines.has(line.number),
     available: line.available && !protectedNoteLines.has(line.number),
   }));
+  for (const block of scanTableBlocks(lines)) {
+    for (let index = block.first; index <= block.last; index += 1) lines[index]!.captionAvailable = false;
+  }
+  return lines;
 }
 
 export function withoutTrailingBlockId(value: string): string {
@@ -97,8 +112,7 @@ export function blockTargetKey(id: string): string {
   return `block:${id.normalize("NFC").toLowerCase()}`;
 }
 
-export function parseDocumentSemantics(source: string): SemanticDocument {
-  const lines = scanSemanticSourceLines(source);
+export function parseDocumentSemantics(source: string, lines: readonly SemanticSourceLine[] = scanSemanticSourceLines(source)): SemanticDocument {
   const captions: ParsedCaption[] = [];
   const references: ParsedSemanticReference[] = [];
   const blockOwners = new Map<string, number>();
@@ -124,14 +138,16 @@ export function parseDocumentSemantics(source: string): SemanticDocument {
       interveningBlankLines = 0;
       continue;
     }
-    const masked = maskInlineProtectedSyntax(line.commentMaskedText);
+    const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
     const standalone = STANDALONE_BLOCK_ID.exec(masked);
     if (standalone?.[1] != null) {
       if (line.topLevel && previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
       continue;
     }
 
-    const captionMatch = line.topLevel ? CAPTION.exec(line.commentMaskedText) : null;
+    const captionMatch = line.topLevel && line.captionAvailable !== false
+      && /^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/u.test(masked)
+      ? CAPTION.exec(line.commentMaskedText) : null;
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
       const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;
@@ -214,17 +230,20 @@ export function resolveUniqueSemanticTitleTarget(
   headings: readonly ParsedHeading[],
   captions: readonly ParsedCaption[],
 ): ResolvedSemanticTitleTarget | null {
-  const normalized = normalizeSemanticTarget(target);
-  const candidates: ResolvedSemanticTitleTarget[] = [];
-  for (const heading of headings) {
-    if (normalizeSemanticTarget(withoutTrailingBlockId(heading.content)) === normalized) {
-      candidates.push({ kind: "heading", line: heading.line });
-    }
-  }
-  for (const caption of captions) {
-    if (normalizeSemanticTarget(`${caption.kind}: ${caption.title}`) === normalized) {
-      candidates.push({ kind: "caption", line: caption.line });
-    }
-  }
-  return candidates.length === 1 ? candidates[0] ?? null : null;
+  return createSemanticTitleIndex(headings, captions).get(normalizeSemanticTarget(target)) ?? null;
+}
+
+/** Per-snapshot index: null retains ambiguity across headings and typed captions. */
+export function createSemanticTitleIndex(
+  headings: readonly ParsedHeading[],
+  captions: readonly ParsedCaption[],
+): ReadonlyMap<string, ResolvedSemanticTitleTarget | null> {
+  const targets = new Map<string, ResolvedSemanticTitleTarget | null>();
+  const add = (title: string, target: ResolvedSemanticTitleTarget): void => {
+    const key = normalizeSemanticTarget(title);
+    targets.set(key, targets.has(key) ? null : target);
+  };
+  for (const heading of headings) add(withoutTrailingBlockId(heading.content), { kind: "heading", line: heading.line });
+  for (const caption of captions) add(`${caption.kind}: ${caption.title}`, { kind: "caption", line: caption.line });
+  return targets;
 }
