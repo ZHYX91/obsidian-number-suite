@@ -4,7 +4,7 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
-## 0.6.2 - 2026-11-01
+## 0.6.3 - 2026-11-01
 
 - Preserve pipe-free GFM table body rows during caption insertion while ending the table before following numbered lists and indented code.
 - Release tooltip listeners and accessibility state immediately when a popout window closes, including repeated reopen cycles.
