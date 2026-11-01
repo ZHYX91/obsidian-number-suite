@@ -90,6 +90,19 @@ describe("caption insertion", () => {
     expect(findCaptionInsertionTargetForTableRange(source, 2, source.length)).toBeNull();
   });
 
+  it.each(["2. item", "0) item", "123456789. item", "    literal", "\tliteral", " \tliteral"])(
+    "ends a table before a following block even when it cannot interrupt paragraphs: %s", (block) => {
+      for (const eol of ["\n", "\r\n"]) {
+        const table = `| A | B |${eol}| --- | --- |`;
+        const source = `${table}${eol}${block}`;
+        expect(findCaptionInsertionTarget(source, source.length - 1)).toBeNull();
+        expect(createCaptionInsertionPlan(source, source.length - 1, "Wrong target")).toBeNull();
+        expect(findCaptionInsertionTargetForTableRange(source, 0, table.length)).toMatchObject({ kind: "Table", action: "insert" });
+        expect(createCaptionInsertionPlan(source, 2, "Results")?.result).toBe(`Table: Results${eol}${eol}${source}`);
+      }
+    },
+  );
+
   it("does not offer a table action on a following heading or move a caption across it", () => {
     const table = "| H |\n| --- |\n| A |";
     const source = `${table}\n# Heading | Content\n\nTable: Below`;

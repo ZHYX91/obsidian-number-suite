@@ -79,6 +79,11 @@ export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
     while (last + 1 < lines.length) {
       const body = lines[last + 1]!;
       if (!body.available || !body.topLevel || body.text.trim() === ""
+        // Tables are block containers, not paragraphs: every ordered-list
+        // start and four-column code indent ends a body, including forms
+        // that cannot interrupt an ordinary paragraph in the source parser.
+        || /^(?: {4}| {0,3}\t)/u.test(body.text)
+        || /^ {0,3}(?:\d{1,9}[.)]|[-+*])(?:[ \t]|$)/u.test(body.text)
         || /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u.test(body.text)
         || /^ {0,3}#{1,9}(?:[ \t]|$)/u.test(body.text)
         || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/u.test(body.text)) break;

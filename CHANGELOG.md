@@ -4,6 +4,8 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+- Preserve pipe-free GFM table body rows during caption insertion while ending the table before following numbered lists and indented code.
+- Release tooltip listeners and accessibility state immediately when a popout window closes, including repeated reopen cycles.
 - Exclude real root indented code from footnote numbering while retaining semantic references in indented paragraph continuations.
 - Reuse per-snapshot target and display indexes during semantic export, preserving duplicate-ID ambiguity and source offsets.
 - Recheck original note registration and path before deferred Properties changes, keeping stale drafts without modifying a replacement note.
