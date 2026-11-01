@@ -1,4 +1,4 @@
-import { type App, type Component } from "obsidian";
+import { Component, type App } from "obsidian";
 
 import {
   parseNoteOverrides,
@@ -79,7 +79,7 @@ function sourceForTarget(app: App, target: HTMLElement): string | null {
 }
 
 export class SemanticTooltipController {
-  private readonly registeredDocuments = new WeakSet<Document>();
+  private readonly registeredDocuments = new Map<Document, Component>();
   private active: HTMLElement | null = null;
   private tooltip: HTMLElement | null = null;
   private describedBy: { readonly id: string; readonly target: HTMLElement } | null = null;
@@ -95,6 +95,10 @@ export class SemanticTooltipController {
     component.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
       this.registerDocument(component, window.document);
     }));
+    component.registerEvent(this.app.workspace.on("window-close", (_workspaceWindow, window) => {
+      const owner = this.registeredDocuments.get(window.document);
+      if (owner != null) component.removeChild(owner);
+    }));
     component.register(() => this.hide());
   }
 
@@ -105,14 +109,19 @@ export class SemanticTooltipController {
 
   private registerDocument(component: Component, ownerDocument: Document): void {
     if (this.registeredDocuments.has(ownerDocument)) return;
-    this.registeredDocuments.add(ownerDocument);
-    component.registerDomEvent(ownerDocument, "pointerover", (event) => this.showFromEvent(event));
-    component.registerDomEvent(ownerDocument, "focusin", (event) => this.showFromEvent(event));
-    component.registerDomEvent(ownerDocument, "pointerout", (event) => this.hideFromEvent(event));
-    component.registerDomEvent(ownerDocument, "focusout", (event) => this.hideFromEvent(event));
-    component.registerDomEvent(ownerDocument, "contextmenu", () => this.hide());
-    component.registerDomEvent(ownerDocument, "keydown", () => this.hide());
-    component.registerDomEvent(ownerDocument, "scroll", () => this.hide(), { capture: true });
+    const owner = component.addChild(new Component());
+    this.registeredDocuments.set(ownerDocument, owner);
+    owner.register(() => {
+      this.registeredDocuments.delete(ownerDocument);
+      if (this.active?.ownerDocument === ownerDocument) this.hide();
+    });
+    owner.registerDomEvent(ownerDocument, "pointerover", (event) => this.showFromEvent(event));
+    owner.registerDomEvent(ownerDocument, "focusin", (event) => this.showFromEvent(event));
+    owner.registerDomEvent(ownerDocument, "pointerout", (event) => this.hideFromEvent(event));
+    owner.registerDomEvent(ownerDocument, "focusout", (event) => this.hideFromEvent(event));
+    owner.registerDomEvent(ownerDocument, "contextmenu", () => this.hide());
+    owner.registerDomEvent(ownerDocument, "keydown", () => this.hide());
+    owner.registerDomEvent(ownerDocument, "scroll", () => this.hide(), { capture: true });
   }
 
   private showFromEvent(event: Event): void {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parser, GFM } from "@lezer/markdown";
 
 import {
   createCaptionInsertionPlan,
@@ -50,6 +51,18 @@ describe("caption insertion", () => {
         action: "insert",
       });
     }
+  });
+
+  it.each(["Figure: Alpha", "Table: Alpha", "plain body"])("keeps a pipe-free GFM body inside its table: %s", (body) => {
+    const source = `| A | B |\n| --- | --- |\n${body}`;
+    const native = parser.configure(GFM).parse(source).topNode.firstChild!;
+    expect(native.name).toBe("Table");
+    expect(native.to).toBe(source.length);
+    const offset = source.indexOf(body);
+    expect(findCaptionInsertionTarget(source, offset)).toMatchObject({ kind: "Table", action: "insert" });
+    expect(createCaptionInsertionPlan(source, offset, "Results")?.result).toBe(`Table: Results\n\n${source}`);
+    const separate = `![image](image.png)\n\n${body}`;
+    if (body.startsWith("Figure:")) expect(findCaptionInsertionTarget(separate, 2)?.kind).toBe("Figure");
   });
 
   it("verifies exact table ranges and keeps multi-row headers intact", () => {

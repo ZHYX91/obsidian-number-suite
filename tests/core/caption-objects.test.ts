@@ -105,6 +105,11 @@ describe("caption object binding", () => {
     ({ blankLines, captionKind, objectKind, objectSource }) => {
       const separator = "\n".repeat(blankLines + 1);
       const binding = bindCaptionObjects(`${objectSource}${separator}${captionKind}: Pair`);
+      if (objectKind === "Table" && blankLines === 0) {
+        // With no blank separator this is a pipe-free GFM body row.
+        expect(binding).toHaveLength(0);
+        return;
+      }
       expect(binding).toHaveLength(1);
       expect(binding[0]).toMatchObject({
         caption: { kind: captionKind, title: "Pair" },

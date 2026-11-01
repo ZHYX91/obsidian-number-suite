@@ -132,8 +132,8 @@ beforeEach(() => {
 });
 
 describe("caption context menu", () => {
-  it("inserts above an entire GFM table without relocating a caption-looking data row", async () => {
-    const source = "| Name | Value |\n| --- | --- |\nFigure: Alpha | Beta\n| Gamma | Delta |";
+  it.each(["Figure: Alpha | Beta", "Figure: Alpha", "Figure:Alpha"])("inserts above an entire GFM table without relocating its body row: %s", async (body) => {
+    const source = `| Name | Value |\n| --- | --- |\n${body}\n| Gamma | Delta |`;
     const testMenu = createMenu();
     const testEditor = createEditor(source, 2);
     addCaptionContextMenuItem({} as App, testMenu.menu, testEditor.editor, fileInfo(), translate);

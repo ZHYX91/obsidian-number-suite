@@ -77,7 +77,9 @@ governed by their own source and settings.
     semantic labeling and numbering, not carrier type: any caption may bind one adjacent standalone
     image, table, display equation, or fenced code block. Zero or one blank line may separate them;
     two blank lines break the binding; caption/object candidate ambiguity fails closed. Unbound
-    declarations remain captions. Each type independently displays above or below its bound object,
+    declarations remain captions. Native table body text remains table content even without pipes;
+    caption-looking text immediately below table rows needs a blank line to become a caption.
+    Each type independently displays above or below its bound object,
     defaulting above, without rewriting source; the carrier anchor owns one compact visual gap.
     Image/Figure hover details are enabled by default and separate the rendered caption from
     meaningful replacement text while suppressing duplicates, sizes, and filename-only noise.

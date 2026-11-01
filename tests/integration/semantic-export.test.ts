@@ -96,6 +96,7 @@ describe("Number Suite interoperability snapshot", () => {
       "Table: Results",
       "| A |",
       "| --- |",
+      "",
       "Equation: ^energy",
       "$$E=mc^2$$",
       "Code: ^snippet",

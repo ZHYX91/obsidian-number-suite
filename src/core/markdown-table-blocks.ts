@@ -76,7 +76,16 @@ export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
     while (first > 0 && !/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(lines[first - 1]!.text)
       && tableRowColumnCount(lines[first - 1]) === columns) first -= 1;
     let last = delimiter;
-    while (last + 1 < lines.length && tableRowColumnCount(lines[last + 1]) != null) last += 1;
+    while (last + 1 < lines.length) {
+      const body = lines[last + 1]!;
+      if (!body.available || !body.topLevel || body.text.trim() === ""
+        || /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u.test(body.text)
+        || /^ {0,3}#{1,9}(?:[ \t]|$)/u.test(body.text)
+        || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/u.test(body.text)) break;
+      // GFM body rows may omit every pipe; missing cells are padded. They
+      // remain owned by the table, including caption-looking literal text.
+      last += 1;
+    }
     for (let index = first; index <= last; index += 1) consumed.add(index);
     blocks.push({ first, last, delimiter });
   }
