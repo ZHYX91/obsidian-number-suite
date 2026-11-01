@@ -48,20 +48,20 @@
     "node": "24.19.0"
   },
   "devDependencies": {
-    "@codemirror/language": "^6.12.4",
+    "@codemirror/language": "^6.13.1",
     "@codemirror/state": "6.5.0",
     "@codemirror/view": "6.38.6",
     "@eslint/js": "10.0.1",
-    "@lezer/markdown": "1.7.2",
-    "@types/node": "24.19.0",
+    "@lezer/markdown": "1.8.1",
+    "@types/node": "24.19.2",
     "@vitest/coverage-v8": "4.1.12",
     "esbuild": "0.28.2",
-    "eslint": "10.11.0",
+    "eslint": "10.13.0",
     "eslint-plugin-obsidianmd": "0.4.2",
     "happy-dom": "21.0.4",
-    "obsidian": "1.13.1",
+    "obsidian": "1.14.4",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.70.1",
+    "typescript-eslint": "8.72.1",
     "vitest": "4.1.12"
   },
   "allowScripts": {
