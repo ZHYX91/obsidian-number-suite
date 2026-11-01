@@ -2,6 +2,7 @@ import {
   isMarkdownSourceEscaped,
   maskInlineProtectedSyntax,
   scanMarkdownProtectedLines,
+  type MarkdownProtectedLine,
 } from "./markdown-protection";
 
 export type NoteKind = "footnote" | "endnote";
@@ -77,9 +78,9 @@ function noteIdentity(label: string): NoteIdentity | null {
   };
 }
 
-function sourceLines(source: string): SourceLine[] {
-  return scanMarkdownProtectedLines(source).map((line) => ({
-    text: line.commentMaskedText,
+function sourceLines(protectedLines: readonly MarkdownProtectedLine[]): SourceLine[] {
+  return protectedLines.map((line) => ({
+    text: line.inlineMaskedText,
     from: line.from,
     to: line.to,
     number: line.number,
@@ -111,12 +112,12 @@ function definitionContainerLines(lines: readonly SourceLine[]): Set<number> {
   return result;
 }
 
-export function noteContainerLines(source: string): ReadonlySet<number> {
-  return definitionContainerLines(sourceLines(source));
+export function noteContainerLines(source: string, protectedLines: readonly MarkdownProtectedLine[] = scanMarkdownProtectedLines(source)): ReadonlySet<number> {
+  return definitionContainerLines(sourceLines(protectedLines));
 }
 
-export function parseDocumentNotes(source: string): DocumentNoteSemantics {
-  const lines = sourceLines(source);
+export function parseDocumentNotes(source: string, protectedLines = scanMarkdownProtectedLines(source)): DocumentNoteSemantics {
+  const lines = sourceLines(protectedLines);
   const containerLines = definitionContainerLines(lines);
   const definitions: ParsedNoteDefinition[] = [];
   const references: ParsedNoteReference[] = [];

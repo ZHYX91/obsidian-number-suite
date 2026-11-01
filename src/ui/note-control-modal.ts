@@ -463,7 +463,15 @@ export class NoteControlPane {
     const app = this.app;
     const refreshDisplay = this.actions.refreshDisplay;
     const coordinator = new NoteSaveCoordinator(this.frontmatter, async (expected, desired) => {
+      const path = file.path;
+      const assertFileIdentity = (): void => {
+        if (file.path !== path || app.vault.getAbstractFileByPath(path) !== file) {
+          throw new Error("Number Suite note file changed before its Properties could be saved.");
+        }
+      };
+      assertFileIdentity();
       await app.fileManager.processFrontMatter(file, (frontmatter) => {
+        assertFileIdentity();
         const current = frontmatter as Record<string, unknown>;
         const pick = (values: Record<string, unknown>): string => JSON.stringify(Object.fromEntries(
           NOTE_OVERRIDE_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(values, key))

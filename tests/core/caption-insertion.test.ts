@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parser, GFM } from "@lezer/markdown";
 
 import {
   createCaptionInsertionPlan,
@@ -52,6 +53,18 @@ describe("caption insertion", () => {
     }
   });
 
+  it.each(["Figure: Alpha", "Table: Alpha", "plain body"])("keeps a pipe-free GFM body inside its table: %s", (body) => {
+    const source = `| A | B |\n| --- | --- |\n${body}`;
+    const native = parser.configure(GFM).parse(source).topNode.firstChild!;
+    expect(native.name).toBe("Table");
+    expect(native.to).toBe(source.length);
+    const offset = source.indexOf(body);
+    expect(findCaptionInsertionTarget(source, offset)).toMatchObject({ kind: "Table", action: "insert" });
+    expect(createCaptionInsertionPlan(source, offset, "Results")?.result).toBe(`Table: Results\n\n${source}`);
+    const separate = `![image](image.png)\n\n${body}`;
+    if (body.startsWith("Figure:")) expect(findCaptionInsertionTarget(separate, 2)?.kind).toBe("Figure");
+  });
+
   it("verifies exact table ranges and keeps multi-row headers intact", () => {
     const source = [
       "Intro",
@@ -76,6 +89,19 @@ describe("caption insertion", () => {
     );
     expect(findCaptionInsertionTargetForTableRange(source, 2, source.length)).toBeNull();
   });
+
+  it.each(["2. item", "0) item", "123456789. item", "    literal", "\tliteral", " \tliteral"])(
+    "ends a table before a following block even when it cannot interrupt paragraphs: %s", (block) => {
+      for (const eol of ["\n", "\r\n"]) {
+        const table = `| A | B |${eol}| --- | --- |`;
+        const source = `${table}${eol}${block}`;
+        expect(findCaptionInsertionTarget(source, source.length - 1)).toBeNull();
+        expect(createCaptionInsertionPlan(source, source.length - 1, "Wrong target")).toBeNull();
+        expect(findCaptionInsertionTargetForTableRange(source, 0, table.length)).toMatchObject({ kind: "Table", action: "insert" });
+        expect(createCaptionInsertionPlan(source, 2, "Results")?.result).toBe(`Table: Results${eol}${eol}${source}`);
+      }
+    },
+  );
 
   it("does not offer a table action on a following heading or move a caption across it", () => {
     const table = "| H |\n| --- |\n| A |";

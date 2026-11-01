@@ -101,10 +101,12 @@ export function sourceOffsetForHeadingContent(
   return heading.contentTo;
 }
 
-export function parseAtxHeadings(source: string): ParsedHeading[] {
+export function parseAtxHeadings(
+  source: string,
+  lines = scanMarkdownProtectedLines(source),
+  noteLines = noteContainerLines(source, lines),
+): ParsedHeading[] {
   const headings: ParsedHeading[] = [];
-  const lines = scanMarkdownProtectedLines(source);
-  const noteLines = noteContainerLines(source);
 
   for (const line of lines) {
     if (noteLines.has(line.number)) continue;

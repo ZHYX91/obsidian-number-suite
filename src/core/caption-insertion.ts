@@ -79,7 +79,7 @@ function adjacentCaptionLine(
     index >= 0 && index < lines.length && distance < 4;
     index += direction, distance += 1) {
     const line = lines[index];
-    if (line == null || !line.available || !line.topLevel) return null;
+    if (line == null || !line.available || !line.topLevel || line.captionAvailable === false) return null;
     if (line.text.trim().length === 0) {
       blanks += 1;
       if (blanks > 1) return null;
@@ -179,11 +179,12 @@ function validatedTargetForObject(
 ): CaptionInsertionTarget | null {
   const target = targetForObject(source, lines, object);
   if (target?.action !== "relocate") return target;
-  const exactCaption = parseDocumentSemantics(source).captions.find((caption) => (
+  const captions = parseDocumentSemantics(source, lines).captions;
+  const exactCaption = captions.find((caption) => (
     caption.line === target.line
   ));
   if (exactCaption == null) return target;
-  return bindCaptionObjects(source).some((binding) => (
+  return bindCaptionObjects(source, lines, captions).some((binding) => (
     binding.caption.line === exactCaption.line
     && binding.object.from === object.from
   )) ? target : null;
@@ -194,12 +195,13 @@ export function findCaptionInsertionTarget(
   cursorOffset: number,
 ): CaptionInsertionTarget | null {
   if (!Number.isInteger(cursorOffset) || cursorOffset < 0 || cursorOffset > source.length) return null;
-  const object = scanCaptionObjects(source).find((candidate) => (
+  const lines = scanSemanticSourceLines(source);
+  const object = scanCaptionObjects(source, lines).find((candidate) => (
     cursorOffset >= candidate.from && cursorOffset <= candidate.to
   ));
   return object == null
     ? null
-    : validatedTargetForObject(source, scanSemanticSourceLines(source), object);
+    : validatedTargetForObject(source, lines, object);
 }
 
 export function findCaptionObjectForTableRange(
@@ -219,10 +221,11 @@ export function findCaptionInsertionTargetForTableRange(
   from: number,
   to: number,
 ): CaptionInsertionTarget | null {
+  const lines = scanSemanticSourceLines(source);
   const object = findCaptionObjectForTableRange(source, from, to);
   return object == null
     ? null
-    : validatedTargetForObject(source, scanSemanticSourceLines(source), object);
+    : validatedTargetForObject(source, lines, object);
 }
 
 function preferredNewline(source: string): "\n" | "\r\n" {

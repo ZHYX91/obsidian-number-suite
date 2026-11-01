@@ -3,7 +3,7 @@ import {
   MarkdownView,
   Menu,
   type App,
-  type Component,
+  Component,
   type Editor,
 } from "obsidian";
 
@@ -99,10 +99,15 @@ function domOffsets(target: HTMLElement, event: MouseEvent): number[] {
   return offsets;
 }
 
+interface CarrierDocumentScope {
+  readonly owner: Component;
+  readonly targets: Map<HTMLElement, { owner: Component; view: MarkdownView }>;
+  active: boolean;
+}
+
 export class CaptionCarrierMenuBridge {
   private readonly contributedEvents = new WeakSet<Event>();
-  private readonly registeredDocuments = new WeakSet<Document>();
-  private readonly registeredTargets = new WeakSet<HTMLElement>();
+  private readonly documents = new Map<Document, CarrierDocumentScope>();
 
   constructor(
     private readonly app: App,
@@ -121,42 +126,57 @@ export class CaptionCarrierMenuBridge {
     component.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
       this.registerDocument(component, window.document);
     }));
+    component.registerEvent(this.app.workspace.on("window-close", (_workspaceWindow, window) => {
+      const scope = this.documents.get(window.document);
+      if (scope != null) component.removeChild(scope.owner);
+    }));
   }
 
   private registerDocument(component: Component, targetDocument: Document): void {
-    if (this.registeredDocuments.has(targetDocument)) return;
-    this.registeredDocuments.add(targetDocument);
-    component.registerDomEvent(
-      targetDocument,
-      "contextmenu",
-      (event) => this.captureContext(event),
-      { capture: true },
-    );
-    this.registerTargets(component, targetDocument);
+    if (this.signal?.aborted || this.documents.has(targetDocument)) return;
+    const owner = component.addChild(new Component());
+    const scope: CarrierDocumentScope = { owner, targets: new Map(), active: true };
+    this.documents.set(targetDocument, scope);
+    owner.registerDomEvent(targetDocument, "contextmenu", (event) => this.captureContext(event), { capture: true });
     const Observer = targetDocument.defaultView?.MutationObserver;
-    if (Observer === undefined || targetDocument.body === null) return;
-    const observer = new Observer((records) => {
-      for (const record of records) {
-        for (const node of record.addedNodes) {
-          if (node.nodeType === 1) this.registerTargets(component, node as Element);
+    const observer = Observer == null ? null : new Observer((records) => {
+      if (!scope.active) return;
+      // Prune final ownership before additions, so a move across views can bind
+      // again while a same-view detach/reattach keeps its listener ordering.
+      for (const [target, entry] of scope.targets) {
+        if (!target.isConnected || target.ownerDocument !== targetDocument || !entry.view.containerEl.contains(target)) {
+          entry.view.removeChild(entry.owner);
         }
       }
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node.nodeType === 1) this.registerTargets(scope, targetDocument, node as Element);
+      }
     });
-    observer.observe(targetDocument.body, { childList: true, subtree: true });
-    component.register(() => observer.disconnect());
+    owner.register(() => {
+      scope.active = false;
+      observer?.disconnect();
+      for (const entry of [...scope.targets.values()]) entry.view.removeChild(entry.owner);
+      scope.targets.clear();
+      this.documents.delete(targetDocument);
+    });
+    this.registerTargets(scope, targetDocument, targetDocument);
+    if (targetDocument.body != null) observer?.observe(targetDocument.body, { childList: true, subtree: true });
   }
 
-  private registerTargets(component: Component, root: ParentNode): void {
+  private registerTargets(scope: CarrierDocumentScope, targetDocument: Document, root: ParentNode): void {
+    if (!scope.active) return;
     const targets = [
-      ...(("matches" in root && (root as Element).matches(CARRIER_TARGET_SELECTOR))
-        ? [root as HTMLElement]
-        : []),
+      ...(("matches" in root && (root as Element).matches(CARRIER_TARGET_SELECTOR)) ? [root as HTMLElement] : []),
       ...root.querySelectorAll<HTMLElement>(CARRIER_TARGET_SELECTOR),
     ];
     for (const target of targets) {
-      if (this.registeredTargets.has(target)) continue;
-      this.registeredTargets.add(target);
-      component.registerDomEvent(target, "contextmenu", (event) => this.contribute(event));
+      if (!target.isConnected || target.ownerDocument !== targetDocument || scope.targets.has(target)) continue;
+      const view = this.markdownViewFor(target);
+      if (view == null) continue;
+      const owner = view.addChild(new Component());
+      scope.targets.set(target, { owner, view });
+      owner.register(() => scope.targets.delete(target));
+      owner.registerDomEvent(target, "contextmenu", (event) => this.contribute(event));
     }
   }
 

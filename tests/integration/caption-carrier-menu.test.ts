@@ -6,7 +6,7 @@ import {
   Menu,
   TFile,
   type App,
-  type Component,
+  Component,
   type Editor,
 } from "obsidian";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -87,19 +87,10 @@ const CARRIER_CASES: readonly CarrierCase[] = [
 ];
 
 function component(): Component {
-  return {
-    registerEvent: () => {},
-    register: (cleanup: () => void) => cleanups.push(cleanup),
-    registerDomEvent: (
-      target: Document | HTMLElement,
-      type: string,
-      callback: EventListener,
-      options?: AddEventListenerOptions,
-    ) => {
-      target.addEventListener(type, callback, options);
-      cleanups.push(() => target.removeEventListener(type, callback, options));
-    },
-  } as unknown as Component;
+  const owner = new Component();
+  owner.load();
+  cleanups.push(() => owner.unload());
+  return owner;
 }
 
 function fixture(testCase: CarrierCase): {
@@ -119,7 +110,7 @@ function fixture(testCase: CarrierCase): {
     posToOffset: () => 0,
   } as unknown as Editor;
   const FileConstructor = TFile as unknown as new (path: string) => TFile;
-  const markdownView = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
+  const markdownView = Object.assign(new (MarkdownView as unknown as new () => MarkdownView)(), {
     containerEl: container,
     editor,
     file: new FileConstructor("note.md"),
@@ -145,6 +136,51 @@ afterEach(() => {
 });
 
 describe("caption carrier menu bridge", () => {
+  it("releases removed render targets before plugin unload and can bind a reinserted node", async () => {
+    const { app, target, content, markdownView } = fixture(CARRIER_CASES[0]!);
+    vi.spyOn(EditorView, "findFromDOM").mockReturnValue({
+      contentDOM: content, posAtCoords: () => 3, posAtDOM: () => 3,
+    } as unknown as EditorView);
+    target.addEventListener("contextmenu", (event) => event.stopPropagation());
+    const remove = vi.spyOn(target, "removeEventListener");
+    const owner = component();
+    new CaptionCarrierMenuBridge(app, () => translate, () => {}).register(owner);
+    let event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event))).toHaveLength(1);
+    const parent = target.parentElement!;
+    target.remove();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(remove).toHaveBeenCalledWith("contextmenu", expect.any(Function), undefined);
+    parent.appendChild(target);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event))).toHaveLength(1);
+    markdownView.unload();
+    event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event))).toHaveLength(0);
+  });
+
+  it("releases a closed document and ignores queued observer additions", async () => {
+    const { app, target, content } = fixture(CARRIER_CASES[0]!);
+    const events = new Map<string, (...args: unknown[]) => void>();
+    app.workspace.on = ((name: string, callback: (...args: unknown[]) => void) => {
+      events.set(name, callback); return {};
+    }) as typeof app.workspace.on;
+    const remove = vi.spyOn(document, "removeEventListener");
+    new CaptionCarrierMenuBridge(app, () => translate, () => {}).register(component());
+    content.appendChild(target.cloneNode(true));
+    events.get("window-close")?.({}, window);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(remove).toHaveBeenCalledWith("contextmenu", expect.any(Function), { capture: true });
+    const late = target.cloneNode(true) as HTMLElement;
+    const add = vi.spyOn(late, "addEventListener");
+    content.appendChild(late);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(add).not.toHaveBeenCalled();
+  });
   it.each(CARRIER_CASES)("does not contribute an old $label action after owner abort", (testCase) => {
     const { app, target, content } = fixture(testCase);
     vi.spyOn(EditorView, "findFromDOM").mockReturnValue({

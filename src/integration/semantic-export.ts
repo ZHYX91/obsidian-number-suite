@@ -8,13 +8,12 @@ import { parseNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import {
   blockTargetKey,
   numberCaptions,
-  parseDocumentSemantics,
-  resolveUniqueSemanticTitleTarget,
-  scanSemanticSourceLines,
+  normalizeSemanticTarget,
+  type ResolvedSemanticTitleTarget,
   type CaptionKind,
   type SemanticDocument,
 } from "../core/document-semantics";
-import { parseAtxHeadings } from "../core/heading-parser";
+import { createSemanticSnapshot } from "../application/semantic-snapshot";
 import { numberHeadings } from "../core/numbering-engine";
 import {
   compileTemplate,
@@ -102,22 +101,20 @@ function targetAuthoredText(value: string): string {
   return match?.[1] == null ? value.trim() : value.slice(0, match.index).trim();
 }
 
-function uniqueTargetIdForLine(
-  source: string,
-  line: number,
+function uniqueTargetIdsByLine(
   semantics: SemanticDocument,
-): string | null {
-  const ownerKeys = [...semantics.blockOwners.entries()]
-    .filter(([, ownerLine]) => ownerLine === line)
-    .map(([key]) => key);
-  if (ownerKeys.length !== 1) return null;
-  const ownerKey = ownerKeys[0];
-  if (ownerKey == null) return null;
-  for (const sourceLine of scanSemanticSourceLines(source)) {
-    const id = TRAILING_BLOCK_ID.exec(sourceLine.text)?.[1];
-    if (id != null && blockTargetKey(id) === ownerKey) return id;
+): ReadonlyMap<number, string> {
+  if (semantics.blockOwners.size === 0) return new Map();
+  const ownerKeyByLine = new Map<number, string | null>();
+  for (const [key, line] of semantics.blockOwners) {
+    ownerKeyByLine.set(line, ownerKeyByLine.has(line) ? null : key);
   }
-  return null;
+  const targetIds = new Map<number, string>();
+  for (const [line, key] of ownerKeyByLine) {
+    const id = key == null ? null : semantics.blockOwnerIds.get(key);
+    if (id != null && id.length <= 128) targetIds.set(line, id);
+  }
+  return targetIds;
 }
 
 function displaySegments(
@@ -148,9 +145,8 @@ function displaySegments(
 }
 
 function headingTargets(
-  source: string,
+  targetIds: ReadonlyMap<number, string>,
   headings: readonly ParsedHeading[],
-  semantics: SemanticDocument,
   settings: NumberSuiteSettings,
   frontmatter: unknown,
 ): NumberSuiteHeadingTargetV2[] {
@@ -172,9 +168,11 @@ function headingTargets(
     selections: [],
     composing: false,
   });
+  const virtualByLine = new Map(decorations.filter((entry) => entry.kind === "virtual").map((entry) => [entry.line, entry]));
+  const concealedByLine = new Map(decorations.filter((entry) => entry.kind === "conceal").map((entry) => [entry.line, entry]));
   return numbered.map((item) => {
-    const virtual = decorations.find((entry) => entry.line === item.heading.line && entry.kind === "virtual");
-    const concealed = decorations.find((entry) => entry.line === item.heading.line && entry.kind === "conceal");
+    const virtual = virtualByLine.get(item.heading.line);
+    const concealed = concealedByLine.get(item.heading.line);
     const visibleContent = concealed?.sourceText == null
       ? item.heading.content
       : item.heading.content.slice(concealed.sourceText.length).trimStart();
@@ -197,7 +195,7 @@ function headingTargets(
       sourceEndUtf16: item.heading.lineTo,
       line: item.heading.line,
       level: item.heading.level,
-      targetId: uniqueTargetIdForLine(source, item.heading.line, semantics),
+      targetId: targetIds.get(item.heading.line) ?? null,
       authoredText,
       enabled,
       derivedNumber: enabled ? item.label : null,
@@ -208,7 +206,7 @@ function headingTargets(
 }
 
 function captionTargets(
-  source: string,
+  targetIds: ReadonlyMap<number, string>,
   semantics: SemanticDocument,
   settings: NumberSuiteSettings,
 ): NumberSuiteCaptionTargetV2[] {
@@ -220,7 +218,7 @@ function captionTargets(
       sourceEndUtf16: caption.lineTo,
       line: caption.line,
       kind: caption.kind,
-      targetId: uniqueTargetIdForLine(source, caption.line, semantics),
+      targetId: targetIds.get(caption.line) ?? null,
       authoredText,
       enabled,
       derivedNumber: enabled ? String(caption.number) : null,
@@ -230,7 +228,7 @@ function captionTargets(
 
 function semanticReferences(
   semantics: SemanticDocument,
-  parsedHeadings: readonly ParsedHeading[],
+  titleTargets: ReadonlyMap<string, ResolvedSemanticTitleTarget | null>,
   headings: readonly NumberSuiteHeadingTargetV2[],
   captions: readonly NumberSuiteCaptionTargetV2[],
 ): NumberSuiteReferenceV2[] {
@@ -241,7 +239,7 @@ function semanticReferences(
   const output: NumberSuiteReferenceV2[] = [];
   for (const reference of semantics.references) {
     const targetLine = reference.kind === "title"
-      ? resolveUniqueSemanticTitleTarget(reference.target, parsedHeadings, semantics.captions)?.line
+      ? titleTargets.get(normalizeSemanticTarget(reference.target))?.line
       : semantics.blockOwners.get(blockTargetKey(reference.target));
     const target = targetLine == null ? null : targetByLine.get(targetLine) ?? null;
     if (target == null) continue;
@@ -276,23 +274,24 @@ export function exportSemanticSnapshotV2(
       references: [],
     };
   }
-  const semantics = parseDocumentSemantics(request.authoredMarkdown);
-  const parsedHeadings = parseAtxHeadings(request.authoredMarkdown);
+  const snapshot = createSemanticSnapshot(request.authoredMarkdown);
+  const semantics = snapshot.semantics;
+  const targetIds = uniqueTargetIdsByLine(semantics);
+  const parsedHeadings = snapshot.headings;
   const headings = headingTargets(
-    request.authoredMarkdown,
+    targetIds,
     parsedHeadings,
-    semantics,
     settings,
     request.frontmatter,
   );
-  const captions = captionTargets(request.authoredMarkdown, semantics, settings);
+  const captions = captionTargets(targetIds, semantics, settings);
   return {
     schema: NUMBER_SUITE_INTEROP_SCHEMA_V2,
     offsetEncoding: "utf16",
     disabled,
     headingTargets: headings,
     captionTargets: captions,
-    references: semanticReferences(semantics, parsedHeadings, headings, captions),
+    references: semanticReferences(semantics, snapshot.titleTargets, headings, captions),
   };
 }
 

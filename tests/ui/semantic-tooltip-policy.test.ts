@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
-import { beforeEach, describe, expect, it } from "vitest";
-import type { App } from "obsidian";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Component, type App } from "obsidian";
 
 import { parseNoteOverrides } from "../../src/config/frontmatter";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
@@ -77,5 +77,41 @@ describe("semantic tooltip policy", () => {
     const app = { workspace: { iterateAllLeaves: () => undefined } } as unknown as App;
     const controller = new SemanticTooltipController(app, () => DEFAULT_SETTINGS);
     expect(allowed(controller, image)).toBe(false);
+  });
+});
+
+
+describe("semantic tooltip document lifetime", () => {
+  it("releases each closed popout while retaining the main document and permitting reopen", () => {
+    const handlers = new Map<string, (...args: unknown[]) => void>();
+    const app = { workspace: { on: (name: string, callback: (...args: unknown[]) => void) => {
+      handlers.set(name, callback); return {};
+    } } } as unknown as App;
+    const component = new Component(); component.load();
+    const controller = new SemanticTooltipController(app);
+    const popout = document.implementation.createHTMLDocument("popout");
+    const added = vi.spyOn(popout, "addEventListener");
+    const removed = vi.spyOn(popout, "removeEventListener");
+    const mainRemoved = vi.spyOn(document, "removeEventListener");
+    const listenerTypes = ["pointerover", "focusin", "pointerout", "focusout", "contextmenu", "keydown", "scroll"];
+    controller.register(component);
+    try {
+      for (let cycle = 1; cycle <= 3; cycle += 1) {
+        handlers.get("window-open")!(null, { document: popout });
+        handlers.get("window-open")!(null, { document: popout });
+        expect(added.mock.calls.filter(([type]) => listenerTypes.includes(type))).toHaveLength(cycle * 7);
+        const active = popout.body.appendChild(popout.createElement("img"));
+        const tooltip = popout.body.appendChild(popout.createElement("div"));
+        Object.assign(controller, { active, tooltip });
+        handlers.get("window-close")!(null, { document: popout });
+        expect(removed.mock.calls.filter(([type]) => listenerTypes.includes(type))).toHaveLength(cycle * 7);
+        expect(tooltip.isConnected).toBe(false);
+        expect(mainRemoved.mock.calls.filter(([type]) => listenerTypes.includes(type))).toHaveLength(0);
+        handlers.get("window-close")!(null, { document: popout });
+      }
+    } finally { component.unload(); }
+    expect(removed.mock.calls.filter(([type]) => listenerTypes.includes(type))).toHaveLength(21);
+    expect(mainRemoved.mock.calls.filter(([type]) => listenerTypes.includes(type))).toHaveLength(7);
+    added.mockRestore(); removed.mockRestore(); mainRemoved.mockRestore();
   });
 });

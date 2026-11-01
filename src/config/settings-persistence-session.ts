@@ -7,15 +7,19 @@ import {
   SettingsSaveCoordinator,
   type SettingsSaveStatus,
 } from "./settings-save-coordinator";
+import type { SettingsTaskScheduler } from "./settings-store-queue";
 
 export class SettingsPersistenceSession {
   private readonly coordinator: SettingsSaveCoordinator<NumberSuiteSettings> | null;
   private readonly initial: NumberSuiteSettings;
   private readonly incompatibleSchemaVersion: number | null;
+  private closed = false;
+  private closing: Promise<void> | null = null;
 
   constructor(
     loaded: NormalizedPluginData,
     persist: (snapshot: NumberSuiteSettings) => Promise<void>,
+    schedule?: SettingsTaskScheduler,
   ) {
     if (loaded.state === "incompatible") {
       this.initial = cloneSettings(loaded.settings);
@@ -25,7 +29,7 @@ export class SettingsPersistenceSession {
     }
     this.initial = cloneSettings(loaded.data.settings);
     this.incompatibleSchemaVersion = null;
-    this.coordinator = new SettingsSaveCoordinator(persist);
+    this.coordinator = new SettingsSaveCoordinator(persist, undefined, undefined, schedule);
   }
 
   initialSettings(): NumberSuiteSettings {
@@ -33,6 +37,7 @@ export class SettingsPersistenceSession {
   }
 
   assertWritable(): void {
+    if (this.closed) throw new Error("Number Suite settings session is closed.");
     if (this.incompatibleSchemaVersion == null) return;
     throw new Error(
       `Number Suite settings schema ${this.incompatibleSchemaVersion} is newer than this plugin and is read-only.`,
@@ -53,6 +58,11 @@ export class SettingsPersistenceSession {
 
   flush(): Promise<void> {
     return this.coordinator?.flush() ?? Promise.resolve();
+  }
+
+  close(): Promise<void> {
+    this.closed = true;
+    return this.closing ??= this.flush();
   }
 
   status(): SettingsSaveStatus {

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-10-29
 ---
 
 # Number Suite — Testing strategy
@@ -24,6 +24,8 @@ Additional object IDs are refusal cases for all four caption kinds under LF and 
 planner and both source and Structural Tables menu paths must keep the original bytes without an
 editor transaction when relocation would skip authored content.
 
+Full-snapshot boundary regressions use independent Lezer inline-code/GFM structure and cover cross-line backticks, all three line endings, caption/reference text inside equations, omitted boundary pipes and genuine zero-blank-line captions. Assert display ranges, first-reference note order, v2 export and one real command transaction separately. Scale tests bound snapshot parse passes and title-normalization work while retaining Unicode and duplicate-title ambiguity. Listener tests remove and reinsert targets before plugin unload, covering window close, view unload and stopPropagation. Storage barriers prove that old-instance final saves/retries precede new loads and unknown schemas never write.
+
 <!-- section: evidence-levels -->
 ## Evidence levels
 
@@ -39,6 +41,12 @@ Reports identify their evidence level and cannot infer a higher-level pass from 
 
 <!-- section: automated-tests -->
 ## Automated tests
+
+Real Lezer and production-consumer regressions cover root/container indented code, valid four-space or tab paragraph continuations, completed-block and blank-line boundaries, CRLF/CR, and Unicode offsets. Assertions reach final first-reference note numbering, display plans, and interoperability exports, preserving Code-caption opening-fence binding and fence lookalikes inside Obsidian comments. A scale regression grows 8 heading/caption pairs to 400 and requires real Markdown parse passes to remain independent of target count while checking every target ID, reference, and duplicate-ID ambiguity. It does not establish host speed or rendering acceptance.
+
+Comment projection runs within the real block parser: document-level comment fence lookalikes cannot hide later indented code, while native nested code retains literal comment delimiters. Parser-only anchors preserve inline-comment paragraph continuity and prevent invented indentation; source offsets and masked semantic text remain unchanged. Tests cover real code containing percent delimiters after a hidden fence, all three line endings, final display/export, and native nested-comment contracts. Exported authored IDs come from the unique valid owner, preserving case, duplicate ambiguity and the 128-character export boundary without rescanning protected source.
+
+Properties identity regressions drive the production control pane and save coordinator while delaying a FileManager double's actual frontmatter callback. Deletion, same-path TFile replacement, and rename before dispatch or during the read must preserve the replacement record and failed draft; valid rename retries and saves after pane switches still succeed. This verifies the added guard, not actual FileManager read/write timing or a host reproduction.
 
 Core tests cover scanning, template compilation, formats, prefix recognition, exclusions, counters,
 settings sanitization, immutable change plans, caption parsing, independent caption counters,

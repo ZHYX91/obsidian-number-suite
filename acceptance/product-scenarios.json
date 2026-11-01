@@ -573,6 +573,28 @@
         "Writes and restores reject divergent editor buffers at the guarded write boundary. A just-published buffer or the exact expected pre-write content remains valid during host propagation.",
         "Rollback never overwrites a conflicting buffer. Uncertain writes retain the recovery snapshot; unchanged files and unrelated user text remain intact."
       ]
+    },
+    {
+      "id": "literal-ownership-and-lifecycle",
+      "title": "Literal semantics, caption table ownership and reload boundaries",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Literal boundaries in Live Preview and Reading View. Code and equation interiors keep their literal appearance; the first actual Figure and first prose footnote start at 1. Compare the complete source before and after both views.",
+        "In the omitted-pipe table invoke the caption action from its header and confirm Actual table. Both data rows stay in the table, exactly one new Table caption appears above, and one Undo restores the complete original source. Repeat the genuine adjacent equation caption control without inserting a blank line.",
+        "On desktop switch source/Live Preview repeatedly, close a popout containing rendered carriers, then reopen it and invoke a caption menu. Each event contributes once; native direct target handlers remain usable. On Android repeat view switching and reopening the note; record window-only steps as not applicable.",
+        "Change a global setting and immediately disable/re-enable the plugin; verify the latest accepted value survives. If storage failure/retry timing cannot be induced, record it as unverified rather than inferred from successful reload."
+      ],
+      "expected": [
+        "No semantic reference or note number is drawn inside code or equations. Equation objects still bind an external caption and table data never becomes a caption. Display-only steps preserve source bytes.",
+        "Confirmed caption edits are bounded and independently undoable. Reloaded settings retain accepted saves; closed views or windows do not contribute stale menu listeners."
+      ]
     }
   ]
 }

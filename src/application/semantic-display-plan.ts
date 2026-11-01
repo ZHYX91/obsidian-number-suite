@@ -4,7 +4,8 @@ import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import { numberHeadings } from "../core/numbering-engine";
 import {
   blockTargetKey,
-  resolveUniqueSemanticTitleTarget,
+  createSemanticTitleIndex,
+  normalizeSemanticTarget,
   withoutTrailingBlockId,
 } from "../core/document-semantics";
 import type { CaptionKind, NumberedCaption } from "../core/document-semantics";
@@ -87,18 +88,20 @@ function visibleHeadingLabels(
 ): ReadonlyMap<number, string> {
   const numbered = numberHeadings(headings, options.numbering);
   const labels = new Map<number, string>();
+  const virtualByLine = new Map(options.headingDisplayPlan.filter((entry) => entry.kind === "virtual").map((entry) => [entry.line, entry]));
+  const concealLines = new Set(options.headingDisplayPlan.filter((entry) => entry.kind === "conceal").map((entry) => entry.line));
   for (const item of numbered) {
     const line = item.heading.line;
-    const virtual = options.headingDisplayPlan.find((entry) => entry.line === line && entry.kind === "virtual");
+    const virtual = virtualByLine.get(line);
     if (virtual != null) {
       labels.set(line, virtual.label);
       continue;
     }
-    const conceal = options.headingDisplayPlan.find((entry) => entry.line === line && entry.kind === "conceal");
+    const concealed = concealLines.has(line);
     const analysis = analyzeHeadingPrefix(item.heading, item.label, options.templateSources);
     const first = analysis.first;
     if (
-      conceal == null
+      !concealed
       && first != null
       && first.from === 0
       && first.confidence !== "low"
@@ -276,10 +279,11 @@ export function createSemanticDisplayPlan(
   const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
   const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
 
+  const titleTargets = headings === snapshot.headings ? snapshot.titleTargets : createSemanticTitleIndex(headings, semantics.captions);
   for (const reference of semantics.references) {
     if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
     const resolved = reference.kind === "title"
-      ? resolveUniqueSemanticTitleTarget(reference.target, headings, semantics.captions)
+      ? titleTargets.get(normalizeSemanticTarget(reference.target))
       : null;
     const targetLine = reference.kind === "block"
       ? semantics.blockOwners.get(blockTargetKey(reference.target))
