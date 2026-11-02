@@ -16,7 +16,7 @@ last_synced: 2026-10-29
 ## Document authority
 
 The Chinese document is the normative source for verification layers, gates, and evidence claims.
-This file is its synchronized English translation. `ACCEPTANCE.md` is an executable checklist and
+This file is its synchronized English translation. `runtime-acceptance.md` is an executable checklist and
 cannot weaken this strategy.
 
 Caption editing regressions assert block-owner and caption/object binding invariants after the actual plan and confirmed editor transaction. The fixed `tests/fixtures/structural-table-source-contract.json` is shared with the provider repository: each project consumes its checked-in copy using its real parser/producer or consumer. Headerless and short-delimiter tables, repeated identical tables, external IDs, UTF-16/CRLF offsets and quoted containers test disagreement boundaries. Consumers reject partial, unknown, stale or wrong-path snapshots, and confirmation refuses changed source or files. Tests do not fetch another repository or depend on its runtime.
@@ -111,7 +111,7 @@ active heading, caption, or reference reveals source while unrelated virtual dec
 
 IME, mobile, pop-out windows, third-party themes, and long-document latency require real host
 environments; automated DOM tests cannot replace them. Detailed steps remain in the
-[runtime checklist](ACCEPTANCE.md).
+[runtime checklist](runtime-acceptance.md).
 
 Select representative acceptance on the exact candidate by change impact. Desktop interaction, settings or lifecycle changes require relevant real-host scenarios; mobile interaction or shared runtime behavior affecting mobile requires relevant Android emulator scenarios. Documentation-only or host-independent logic changes may omit hosts with a recorded reason. Confirmed serious product defects affecting a release block that release. Missing host/tool evidence stays unverified and is assessed by risk; it does not automatically block publication or add a separate approval step. Claim acceptance only for observed passing scope. The full host matrix is not required for every release, and CI does not automatically enforce host coverage.
 When mobile acceptance is selected, use an isolated Android 15 / API 35 emulator.

@@ -165,5 +165,5 @@ Cross-line inline code and block-equation interiors declare no captions, semanti
 Every requirement needs pure-logic or adapter coverage. Claims involving real Obsidian UI, IME,
 mobile, themes, or lifecycle also need evidence from an isolated Vault using the exact candidate.
 Source checks, candidate-package checks, desktop/Android-emulator acceptance, and public release
-status must be evaluated separately. Android physical devices and iOS are out of scope. See the [testing strategy](testing-strategy.en.md). Publication uses the repository-owned
+status must be evaluated separately. Android physical devices and iOS are out of scope. See the [testing strategy](testing-strategy.md). Publication uses the repository-owned
 workflow and requires explicit authorization.

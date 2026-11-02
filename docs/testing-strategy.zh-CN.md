@@ -9,13 +9,13 @@ last_synced: 2026-10-29
 
 # Number Suite — 测试策略
 
-[English synced translation](testing-strategy.en.md)
+[English synced translation](testing-strategy.md)
 
 <!-- section: authority -->
 ## 文档权威性
 
 本文是验证层级、准入门槛和证据声明规则的中文规范源，英文文件为同步译本。
-`ACCEPTANCE.md` 是可执行清单，不能降低本文要求。
+`runtime-acceptance.md` 是可执行清单，不能降低本文要求。
 
 题注回归在实际计划与确认后的编辑器事务之后断言块 ID 归属、题注与对象关联不变量。固定样本 `tests/fixtures/structural-table-source-contract.json` 与提供方仓库保持一致，各项目使用仓库内的副本驱动真实解析器/生产者或消费者。无表头、短分隔符、同文双表、外部 ID、UTF-16/CRLF 偏移和引用容器覆盖双方识别范围不一致的边界。消费者拒绝不完整、未知、过期和错误路径快照；确认阶段拒绝变化的源码或文件。测试不联网拉取另一仓库，也不依赖其运行时。
 对象带有额外块 ID 时，四类题注在 LF 与 CRLF 下均应拒绝迁移。迁移会跳过原文内容时，核心计划
@@ -87,7 +87,7 @@ TypeScript、带阈值的覆盖率、生产 bundle 和发布资产契约。`rele
 风险提示。批处理还需验证预览过期、并发冲突、中途失败、恢复和排除文件夹。
 
 IME、移动端、弹出窗口、第三方主题和超长文档延迟必须使用真实宿主环境，自动 DOM 测试不能
-代替。详细步骤保留在[运行时清单](ACCEPTANCE.md)。
+代替。详细步骤保留在[运行时清单](runtime-acceptance.md)。
 
 选择移动端验收时，使用 Android 15 / API 35 独立模拟器，安装并核对最终候选字节，
 完成侧栏开关、两个选项卡、H1-H9 与题注大纲跳转、44 像素触摸目标、当前笔记控制、实时

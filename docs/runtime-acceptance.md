@@ -1,7 +1,7 @@
 # Runtime acceptance checklist
 
 This is a non-authoritative execution checklist. The normative evidence rules are in the stable
-[testing strategy](testing-strategy.en.md) and its [Chinese source](testing-strategy.zh-CN.md).
+[testing strategy](testing-strategy.md) and its [Chinese source](testing-strategy.zh-CN.md).
 
 Automated checks are necessary but do not prove Obsidian runtime behavior. When host acceptance is selected, run the relevant scenarios in a disposable Vault using the exact
 packaged candidate. Select affected real desktop and Android scenarios by risk. Confirmed serious

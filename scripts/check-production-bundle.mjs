@@ -8,7 +8,7 @@ const root = process.cwd();
 const mobileContractFiles = [
   ["README.md", "Desktop and Android Obsidian"],
   ["docs/i18n/README.zh-CN.md", "支持桌面版和 Android 版 Obsidian"],
-  ["docs/ACCEPTANCE.md", "Android 15 / API 35 emulator"],
+  ["docs/runtime-acceptance.md", "Android 15 / API 35 emulator"],
 ];
 for (const [relativePath, requiredText] of mobileContractFiles) {
   const source = await readFile(path.join(root, relativePath), "utf8");

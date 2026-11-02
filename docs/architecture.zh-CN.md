@@ -9,7 +9,7 @@ last_synced: 2026-10-29
 
 # Number Suite — 架构
 
-[English synced translation](architecture.en.md)
+[English synced translation](architecture.md)
 
 <!-- section: authority -->
 ## 文档权威性
