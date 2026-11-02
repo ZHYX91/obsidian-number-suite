@@ -26,6 +26,30 @@ function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
 }
 
 describe("heading transforms", () => {
+  it.each(["roman_upper", "roman_lower"])("refuses the entire write/renumber plan when %s crosses 3999", (format) => {
+    const templates = [...BUILT_IN_SCHEMES.hierarchical.templates];
+    templates[0] = `{1.${format}}.`;
+    const opts = options({
+      numbering: { ...options().numbering, scheme: { ...BUILT_IN_SCHEMES.hierarchical, templates }, starts: { 1: 3999 } },
+      templateSources: [{ schemeId: "roman", schemeName: "Roman", revision: 1, templates }],
+    });
+    for (const operation of ["write", "renumber"] as const) {
+      const source = "# First\n# Beyond Roman range";
+      const plan = planHeadingTransform(source, operation, opts);
+      expect(plan.result).toBe(source);
+      expect(plan.changes).toEqual([]);
+      expect(plan.warnings).toMatchObject([{ line: 1, code: "roman-range" }]);
+    }
+    const valid = planHeadingTransform("# First", "write", opts);
+    expect(valid.warnings).toEqual([]);
+    expect(planHeadingTransform(valid.result, "remove", opts).result).toBe("# First");
+    const highStart = { ...opts, numbering: { ...opts.numbering, starts: { 1: 4000 } } };
+    expect(planHeadingTransform("# First", "write", highStart).warnings).toMatchObject([{ code: "roman-range" }]);
+    expect(planHeadingTransform(valid.result, "remove", highStart).result).toBe("# First");
+    expect(planHeadingTransform("# 4000. An unrelated manual heading", "remove", highStart).result)
+      .toBe("# 4000. An unrelated manual heading");
+  });
+
   it.each(["write", "renumber"] as const)("refuses all %s changes when a counter overflows", (operation) => {
     const source = "# First\n# Overflow\n## Child";
     const plan = planHeadingTransform(source, operation, options({

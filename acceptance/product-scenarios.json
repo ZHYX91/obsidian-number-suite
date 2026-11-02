@@ -595,6 +595,28 @@
         "No semantic reference or note number is drawn inside code or equations. Equation objects still bind an external caption and table data never becomes a caption. Display-only steps preserve source bytes.",
         "Confirmed caption edits are bounded and independently undoable. Reloaded settings retain accepted saves; closed views or windows do not contribute stale menu listeners."
       ]
+    },
+    {
+      "id": "audit-roman-range-and-recovery",
+      "title": "Roman boundary previews and successful batch recovery control",
+      "surfaces": [
+        "desktop"
+      ],
+      "requiredCapabilities": {
+        "desktop": []
+      },
+      "steps": [
+        "In a fresh disposable Vault, run Number Suite acceptance provider: Prepare audit Roman boundaries. This explicit setup only creates synthetic source files under Audit Roman; it invokes no tested product action and produces no verdict. Existing audit folders are never overwritten. Do not prepare these inputs for unrelated scenarios.",
+        "Record the complete sources of Audit Roman valid.md, Audit Roman range.md and the two Batch safety notes. The Roman notes use the existing Chinese traditional chapters scheme, whose H7 template is {7.roman_upper}., and a per-note H7 start of 3999. Keep the existing templates cleanup scope; use Source mode when inspecting saved Markdown.",
+        "Open Audit Roman range.md in Live Preview and Reading View. The first H7 may display MMMCMXCIX.; the second must not display 4000. or a duplicate Roman label. Invoke Write numbers and Renumber through the product UI. Both previews must explain the 1–3999 range and produce no changes anywhere in the note, including its H1. Cancel and compare the full source.",
+        "In that disposable note, edit the H7 start property from 3999 to 4000 through the normal editor, then repeat Write and Renumber. Both remain non-writable. Change its scheme property to chinese-official to exercise the built-in lowercase Roman H7 format and repeat. Only these deliberate property edits may differ from the original.",
+        "Open Audit Roman valid.md and use Write numbers. Confirm that the one H7 receives MMMCMXCIX., then Remove numbers with known templates and confirm that it returns exactly to its original source. Repeat the write/cleanup control after changing only the per-note scheme to chinese-official; the label is mmmcmxcix. and cleanup returns to that edited baseline.",
+        "Preview and apply a fresh batch limited to Batch safety, then use Undo last batch through the UI. Verify both notes return exactly to their recorded sources and the normal completion notices match the operations. This is the successful host recovery control only. No existing fixture deterministically injects batch disk/rollback failures: partial, uncertain and before-commit failure outcomes remain separately covered by tests/commands/batch.test.ts and must not be recorded as host-verified."
+      ],
+      "expected": [
+        "Write and Renumber refuse the complete note when any generated Roman counter exceeds 3999; the valid boundary still writes and cleans up through the default known-template path in both cases.",
+        "The real host positive control restores a normal batch. Fault-injected rollback notices and retained snapshots are source-test evidence unless a separate actual host fault is observed; no private product API is used to supply a verdict."
+      ]
     }
   ]
 }

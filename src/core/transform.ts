@@ -75,17 +75,19 @@ export function planHeadingTransform(
   const headings = parseAtxHeadings(source);
   const numbered = numberHeadings(headings, options.numbering);
   if (operation === "write" || operation === "renumber") {
-    const overflows = numbered.filter((item) => item.warning === "counter-overflow");
+    const overflows = numbered.filter((item) => item.warning === "counter-overflow" || item.warning === "roman-range");
     if (overflows.length > 0) {
       return {
         operation,
         source,
         changes: [],
-        warnings: overflows.map(({ heading }) => ({
+        warnings: overflows.map(({ heading, warning }) => ({
           line: heading.line,
           heading: heading.content,
-          code: "counter-overflow",
-          detail: "A counter exceeds the exact integer range. No numbering changes were planned.",
+          code: warning as "counter-overflow" | "roman-range",
+          detail: warning === "roman-range"
+            ? "A Roman numeral counter is outside 1–3999. No numbering changes were planned."
+            : "A counter exceeds the exact integer range. No numbering changes were planned.",
         })),
         result: source,
       };

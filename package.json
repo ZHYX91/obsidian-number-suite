@@ -1,6 +1,6 @@
 {
   "name": "obsidian-number-suite",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Display or manage heading, caption, footnote, endnote, and reference numbers in Obsidian.",
   "type": "module",
   "main": "dist/main.js",
@@ -28,7 +28,9 @@
     "clean": "node scripts/clean.mjs",
     "clean:deps": "node scripts/clean.mjs --deps",
     "check": "npm run check:runtime && npm run format:check && npm run check:readme-i18n && npm run check:docs-i18n && npm run check:ui-i18n && npm run lint && npm run typecheck && npm run test:coverage && npm run build:bundle && npm run check:production && npm run release:validate",
-    "release:check": "npm run check && npm run release:validate-tag"
+    "release:check": "npm run check && npm run release:validate-tag",
+    "postinstall": "node scripts/prepare-lint-dependencies.mjs",
+    "prelint": "node scripts/prepare-lint-dependencies.mjs && node scripts/check-lint-dependencies.mjs"
   },
   "keywords": [
     "obsidian",
@@ -68,6 +70,30 @@
     "esbuild": true
   },
   "overrides": {
-    "moment": "2.31.0"
+    "moment": "2.31.0",
+    "@eslint/config-array": {
+      "minimatch": "11.0.4"
+    },
+    "@eslint/eslintrc": {
+      "minimatch": "11.0.4"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.4"
+    },
+    "eslint": {
+      "minimatch": "11.0.4"
+    },
+    "eslint-plugin-json-schema-validator": {
+      "minimatch": "11.0.4"
+    },
+    "eslint-plugin-n": {
+      "minimatch": "11.0.4"
+    },
+    "eslint-plugin-import": {
+      "minimatch": "11.0.4"
+    },
+    "eslint-plugin-react": {
+      "minimatch": "11.0.4"
+    }
   }
 }

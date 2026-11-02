@@ -137,7 +137,7 @@ Markdown 笔记显示为有序标题树。文件根卡片连接所有顶层标�
 
 设置分为七个选项卡：常规、标题编号、题注、交叉引用、脚注与尾注、写入与清理、显示与批处理。每页直接显示相关选项，复杂功能另有分组说明。
 
-**导出 Word 文档：** 本插件的题注、交叉引用、七至九级标题和带类型的尾注使用了部分 Markdown 扩展语法。Windows/Linux 桌面端可使用 [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) 搭配另行安装的本机 DocWen 导出，并在 DocWen 的 Markdown 语法设置中开启所需的**输入扩展**。Word 导出编号遵循 DocWen 本次转换的设置，不一定与 Obsidian 中显示的序号相同。
+**导出 Word 文档：** 本插件的题注、交叉引用、七至九级标题和带类型的尾注使用了部分 Markdown 扩展语法。Windows/Linux 桌面端可使用 [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) 搭配另行安装的本机 DocWen 导出，并在 **DocWen → 设置 → 解析 Markdown**中开启所需的**输入扩展**。Word 导出编号遵循 DocWen 本次转换的设置，不一定与 Obsidian 中显示的序号相同。
 
 ### 序号方案
 
