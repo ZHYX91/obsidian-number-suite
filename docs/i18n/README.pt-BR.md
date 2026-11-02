@@ -15,6 +15,8 @@ Requer Obsidian 1.12.7 ou mais recente no computador ou Android. O funcionamento
 2. Para instalar manualmente, baixe o ZIP da versão em [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases) e coloque a pasta extraída `number-suite` em `.obsidian/plugins/`. Você também pode copiar `main.js`, `manifest.json` e `styles.css` da mesma versão para `.obsidian/plugins/number-suite/`.
 3. Recarregue o Obsidian e ative o plugin. Não misture arquivos de versões diferentes.
 
+**Atualização manual:** Na pasta existente do plugin, substitua apenas `main.js`, `manifest.json` e `styles.css` por arquivos da mesma versão. Preserve `data.json` para manter suas configurações. Preserve também os arquivos `recovery.json` e `recovery.pending.json`, se existirem: eles contêm dados para desfazer e recuperar operações em lote. Não os sobrescreva nem exclua durante a atualização.
+
 <!-- section: quick-start -->
 ## Comece por aqui
 

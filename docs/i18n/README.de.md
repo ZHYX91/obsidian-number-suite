@@ -15,6 +15,8 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 2. Für die manuelle Installation lade das Versions-ZIP von [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases) herunter. Lege den entpackten Ordner `number-suite` unter `.obsidian/plugins/` ab. Alternativ kommen `main.js`, `manifest.json` und `styles.css` aus demselben Release nach `.obsidian/plugins/number-suite/`.
 3. Lade Obsidian neu und aktiviere das Plugin. Mische keine Dateien verschiedener Versionen.
 
+**Manuelles Update:** Ersetzen Sie im vorhandenen Plugin-Ordner nur `main.js`, `manifest.json` und `styles.css` durch Dateien derselben Version. Behalten Sie `data.json`, damit Ihre Einstellungen erhalten bleiben. Behalten Sie auch vorhandene Dateien namens `recovery.json` und `recovery.pending.json`: Sie enthalten Daten zum Rückgängigmachen und Wiederherstellen von Stapelaktionen. Überschreiben oder löschen Sie sie beim Update nicht.
+
 <!-- section: quick-start -->
 ## Schnellstart
 

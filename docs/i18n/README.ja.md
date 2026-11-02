@@ -15,6 +15,8 @@ Obsidian 1.12.7 以降が必要です。デスクトップと Android に対応�
 2. 手動の場合は [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases) からバージョン付き ZIP を取得し、展開した `number-suite` フォルダーを `.obsidian/plugins/` に置きます。同じリリースの `main.js`、`manifest.json`、`styles.css` を `.obsidian/plugins/number-suite/` に置く方法も使えます。
 3. Obsidian を再読み込みして有効にします。異なるバージョンのファイルを混ぜないでください。
 
+**手動更新：** 既存のプラグインフォルダー内の `main.js`、`manifest.json`、`styles.css` だけを、同じリリースのファイルで置き換えてください。設定を保持するため、`data.json` は残してください。`recovery.json` や `recovery.pending.json` がある場合も残してください。一括処理の取り消し・復元データが保存されているため、更新時に上書きや削除をしないでください。
+
 <!-- section: quick-start -->
 ## 使い始める
 

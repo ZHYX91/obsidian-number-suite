@@ -15,6 +15,8 @@ Number Suite показывает номера заголовков, подпи�
 2. Для ручной установки скачайте ZIP нужной версии из [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases) и поместите распакованную папку `number-suite` в `.obsidian/plugins/`. Можно также скопировать `main.js`, `manifest.json` и `styles.css` из одного выпуска в `.obsidian/plugins/number-suite/`.
 3. Перезагрузите Obsidian и включите плагин. Не смешивайте файлы разных версий.
 
+**Обновление вручную:** В существующей папке плагина замените только `main.js`, `manifest.json` и `styles.css` файлами из одного выпуска. Сохраните `data.json`, чтобы не потерять настройки. Если есть файлы `recovery.json` и `recovery.pending.json`, сохраните и их: в них находятся данные для отмены и восстановления пакетных операций. Не перезаписывайте и не удаляйте их при обновлении.
+
 <!-- section: quick-start -->
 ## Начало работы
 
