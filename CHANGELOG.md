@@ -2,7 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.6.4 - 2026-11-02
+
+- Update the development-only minimatch dependencies to 11.0.4 with reviewed legacy lint-call adaptations and installed-caller regression checks.
+
+- Report complete, partial, and unconfirmed batch rollback outcomes with affected files; confirm files left unchanged by a rejected write, retain recovery records and surface persistence failures without claiming a successful restore.
+- Stop a write or renumber plan before changing a file when any Roman numeral would fall outside 1–3999, including later increments and referenced parent counters.
 
 ## 0.6.3 - 2026-11-01
 

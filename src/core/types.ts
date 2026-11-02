@@ -139,7 +139,7 @@ export interface NumberedHeading {
   heading: ParsedHeading;
   label: string | null;
   counters: Counters;
-  warning: "missing-parent" | "counter-overflow" | null;
+  warning: "missing-parent" | "counter-overflow" | "roman-range" | null;
   exclusion: HeadingExclusionScope | null;
 }
 
@@ -166,6 +166,7 @@ export interface PlanWarning {
     | "empty-heading"
     | "missing-parent"
     | "counter-overflow"
+    | "roman-range"
     | "unsupported-prefix";
   detail: string;
 }

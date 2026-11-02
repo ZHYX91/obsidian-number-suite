@@ -130,6 +130,59 @@ async function recordRenderedObservation(app) {
 
 module.exports = class extends Plugin {
   onload() {
+    // Explicit synthetic input preparation only; no product actions or verdicts.
+    this.addCommand({
+      id: "prepare-audit-roman-range-and-recovery",
+      name: "Prepare audit Roman boundaries",
+      callback: async () => {
+        const folder = "Audit Roman";
+        try {
+          if (await this.app.vault.adapter.exists(folder)) {
+            new Notice(`Audit fixture folder already exists: ${folder}. Use a fresh disposable Vault.`);
+            return;
+          }
+          const fixtures = {
+            "Audit Roman valid.md": [
+              "---",
+              "number-suite:",
+              "  - heading.virtual=true",
+              "  - heading.scheme=chinese-traditional-chapters",
+              "  - heading.first-number.h7=3999",
+              "---",
+              "",
+              "####### Valid Roman boundary",
+              "",
+              "Keep this body unchanged through writing and cleanup.",
+              "",
+            ].join("\n"),
+            "Audit Roman range.md": [
+              "---",
+              "number-suite:",
+              "  - heading.virtual=true",
+              "  - heading.scheme=chinese-traditional-chapters",
+              "  - heading.first-number.h7=3999",
+              "---",
+              "",
+              "# Whole-note refusal control",
+              "",
+              "####### Last valid Roman",
+              "",
+              "####### First invalid Roman",
+              "",
+              "The entire note must remain unchanged when its numbering plan is refused.",
+              "",
+            ].join("\n"),
+          };
+          await this.app.vault.createFolder(folder);
+          for (const [name, content] of Object.entries(fixtures)) {
+            await this.app.vault.create(`${folder}/${name}`, content);
+          }
+          new Notice(`Prepared synthetic audit inputs in ${folder}; inspect them through the product UI.`);
+        } catch (error) {
+          new Notice(`Audit fixture preparation failed: ${String(error)}`);
+        }
+      },
+    });
     this.addCommand({
       id: "record-rendered-observation",
       name: "Record current Boundary fixture rendered diagnostics",

@@ -15,6 +15,18 @@ function options(overrides: Partial<NumberingOptions> = {}): NumberingOptions {
 }
 
 describe("numberHeadings", () => {
+  it("checks Roman parent counters only when the rendered label uses them", () => {
+    const templates = [...BUILT_IN_SCHEMES.hierarchical.templates];
+    templates[0] = "{1.arabic}.";
+    templates[1] = "{1.roman_upper}.{2.arabic}.";
+    const numbering = options({ scheme: { ...BUILT_IN_SCHEMES.hierarchical, templates }, starts: { 1: 4000 } });
+    const result = numberHeadings(parseAtxHeadings("# Parent\n## Child"), numbering);
+    expect(result[0]).toMatchObject({ label: "4000.", warning: null });
+    expect(result[1]).toMatchObject({ label: null, warning: "roman-range" });
+    expect(numberHeadings(parseAtxHeadings("## Child"), { ...numbering, missingLevelStrategy: "current-only" })[0])
+      .toMatchObject({ label: "1", warning: null });
+  });
+
   it("increments and resets hierarchical counters", () => {
     const source = "# A\n## B\n## C\n### D\n# E\n## F";
     const labels = numberHeadings(parseAtxHeadings(source), options()).map((item) => item.label);

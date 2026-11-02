@@ -4,6 +4,7 @@ import { MarkdownView, Notice, TFile, type App } from "obsidian";
 
 import { BatchController, type BatchPersistence } from "../../src/commands/batch";
 import { DEFAULT_SETTINGS, type LastBatchSnapshot } from "../../src/config/settings";
+import { createTranslator, type Translate } from "../../src/config/i18n";
 import { digestText } from "../../src/core/text-digest";
 import type { PreviewDocument, PreviewModalOptions } from "../../src/ui/preview-modal";
 
@@ -38,6 +39,7 @@ function harness(
   const files = new Map([...contents.keys()].map((path) => [path, new FileConstructor(path)]));
   let stored: LastBatchSnapshot | null = initialSnapshot;
   let processHook: ((path: string, call: number) => void | Promise<void>) | null = null;
+  let processBeforeCommitHook: ((path: string, call: number) => void | Promise<void>) | null = null;
   let processAfterHook: ((path: string, call: number) => void | Promise<void>) | null = null;
   let persistenceHook: ((next: LastBatchSnapshot | null, call: number) => void | Promise<void>) | null = null;
   let readHook: ((file: TFile) => void | Promise<void>) | null = null;
@@ -59,6 +61,7 @@ function harness(
       const current = contents.get(file.path);
       if (current == null) throw new Error(`Missing ${file.path}`);
       const next = transform(current);
+      await processBeforeCommitHook?.(file.path, processCalls);
       contents.set(file.path, next);
       await processAfterHook?.(file.path, processCalls);
       return next;
@@ -119,6 +122,7 @@ function harness(
     setPersistenceHook: (hook: typeof persistenceHook) => { persistenceHook = hook; },
     setReadHook: (hook: typeof readHook) => { readHook = hook; },
     setProcessHook: (hook: typeof processHook) => { processHook = hook; },
+    setProcessBeforeCommitHook: (hook: typeof processBeforeCommitHook) => { processBeforeCommitHook = hook; },
     setProcessAfterHook: (hook: typeof processAfterHook) => { processAfterHook = hook; },
   };
 }
@@ -188,18 +192,19 @@ async function applyPreview(controller: BatchController, document: PreviewDocume
 async function applyPreviews(
   controller: BatchController,
   documents: readonly PreviewDocument[],
+  translate: Translate = (key) => key,
 ): Promise<void> {
   const apply = Reflect.get(controller, "apply") as (
     nextDocuments: readonly PreviewDocument[],
     operation: "write",
-    translate: (key: string) => string,
+    translate: Translate,
     bindings: ReadonlyMap<string, TFile>,
   ) => Promise<void>;
   const app = Reflect.get(controller, "app") as App;
   const bindings = new Map(documents.map((document) => [
     document.path, app.vault.getAbstractFileByPath(document.path) as TFile,
   ]));
-  await apply.call(controller, documents, "write", (key) => key, bindings);
+  await apply.call(controller, documents, "write", translate, bindings);
 }
 
 beforeEach(() => {
@@ -535,6 +540,139 @@ describe("BatchController apply", () => {
       ["b.md", "before-b"],
     ]));
     expect(test.getStored()).toBe(previous);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.batchRolledBack");
+  });
+
+  it.each(["before", "after", "external"] as const)(
+    "compensates an uncertain forward write when the current content is %s",
+    async (current) => {
+      const previous = await snapshot({ "old.md": "old-after" });
+      const test = harness({ "a.md": "before-a" }, previous);
+      test.setProcessBeforeCommitHook((_path, call) => {
+        if (call !== 1 || current === "after") return;
+        if (current === "external") test.contents.set("a.md", "external edit");
+        throw new Error("write rejected before commit");
+      });
+      test.setProcessAfterHook((_path, call) => {
+        if (call === 1) throw new Error("write acknowledgement lost");
+      });
+
+      await applyPreviews(test.controller, [previewDocument("before-a", "after-a")], createTranslator("en"));
+
+      expect(test.processCalls()).toBe(2);
+      expect(test.contents.get("a.md")).toBe(current === "external" ? "external edit" : "before-a");
+      if (current === "external") {
+        expect(test.getStored()).toMatchObject({ status: "pending" });
+        expect((Notice as unknown as { readonly messages: string[] }).messages).toContain(
+          createTranslator("en")("notice.batchRollbackIncomplete", { restored: 0, failed: 1, uncertain: 0, files: "a.md" }),
+        );
+      } else {
+        expect(test.getStored()).toBe(previous);
+        expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([
+          createTranslator("en")("notice.batchRolledBack", { count: 1 }),
+        ]);
+      }
+    },
+  );
+
+  it("confirms an unchanged file after an Undo write is rejected before commit", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "after-a" }, recovery);
+    test.setProcessBeforeCommitHook((_path, call) => {
+      if (call === 1) throw new Error("Undo write rejected before commit");
+    });
+
+    await test.controller.undo(createTranslator("en"));
+
+    expect(test.processCalls()).toBe(2);
+    expect(test.contents.get("a.md")).toBe("after-a");
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toEqual([
+      createTranslator("en")("notice.batchRolledBack", { count: 1 }),
+    ]);
+  });
+
+  it.each(["binding", "editor"] as const)(
+    "still rejects a changed %s when compensation finds the original text",
+    async (change) => {
+      const test = harness({ "a.md": "before-a" });
+      const open = test.addView("a.md", "before-a");
+      test.setProcessBeforeCommitHook((_path, call) => {
+        if (call === 1) throw new Error("write rejected before commit");
+      });
+      test.setProcessHook((_path, call) => {
+        if (call !== 2) return;
+        if (change === "binding") test.replaceFile("a.md");
+        else open.setBuffer("new unsaved edit");
+      });
+
+      await applyPreviews(test.controller, [previewDocument("before-a", "after-a")], createTranslator("en"));
+
+      expect(test.processCalls()).toBe(2);
+      expect(test.contents.get("a.md")).toBe("before-a");
+      expect(test.getStored()).toMatchObject({ status: "pending" });
+      expect((Notice as unknown as { readonly messages: string[] }).messages).toContain(
+        createTranslator("en")("notice.batchRollbackIncomplete", { restored: 0, failed: 1, uncertain: 0, files: "a.md" }),
+      );
+    },
+  );
+
+  it("reports the affected file when only part of a failed batch can be rolled back", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b", "c.md": "before-c" });
+    test.setProcessHook((_path, call) => {
+      if (call === 3 || call === 4) throw new Error("controlled write or rollback failure");
+    });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+      previewDocument("before-c", "after-c", "c.md"),
+    ], createTranslator("en"));
+    expect([...test.contents]).toEqual([["a.md", "before-a"], ["b.md", "after-b"], ["c.md", "before-c"]]);
+    expect(test.getStored()).toMatchObject({ status: "pending" });
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain(
+      createTranslator("en")("notice.batchRollbackIncomplete", { restored: 1, failed: 1, uncertain: 0, files: "b.md" }),
+    );
+  });
+
+  it("reports an uncertain rollback even if the host changed the file before rejecting", async () => {
+    const test = harness({ "a.md": "before-a", "b.md": "before-b" });
+    test.setProcessHook((_path, call) => { if (call === 2) throw new Error("forward failure"); });
+    test.setProcessAfterHook((_path, call) => { if (call === 3) throw new Error("rollback acknowledgement lost"); });
+    await applyPreviews(test.controller, [
+      previewDocument("before-a", "after-a", "a.md"),
+      previewDocument("before-b", "after-b", "b.md"),
+    ], createTranslator("en"));
+    expect(test.contents.get("a.md")).toBe("before-a");
+    expect(test.getStored()).toMatchObject({ status: "pending" });
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain(
+      createTranslator("en")("notice.batchRollbackIncomplete", { restored: 0, failed: 0, uncertain: 1, files: "a.md" }),
+    );
+  });
+
+  it("reports incomplete compensation of a failed Undo and retains its original snapshot", async () => {
+    const recovery = await snapshot({ "a.md": "after-a", "b.md": "after-b" });
+    const test = harness({ "a.md": "after-a", "b.md": "after-b" }, recovery);
+    test.setProcessHook((_path, call) => { if (call === 2 || call === 3) throw new Error("controlled failure"); });
+    await test.controller.undo(createTranslator("en"));
+    expect([...test.contents]).toEqual([["a.md", "before:a.md"], ["b.md", "after-b"]]);
+    expect(test.getStored()).toBe(recovery);
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain(
+      createTranslator("en")("notice.batchRollbackIncomplete", { restored: 0, failed: 1, uncertain: 0, files: "a.md" }),
+    );
+  });
+
+  it("does not claim recovery when preflight fails or recovery persistence is unconfirmed", async () => {
+    const test = harness({ "a.md": "before" });
+    const preflight = test.reloadController(async () => { throw new Error("cannot load recovery"); });
+    await preflight.undo(createTranslator("en"));
+    expect(test.processCalls()).toBe(0);
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain(createTranslator("en")("notice.batchFailed"));
+    test.setPersistenceHook((_snapshot, call) => { if (call >= 2) throw new Error("cannot save recovery"); });
+    await applyPreviews(test.controller, [previewDocument("before", "after")], createTranslator("en"));
+    expect(test.contents.get("a.md")).toBe("before");
+    expect((Notice as unknown as { readonly messages: string[] }).messages)
+      .toContain(createTranslator("en")("notice.batchRecoveryUncertain"));
   });
 
   it("rejects a same-path TFile replacement after preflight without writing the replacement", async () => {
@@ -599,7 +737,7 @@ describe("BatchController apply", () => {
     expect(test.getStored()).toMatchObject({ status: "pending" });
     expect(test.getStored()).not.toBe(previous);
     expect((Notice as unknown as { readonly messages: string[] }).messages)
-      .toContain("notice.batchChanged");
+      .toContain("notice.batchRollbackIncomplete");
   });
 
   it("retains the pending recovery snapshot when a file is renamed as its write completes", async () => {
@@ -615,7 +753,7 @@ describe("BatchController apply", () => {
     expect(test.getStored()).toMatchObject({ status: "pending" });
     expect(test.getStored()).not.toBe(previous);
     expect((Notice as unknown as { readonly messages: string[] }).messages)
-      .toContain("notice.batchChanged");
+      .toContain("notice.batchRollbackIncomplete");
   });
 
   it("rechecks remaining open editors before every file write", async () => {
@@ -783,7 +921,7 @@ describe("batch write boundary recovery", () => {
     expect(test.contents.get("a.md")).toBe("before:a.md");
     expect(open.view.editor.getValue()).toBe("typing after restore");
     expect(test.getStored()).toBe(recovery);
-    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.undoConflict");
+    expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.batchRollbackIncomplete");
   });
 
   it("does not roll back an open buffer edited while a later file fails", async () => {

@@ -42,8 +42,8 @@ export function numberHeadings(
     }));
   }
   const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
-  const templateLevels = scheme.templates.map((template) => compileTemplate(template).nodes
-    .flatMap((node) => node.kind === "counter" ? [node.level] : []));
+  const templateCounters = scheme.templates.map((template) => compileTemplate(template).nodes
+    .filter((node) => node.kind === "counter"));
   const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options, index + 1));
   const seenNonEmpty = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
   const counters = starts.map((start) => start - 1) as Counters;
@@ -168,7 +168,7 @@ export function numberHeadings(
     const currentOnly = missing.length > 0 && options.missingLevelStrategy === "current-only";
     const referencedLevels = currentOnly
       ? [heading.level]
-      : templateLevels[index] ?? [];
+      : (templateCounters[index] ?? []).map((node) => node.level);
     if (referencedLevels.some((level) => overflowed[level - 1])) {
       output.push({
         heading,
@@ -177,6 +177,15 @@ export function numberHeadings(
         warning: "counter-overflow",
         exclusion: null,
       });
+      continue;
+    }
+    const counterNodes = templateCounters[index] ?? [];
+    const renderedCounters = currentOnly
+      ? counterNodes.filter((node) => node.level === heading.level).slice(0, 1)
+      : counterNodes;
+    if (renderedCounters.some((node) => (node.format === "roman_upper" || node.format === "roman_lower")
+      && ((currentCounters[node.level - 1] ?? 0) < 1 || (currentCounters[node.level - 1] ?? 0) > 3999))) {
+      output.push({ heading, label: null, counters: currentCounters, warning: "roman-range", exclusion: null });
       continue;
     }
     const rendered = currentOnly

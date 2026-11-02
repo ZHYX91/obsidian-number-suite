@@ -153,7 +153,7 @@ and batch. The tab itself identifies the current section, so its content starts 
 first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
 appearance, and batch operations.
 
-**Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in DocWen's Markdown syntax settings; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
+**Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in **DocWen → Settings → Parse Markdown**; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 
 ### Numbering schemes
 

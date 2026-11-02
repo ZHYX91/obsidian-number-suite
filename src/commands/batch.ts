@@ -38,6 +38,10 @@ interface BoundBatchFile {
   readonly after: string;
 }
 
+type BatchRollbackResult =
+  | Readonly<{ path: string; status: "restored" }>
+  | Readonly<{ path: string; status: "failed" | "uncertain"; error: unknown }>;
+
 class BatchChangedError extends Error {
   constructor(readonly writeMayHaveOccurred = false) {
     super("A batch file, path, or editor binding changed.");
@@ -218,20 +222,21 @@ export class BatchController {
       this.notify(translate("notice.undoDone", { count: restored.length }));
     } catch (error) {
       console.error("Number Suite batch restore failed", error);
-      const rollbackFailures = await this.rollbackBoundExactly(restored);
-      for (const rollbackError of rollbackFailures) {
-        console.error("Number Suite restore rollback failed", rollbackError);
+      const rollback = await this.rollbackBoundExactly(restored);
+      for (const result of rollback) {
+        if (result.status !== "restored") console.error("Number Suite restore rollback failed", result.error);
       }
-      if (rollbackFailures.length === 0) {
-        try {
-          await this.persistence.setLastBatch(snapshot);
-        } catch (persistenceError) {
-          console.error("Number Suite could not retain the recovery snapshot", persistenceError);
-        }
+      let recoverySaved = true;
+      try {
+        // Clearing recovery can fail after changing storage. Retain the original
+        // snapshot even when compensating writes also fail.
+        await this.persistence.setLastBatch(snapshot);
+      } catch (persistenceError) {
+        recoverySaved = false;
+        console.error("Number Suite could not retain the recovery snapshot", persistenceError);
       }
-      this.notify(translate(isBatchConflict(error)
-        ? "notice.undoConflict"
-        : "notice.batchFailed"));
+      this.notifyBatchFailure(translate, error, rollback, "notice.undoConflict");
+      if (!recoverySaved) this.notify(translate("notice.batchRecoveryUncertain"));
     }
   }
 
@@ -344,7 +349,12 @@ export class BatchController {
         ) {
           throw new BatchChangedError();
         }
-        if (current !== expected) throw new ContentConflictError(item.path);
+        // A rejected forward process may never have committed its replacement.
+        // Compensation can confirm that the original text is already present,
+        // under the same file/editor guards, without accepting unrelated edits.
+        if (current !== expected && !(compensating && current === replacement)) {
+          throw new ContentConflictError(item.path);
+        }
         replacementAccepted = true;
         return replacement;
       });
@@ -362,16 +372,44 @@ export class BatchController {
 
   private async rollbackBoundExactly(
     replacements: readonly BoundBatchFile[],
-  ): Promise<readonly unknown[]> {
-    const failures: unknown[] = [];
+  ): Promise<readonly BatchRollbackResult[]> {
+    const results: BatchRollbackResult[] = [];
     for (const item of [...replacements].reverse()) {
       try {
         await this.replaceBoundExactly(item, item.after, item.before, true);
+        results.push({ path: item.path, status: "restored" });
       } catch (error) {
-        failures.push(error);
+        results.push({
+          path: item.path,
+          status: error instanceof BatchWriteUncertainError ? "uncertain" : "failed",
+          error,
+        });
       }
     }
-    return failures;
+    return results;
+  }
+
+  private notifyBatchFailure(
+    translate: Translate,
+    error: unknown,
+    rollback: readonly BatchRollbackResult[],
+    conflictKey: "notice.batchChanged" | "notice.undoConflict",
+  ): void {
+    const incomplete = rollback.filter((result) => result.status !== "restored");
+    if (incomplete.length > 0) {
+      this.notify(translate("notice.batchRollbackIncomplete", {
+        restored: rollback.length - incomplete.length,
+        failed: incomplete.filter((result) => result.status === "failed").length,
+        uncertain: incomplete.filter((result) => result.status === "uncertain").length,
+        files: incomplete.map((result) => result.path).join(", "),
+      }));
+    } else if (isBatchConflict(error)) {
+      this.notify(translate(conflictKey));
+    } else {
+      this.notify(translate(rollback.length === 0 ? "notice.batchFailed" : "notice.batchRolledBack", {
+        count: rollback.length,
+      }));
+    }
   }
 
   private async previewSource(file: TFile): Promise<string | null> {
@@ -559,20 +597,20 @@ export class BatchController {
       this.notify(translate("notice.batchApplied", { count: modified.length }));
     } catch (error) {
       console.error("Number Suite batch failed", error);
-      const rollbackFailures = await this.rollbackBoundExactly(modified);
-      for (const rollbackError of rollbackFailures) {
-        console.error("Number Suite batch rollback failed", rollbackError);
+      const rollback = await this.rollbackBoundExactly(modified);
+      for (const result of rollback) {
+        if (result.status !== "restored") console.error("Number Suite batch rollback failed", result.error);
       }
-      if (rollbackFailures.length === 0) {
-        try {
-          await this.persistence.setLastBatch(previousSnapshot);
-        } catch (persistenceError) {
-          console.error("Number Suite could not restore the previous recovery snapshot", persistenceError);
-        }
+      let recoverySaved = true;
+      try {
+        await this.persistence.setLastBatch(rollback.every((result) => result.status === "restored")
+          ? previousSnapshot : pendingSnapshot);
+      } catch (persistenceError) {
+        recoverySaved = false;
+        console.error("Number Suite could not retain the recovery snapshot", persistenceError);
       }
-      this.notify(translate(isBatchConflict(error)
-        ? "notice.batchChanged"
-        : "notice.batchFailed"));
+      this.notifyBatchFailure(translate, error, rollback, "notice.batchChanged");
+      if (!recoverySaved) this.notify(translate("notice.batchRecoveryUncertain"));
     }
   }
 }
