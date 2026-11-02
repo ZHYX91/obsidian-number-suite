@@ -15,6 +15,8 @@ Obsidian 1.12.7 ou plus récent est requis, sur ordinateur ou Android. Le foncti
 2. Pour une installation manuelle, téléchargez le ZIP de la version depuis [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases), puis placez le dossier extrait `number-suite` dans `.obsidian/plugins/`. Vous pouvez aussi placer `main.js`, `manifest.json` et `styles.css` de la même version dans `.obsidian/plugins/number-suite/`.
 3. Rechargez Obsidian et activez le module. Ne mélangez pas les fichiers de versions différentes.
 
+**Mise à jour manuelle :** Dans le dossier existant du module, remplacez uniquement `main.js`, `manifest.json` et `styles.css` par les fichiers d’une même version. Conservez `data.json` pour garder vos réglages. Conservez aussi les fichiers `recovery.json` et `recovery.pending.json`, s’ils existent : ils contiennent les données d’annulation et de restauration des traitements par lot. Ne les écrasez pas et ne les supprimez pas lors de la mise à jour.
+
 <!-- section: quick-start -->
 ## Démarrage rapide
 

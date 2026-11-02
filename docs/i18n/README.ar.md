@@ -15,6 +15,8 @@
 2. للتثبيت اليدوي، نزّل ملف ZIP الخاص بالإصدار من [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases)، ثم ضع مجلد `number-suite` المستخرج داخل `.obsidian/plugins/`. ويمكنك أيضًا وضع `main.js` و`manifest.json` و`styles.css` من الإصدار نفسه في `.obsidian/plugins/number-suite/`.
 3. أعد تحميل Obsidian وفعّل الإضافة. لا تخلط ملفات من إصدارات مختلفة.
 
+**التحديث اليدوي:** داخل مجلد الإضافة الحالي، استبدل فقط `main.js` و`manifest.json` و`styles.css` بملفات من الإصدار نفسه. احتفظ بملف `data.json` للحفاظ على إعداداتك. احتفظ أيضًا بملفَي `recovery.json` و`recovery.pending.json` إن وُجدا؛ فهما يحفظان بيانات التراجع والاستعادة للعمليات الجماعية. لا تستبدلهما ولا تحذفهما أثناء التحديث.
+
 <!-- section: quick-start -->
 ## بدء الاستخدام
 

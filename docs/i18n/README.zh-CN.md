@@ -74,6 +74,8 @@
 
 从 [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases) 下载版本 ZIP，解压后把 `number-suite` 文件夹放进 `.obsidian/plugins/`。也可以将同一版本的 `main.js`、`manifest.json` 和 `styles.css` 放进 `.obsidian/plugins/number-suite/`。重新加载 Obsidian 并启用插件，不要混用不同版本的文件。
 
+**手动升级：** 在现有插件文件夹中，仅用同一版本的 `main.js`、`manifest.json` 和 `styles.css` 替换对应文件。保留 `data.json`，以保留设置。如有 `recovery.json` 或 `recovery.pending.json`，也请保留；这些文件保存批处理的撤销／恢复数据，升级时不要覆盖或删除。
+
 <!-- section: usage -->
 ## 使用方法
 

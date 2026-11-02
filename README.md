@@ -80,6 +80,8 @@ it. If it is not available in your catalog, use the manual installation below.
 
 Download the versioned ZIP from [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases), extract it, and place the `number-suite` folder inside `.obsidian/plugins/`. You can also place `main.js`, `manifest.json`, and `styles.css` from the same release in `.obsidian/plugins/number-suite/`. Reload Obsidian and enable the plugin. Do not mix files from different versions.
 
+**Manual upgrades:** Replace only `main.js`, `manifest.json`, and `styles.css` in the existing plugin folder with files from the same release. Keep `data.json` to preserve your settings. Also keep any existing `recovery.json` and `recovery.pending.json` files: they store batch undo/recovery data. Do not overwrite or delete them during an upgrade.
+
 <!-- section: usage -->
 ## Usage
 

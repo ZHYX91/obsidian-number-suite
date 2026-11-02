@@ -15,6 +15,8 @@ Number Suite 可在 Obsidian 的標題、圖表標題、參照、註腳與章末
 2. 手動安裝時，從同一個 [GitHub Release](https://github.com/ZHYX91/obsidian-number-suite/releases) 下載版本 ZIP，解壓後將 `number-suite` 資料夾放進 `.obsidian/plugins/`。也可以把同一版本的 `main.js`、`manifest.json` 和 `styles.css` 放進 `.obsidian/plugins/number-suite/`。
 3. 重新載入 Obsidian 並啟用外掛。請勿混用不同版本的檔案。
 
+**手動升級：** 在現有外掛資料夾中，僅以同一版本的 `main.js`、`manifest.json` 和 `styles.css` 替換對應檔案。保留 `data.json`，以保留設定。若有 `recovery.json` 或 `recovery.pending.json`，也請保留；這些檔案儲存批次處理的復原／還原資料，升級時不要覆寫或刪除。
+
 <!-- section: quick-start -->
 ## 快速上手
 

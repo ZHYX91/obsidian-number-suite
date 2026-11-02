@@ -15,6 +15,8 @@ Obsidian 1.12.7 이상이 필요합니다. 데스크톱과 Android를 지원하�
 2. 수동으로 설치하려면 [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases)에서 버전 ZIP을 내려받아 압축을 푼 `number-suite` 폴더를 `.obsidian/plugins/`에 넣습니다. 같은 릴리스의 `main.js`, `manifest.json`, `styles.css`를 `.obsidian/plugins/number-suite/`에 넣어도 됩니다.
 3. Obsidian을 다시 불러오고 플러그인을 활성화합니다. 서로 다른 버전의 파일을 섞지 마세요.
 
+**수동 업데이트:** 기존 플러그인 폴더에서 `main.js`, `manifest.json`, `styles.css`만 같은 릴리스의 파일로 교체하세요. 설정을 유지하려면 `data.json`을 보존하세요. `recovery.json`이나 `recovery.pending.json`이 있으면 함께 보존하세요. 일괄 작업의 실행 취소 및 복구 데이터가 저장되어 있으므로 업데이트 중 덮어쓰거나 삭제하지 마세요.
+
 <!-- section: quick-start -->
 ## 시작하기
 

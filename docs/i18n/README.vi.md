@@ -15,6 +15,8 @@ Cần Obsidian 1.12.7 trở lên trên máy tính hoặc Android. Chưa xác min
 2. Để cài thủ công, tải ZIP của phiên bản từ [GitHub Releases](https://github.com/ZHYX91/obsidian-number-suite/releases), giải nén rồi đặt thư mục `number-suite` vào `.obsidian/plugins/`. Bạn cũng có thể chép `main.js`, `manifest.json` và `styles.css` của cùng một bản phát hành vào `.obsidian/plugins/number-suite/`.
 3. Tải lại Obsidian và bật plugin. Không trộn tệp từ các phiên bản khác nhau.
 
+**Cập nhật thủ công:** Trong thư mục plugin hiện có, chỉ thay `main.js`, `manifest.json` và `styles.css` bằng các tệp cùng một bản phát hành. Giữ lại `data.json` để bảo toàn cài đặt. Nếu có `recovery.json` và `recovery.pending.json`, cũng cần giữ lại: các tệp này lưu dữ liệu hoàn tác và khôi phục thao tác hàng loạt. Không ghi đè hoặc xóa tệp khi cập nhật.
+
 <!-- section: quick-start -->
 ## Bắt đầu
 
