@@ -9,7 +9,7 @@ last_synced: 2026-10-29
 
 # Number Suite — 产品需求
 
-[English synced translation](product-requirements.en.md)
+[English synced translation](product-requirements.md)
 
 <!-- section: authority -->
 ## 文档权威性

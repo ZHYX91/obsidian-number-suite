@@ -10,7 +10,7 @@ it("accepts stable docs and rejects version-specific acceptance prose", () => {
     mkdirSync(join(root, "docs"));
     for (const stem of ["product-requirements", "ux-spec", "architecture", "testing-strategy"]) {
       for (const language of ["en", "zh-CN"]) {
-        const file = `${stem}.${language}.md`;
+        const file = language === "en" ? `${stem}.md` : `${stem}.${language}.md`;
         copyFileSync(resolve("docs", file), join(root, "docs", file));
       }
     }
@@ -18,7 +18,7 @@ it("accepts stable docs and rejects version-specific acceptance prose", () => {
       cwd: root, encoding: "utf8",
     });
     expect(run().status).toBe(0);
-    const file = join(root, "docs", "testing-strategy.en.md");
+    const file = join(root, "docs", "testing-strategy.md");
     const original = readFileSync(file, "utf8");
     for (const version of ["0.7", "0.7.1"]) {
       writeFileSync(file, `${original}\nThe ${version} line additionally verifies captions.\n`);

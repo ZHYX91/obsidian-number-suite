@@ -140,7 +140,7 @@ Use `@[[#Heading]]` or `@[[#Figure: Architecture]]` for a display-only reference
 
 `[^id]` / `[^footnote:id]` and `[^endnote:id]` have separate display counters. Display-only numbering does not rewrite their definitions.
 
-For exact syntax, object-placement ambiguity, IDs and editor behavior, read the [advanced numbering, captions and references guide](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/advanced.en.md).
+For exact syntax, object-placement ambiguity, IDs and editor behavior, read the [advanced numbering, captions and references guide](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/advanced.md).
 
 <!-- section: settings -->
 ## Settings
@@ -271,10 +271,10 @@ npm run check
 
 Project documents:
 
-- [Product requirements](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/product-requirements.en.md)
-- [UX specification](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/ux-spec.en.md)
-- [Architecture](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/architecture.en.md)
-- [Testing strategy](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/testing-strategy.en.md)
+- [Product requirements](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/product-requirements.md)
+- [UX specification](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/ux-spec.md)
+- [Architecture](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/architecture.md)
+- [Testing strategy](https://github.com/ZHYX91/obsidian-number-suite/blob/main/docs/testing-strategy.md)
 
 Project links:
 

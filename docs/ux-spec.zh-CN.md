@@ -9,7 +9,7 @@ last_synced: 2026-10-24
 
 # Number Suite — 交互规范
 
-[English synced translation](ux-spec.en.md)
+[English synced translation](ux-spec.md)
 
 <!-- section: authority -->
 ## 文档权威性
