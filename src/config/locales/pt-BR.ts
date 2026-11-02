@@ -140,7 +140,7 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "settings.language.desc": "Selecione «Seguir Obsidian» para usar o idioma da interface do Obsidian.",
   "settings.exportGuide.title": "Exportar documentos numerados para Word",
   "settings.exportGuide.body": "Legendas, referências cruzadas, títulos de nível 7 a 9 e notas de fim com tipo usam Markdown estendido. Para exportar ao Word, instale DocWen e DocWen Assistant separadamente.",
-  "settings.exportGuide.setup": "Ative as extensões de entrada necessárias nas configurações de sintaxe Markdown do DocWen. O Word usa as opções de numeração da conversão do DocWen, que podem diferir do Obsidian. Somente Windows/Linux no computador.",
+  "settings.exportGuide.setup": "Ative as extensões de entrada necessárias em DocWen → Configurações → Interpretar Markdown. O Word usa as opções de numeração da conversão do DocWen, que podem diferir do Obsidian. Somente Windows/Linux no computador.",
   "settings.exportGuide.link": "Saiba mais sobre o DocWen Assistant",
   "settings.showVirtual": "Mostrar números virtuais",
   "settings.showVirtual.desc": "Mostrar números calculados somente quando não duplicarem números visíveis ou incertos já existentes na nota.",

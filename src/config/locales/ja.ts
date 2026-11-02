@@ -140,7 +140,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "settings.language.desc": "Obsidian と同じ表示言語を使うには「Obsidian に合わせる」を選びます。",
   "settings.exportGuide.title": "番号付き文書を Word に書き出す",
   "settings.exportGuide.body": "キャプション、相互参照、見出しレベル 7〜9、文末脚注には拡張 Markdown 記法を使用します。Word に書き出すには、DocWen と DocWen Assistant を別途インストールしてください。",
-  "settings.exportGuide.setup": "DocWen の Markdown 構文設定で必要な入力拡張を有効にします。Word 側の番号は DocWen の変換設定に従うため、Obsidian の表示と異なる場合があります。Windows/Linux デスクトップのみ対応します。",
+  "settings.exportGuide.setup": "DocWen → 設定 → Markdown を解析で必要な入力拡張を有効にします。Word 側の番号は DocWen の変換設定に従うため、Obsidian の表示と異なる場合があります。Windows/Linux デスクトップのみ対応します。",
   "settings.exportGuide.link": "DocWen Assistant の説明を見る",
   "settings.showVirtual": "仮想番号を表示",
   "settings.showVirtual.desc": "すでに見えている番号や不明な番号と重ならない場合に、計算した番号を表示します。",

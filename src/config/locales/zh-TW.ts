@@ -140,7 +140,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.language.desc": "選擇「跟隨 Obsidian」，即可使用 Obsidian 的介面語言。",
   "settings.exportGuide.title": "將帶編號與引用的筆記導出為 Word",
   "settings.exportGuide.body": "題注、交叉引用、擴展標題及帶類型的尾註使用了可選的 Markdown 擴展語法。可通過 DocWen Assistant 搭配另行安裝的本機 DocWen 進行轉換。",
-  "settings.exportGuide.setup": "請在 DocWen 的 Markdown 語法設定中開啟所需的輸入擴展。Word 導出編號由 DocWen 的轉換選項決定，不一定與 Obsidian 中的顯示相同。僅支援 Windows/Linux 桌面端。",
+  "settings.exportGuide.setup": "請在 DocWen → 設定 → 解析 Markdown 中開啟所需的輸入擴展。Word 導出編號由 DocWen 的轉換選項決定，不一定與 Obsidian 中的顯示相同。僅支援 Windows/Linux 桌面端。",
   "settings.exportGuide.link": "瞭解 DocWen Assistant",
   "settings.showVirtual": "顯示虛擬編號",
   "settings.showVirtual.desc": "在不會與筆記中可疑或可見的已有序號重複時，顯示計算序號。",

@@ -8,6 +8,7 @@ All notable changes to Number Suite are documented here.
 
 - Report complete, partial, and unconfirmed batch rollback outcomes with affected files; confirm files left unchanged by a rejected write, retain recovery records and surface persistence failures without claiming a successful restore.
 - Stop a write or renumber plan before changing a file when any Roman numeral would fall outside 1–3999, including later increments and referenced parent counters.
+- Point the Word export help to DocWen’s current Settings → Parse Markdown page in all twelve interface languages.
 
 ## 0.6.3 - 2026-11-01
 

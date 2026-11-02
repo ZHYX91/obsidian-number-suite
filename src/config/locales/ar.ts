@@ -140,7 +140,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.language.desc": "اختر «اتباع Obsidian» لاستخدام لغة واجهته.",
   "settings.exportGuide.title": "تصدير مستند مرقّم إلى Word",
   "settings.exportGuide.body": "تستخدم التسميات التوضيحية والمراجع والعناوين الإضافية والحواشي الختامية المميّزة امتدادات Markdown اختيارية. يمكن لـ DocWen Assistant تحويلها عبر برنامج DocWen المثبّت محليًا بصورة منفصلة.",
-  "settings.exportGuide.setup": "فعّل امتدادات الإدخال اللازمة من إعدادات صيغة Markdown في DocWen. يستخدم تصدير Word خيارات الترقيم في DocWen، وقد تختلف عما يعرضه Obsidian. متاح على Windows وLinux لسطح المكتب فقط.",
+  "settings.exportGuide.setup": "فعّل امتدادات الإدخال اللازمة في DocWen → الإعدادات → تحليل Markdown. يستخدم تصدير Word خيارات الترقيم في DocWen، وقد تختلف عما يعرضه Obsidian. متاح على Windows وLinux لسطح المكتب فقط.",
   "settings.exportGuide.link": "معرفة المزيد عن DocWen Assistant",
   "settings.showVirtual": "إظهار الترقيم الافتراضي",
   "settings.showVirtual.desc": "أظهر الأرقام المحسوبة إذا لم تتكرر مع رقم ظاهر أو غير مؤكد في الملاحظة.",
