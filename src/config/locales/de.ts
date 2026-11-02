@@ -140,7 +140,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "settings.language.desc": "Mit „Obsidian folgen“ wird die Oberflächensprache von Obsidian verwendet.",
   "settings.exportGuide.title": "Nummerierte Dokumente nach Word exportieren",
   "settings.exportGuide.body": "Beschriftungen, Querverweise, Überschriftenebenen 7–9 und markierte Endnoten verwenden erweitertes Markdown. Für den Word-Export installiere DocWen und DocWen Assistant separat.",
-  "settings.exportGuide.setup": "Aktiviere die benötigten Eingabeerweiterungen in den Markdown-Syntaxeinstellungen von DocWen. Für Word gelten die Nummerierungsoptionen von DocWen; sie können von der Anzeige in Obsidian abweichen. Nur unter Windows/Linux auf dem Desktop.",
+  "settings.exportGuide.setup": "Aktiviere die benötigten Eingabeerweiterungen unter DocWen → Einstellungen → Markdown einlesen. Für Word gelten die Nummerierungsoptionen von DocWen; sie können von der Anzeige in Obsidian abweichen. Nur unter Windows/Linux auf dem Desktop.",
   "settings.exportGuide.link": "Mehr über DocWen Assistant",
   "settings.showVirtual": "Virtuelle Nummern anzeigen",
   "settings.showVirtual.desc": "Berechnete Nummern nur anzeigen, wenn sie nicht mit vorhandenen sichtbaren oder unklaren Nummern kollidieren.",

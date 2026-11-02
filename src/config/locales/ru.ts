@@ -140,7 +140,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "settings.language.desc": "Чтобы использовать язык интерфейса Obsidian, выберите «Как в Obsidian».",
   "settings.exportGuide.title": "Экспорт нумерованных документов в Word",
   "settings.exportGuide.body": "Подписи, перекрёстные ссылки, заголовки уровней 7–9 и специальные концевые примечания используют расширенный синтаксис Markdown. Для экспорта в Word отдельно установите DocWen и DocWen Assistant.",
-  "settings.exportGuide.setup": "Включите необходимые расширения ввода в настройках синтаксиса Markdown DocWen. Для Word используются параметры нумерации DocWen, которые могут отличаться от показанных в Obsidian. Только компьютер с Windows/Linux.",
+  "settings.exportGuide.setup": "Включите необходимые расширения ввода в DocWen → Настройки → Разбор Markdown. Для Word используются параметры нумерации DocWen, которые могут отличаться от показанных в Obsidian. Только компьютер с Windows/Linux.",
   "settings.exportGuide.link": "Подробнее о DocWen Assistant",
   "settings.showVirtual": "Показывать виртуальные номера",
   "settings.showVirtual.desc": "Показывать рассчитанные номера, только если они не дублируют уже видимые или неоднозначные номера в заметке.",

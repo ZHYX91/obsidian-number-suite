@@ -140,7 +140,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "settings.language.desc": "Obsidian 언어를 사용하려면 ‘Obsidian 언어 따르기’를 선택하세요.",
   "settings.exportGuide.title": "번호가 있는 문서를 Word로 내보내기",
   "settings.exportGuide.body": "캡션, 상호 참조, 제목 7~9단계와 형식 있는 미주는 확장 Markdown 문법을 사용합니다. Word로 내보내려면 DocWen과 DocWen Assistant를 별도로 설치하세요.",
-  "settings.exportGuide.setup": "DocWen의 Markdown 문법 설정에서 필요한 입력 확장을 켜세요. Word 문서의 번호는 DocWen 변환 옵션을 따르므로 Obsidian 화면과 다를 수 있습니다. Windows/Linux 데스크톱에서만 지원합니다.",
+  "settings.exportGuide.setup": "DocWen → 설정 → Markdown 해석에서 필요한 입력 확장을 켜세요. Word 문서의 번호는 DocWen 변환 옵션을 따르므로 Obsidian 화면과 다를 수 있습니다. Windows/Linux 데스크톱에서만 지원합니다.",
   "settings.exportGuide.link": "DocWen Assistant 자세히 알아보기",
   "settings.showVirtual": "가상 번호 표시",
   "settings.showVirtual.desc": "노트에 이미 보이는 번호나 확실하지 않은 번호와 중복되지 않을 때 계산한 번호를 표시합니다.",

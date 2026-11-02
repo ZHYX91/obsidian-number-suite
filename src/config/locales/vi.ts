@@ -140,7 +140,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.language.desc": "Chọn “Theo Obsidian” để dùng ngôn ngữ giao diện của Obsidian.",
   "settings.exportGuide.title": "Xuất tài liệu có đánh số sang Word",
   "settings.exportGuide.body": "Chú thích, tham chiếu chéo, tiêu đề cấp 7–9 và chú thích cuối tài liệu có loại sử dụng Markdown mở rộng. Muốn xuất Word, cần cài riêng DocWen và DocWen Assistant.",
-  "settings.exportGuide.setup": "Bật các phần mở rộng đầu vào tương ứng trong cài đặt cú pháp Markdown của DocWen. Word dùng tùy chọn đánh số của DocWen và có thể khác số hiển thị trong Obsidian. Chỉ dùng trên máy tính Windows/Linux.",
+  "settings.exportGuide.setup": "Bật các phần mở rộng đầu vào tương ứng trong DocWen → Cài đặt → Phân tích Markdown. Word dùng tùy chọn đánh số của DocWen và có thể khác số hiển thị trong Obsidian. Chỉ dùng trên máy tính Windows/Linux.",
   "settings.exportGuide.link": "Tìm hiểu về DocWen Assistant",
   "settings.showVirtual": "Hiện số ảo",
   "settings.showVirtual.desc": "Chỉ hiển thị số được tính khi không trùng với số đã có, số đang hiển thị hoặc số chưa rõ trong ghi chú.",
