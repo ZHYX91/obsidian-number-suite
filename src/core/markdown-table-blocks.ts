@@ -40,15 +40,20 @@ function tableCells(text: string): string[] | null {
   return cells.length === 0 ? null : cells;
 }
 
-export function tableDelimiterColumnCount(line: SemanticSourceLine): number | null {
+function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captionSupported: boolean } | null {
   if (!line.available || !line.topLevel) return null;
   const cells = tableCells(line.text);
   if (cells == null) return null;
   const delimiterCells = cells.filter((cell) => cell.trim().length > 0);
   if (delimiterCells.length === 0) return null;
-  return delimiterCells.every((cell) => /^:?-{3,}:?$/u.test(cell.trim()))
-    ? delimiterCells.length
-    : null;
+  const dashCounts = delimiterCells.map((cell) => /^:?(-+):?$/u.exec(cell.trim())?.[1]?.length ?? 0);
+  if (dashCounts.some((count) => count === 0)) return null;
+  return {
+    columnCount: delimiterCells.length,
+    // Native GFM ownership accepts short delimiters. Caption editing retains
+    // its existing carrier contract, independently from literal-data protection.
+    captionSupported: dashCounts.every((count) => count >= 3),
+  };
 }
 
 function tableRowColumnCount(line: SemanticSourceLine | undefined): number | null {
@@ -61,14 +66,15 @@ function tableRowColumnCount(line: SemanticSourceLine | undefined): number | nul
 
 
 export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
-  const blocks: Array<{ first: number; last: number; delimiter: number }> = [];
+  const blocks: Array<{ first: number; last: number; delimiter: number; captionSupported: boolean }> = [];
   const consumed = new Set<number>();
   for (let delimiter = 1; delimiter < lines.length; delimiter += 1) {
     if (consumed.has(delimiter)) continue;
     const line = lines[delimiter];
     if (line == null) continue;
-    const columns = tableDelimiterColumnCount(line);
-    if (columns == null || tableRowColumnCount(lines[delimiter - 1]) !== columns) continue;
+    const delimiterRow = tableDelimiter(line);
+    if (delimiterRow == null || tableRowColumnCount(lines[delimiter - 1]) !== delimiterRow.columnCount) continue;
+    const columns = delimiterRow.columnCount;
     let first = delimiter - 1;
     // A preceding caption may contain pipes without a separating blank line.
     // Only extension-header expansion yields to that declaration; the immediate
@@ -92,7 +98,7 @@ export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
       last += 1;
     }
     for (let index = first; index <= last; index += 1) consumed.add(index);
-    blocks.push({ first, last, delimiter });
+    blocks.push({ first, last, delimiter, captionSupported: delimiterRow.captionSupported });
   }
   return blocks;
 }

@@ -109,6 +109,17 @@ describe("full-document literal ownership", () => {
     }
   });
 
+  it.each(["| - | - |", "| -- | -- |", "| :- | -: |", "| :--: | --- |"])("protects native GFM data with %s without enabling caption insertion", (delimiter) => {
+    const source = `| Name | Value |\n${delimiter}\nTable: Alpha | Beta\n\nTable: Actual`;
+    expect(parser.configure(Table).parse(source).topNode.firstChild?.name).toBe("Table");
+    const snapshot = createSemanticSnapshot(source);
+    expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+    expect(display(source).filter((item) => item.kind === "caption").map((item) => item.displayLabel)).toEqual(["Table 1: Actual"]);
+    expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+    expect(snapshot.objects).toEqual([]);
+    expect(createCaptionInsertionPlan(source, source.indexOf("Name"), "New caption")).toBeNull();
+  });
+
   it.each(["Figure", "Table", "Equation", "Code"])("retains zero-blank-line %s captions containing pipes", (kind) => {
     const table = "| Name | Value |\n| --- | --- |\n| Gamma | Delta |";
     for (const gap of ["\n", "\n\n"]) {
