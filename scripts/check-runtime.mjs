@@ -1,18 +1,20 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import "./check-shared-tools.mjs";
+
+const { assertRuntimeContract, parseNpmVersion } = await import("./runtime-contract.mjs");
 
 const root = process.cwd();
 const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const nodeVersion = (await readFile(path.join(root, ".node-version"), "utf8")).trim();
-const expectedNode = packageJson.engines?.node;
-
-if (expectedNode !== nodeVersion) {
-  throw new Error(`Node contract mismatch: package=${expectedNode} .node-version=${nodeVersion}`);
-}
-if (process.versions.node !== nodeVersion) {
-  throw new Error(`Expected Node ${nodeVersion}, received ${process.versions.node}`);
-}
+const currentNpmVersion = parseNpmVersion(process.env.npm_config_user_agent);
+assertRuntimeContract({
+  configuredNodeVersion: nodeVersion,
+  currentNodeVersion: process.versions.node,
+  currentNpmVersion,
+  packageJson,
+});
 if (Object.keys(packageJson.dependencies ?? {}).length !== 0) {
   throw new Error("Runtime dependencies must be reviewed and bundled intentionally.");
 }
@@ -48,4 +50,4 @@ for (const file of sourceFiles) {
   }
 }
 
-process.stdout.write(`Runtime contract passed for Node ${nodeVersion}; ${sourceFiles.length} source files are offline-only.\n`);
+process.stdout.write(`Runtime contract passed for Node ${nodeVersion} and npm ${currentNpmVersion}; ${sourceFiles.length} source files are offline-only.\n`);
