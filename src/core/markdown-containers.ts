@@ -2,6 +2,7 @@ import { parser, type BlockContext, type BlockParser, type LeafBlockParser, type
 
 import { scanInlineComments, type CommentKind } from "./markdown-comments";
 import { blockHtmlStart, completeCustomHtmlTag, rawHtmlStart } from "./markdown-html-blocks";
+import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
 import type { PhysicalSourceLine } from "./source-lines";
 
 interface SourceRange {
@@ -19,28 +20,28 @@ export interface MarkdownContainerLine {
   readonly nested: boolean;
   readonly literal: boolean;
   readonly literalKind: LiteralKind | null;
-  /** Exact code-span offsets within this physical line, including cross-line spans. */
-  readonly inlineCode: readonly SourceRange[];
+  /** Exact code/math offsets within this physical line, including cross-line spans. */
+  readonly inlineLiterals: readonly SourceRange[];
   readonly equationLastLine?: number;
 }
 
 const CONTAINERS = new Set(["BulletList", "OrderedList", "Blockquote"]);
 const LITERALS = new Set<string>(["FencedCode", "CodeBlock", "HTMLBlock", "NumberSuiteEquation", "NumberSuiteUnclosedEquation"]);
 
-function inAcceptedCode(spans: readonly SourceRange[], accepted: ReadonlySet<number>, offset: number): boolean {
+function inAcceptedInline(spans: readonly SourceRange[], accepted: ReadonlySet<number>, offset: number): boolean {
   let low = 0, high = spans.length;
   while (low < high) { const mid = (low + high) >>> 1; if (spans[mid]!.to <= offset) low = mid + 1; else high = mid; }
-  const code = spans[low];
-  return code != null && code.from <= offset && accepted.has(code.from);
+  const span = spans[low];
+  return span != null && span.from <= offset && accepted.has(span.from);
 }
 
 /** Project comments only where the block parser is reading actual Markdown. */
-function commentProjection(input: string, codeSpans: readonly SourceRange[], acceptedCode: Set<number>): BlockParser {
+function commentProjection(input: string, inlineSpans: readonly SourceRange[], acceptedInline: Set<number>): BlockParser {
   let state: CommentKind | null = null;
   let inlineFlow = false;
   let previousEnd = 0;
   const processed = new Map<number, string>();
-  let codeIndex = 0;
+  let inlineIndex = 0;
   const apply = (cx: BlockContext, line: Line, continuation = false): void => {
     let masked = processed.get(cx.lineStart);
     if (masked == null) {
@@ -67,7 +68,7 @@ function commentProjection(input: string, codeSpans: readonly SourceRange[], acc
         // A math opening owns its literal first line too. Do not consume TeX
         // comment/HTML-looking text before the equation block parser sees it.
         if (cx.depth === 1 && line.pos <= 3 && text.startsWith("$$")
-          && !inAcceptedCode(codeSpans, acceptedCode, cx.lineStart + line.pos)) return;
+          && !inAcceptedInline(inlineSpans, acceptedInline, cx.lineStart + line.pos)) return;
         if (line.indent < line.baseIndent + 4 && (
           text.startsWith("<!--") || text.startsWith("<?") || text.startsWith("<![CDATA[")
           || /^<![A-Z]/u.test(text) || rawHtmlStart(text) != null || blockHtmlStart(text)
@@ -77,17 +78,17 @@ function commentProjection(input: string, codeSpans: readonly SourceRange[], acc
       const body = line.text.slice(line.basePos);
       const initial = state;
       const bodyFrom = cx.lineStart + line.basePos;
-      while (codeSpans[codeIndex] != null && codeSpans[codeIndex]!.to <= bodyFrom) codeIndex += 1;
+      while (inlineSpans[inlineIndex] != null && inlineSpans[inlineIndex]!.to <= bodyFrom) inlineIndex += 1;
       const spans: SourceRange[] = [];
-      for (let cursor = codeIndex; codeSpans[cursor] != null && codeSpans[cursor]!.from < bodyFrom + body.length; cursor += 1) {
-        spans.push(codeSpans[cursor]!);
+      for (let cursor = inlineIndex; inlineSpans[cursor] != null && inlineSpans[cursor]!.from < bodyFrom + body.length; cursor += 1) {
+        spans.push(inlineSpans[cursor]!);
       }
-      const code = spans.filter((range) => range.from >= bodyFrom || acceptedCode.has(range.from))
+      const protectedRanges = spans.filter((range) => range.from >= bodyFrom || acceptedInline.has(range.from))
         .map((range) => ({ from: Math.max(0, range.from - bodyFrom), to: Math.min(body.length, range.to - bodyFrom) }));
-      const comments = scanInlineComments(body, initial, code);
+      const comments = scanInlineComments(body, initial, protectedRanges);
       for (const span of spans) {
         const from = span.from - bodyFrom;
-        if (from >= 0 && !comments.ranges.some((range) => from >= range.from && from < range.to)) acceptedCode.add(span.from);
+        if (from >= 0 && !comments.ranges.some((range) => from >= range.from && from < range.to)) acceptedInline.add(span.from);
       }
       const projected = comments.masked.split("");
       let keepParagraph = inlineFlow;
@@ -146,10 +147,10 @@ function commentProjection(input: string, codeSpans: readonly SourceRange[], acc
 }
 
 /** Equations own their contents before Markdown-looking TeX can create containers. */
-function equationBlock(codeSpans: readonly SourceRange[], acceptedCode: ReadonlySet<number>): BlockParser {
+function equationBlock(inlineSpans: readonly SourceRange[], acceptedInline: ReadonlySet<number>): BlockParser {
   const starts = (cx: BlockContext, line: Line): boolean => {
     if (cx.depth !== 1 || line.pos > 3 || !line.text.slice(line.pos).startsWith("$$")) return false;
-    return !inAcceptedCode(codeSpans, acceptedCode, cx.lineStart + line.pos);
+    return !inAcceptedInline(inlineSpans, acceptedInline, cx.lineStart + line.pos);
   };
   return {
     name: "NumberSuiteEquation", before: "FencedCode",
@@ -194,16 +195,19 @@ export function scanMarkdownContainerLines(
   }).join("\n");
   const containers: SourceRange[] = [];
   const literals: LiteralRange[] = [];
-  const inlineCode: SourceRange[] = [];
-  const rawCode: SourceRange[] = [];
-  parser.parse(input).iterate({ enter(node) {
-    if (node.name === "InlineCode") { rawCode.push({ from: node.from, to: node.to }); return false; }
+  const inlineLiterals: SourceRange[] = [];
+  const rawInline: SourceRange[] = [];
+  const markdown = parser.configure(inlineMath());
+  markdown.parse(input).iterate({ enter(node) {
+    if (node.name === "InlineCode" || node.name === INLINE_MATH_NODE) {
+      rawInline.push({ from: node.from, to: node.to }); return false;
+    }
     return undefined;
   } });
   let depth = 0;
-  const acceptedCode = new Set<number>();
-  parser.configure({ defineNodes: ["NumberSuiteEquation", "NumberSuiteUnclosedEquation"],
-    parseBlock: [commentProjection(input, rawCode, acceptedCode), equationBlock(rawCode, acceptedCode)] }).parse(input).iterate({
+  const acceptedInline = new Set<number>();
+  markdown.configure({ defineNodes: ["NumberSuiteEquation", "NumberSuiteUnclosedEquation"],
+    parseBlock: [commentProjection(input, rawInline, acceptedInline), equationBlock(rawInline, acceptedInline)] }).parse(input).iterate({
     enter(node) {
       if (CONTAINERS.has(node.name)) {
         if (depth === 0) containers.push({ from: node.from, to: node.to });
@@ -211,8 +215,8 @@ export function scanMarkdownContainerLines(
       } else if (LITERALS.has(node.name)) {
         literals.push({ from: node.from, to: node.to, kind: node.name as LiteralKind });
         return false;
-      } else if (node.name === "InlineCode") {
-        inlineCode.push({ from: node.from, to: node.to });
+      } else if (node.name === "InlineCode" || node.name === INLINE_MATH_NODE) {
+        inlineLiterals.push({ from: node.from, to: node.to });
         return false;
       }
       return undefined;
@@ -224,17 +228,17 @@ export function scanMarkdownContainerLines(
 
   let containerIndex = 0;
   let literalIndex = 0;
-  let codeIndex = 0;
+  let inlineIndex = 0;
   return starts.map((from, index) => {
     const to = (starts[index + 1] ?? offset) - 1;
     while (containers[containerIndex] != null && containers[containerIndex]!.to <= from) containerIndex += 1;
     while (literals[literalIndex] != null && literals[literalIndex]!.to <= from) literalIndex += 1;
     const literal = (literals[literalIndex]?.from ?? Infinity) <= to ? literals[literalIndex] : null;
-    while (inlineCode[codeIndex] != null && inlineCode[codeIndex]!.to <= from) codeIndex += 1;
-    const code: SourceRange[] = [];
-    for (let cursor = codeIndex; inlineCode[cursor] != null && inlineCode[cursor]!.from < to; cursor += 1) {
-      const range = inlineCode[cursor]!;
-      code.push({ from: Math.max(0, range.from - from), to: Math.min(to - from, range.to - from) });
+    while (inlineLiterals[inlineIndex] != null && inlineLiterals[inlineIndex]!.to <= from) inlineIndex += 1;
+    const protectedRanges: SourceRange[] = [];
+    for (let cursor = inlineIndex; inlineLiterals[cursor] != null && inlineLiterals[cursor]!.from < to; cursor += 1) {
+      const range = inlineLiterals[cursor]!;
+      protectedRanges.push({ from: Math.max(0, range.from - from), to: Math.min(to - from, range.to - from) });
     }
     let equationLastLine: number | undefined;
     if (literal?.kind === "NumberSuiteEquation" && literal.from === from) {
@@ -246,7 +250,7 @@ export function scanMarkdownContainerLines(
       nested: (containers[containerIndex]?.from ?? Infinity) <= to,
       literal: literal != null,
       literalKind: literal?.kind ?? null,
-      inlineCode: code,
+      inlineLiterals: protectedRanges,
     };
   });
 }

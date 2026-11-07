@@ -49,6 +49,56 @@ describe("full-document literal ownership", () => {
     expect(display(source).filter((item) => item.kind === "caption").map((item) => item.label)).toEqual(["1"]);
   });
 
+  it.each(["\n", "\r\n", "\r"])("protects inline math while preserving prose numbers and export offsets for %j", (ending) => {
+    for (const delimiter of ["$", "$$"]) for (const multiline of [false, true]) {
+      const math = `${delimiter}[^x]${multiline ? `${ending}Figure: literal ` : " "}@[[#Actual🐈]]${delimiter}`;
+      const source = ["# Actual🐈", "", `prefix ${math} prose [^y] @[[#Actual🐈]]`, "", "[^x]: X", "[^y]: Y"].join(ending);
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.semantics.captions).toEqual([]);
+      expect(snapshot.notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+      const plan = display(source);
+      expect(plan.filter((item) => item.kind === "note-reference").map((item) => item.label)).toEqual(["1"]);
+      expect(plan.filter((item) => item.kind === "reference")).toHaveLength(1);
+      const references = exported(source).references;
+      expect(references).toHaveLength(1);
+      expect(references[0]?.sourceStartUtf16).toBe(source.lastIndexOf("@[[#Actual🐈]]"));
+      expect(source.slice(references[0]!.sourceStartUtf16, references[0]!.sourceEndUtf16)).toBe("@[[#Actual🐈]]");
+    }
+  });
+
+  it.each(["<!--", "%%", "`", "[link](target"])("keeps %s literal inside math without hiding subsequent prose", (literal) => {
+    const source = `# Actual\n\nprefix $x ${literal} [^x] @[[#Actual]]$ prose [^y] @[[#Actual]]\n\n[^x]: X\n[^y]: Y`;
+    const snapshot = createSemanticSnapshot(source);
+    expect(snapshot.notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+    expect(exported(source).references.map((reference) => reference.sourceStartUtf16))
+      .toEqual([source.lastIndexOf("@[[#Actual]]")]);
+  });
+
+  it.each([
+    "prefix `example $x` then $[^x]$",
+    "prefix <!-- $x --> then $[^x]$",
+    "prefix %% $x %% then $[^x]$",
+    "- item $[^x]$",
+    "> quote $[^x]$",
+    "prefix \\\\$[^x]$",
+  ])("protects only actual math in the surrounding Markdown context: %j", (prefix) => {
+    const source = `${prefix} prose [^y]\n\n[^x]: X\n[^y]: Y`;
+    expect(createSemanticSnapshot(source).notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+  });
+
+  it.each([
+    "prefix \\$[^x]\\$",
+    "prefix $ [^x] $",
+    "prefix $[^x]",
+    "prefix $$$[^x]$$$",
+    "prefix $x\n\n[^x]$",
+    "prefix $5 and [^x] costs $10",
+  ])("does not hide prose notes behind unmatched or literal dollar text: %j", (prefix) => {
+    const source = `${prefix} prose [^y]\n\n[^x]: X\n[^y]: Y`;
+    expect(createSemanticSnapshot(source).notes.references.map(({ id, number }) => [id, number]))
+      .toEqual([["x", 1], ["y", 2]]);
+  });
+
   it("keeps same-line equations and inline-code caption titles, and fails closed on unclosed math", () => {
     expect(createSemanticSnapshot("$$ a=b $$\nCode: `actual`").bindings[0]?.object.kind).toBe("Equation");
     expect(createSemanticSnapshot("$$\nFigure: literal").semantics.captions).toEqual([]);

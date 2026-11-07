@@ -44,7 +44,7 @@ style, rule, and confidence for plugin, template, and manual prefixes; `prefix-a
 shared display/write entry point.
 
 `markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
-blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code ranges; a second parses comment-projected blocks while retaining literal comments inside code. The projection is linear
+blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code and inline-math ranges; a second parses comment-projected blocks while retaining literal comments inside both. The inline-math extension also provides stable-ID insertion boundaries, so dollar delimiters have one rule. The projection is linear
 and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
@@ -102,7 +102,7 @@ and unconstrained canvas translation separate.
 <!-- section: interop-api -->
 ## Consumer interoperability API
 
-The complete source snapshot shares physical lines, code/equation protection, note containers and table boundaries. Equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
+The complete source snapshot shares physical lines, code/math protection, note containers and table boundaries. Inline math retains exact ranges within its Markdown inline block; escaped, unmatched and whitespace-delimited dollars do not claim prose. Block equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
 
 Semantic parsing builds one line-to-unique-target-ID index for both reference creation and export; heading display results are also indexed by line. Consumers do not rescan the source or every block owner for each target. The index retains ambiguity from duplicate IDs and multiple IDs on one target, including a duplicate ID beside another unique ID. Existing standalone IDs follow the same zero-or-one-blank-line ownership rule in both consumers. Original case and reference source offsets remain unchanged.
 
@@ -221,8 +221,9 @@ Both target discovery and plan construction reject relocation when anything othe
 remains between the recognized object and caption ranges, including a second standalone object ID.
 
 Stable-reference context actions use a separate pure `StableReferencePlan`. Target recognition is
-limited to the heading or fixed caption at the actual context-menu position. Existing inline or immediately
-following IDs produce no write. Otherwise the plan generates a collision-safe ID at the valid target
+limited to the heading or fixed caption at the actual context-menu position. An existing unique inline ID or
+standalone ID within one following blank line produces no write. Ambiguous ownership refuses the action.
+Otherwise the plan generates a collision-safe ID at the valid target
 position (inline on captions, following line for headings), exact
 before/after preview, and readable aliased `@[[#^id|title]]` link. Confirmation revalidates the file,
 full source, target, and generated ID before one editor transaction; clipboard output follows the

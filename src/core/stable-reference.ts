@@ -2,7 +2,7 @@ import { GFM, parser } from "@lezer/markdown";
 
 import { parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
 import { parseAtxHeadings } from "./heading-parser";
-import { isMarkdownSourceEscaped, maskInlineProtectedSyntax } from "./markdown-protection";
+import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
 
 export interface StableReferenceTarget {
   readonly kind: "heading" | "caption";
@@ -32,41 +32,13 @@ export interface StableReferencePlan {
 const ANY_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)/gmu;
 const referenceMarkdownParser = parser.configure(GFM);
 const INLINE_SYNTAX = new Set([
-  "InlineCode", "HTMLTag", "Link", "Image", "Autolink", "Emphasis", "StrongEmphasis", "Strikethrough",
+  "InlineCode", "HTMLTag", "Link", "Image", "Autolink", "Emphasis", "StrongEmphasis", "Strikethrough", INLINE_MATH_NODE,
 ]);
-
-function splitsMathSyntax(source: string, offset: number): boolean {
-  const input = source.replace(/\r\n?/gu, "\n");
-  const at = source.slice(0, offset).replace(/\r\n?/gu, "\n").length;
-  // Math can span physical lines, but cannot continue through a blank paragraph.
-  let from = 0;
-  let to = input.length;
-  for (const match of input.matchAll(/\n[ \t]*\n/gu)) {
-    if (match.index < at) from = match.index + match[0].length;
-    else { to = match.index; break; }
-  }
-  const text = maskInlineProtectedSyntax(input.slice(from, to));
-  const position = at - from;
-  const openings = new Map<number, number>();
-  for (const match of text.matchAll(/\$+/gu)) {
-    const index = match.index;
-    const length = match[0].length;
-    if (length > 2 || isMarkdownSourceEscaped(text, index)) continue;
-    const opening = openings.get(length);
-    if (opening != null && index > 0 && !/\s/u.test(text[index - 1]!)) {
-      if (opening < position && position < index + length) return true;
-      openings.delete(length);
-    } else if (index + length < text.length && !/\s/u.test(text[index + length]!)) {
-      openings.set(length, index);
-    }
-  }
-  return false;
-}
 
 function splitsInlineSyntax(source: string, offset: number): boolean {
   const input = source.replace(/\r\n?/gu, "\n");
   const at = source.slice(0, offset).replace(/\r\n?/gu, "\n").length;
-  let node = referenceMarkdownParser.parse(input).resolveInner(at, -1);
+  let node = referenceMarkdownParser.configure(inlineMath()).parse(input).resolveInner(at, -1);
   while (node != null) {
     if (INLINE_SYNTAX.has(node.name) && node.from < at && at < node.to) return true;
     const parent = node.parent;
@@ -162,8 +134,7 @@ export function createStableReferencePlan(
   if (target == null) return null;
   // Inspect the original syntax: inserting an ID can itself invalidate a link or
   // HTML tag, making a check of only the modified source miss the split.
-  if (target.blockId == null && target.kind === "caption"
-    && (splitsInlineSyntax(source, target.lineTo) || splitsMathSyntax(source, target.lineTo))) return null;
+  if (target.blockId == null && target.kind === "caption" && splitsInlineSyntax(source, target.lineTo)) return null;
   const blockId = target.blockId ?? generatedBlockId(source, target);
   const alias = safeAlias(target.title);
   const link = `@[[#^${blockId}|${alias}]]`;

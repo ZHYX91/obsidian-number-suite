@@ -490,7 +490,7 @@ function readingReferenceSource(source: string): Readonly<{
     if ((htmlRanges[htmlIndex]?.from ?? Infinity) < parserEnd) unverifiedLines.add(line.number);
     parserOffset = parserEnd + 1;
     if (!line.available) continue;
-    const masked = maskInlineProtectedSyntax(line.commentMaskedText);
+    const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
     for (const match of masked.matchAll(/\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu)) {
       const target = match[1]?.trim();
       if (target == null || target.length === 0) continue;

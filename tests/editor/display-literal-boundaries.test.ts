@@ -47,3 +47,12 @@ it.each(["-", "--", "---"])("shows only the real caption after a GFM table using
   expect(Array.from(parent.querySelectorAll(".number-suite-caption-pill"), (node) => node.textContent))
     .toEqual(["Table 1: Actual"]);
 });
+
+it("renders the first prose footnote as 1 after an inline-math lookalike", () => {
+  const source = "公式 $[^ghost]$，正文 [^real]。\n\n[^ghost]: 示例\n[^real]: 正文脚注\n\n尾部";
+  const parent = render(source);
+  expect(Array.from(parent.querySelectorAll(".number-suite-note-reference"), (node) => node.textContent))
+    .toEqual(["1"]);
+  expect(Array.from(parent.querySelectorAll(".number-suite-note-definition"), (node) => node.textContent))
+    .toEqual(["[1]"]);
+});

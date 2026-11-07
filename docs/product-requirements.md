@@ -134,7 +134,7 @@ governed by their own source and settings.
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
 
-Cross-line inline code and block-equation interiors declare no captions, semantic references or notes. Protection follows exact source ranges and preserves prose outside code on the same line. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
+Inline code, inline math and block-equation interiors declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
 
 <!-- section: safety-requirements -->
 ## Safety requirements
