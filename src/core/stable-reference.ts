@@ -1,6 +1,6 @@
 import { GFM, parser } from "@lezer/markdown";
 
-import { blockTargetKey, parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
+import { parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
 import { parseAtxHeadings } from "./heading-parser";
 import { isMarkdownSourceEscaped, maskInlineProtectedSyntax } from "./markdown-protection";
 
@@ -29,8 +29,6 @@ export interface StableReferencePlan {
   readonly change: StableReferenceChange | null;
 }
 
-const INLINE_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
-const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 const ANY_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)/gmu;
 const referenceMarkdownParser = parser.configure(GFM);
 const INLINE_SYNTAX = new Set([
@@ -78,19 +76,6 @@ function splitsInlineSyntax(source: string, offset: number): boolean {
   return false;
 }
 
-function sourceLineAtOffset(source: string, offset: number): number | null {
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset > source.length) return null;
-  const lines = scanSemanticSourceLines(source);
-  return lines.find((line) => offset >= line.from && offset <= line.to)?.number ?? null;
-}
-
-function existingBlockId(source: string, line: number, inlineContent: string): string | null {
-  const inline = INLINE_BLOCK_ID.exec(inlineContent)?.[1];
-  if (inline != null) return inline;
-  const next = scanSemanticSourceLines(source).find((candidate) => candidate.number === line + 1);
-  return next == null ? null : STANDALONE_BLOCK_ID.exec(next.text)?.[1] ?? null;
-}
-
 function safeAlias(value: string): string {
   return value.trim().replace(/\|/gu, "｜").replace(/\]/gu, "］");
 }
@@ -133,8 +118,13 @@ function generatedBlockId(
 }
 
 function targetAtOffset(source: string, cursorOffset: number): StableReferenceTarget | null {
-  const line = sourceLineAtOffset(source, cursorOffset);
+  if (!Number.isSafeInteger(cursorOffset) || cursorOffset < 0 || cursorOffset > source.length) return null;
+  const lines = scanSemanticSourceLines(source);
+  const line = lines.find((candidate) => cursorOffset >= candidate.from && cursorOffset <= candidate.to)?.number;
   if (line == null) return null;
+  const semantics = parseDocumentSemantics(source, lines);
+  const blockId = semantics.blockTargetIds.get(line);
+  if (blockId === null) return null;
   const heading = parseAtxHeadings(source).find((candidate) => candidate.line === line);
   if (heading != null) {
     const title = withoutTrailingBlockId(heading.content);
@@ -145,10 +135,10 @@ function targetAtOffset(source: string, cursorOffset: number): StableReferenceTa
       lineFrom: heading.lineFrom,
       lineTo: heading.lineTo,
       title,
-      blockId: existingBlockId(source, line, heading.content),
+      blockId: blockId ?? null,
     };
   }
-  const caption = parseDocumentSemantics(source).captions.find((candidate) => candidate.line === line);
+  const caption = semantics.captions.find((candidate) => candidate.line === line);
   if (caption == null || caption.title.length === 0) return null;
   return {
     kind: "caption",
@@ -156,7 +146,7 @@ function targetAtOffset(source: string, cursorOffset: number): StableReferenceTa
     lineFrom: caption.lineFrom,
     lineTo: caption.lineTo,
     title: caption.title,
-    blockId: existingBlockId(source, line, caption.content),
+    blockId: blockId ?? null,
   };
 }
 
@@ -170,10 +160,6 @@ export function createStableReferencePlan(
 ): StableReferencePlan | null {
   const target = targetAtOffset(source, cursorOffset);
   if (target == null) return null;
-  if (target.blockId != null) {
-    const owner = parseDocumentSemantics(source).blockOwners.get(blockTargetKey(target.blockId));
-    if (owner !== target.line) return null;
-  }
   // Inspect the original syntax: inserting an ID can itself invalidate a link or
   // HTML tag, making a check of only the modified source miss the split.
   if (target.blockId == null && target.kind === "caption"
@@ -189,7 +175,7 @@ export function createStableReferencePlan(
   const result = source.slice(0, target.lineTo) + insertion + source.slice(target.lineTo);
   // A physical line ending may still be inside a multiline comment. Only offer
   // a write when the inserted ID actually resolves to the original target.
-  if (parseDocumentSemantics(result).blockOwners.get(blockTargetKey(blockId)) !== target.line) return null;
+  if (parseDocumentSemantics(result).blockTargetIds.get(target.line) !== blockId) return null;
   return {
     source,
     target,

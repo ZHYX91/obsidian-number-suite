@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-29
+last_synced: 2026-11-07
 ---
 
 # Number Suite — Architecture
@@ -104,7 +104,7 @@ and unconstrained canvas translation separate.
 
 The complete source snapshot shares physical lines, code/equation protection, note containers and table boundaries. Equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
 
-Export builds its line-to-unique-target-ID index once per snapshot and indexes heading display results by line; it does not rescan the source or every block owner for each heading or caption. Duplicate IDs still fail closed, and a line with multiple different IDs has no single exported target ID. Original case and reference source offsets remain unchanged.
+Semantic parsing builds one line-to-unique-target-ID index for both reference creation and export; heading display results are also indexed by line. Consumers do not rescan the source or every block owner for each target. The index retains ambiguity from duplicate IDs and multiple IDs on one target, including a duplicate ID beside another unique ID. Existing standalone IDs follow the same zero-or-one-blank-line ownership rule in both consumers. Original case and reference source offsets remain unchanged.
 
 The plugin exposes a read-only `number-suite.interop.v2` API. Given source Markdown and
 sanitized note overrides, it returns a JSON-serializable consumer-neutral snapshot: UTF-16 source

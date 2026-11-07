@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-29
+last_synced: 2026-11-07
 ---
 
 # Number Suite — Product requirements
@@ -91,6 +91,8 @@ governed by their own source and settings.
     cross-reference** context action may reuse an existing target block ID or, after exact preview
     and stale-source validation, create one block ID at the target's valid Markdown position in one
     editor transaction. Caption IDs are inline; heading IDs may use a following standalone line. Existing
+    standalone IDs may follow one blank line and retain their authored case when reused. Multiple IDs on
+    one target or multiple owners of one ID must not trigger a new ID or an arbitrary choice. Existing
     title references are never migrated or auto-rewritten when later edits introduce ambiguity.
 13. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
