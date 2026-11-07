@@ -101,22 +101,6 @@ function targetAuthoredText(value: string): string {
   return match?.[1] == null ? value.trim() : value.slice(0, match.index).trim();
 }
 
-function uniqueTargetIdsByLine(
-  semantics: SemanticDocument,
-): ReadonlyMap<number, string> {
-  if (semantics.blockOwners.size === 0) return new Map();
-  const ownerKeyByLine = new Map<number, string | null>();
-  for (const [key, line] of semantics.blockOwners) {
-    ownerKeyByLine.set(line, ownerKeyByLine.has(line) ? null : key);
-  }
-  const targetIds = new Map<number, string>();
-  for (const [line, key] of ownerKeyByLine) {
-    const id = key == null ? null : semantics.blockOwnerIds.get(key);
-    if (id != null && id.length <= 128) targetIds.set(line, id);
-  }
-  return targetIds;
-}
-
 function displaySegments(
   heading: ParsedHeading,
   label: string,
@@ -276,7 +260,10 @@ export function exportSemanticSnapshotV2(
   }
   const snapshot = createSemanticSnapshot(request.authoredMarkdown);
   const semantics = snapshot.semantics;
-  const targetIds = uniqueTargetIdsByLine(semantics);
+  const targetIds = new Map<number, string>();
+  for (const [line, id] of semantics.blockTargetIds) {
+    if (id != null && id.length <= 128) targetIds.set(line, id);
+  }
   const parsedHeadings = snapshot.headings;
   const headings = headingTargets(
     targetIds,

@@ -95,7 +95,9 @@ multiple exact targets fail closed. Untyped names resolve only as headings. Numb
 auto-rewrites an existing title reference if a later edit introduces ambiguity.
 
 For a stable reference, right-click a heading or caption and choose **Copy cross-reference**. If the
-target already has a block ID, Number Suite reuses it and copies immediately. Otherwise it previews
+target already has a unique block ID, Number Suite reuses its authored spelling and copies immediately,
+including a standalone ID after one blank line. Multiple IDs on one target or an ID owned by more than
+one target block the action. Otherwise it previews
 one bounded Markdown change and creates an ID only after confirmation. Caption IDs are appended to
 the caption line; heading IDs use the valid following block-ID line. It then copies a reference with
 a readable alias. This explicit command is the only caption/reference workflow that creates an ID.

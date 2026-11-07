@@ -60,6 +60,13 @@ describe("semantic export per-snapshot target indexes", () => {
       .toEqual(["# Several ^first-id", "# Several ^first-id", "# Unique ^Original-Case", "Figure: Unique caption"]);
   });
 
+  it("does not select a surviving ID when another ID on the target is duplicated elsewhere", () => {
+    const source = "# Target ^Unique\n\n^duplicate\n\nOther ^DUPLICATE\n\n@[[#^Unique]]";
+    const exported = snapshot(source);
+    expect(exported.headingTargets[0]?.targetId).toBeNull();
+    expect(exported.references).toHaveLength(1);
+  });
+
   it.each([
     "```md\n^HIDDEN-ID\n```",
     "%%\n^HIDDEN-ID\n%%",

@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-29
+last_synced: 2026-11-07
 ---
 
 # Number Suite — Product requirements
@@ -91,6 +91,8 @@ governed by their own source and settings.
     cross-reference** context action may reuse an existing target block ID or, after exact preview
     and stale-source validation, create one block ID at the target's valid Markdown position in one
     editor transaction. Caption IDs are inline; heading IDs may use a following standalone line. Existing
+    standalone IDs may follow one blank line and retain their authored case when reused. Multiple IDs on
+    one target or multiple owners of one ID must not trigger a new ID or an arbitrary choice. Existing
     title references are never migrated or auto-rewritten when later edits introduce ambiguity.
 13. `[^id]` and `[^footnote:id]` declare footnotes, while `[^endnote:id]` declares endnotes.
     Footnotes and endnotes each count independently from 1 per Markdown file in first-reference
@@ -132,7 +134,7 @@ governed by their own source and settings.
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
 
-Cross-line inline code and block-equation interiors declare no captions, semantic references or notes. Protection follows exact source ranges and preserves prose outside code on the same line. Legal GFM data rows belong to their table even when boundary pipes are omitted and the first cell begins with a caption keyword; they must not be moved or converted into captions. An equation carrier remains independent of its protected interior.
+Inline code, inline math and block-equation interiors declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
 
 <!-- section: safety-requirements -->
 ## Safety requirements

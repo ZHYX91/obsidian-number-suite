@@ -1,8 +1,8 @@
 import { GFM, parser } from "@lezer/markdown";
 
-import { blockTargetKey, parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
+import { parseDocumentSemantics, scanSemanticSourceLines, withoutTrailingBlockId } from "./document-semantics";
 import { parseAtxHeadings } from "./heading-parser";
-import { isMarkdownSourceEscaped, maskInlineProtectedSyntax } from "./markdown-protection";
+import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
 
 export interface StableReferenceTarget {
   readonly kind: "heading" | "caption";
@@ -29,46 +29,16 @@ export interface StableReferencePlan {
   readonly change: StableReferenceChange | null;
 }
 
-const INLINE_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
-const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 const ANY_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)/gmu;
 const referenceMarkdownParser = parser.configure(GFM);
 const INLINE_SYNTAX = new Set([
-  "InlineCode", "HTMLTag", "Link", "Image", "Autolink", "Emphasis", "StrongEmphasis", "Strikethrough",
+  "InlineCode", "HTMLTag", "Link", "Image", "Autolink", "Emphasis", "StrongEmphasis", "Strikethrough", INLINE_MATH_NODE,
 ]);
-
-function splitsMathSyntax(source: string, offset: number): boolean {
-  const input = source.replace(/\r\n?/gu, "\n");
-  const at = source.slice(0, offset).replace(/\r\n?/gu, "\n").length;
-  // Math can span physical lines, but cannot continue through a blank paragraph.
-  let from = 0;
-  let to = input.length;
-  for (const match of input.matchAll(/\n[ \t]*\n/gu)) {
-    if (match.index < at) from = match.index + match[0].length;
-    else { to = match.index; break; }
-  }
-  const text = maskInlineProtectedSyntax(input.slice(from, to));
-  const position = at - from;
-  const openings = new Map<number, number>();
-  for (const match of text.matchAll(/\$+/gu)) {
-    const index = match.index;
-    const length = match[0].length;
-    if (length > 2 || isMarkdownSourceEscaped(text, index)) continue;
-    const opening = openings.get(length);
-    if (opening != null && index > 0 && !/\s/u.test(text[index - 1]!)) {
-      if (opening < position && position < index + length) return true;
-      openings.delete(length);
-    } else if (index + length < text.length && !/\s/u.test(text[index + length]!)) {
-      openings.set(length, index);
-    }
-  }
-  return false;
-}
 
 function splitsInlineSyntax(source: string, offset: number): boolean {
   const input = source.replace(/\r\n?/gu, "\n");
   const at = source.slice(0, offset).replace(/\r\n?/gu, "\n").length;
-  let node = referenceMarkdownParser.parse(input).resolveInner(at, -1);
+  let node = referenceMarkdownParser.configure(inlineMath()).parse(input).resolveInner(at, -1);
   while (node != null) {
     if (INLINE_SYNTAX.has(node.name) && node.from < at && at < node.to) return true;
     const parent = node.parent;
@@ -76,19 +46,6 @@ function splitsInlineSyntax(source: string, offset: number): boolean {
     node = parent;
   }
   return false;
-}
-
-function sourceLineAtOffset(source: string, offset: number): number | null {
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset > source.length) return null;
-  const lines = scanSemanticSourceLines(source);
-  return lines.find((line) => offset >= line.from && offset <= line.to)?.number ?? null;
-}
-
-function existingBlockId(source: string, line: number, inlineContent: string): string | null {
-  const inline = INLINE_BLOCK_ID.exec(inlineContent)?.[1];
-  if (inline != null) return inline;
-  const next = scanSemanticSourceLines(source).find((candidate) => candidate.number === line + 1);
-  return next == null ? null : STANDALONE_BLOCK_ID.exec(next.text)?.[1] ?? null;
 }
 
 function safeAlias(value: string): string {
@@ -133,8 +90,13 @@ function generatedBlockId(
 }
 
 function targetAtOffset(source: string, cursorOffset: number): StableReferenceTarget | null {
-  const line = sourceLineAtOffset(source, cursorOffset);
+  if (!Number.isSafeInteger(cursorOffset) || cursorOffset < 0 || cursorOffset > source.length) return null;
+  const lines = scanSemanticSourceLines(source);
+  const line = lines.find((candidate) => cursorOffset >= candidate.from && cursorOffset <= candidate.to)?.number;
   if (line == null) return null;
+  const semantics = parseDocumentSemantics(source, lines);
+  const blockId = semantics.blockTargetIds.get(line);
+  if (blockId === null) return null;
   const heading = parseAtxHeadings(source).find((candidate) => candidate.line === line);
   if (heading != null) {
     const title = withoutTrailingBlockId(heading.content);
@@ -145,10 +107,10 @@ function targetAtOffset(source: string, cursorOffset: number): StableReferenceTa
       lineFrom: heading.lineFrom,
       lineTo: heading.lineTo,
       title,
-      blockId: existingBlockId(source, line, heading.content),
+      blockId: blockId ?? null,
     };
   }
-  const caption = parseDocumentSemantics(source).captions.find((candidate) => candidate.line === line);
+  const caption = semantics.captions.find((candidate) => candidate.line === line);
   if (caption == null || caption.title.length === 0) return null;
   return {
     kind: "caption",
@@ -156,7 +118,7 @@ function targetAtOffset(source: string, cursorOffset: number): StableReferenceTa
     lineFrom: caption.lineFrom,
     lineTo: caption.lineTo,
     title: caption.title,
-    blockId: existingBlockId(source, line, caption.content),
+    blockId: blockId ?? null,
   };
 }
 
@@ -170,14 +132,9 @@ export function createStableReferencePlan(
 ): StableReferencePlan | null {
   const target = targetAtOffset(source, cursorOffset);
   if (target == null) return null;
-  if (target.blockId != null) {
-    const owner = parseDocumentSemantics(source).blockOwners.get(blockTargetKey(target.blockId));
-    if (owner !== target.line) return null;
-  }
   // Inspect the original syntax: inserting an ID can itself invalidate a link or
   // HTML tag, making a check of only the modified source miss the split.
-  if (target.blockId == null && target.kind === "caption"
-    && (splitsInlineSyntax(source, target.lineTo) || splitsMathSyntax(source, target.lineTo))) return null;
+  if (target.blockId == null && target.kind === "caption" && splitsInlineSyntax(source, target.lineTo)) return null;
   const blockId = target.blockId ?? generatedBlockId(source, target);
   const alias = safeAlias(target.title);
   const link = `@[[#^${blockId}|${alias}]]`;
@@ -189,7 +146,7 @@ export function createStableReferencePlan(
   const result = source.slice(0, target.lineTo) + insertion + source.slice(target.lineTo);
   // A physical line ending may still be inside a multiline comment. Only offer
   // a write when the inserted ID actually resolves to the original target.
-  if (parseDocumentSemantics(result).blockOwners.get(blockTargetKey(blockId)) !== target.line) return null;
+  if (parseDocumentSemantics(result).blockTargetIds.get(target.line) !== blockId) return null;
   return {
     source,
     target,

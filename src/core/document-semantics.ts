@@ -46,7 +46,8 @@ export interface SemanticDocument {
   readonly captions: readonly ParsedCaption[];
   readonly references: readonly ParsedSemanticReference[];
   readonly blockOwners: ReadonlyMap<string, number>;
-  readonly blockOwnerIds: ReadonlyMap<string, string>;
+  /** Authored ID for a unique owner; null retains duplicate or multiple-ID ambiguity. */
+  readonly blockTargetIds: ReadonlyMap<number, string | null>;
 }
 
 export interface SemanticSourceLine {
@@ -116,19 +117,23 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
   const captions: ParsedCaption[] = [];
   const references: ParsedSemanticReference[] = [];
   const blockOwners = new Map<string, number>();
-  const blockOwnerIds = new Map<string, string>();
+  const blockTargetIds = new Map<number, string | null>();
   const ambiguousBlockIds = new Set<string>();
   let previousSemanticLine: number | null = null;
   let interveningBlankLines = 0;
   const recordBlockOwner = (id: string, line: number): void => {
     const key = blockTargetKey(id);
-    if (blockOwners.has(key)) {
+    const previousOwner = blockOwners.get(key);
+    blockTargetIds.set(line, blockTargetIds.has(line) ? null : id);
+    if (previousOwner != null) {
+      blockTargetIds.set(previousOwner, null);
+      blockTargetIds.set(line, null);
       blockOwners.delete(key);
-      blockOwnerIds.delete(key);
       ambiguousBlockIds.add(key);
-    } else if (!ambiguousBlockIds.has(key)) {
+    } else if (ambiguousBlockIds.has(key)) {
+      blockTargetIds.set(line, null);
+    } else {
       blockOwners.set(key, line);
-      blockOwnerIds.set(key, id);
     }
   };
 
@@ -198,7 +203,7 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
       });
     }
   }
-  return { captions, references, blockOwners, blockOwnerIds };
+  return { captions, references, blockOwners, blockTargetIds };
 }
 
 export function numberCaptions(captions: readonly ParsedCaption[]): NumberedCaption[] {

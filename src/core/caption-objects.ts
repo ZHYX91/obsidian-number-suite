@@ -155,7 +155,8 @@ function imageObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
 function tableObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
   let sourceTableIndex = 0;
-  for (const { first, last, delimiter } of scanTableBlocks(lines)) {
+  for (const { first, last, delimiter, captionSupported } of scanTableBlocks(lines)) {
+    if (!captionSupported) continue;
     const delimiterLine = lines[delimiter]!;
     const lastWithId = includeFollowingBlockId(lines, last);
     output.push({

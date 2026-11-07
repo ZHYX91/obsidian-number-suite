@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Reuse an existing heading or caption block ID across one blank line when copying a cross-reference, preserving authored case and refusing ambiguous ownership without creating another ID.
+- Keep data rows of native GFM tables with one- or two-hyphen delimiter cells out of caption numbering and semantic export without expanding caption-menu support.
+- Exclude inline math from note numbering and cross-reference display/export while preserving surrounding prose, and share its syntax boundaries with stable-ID insertion checks.
+
 ## 0.6.4 - 2026-11-02
 
 - Update the development-only minimatch dependencies to 11.0.4 with reviewed legacy lint-call adaptations and installed-caller regression checks.

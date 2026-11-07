@@ -49,6 +49,56 @@ describe("full-document literal ownership", () => {
     expect(display(source).filter((item) => item.kind === "caption").map((item) => item.label)).toEqual(["1"]);
   });
 
+  it.each(["\n", "\r\n", "\r"])("protects inline math while preserving prose numbers and export offsets for %j", (ending) => {
+    for (const delimiter of ["$", "$$"]) for (const multiline of [false, true]) {
+      const math = `${delimiter}[^x]${multiline ? `${ending}Figure: literal ` : " "}@[[#Actual🐈]]${delimiter}`;
+      const source = ["# Actual🐈", "", `prefix ${math} prose [^y] @[[#Actual🐈]]`, "", "[^x]: X", "[^y]: Y"].join(ending);
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.semantics.captions).toEqual([]);
+      expect(snapshot.notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+      const plan = display(source);
+      expect(plan.filter((item) => item.kind === "note-reference").map((item) => item.label)).toEqual(["1"]);
+      expect(plan.filter((item) => item.kind === "reference")).toHaveLength(1);
+      const references = exported(source).references;
+      expect(references).toHaveLength(1);
+      expect(references[0]?.sourceStartUtf16).toBe(source.lastIndexOf("@[[#Actual🐈]]"));
+      expect(source.slice(references[0]!.sourceStartUtf16, references[0]!.sourceEndUtf16)).toBe("@[[#Actual🐈]]");
+    }
+  });
+
+  it.each(["<!--", "%%", "`", "[link](target"])("keeps %s literal inside math without hiding subsequent prose", (literal) => {
+    const source = `# Actual\n\nprefix $x ${literal} [^x] @[[#Actual]]$ prose [^y] @[[#Actual]]\n\n[^x]: X\n[^y]: Y`;
+    const snapshot = createSemanticSnapshot(source);
+    expect(snapshot.notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+    expect(exported(source).references.map((reference) => reference.sourceStartUtf16))
+      .toEqual([source.lastIndexOf("@[[#Actual]]")]);
+  });
+
+  it.each([
+    "prefix `example $x` then $[^x]$",
+    "prefix <!-- $x --> then $[^x]$",
+    "prefix %% $x %% then $[^x]$",
+    "- item $[^x]$",
+    "> quote $[^x]$",
+    "prefix \\\\$[^x]$",
+  ])("protects only actual math in the surrounding Markdown context: %j", (prefix) => {
+    const source = `${prefix} prose [^y]\n\n[^x]: X\n[^y]: Y`;
+    expect(createSemanticSnapshot(source).notes.references.map(({ id, number }) => [id, number])).toEqual([["y", 1]]);
+  });
+
+  it.each([
+    "prefix \\$[^x]\\$",
+    "prefix $ [^x] $",
+    "prefix $[^x]",
+    "prefix $$$[^x]$$$",
+    "prefix $x\n\n[^x]$",
+    "prefix $5 and [^x] costs $10",
+  ])("does not hide prose notes behind unmatched or literal dollar text: %j", (prefix) => {
+    const source = `${prefix} prose [^y]\n\n[^x]: X\n[^y]: Y`;
+    expect(createSemanticSnapshot(source).notes.references.map(({ id, number }) => [id, number]))
+      .toEqual([["x", 1], ["y", 2]]);
+  });
+
   it("keeps same-line equations and inline-code caption titles, and fails closed on unclosed math", () => {
     expect(createSemanticSnapshot("$$ a=b $$\nCode: `actual`").bindings[0]?.object.kind).toBe("Equation");
     expect(createSemanticSnapshot("$$\nFigure: literal").semantics.captions).toEqual([]);
@@ -108,6 +158,55 @@ describe("full-document literal ownership", () => {
       expect(exported(source).captionTargets).toEqual([]);
     }
   });
+
+  it.each(["| - | - |", "| -- | -- |", "| :- | -: |", "| :--: | --- |"])("protects native GFM data with %s without enabling caption insertion", (delimiter) => {
+    const source = `| Name | Value |\n${delimiter}\nTable: Alpha | Beta\n\nTable: Actual`;
+    expect(parser.configure(Table).parse(source).topNode.firstChild?.name).toBe("Table");
+    const snapshot = createSemanticSnapshot(source);
+    expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+    expect(display(source).filter((item) => item.kind === "caption").map((item) => item.displayLabel)).toEqual(["Table 1: Actual"]);
+    expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+    expect(snapshot.objects).toEqual([]);
+    expect(createCaptionInsertionPlan(source, source.indexOf("Name"), "New caption")).toBeNull();
+  });
+
+  it.each(["Name ` | Value", "Name `` | Value", "Name ``literal` | Value", "Name \\` | Value"])(
+    "retains the table pipe after unmatched or escaped backticks: %s", (header) => {
+      for (const ending of ["\n", "\r\n", "\r"]) {
+        const table = [header, "--- | ---", "Table: Fake | data"].join(ending);
+        const source = `${table}${ending}${ending}Table: Actual`;
+        expect(parser.configure(Table).parse(source.replace(/\r\n|\r/gu, "\n")).topNode.firstChild?.name).toBe("Table");
+        const snapshot = createSemanticSnapshot(source);
+        expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+        expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo))).toEqual([table]);
+        expect(display(source).filter((item) => item.kind === "caption").map((item) => item.displayLabel)).toEqual(["Table 1: Actual"]);
+        expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+      }
+    },
+  );
+
+  it.each(["--- | | ---", "--- |\t| ---", "--- ||| ---", "|| --- | ---", "--- | --- ||"])(
+    "does not hide a caption after an invalid table divider: %s", (delimiter) => {
+      const source = `Name | Value\n${delimiter}\nTable: Actual`;
+      expect(parser.configure(Table).parse(source).topNode.firstChild?.name).not.toBe("Table");
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.objects).toEqual([]);
+      expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+      expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+      expect(createCaptionInsertionPlan(source, source.indexOf("Name"), "New caption")).toBeNull();
+    },
+  );
+
+  it.each(["`Name | note` | Value", "``Name ` | note`` | Value", "`Name \\` | Value"])(
+    "keeps closed code spans and adjacent structural dividers: %s", (header) => {
+      const table = `${header}\n--- || ---\nTable: Fake | data`;
+      const source = `${table}\n\nTable: Actual`;
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo))).toEqual([table]);
+      expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+      expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+    },
+  );
 
   it.each(["Figure", "Table", "Equation", "Code"])("retains zero-blank-line %s captions containing pipes", (kind) => {
     const table = "| Name | Value |\n| --- | --- |\n| Gamma | Delta |";
