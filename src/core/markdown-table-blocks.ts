@@ -1,11 +1,11 @@
 import type { SemanticSourceLine } from "./document-semantics";
+import { codeSpanEnd } from "./markdown-comments";
 
 function tableCells(text: string): string[] | null {
   if (!text.includes("|")) return null;
   const cells: string[] = [];
   let current = "";
   let escaped = false;
-  let codeTicks = 0;
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index] ?? "";
     if (escaped) {
@@ -19,15 +19,16 @@ function tableCells(text: string): string[] | null {
       continue;
     }
     if (character === "`") {
-      let run = 1;
-      while (text[index + run] === "`") run += 1;
-      current += "`".repeat(run);
-      if (codeTicks === 0) codeTicks = run;
-      else if (codeTicks === run) codeTicks = 0;
-      index += run - 1;
+      let end = codeSpanEnd(text, index);
+      if (end == null) {
+        end = index + 1;
+        while (text[end] === "`") end += 1;
+      }
+      current += text.slice(index, end);
+      index = end - 1;
       continue;
     }
-    if (character === "|" && codeTicks === 0) {
+    if (character === "|") {
       cells.push(current);
       current = "";
     } else {
@@ -44,7 +45,11 @@ function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captio
   if (!line.available || !line.topLevel) return null;
   const cells = tableCells(line.text);
   if (cells == null) return null;
-  const delimiterCells = cells.filter((cell) => cell.trim().length > 0);
+  // Only one internal, adjacent || is a structural row-header divider.
+  // Whitespace-only cells, edge dividers and repeated dividers are invalid.
+  const divider = cells.indexOf("");
+  if (divider >= 0 && (divider === 0 || divider === cells.length - 1 || cells.lastIndexOf("") !== divider)) return null;
+  const delimiterCells = cells.filter((cell) => cell !== "");
   if (delimiterCells.length === 0) return null;
   const dashCounts = delimiterCells.map((cell) => /^:?(-+):?$/u.exec(cell.trim())?.[1]?.length ?? 0);
   if (dashCounts.some((count) => count === 0)) return null;

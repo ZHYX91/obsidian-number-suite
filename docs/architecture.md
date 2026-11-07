@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-07
+last_synced: 2026-11-08
 ---
 
 # Number Suite — Architecture
@@ -124,6 +124,8 @@ fail closed to `null`, and references through a duplicated ID are omitted. Displ
 general template boundary, including percent characters and literals longer than 32 characters.
 A narrower consumer format must validate that boundary in its own adapter. Caption visual
 placement, alignment, pills, and tooltips never change these source facts.
+
+Table row splitting reuses the closed-code-span rule in `markdown-comments.ts`: unmatched backticks do not hide later pipes, and backslashes inside code spans do not escape closing backticks. A structural delimiter permits only one internal, adjacent `||`; whitespace-only cells, edge dividers and repeated dividers do not establish table ownership.
 
 <!-- section: display-adapters -->
 ## Display adapters

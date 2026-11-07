@@ -4,7 +4,7 @@ language: zh-CN
 source_language: zh-CN
 translation_status: source
 status: stable
-last_synced: 2026-11-07
+last_synced: 2026-11-08
 ---
 
 # Number Suite — 架构
@@ -100,6 +100,8 @@ ID，支持行内位置和受支持的下一独立行位置；ID 重复或同一
 通过重复 ID 的引用不输出。显示 literal 保留 Number Suite 的通用模板边界，包括百分号和超过 32 字符的
 literal；更窄的消费格式必须在自己的适配层校验。题注视觉上下位置、对齐、胶囊和 Tooltip 均不
 改变这些源码事实。
+
+表格行切分复用 `markdown-comments.ts` 的闭合代码跨度规则；未闭合反引号不遮蔽后续管道，代码跨度内的反斜杠不转义闭合反引号。结构分隔行只允许一个位于内部、没有间隔的 `||`；含空白的空单元格、边缘或重复分隔符不产生表格归属。
 
 <!-- section: display-adapters -->
 ## 显示适配层

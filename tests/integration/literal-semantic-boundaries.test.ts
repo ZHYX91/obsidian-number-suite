@@ -170,6 +170,44 @@ describe("full-document literal ownership", () => {
     expect(createCaptionInsertionPlan(source, source.indexOf("Name"), "New caption")).toBeNull();
   });
 
+  it.each(["Name ` | Value", "Name `` | Value", "Name ``literal` | Value", "Name \\` | Value"])(
+    "retains the table pipe after unmatched or escaped backticks: %s", (header) => {
+      for (const ending of ["\n", "\r\n", "\r"]) {
+        const table = [header, "--- | ---", "Table: Fake | data"].join(ending);
+        const source = `${table}${ending}${ending}Table: Actual`;
+        expect(parser.configure(Table).parse(source.replace(/\r\n|\r/gu, "\n")).topNode.firstChild?.name).toBe("Table");
+        const snapshot = createSemanticSnapshot(source);
+        expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+        expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo))).toEqual([table]);
+        expect(display(source).filter((item) => item.kind === "caption").map((item) => item.displayLabel)).toEqual(["Table 1: Actual"]);
+        expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+      }
+    },
+  );
+
+  it.each(["--- | | ---", "--- |\t| ---", "--- ||| ---", "|| --- | ---", "--- | --- ||"])(
+    "does not hide a caption after an invalid table divider: %s", (delimiter) => {
+      const source = `Name | Value\n${delimiter}\nTable: Actual`;
+      expect(parser.configure(Table).parse(source).topNode.firstChild?.name).not.toBe("Table");
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.objects).toEqual([]);
+      expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+      expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+      expect(createCaptionInsertionPlan(source, source.indexOf("Name"), "New caption")).toBeNull();
+    },
+  );
+
+  it.each(["`Name | note` | Value", "``Name ` | note`` | Value", "`Name \\` | Value"])(
+    "keeps closed code spans and adjacent structural dividers: %s", (header) => {
+      const table = `${header}\n--- || ---\nTable: Fake | data`;
+      const source = `${table}\n\nTable: Actual`;
+      const snapshot = createSemanticSnapshot(source);
+      expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo))).toEqual([table]);
+      expect(snapshot.numberedCaptions.map(({ title, number }) => [title, number])).toEqual([["Actual", 1]]);
+      expect(exported(source).captionTargets.map(({ authoredText, derivedNumber }) => [authoredText, derivedNumber])).toEqual([["Actual", "1"]]);
+    },
+  );
+
   it.each(["Figure", "Table", "Equation", "Code"])("retains zero-blank-line %s captions containing pipes", (kind) => {
     const table = "| Name | Value |\n| --- | --- |\n| Gamma | Delta |";
     for (const gap of ["\n", "\n\n"]) {
