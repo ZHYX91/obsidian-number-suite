@@ -2,8 +2,9 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.6.5 - 2026-11-09
 
+- Localize the Arabic guide examples, align Chinese caption terminology, and honor explicit Chinese script selection.
 - Recognize DocWen's non-breaking and ideographic separators after a marked heading number, including when removing or renumbering it.
 
 - Match native GFM column boundaries for unescaped pipes inside code spans while preserving Structural Tables code-cell syntax, preventing both phantom captions and hidden real captions.
