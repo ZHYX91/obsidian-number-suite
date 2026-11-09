@@ -12,6 +12,14 @@ describe("localized UI copy", () => {
     expect(createTranslator("ja")("settings.language.desc")).toContain("Obsidian");
   });
 
+  it.each([
+    ["zh-Hans-HK", "zh"], ["zh-Hans-TW", "zh"], ["zh-Hant-CN", "zh-TW"],
+    ["zh-CN-x-tw", "zh"], ["zh-CN-u-ca-chinese-x-hant", "zh"],
+    ["zh-TW-u-ca-chinese", "zh-TW"], ["zh-x-hk", "zh"],
+  ] as const)("resolves script and region before extensions: %s", (host, expected) => {
+    expect(resolvedUiLocale("auto", host)).toBe(expected);
+  });
+
   it("keeps H1-H9 help and hide semantics aligned with the product", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
@@ -48,5 +56,32 @@ describe("localized UI copy", () => {
     expect(zh("settings.references.guide.intro")).toContain("可点击的引用标签");
     expect(zh("settings.scheme.desc")).toContain("不会自动切换");
     expect(en("settings.scheme.desc")).toContain("does not select");
+  });
+
+  it("localizes Arabic guide prose without translating Markdown syntax", () => {
+    const ar = createTranslator("ar");
+    expect(ar("settings.headings.guide.example.source")).toBe("# نظرة عامة\n## النتائج");
+    expect(ar("settings.headings.guide.example.result")).toContain(ar("settings.headings.guide.example.preview.title"));
+    const heading = ar("settings.references.guide.heading.source");
+    expect(heading).toContain("## التثبيت\n");
+    expect(heading).toContain("@[[#التثبيت|خطوات التثبيت]]");
+    expect(ar("settings.references.guide.heading.preview")).toContain("خطوات التثبيت");
+    expect(ar("settings.captions.guide.example.source")).toContain("Figure: بنية النظام");
+    expect(ar("settings.references.guide.caption.source")).toContain("@[[#Figure: بنية النظام]]");
+    expect(ar("settings.notes.guide.footnote.source")).toContain("[^detail]: نص الحاشية السفلية.");
+    expect(ar("settings.notes.guide.endnote.source")).toContain("[^endnote:later]: نص الحاشية الختامية.");
+  });
+
+  it("uses consistent caption-label terminology in both Chinese locales", () => {
+    for (const locale of ["zh", "zh-TW"] as const) {
+      const t = createTranslator(locale);
+      for (const key of [
+        "settings.captions.enable.desc",
+        "settings.captions.guide.example.title",
+        "settings.captions.guide.editing",
+      ] as const) {
+        expect(t(key)).not.toMatch(/胶囊|膠囊/u);
+      }
+    }
   });
 });
