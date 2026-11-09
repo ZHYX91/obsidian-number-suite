@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-29
+last_synced: 2026-11-08
 ---
 
 # Number Suite — Testing strategy
@@ -24,7 +24,9 @@ Additional object IDs are refusal cases for all four caption kinds under LF and 
 planner and both source and Structural Tables menu paths must keep the original bytes without an
 editor transaction when relocation would skip authored content.
 
-Full-snapshot boundary regressions use independent Lezer inline-code/GFM structure and cover cross-line backticks, all three line endings, caption/reference text inside equations, omitted boundary pipes and genuine zero-blank-line captions. Assert display ranges, first-reference note order, v2 export and one real command transaction separately. Scale tests bound snapshot parse passes and title-normalization work while retaining Unicode and duplicate-title ambiguity. Listener tests remove and reinsert targets before plugin unload, covering window close, view unload and stopPropagation. Storage barriers prove that old-instance final saves/retries precede new loads and unknown schemas never write.
+Full-snapshot boundary regressions use independent Lezer inline-code/GFM structure and cover cross-line backticks, all three line endings, inline-math and block-equation interiors, short table delimiters, omitted boundary pipes and genuine zero-blank-line captions. Dollar controls include escaped, unmatched and currency text, literal comments inside math and prose after math. Assert actual editor pills, first-reference note order and v2 export offsets separately. Stable-reference command regressions reuse original-case IDs across one blank line without a transaction and refuse ambiguous ownership. Scale tests bound snapshot parse passes and title-normalization work while retaining Unicode and duplicate-title ambiguity. Listener tests remove and reinsert targets before plugin unload, covering window close, view unload and stopPropagation. Storage barriers prove that old-instance final saves/retries precede new loads and unknown schemas never write.
+
+Table row regressions assert caption text and numbering through the real snapshot, display plan and v2 export. Unmatched or escaped backticks are checked against native GFM parsing. Pipes and backslashes inside closed code spans and valid `||` extensions are positive controls; whitespace-only delimiter cells, edge dividers and repeated dividers are negative controls.
 
 <!-- section: evidence-levels -->
 ## Evidence levels

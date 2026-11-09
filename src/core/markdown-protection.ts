@@ -28,8 +28,8 @@ function closesRawTag(text: string, tag: string): boolean {
 /**
  * Marks physical lines that are safe for Number Suite's top-level Markdown scanners.
  * The state machine covers frontmatter, fenced/indented code, CommonMark HTML block
- * families, and Obsidian block comments. Inline constructs remain available so each
- * semantic scanner can mask only the exact inline ranges it does not own.
+ * families, and Obsidian block comments. Shared inline code/math ranges mask only
+ * their exact spans, preserving ordinary prose on the same physical line.
  */
 export function scanMarkdownProtectedLines(
   source: string,
@@ -83,14 +83,14 @@ export function scanMarkdownProtectedLines(
         if (line.text.includes(ending)) inlineComment = null;
       }
     } else if (inlineComment != null) {
-      const comments = scanInlineComments(line.text, inlineComment, container?.inlineCode);
+      const comments = scanInlineComments(line.text, inlineComment, container?.inlineLiterals);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
     } else if (container?.nested === true) {
       // Ordinary list/quote references remain meaningful. Nested fences and
       // HTML must not start a document-level protection state after they end.
-      const comments = scanInlineComments(line.text, null, container?.inlineCode);
+      const comments = scanInlineComments(line.text, null, container?.inlineLiterals);
       commentMaskedText = comments.masked;
       inlineComment = comments.state;
       headingAvailable = false;
@@ -134,7 +134,7 @@ export function scanMarkdownProtectedLines(
           }
         }
         if (available) {
-          const comments = scanInlineComments(line.text, null, container?.inlineCode);
+          const comments = scanInlineComments(line.text, null, container?.inlineLiterals);
           commentMaskedText = comments.masked;
           inlineComment = comments.state;
           headingAvailable = inlineComment == null;
@@ -144,7 +144,7 @@ export function scanMarkdownProtectedLines(
 
     const topLevel = container?.nested !== true;
     const inline = commentMaskedText.split("");
-    for (const range of container?.inlineCode ?? []) blankRange(inline, range.from, range.to);
+    for (const range of container?.inlineLiterals ?? []) blankRange(inline, range.from, range.to);
     output.push({ ...line, available, commentMaskedText, inlineMaskedText: inline.join(""), topLevel,
       ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });
@@ -263,7 +263,7 @@ export function isMarkdownSourceEscaped(text: string, offset: number): boolean {
   return slashes % 2 === 1;
 }
 
-/** Mask inline regions that must not contribute note/reference semantics. */
+/** Mask remaining same-line syntax after shared snapshot code/math protection. */
 export function maskInlineProtectedSyntax(text: string): string {
   const characters = scanInlineComments(text).masked.split("");
   maskCodeSpans(characters.join(""), characters);

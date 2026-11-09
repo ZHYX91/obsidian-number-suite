@@ -35,6 +35,31 @@ describe("stable cross-reference planning", () => {
     });
   });
 
+  it.each(["\n", "\r\n", "\r"])("reuses the unique semantic owner across one blank line with %j endings", (newline) => {
+    for (const target of ["# Title", "Figure: Title"]) {
+      const source = [target, "", "^Original-ID"].join(newline);
+      expect(createStableReferencePlan(source, 4)).toMatchObject({
+        blockId: "Original-ID", link: "@[[#^Original-ID|Title]]", change: null,
+      });
+    }
+  });
+
+  it.each([
+    "# Title\n\n^first\n^second",
+    "# Title ^first\n\n^second",
+    "Figure: Title\n\n^first\n^second",
+    "# Title\n\n^duplicate\n\nOther ^DUPLICATE",
+    "# Title ^unique\n^duplicate\n\nOther ^DUPLICATE",
+  ])("refuses an ambiguous target instead of creating another ID: %j", (source) => {
+    expect(createStableReferencePlan(source, 4)).toBeNull();
+  });
+
+  it("does not adopt a standalone ID beyond the semantic blank-line boundary", () => {
+    expect(createStableReferencePlan("# Title\n\n\n^unrelated", 4)).toMatchObject({
+      blockId: "ns-h-title", change: { insert: "\n^ns-h-title" },
+    });
+  });
+
   it("creates a caption block ID on the caption line", () => {
     const plan = createStableReferencePlan("Figure: Miao\n\n![[Miao.png]]", 8);
     expect(plan?.change).toMatchObject({

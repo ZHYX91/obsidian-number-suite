@@ -73,7 +73,7 @@ function parsePluginPrefix(text: string): HeadingNumberMatch | null {
   if (core.trim().length === 0 || core.includes("\n") || core.includes("\r")) {
     return null;
   }
-  const whitespace = /^[ \t]*/.exec(text.slice(closing + WORD_JOINER.length))?.[0] ?? "";
+  const whitespace = /^[ \t\u00a0\u3000]*/u.exec(text.slice(closing + WORD_JOINER.length))?.[0] ?? "";
   const to = closing + WORD_JOINER.length + whitespace.length;
   if (!meaningfulRemainder(text, to)) {
     return null;

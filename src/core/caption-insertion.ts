@@ -92,7 +92,7 @@ function adjacentCaptionLine(
       candidate.toLowerCase() === matchedKeyword.toLowerCase()
     ));
     if (kind == null) return null;
-    const idSuffix = /[ \t]+\^[A-Za-z0-9-]+[ \t]*$/u.exec(maskInlineProtectedSyntax(line.commentMaskedText));
+    const idSuffix = /[ \t]+\^[A-Za-z0-9-]+[ \t]*$/u.exec(maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText));
     let lastIdLine = line;
     let idBlanks = 0;
     let standaloneIds = 0;
@@ -102,7 +102,7 @@ function adjacentCaptionLine(
       if (candidate == null || !candidate.available || !candidate.topLevel) break;
       if (candidate.text.trim().length === 0 && idBlanks === 0) {
         idBlanks += 1;
-      } else if (STANDALONE_BLOCK_ID.test(maskInlineProtectedSyntax(candidate.commentMaskedText))) {
+      } else if (STANDALONE_BLOCK_ID.test(maskInlineProtectedSyntax(candidate.inlineMaskedText ?? candidate.commentMaskedText))) {
         // Multiple or comment-decorated ID lines cannot be moved through the
         // current one-ID object-binding grammar without changing ownership.
         standaloneIds += 1;

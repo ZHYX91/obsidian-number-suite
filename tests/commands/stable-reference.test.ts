@@ -14,6 +14,8 @@ import {
 } from "obsidian";
 
 import type { Translate } from "../../src/config/i18n";
+import { DEFAULT_SETTINGS } from "../../src/config/settings";
+import { exportSemanticSnapshotV2, NUMBER_SUITE_INTEROP_SCHEMA_V2 } from "../../src/integration/semantic-export";
 import type { StableReferenceModalOptions } from "../../src/ui/stable-reference-modal";
 
 const modal = vi.hoisted(() => ({ options: null as StableReferenceModalOptions | null }));
@@ -227,6 +229,27 @@ describe("stable cross-reference context menu", () => {
     expect(editor.transactions).toHaveLength(0);
     expect(clipboard).toHaveBeenCalledWith("@[[#^figure-id|Miao]]");
     expect(notices()).toContain("reference.notice.copied");
+  });
+
+  it.each(["# Title", "Figure: Title"])("copies the existing separated ID for %s without writing or losing export identity", async (target) => {
+    const source = `${target}\n\n^Original-ID\n\nSee @[[#^Original-ID]]`;
+    const menu = createMenu();
+    const editor = createEditor(source, 4);
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate);
+    menu.click?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(modal.options).toBeNull();
+    expect(editor.transactions).toHaveLength(0);
+    expect(editor.getValue()).toBe(source);
+    expect(clipboard).toHaveBeenCalledWith("@[[#^Original-ID|Title]]");
+    const exported = exportSemanticSnapshotV2(DEFAULT_SETTINGS, {
+      schema: NUMBER_SUITE_INTEROP_SCHEMA_V2, authoredMarkdown: editor.getValue(), frontmatter: null,
+    });
+    expect([...exported.headingTargets, ...exported.captionTargets].map(({ targetId }) => targetId)).toEqual(["Original-ID"]);
+    expect(exported.references).toHaveLength(1);
+    expect(exported.references[0]?.targetSourceStartUtf16).toBe(0);
   });
 
   it("fails closed when an existing-ID source changes before copy", async () => {
