@@ -84,6 +84,14 @@ describe("heading transforms", () => {
     expect(plan.changes).toHaveLength(2);
   });
 
+  it.each(["\u00a0", "\u3000", " \u3000\t\u00a0"])("handles a DocWen marked separator %j", (separator) => {
+    const source = `# ${WORD_JOINER}第一章${WORD_JOINER}${separator}Title`;
+    const opts = options({ cleanupScope: "plugin" });
+    expect(planHeadingTransform(source, "remove", opts).result).toBe("# Title");
+    expect(planHeadingTransform(source, "renumber", opts).result).toBe("# 1 Title");
+    expect(planHeadingTransform(source, "strip-markers", opts).result).toBe(`# 第一章${separator}Title`);
+  });
+
   it("is idempotent with and without source markers", () => {
     for (const writeMarkers of [false, true]) {
       const first = planHeadingTransform("# A\n## B", "write", options({ writeMarkers }));
