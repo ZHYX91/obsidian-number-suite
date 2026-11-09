@@ -125,7 +125,7 @@ general template boundary, including percent characters and literals longer than
 A narrower consumer format must validate that boundary in its own adapter. Caption visual
 placement, alignment, pills, and tooltips never change these source facts.
 
-Table row splitting reuses the closed-code-span rule in `markdown-comments.ts`: unmatched backticks do not hide later pipes, and backslashes inside code spans do not escape closing backticks. A structural delimiter permits only one internal, adjacent `||`; whitespace-only cells, edge dividers and repeated dividers do not establish table ownership.
+Native GFM rows split on unescaped pipes before inline parsing, including pipes inside backticks; an ordinary closed code span does not select Structural Tables syntax. Structural rows (an adjacent `||` delimiter, multiple header rows, or merge markers) retain opaque closed code spans through `markdown-comments.ts` when their structural header width matches. Unmatched backticks do not hide later pipes, and backslashes inside structural code spans do not escape closing backticks. A structural delimiter permits only one internal, adjacent `||`; whitespace-only cells, edge dividers and repeated dividers do not establish table ownership.
 
 <!-- section: display-adapters -->
 ## Display adapters

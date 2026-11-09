@@ -1,7 +1,7 @@
 import type { SemanticSourceLine } from "./document-semantics";
 import { codeSpanEnd } from "./markdown-comments";
 
-function tableCells(text: string): string[] | null {
+function tableCells(text: string, structural = false): string[] | null {
   if (!text.includes("|")) return null;
   const cells: string[] = [];
   let current = "";
@@ -18,7 +18,7 @@ function tableCells(text: string): string[] | null {
       escaped = true;
       continue;
     }
-    if (character === "`") {
+    if (structural && character === "`") {
       let end = codeSpanEnd(text, index);
       if (end == null) {
         end = index + 1;
@@ -41,7 +41,7 @@ function tableCells(text: string): string[] | null {
   return cells.length === 0 ? null : cells;
 }
 
-function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captionSupported: boolean } | null {
+function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captionSupported: boolean; structural: boolean } | null {
   if (!line.available || !line.topLevel) return null;
   const cells = tableCells(line.text);
   if (cells == null) return null;
@@ -55,18 +55,19 @@ function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captio
   if (dashCounts.some((count) => count === 0)) return null;
   return {
     columnCount: delimiterCells.length,
+    structural: divider >= 0,
     // Native GFM ownership accepts short delimiters. Caption editing retains
     // its existing carrier contract, independently from literal-data protection.
     captionSupported: dashCounts.every((count) => count >= 3),
   };
 }
 
-function tableRowColumnCount(line: SemanticSourceLine | undefined): number | null {
+function tableRowColumnCount(line: SemanticSourceLine | undefined, structural = false): number | null {
   if (line == null || !line.available || !line.topLevel || line.text.trim().length === 0) return null;
   // A standalone heading ends a table even when its title contains pipes.
   // Use Number Suite's H1-H9 boundary for both body rows and multi-row headers.
   if (/^ {0,3}#{1,9}(?:[ \t]|$)/u.test(line.text)) return null;
-  return tableCells(line.text)?.length ?? null;
+  return tableCells(line.text, structural)?.length ?? null;
 }
 
 
@@ -78,14 +79,27 @@ export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
     const line = lines[delimiter];
     if (line == null) continue;
     const delimiterRow = tableDelimiter(line);
-    if (delimiterRow == null || tableRowColumnCount(lines[delimiter - 1]) !== delimiterRow.columnCount) continue;
+    if (delimiterRow == null) continue;
     const columns = delimiterRow.columnCount;
+    let structural = delimiterRow.structural;
+    if (!structural && tableRowColumnCount(lines[delimiter - 1], true) === columns) {
+      // A code span alone is not an extension marker. Only explicit structural
+      // syntax can opt out of native GFM's split-before-inline parsing.
+      structural = tableRowColumnCount(lines[delimiter - 2], true) === columns
+        && !/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(lines[delimiter - 2]!.text);
+      for (let row = delimiter - 1; !structural && row < lines.length; row += 1) {
+        if (tableRowColumnCount(lines[row], true) == null) break;
+        structural = tableCells(lines[row]!.text, true)!.slice(0, columns)
+          .some((cell) => /^(?:<|\^)$/u.test(cell.trim()));
+      }
+    }
+    if (tableRowColumnCount(lines[delimiter - 1], structural) !== columns) continue;
     let first = delimiter - 1;
     // A preceding caption may contain pipes without a separating blank line.
     // Only extension-header expansion yields to that declaration; the immediate
     // GFM header and every body row retain their table ownership.
     while (first > 0 && !/^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/iu.test(lines[first - 1]!.text)
-      && tableRowColumnCount(lines[first - 1]) === columns) first -= 1;
+      && tableRowColumnCount(lines[first - 1], structural) === columns) first -= 1;
     let last = delimiter;
     while (last + 1 < lines.length) {
       const body = lines[last + 1]!;

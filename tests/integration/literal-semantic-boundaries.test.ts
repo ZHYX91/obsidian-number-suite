@@ -208,6 +208,44 @@ describe("full-document literal ownership", () => {
     },
   );
 
+  it.each(["`A | B` | C", "``A ` | B`` | C"])("uses GFM pipe boundaries inside code: %s", (header) => {
+    for (const ending of ["\n", "\r\n", "\r"]) {
+      for (const columns of [2, 3]) {
+        const table = [header, Array(columns).fill("---").join(" | "), "Table: Candidate"].join(ending);
+        const source = `${table}${ending}${ending}Table: Actual`;
+        const native = parser.configure(Table).parse(source.replace(/\r\n|\r/gu, "\n"));
+        expect(native.topNode.firstChild?.name === "Table").toBe(columns === 3);
+        const titles = columns === 3 ? ["Actual"] : ["Candidate", "Actual"];
+        const snapshot = createSemanticSnapshot(source);
+        expect(snapshot.numberedCaptions.map(({ title }) => title)).toEqual(titles);
+        expect(exported(source).captionTargets.map(({ authoredText }) => authoredText)).toEqual(titles);
+        expect(display(source).filter((item) => item.kind === "caption").map((item) => item.displayLabel))
+          .toEqual(titles.map((title, index) => `Table ${index + 1}: ${title}`));
+        expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo)))
+          .toEqual(columns === 3 ? [table] : []);
+      }
+    }
+  });
+
+  it.each(["`A \\| B` | C", "``A \\| B`` | C"])("retains escaped pipes in native code cells: %s", (header) => {
+    const source = `${header}\n--- | ---\nTable: Fake\n\nTable: Actual`;
+    expect(parser.configure(Table).parse(source).topNode.firstChild?.name).toBe("Table");
+    expect(createSemanticSnapshot(source).numberedCaptions.map(({ title }) => title)).toEqual(["Actual"]);
+  });
+
+  it.each([
+    "`A | B` | C\n--- || ---\nD | E",
+    "Group | Value\n`A | B` | C\n--- | ---\nD | E",
+    "`A | B` | C\nGroup | Value\n--- | ---\nD | E",
+    "`A | B` | C\n--- | ---\nD | <",
+    "`A | B` | C\n--- | ---\nD | E\nF | ^",
+  ])("retains structural code-cell ownership: %s", (table) => {
+    const source = `${table}\n\nTable: Actual`;
+    const snapshot = createSemanticSnapshot(source);
+    expect(snapshot.objects.map((object) => source.slice(object.visualFrom, object.visualTo))).toEqual([table]);
+    expect(snapshot.numberedCaptions.map(({ title }) => title)).toEqual(["Actual"]);
+  });
+
   it.each(["Figure", "Table", "Equation", "Code"])("retains zero-blank-line %s captions containing pipes", (kind) => {
     const table = "| Name | Value |\n| --- | --- |\n| Gamma | Delta |";
     for (const gap of ["\n", "\n\n"]) {

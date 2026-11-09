@@ -56,3 +56,12 @@ it("renders the first prose footnote as 1 after an inline-math lookalike", () =>
   expect(Array.from(parent.querySelectorAll(".number-suite-note-definition"), (node) => node.textContent))
     .toEqual(["[1]"]);
 });
+
+
+it.each([
+  ["--- | --- | ---", ["Table 1: Actual"]],
+  ["--- | ---", ["Table 1: Candidate", "Table 2: Actual"]],
+])("renders native code-pipe table ownership for %s", (delimiter, labels) => {
+  const parent = render(`\`A | B\` | C\n${delimiter}\nTable: Candidate\n\nTable: Actual\n\nAfter`);
+  expect(Array.from(parent.querySelectorAll(".number-suite-caption-pill"), (node) => node.textContent)).toEqual(labels);
+});

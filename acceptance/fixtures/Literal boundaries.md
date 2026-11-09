@@ -46,3 +46,25 @@ Table: Actual standalone caption
 ^Original-ID
 
 The existing reference is @[[#^Original-ID|Existing reference target]].
+
+## Native code-span pipes and structural code cells
+
+The first block is a native three-column table: its body must not number as a caption.
+
+`A | B` | C
+--- | --- | ---
+Table: Native body, not a caption
+
+The next block is not a native table: the two-column delimiter does not match the header. Its caption must remain visible.
+
+`A | B` | C
+--- | ---
+Table: Real caption after mismatched native columns
+
+The following Structural Tables extension retains two cells in the header.
+
+`A | B` | C
+--- || ---
+D | E
+
+Table: Real caption after structural table
