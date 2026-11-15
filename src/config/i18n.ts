@@ -434,6 +434,17 @@ const EN = {
   "panel.conceal.desc": "Controls only concealment of recognized stored numbers for this note.",
   "panel.scheme.desc": "Follow the global scheme or choose an available built-in or custom scheme.",
   "panel.properties.invalid": "This note's Number Suite Properties contain errors. Number display and file changes are paused until you correct or reset them.",
+  "panel.properties.issue.canonical-type": "{property} must be a list of path=value text items",
+  "panel.properties.issue.malformed-item": "{property} contains a non-text or padded item",
+  "panel.properties.issue.invalid-item": "Invalid {property} item: {item}",
+  "panel.properties.issue.unknown-directive": "Unknown {property} directive: {key}",
+  "panel.properties.issue.duplicate-directive": "Duplicate {property} directive: {key}",
+  "panel.properties.issue.legacy-type": "Invalid legacy property {key}",
+  "panel.properties.issue.conflict": "Conflicting {field} values in {property} and {legacyKey}",
+  "panel.properties.issue.unavailable-scheme": "Unavailable Number Suite scheme: {scheme}",
+  "panel.properties.issue.source-quoted-key": "Quoted Number Suite property key requires manual review: {key}",
+  "panel.properties.issue.source-duplicate-key": "Duplicate Number Suite property key requires manual review: {key}",
+  "panel.properties.issue.source-invalid-yaml": "Invalid Properties YAML",
   "panel.properties.legacy": "This note still uses legacy Number Suite Properties. The next explicit change here will migrate them to the number-suite list.",
   "panel.migrate": "Migrate legacy Properties",
   "panel.migrate.desc": "Keep the current effective settings and convert only the old Number Suite fields to the new `number-suite` list.",
@@ -896,6 +907,17 @@ const ZH: Record<MessageKey, string> = {
   "panel.conceal.desc": "只控制当前笔记是否隐藏能可靠识别的已写入序号。",
   "panel.scheme.desc": "跟随全局方案，或从可用的内置及自定义方案中选择。",
   "panel.properties.invalid": "当前笔记的 Number Suite 属性有误。在修正或重置之前，编号显示和文件操作都会暂停。",
+  "panel.properties.issue.canonical-type": "{property} 必须是由 path=value 文本项组成的列表",
+  "panel.properties.issue.malformed-item": "{property} 中包含非文本项或首尾带空白的项",
+  "panel.properties.issue.invalid-item": "{property} 列表项无效：{item}",
+  "panel.properties.issue.unknown-directive": "{property} 指令未知：{key}",
+  "panel.properties.issue.duplicate-directive": "{property} 指令重复：{key}",
+  "panel.properties.issue.legacy-type": "旧版属性无效：{key}",
+  "panel.properties.issue.conflict": "{property} 与 {legacyKey} 中的 {field} 值冲突",
+  "panel.properties.issue.unavailable-scheme": "Number Suite 方案不可用：{scheme}",
+  "panel.properties.issue.source-quoted-key": "Number Suite 属性键带有引号，需要手动检查：{key}",
+  "panel.properties.issue.source-duplicate-key": "Number Suite 属性键重复，需要手动检查：{key}",
+  "panel.properties.issue.source-invalid-yaml": "属性 YAML 无效",
   "panel.properties.legacy": "当前笔记仍使用旧版 Number Suite 属性；下次在此明确修改时会迁移为 number-suite 列表。",
   "panel.migrate": "迁移旧版属性",
   "panel.migrate.desc": "保留上面的当前设置，只把旧版 Number Suite 属性转换为新的 `number-suite` 列表。",
@@ -952,7 +974,7 @@ export function createTranslator(language: UiLanguage): Translate {
   const translate = (key: MessageKey, variables: Readonly<Record<string, string | number>> = {}): string => {
     let message: string = messages[key] ?? EN[key];
     for (const [name, value] of Object.entries(variables)) {
-      message = message.replace(new RegExp(`\\{${name}\\}`, "gu"), String(value));
+      message = message.replace(new RegExp(`\\{${name}\\}`, "gu"), () => String(value));
     }
     return message;
   };

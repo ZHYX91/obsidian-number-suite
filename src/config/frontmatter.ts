@@ -25,6 +25,17 @@ export type NotePropertyField =
   | "heading.first-number"
   | "heading.skip-first";
 
+export type NotePropertyIssueDetails =
+  | { readonly kind: "canonical-type" }
+  | { readonly kind: "malformed-item" }
+  | { readonly kind: "invalid-item"; readonly item: string }
+  | { readonly kind: "unknown-directive" | "duplicate-directive"; readonly key: string }
+  | { readonly kind: "legacy-type"; readonly key: string }
+  | { readonly kind: "conflict"; readonly legacyKey: string }
+  | { readonly kind: "unavailable-scheme"; readonly schemeId: string }
+  | { readonly kind: "source-quoted-key" | "source-duplicate-key"; readonly key: string }
+  | { readonly kind: "source-invalid-yaml" };
+
 export interface NotePropertyIssue {
   readonly code:
     | "canonical-type"
@@ -37,7 +48,9 @@ export interface NotePropertyIssue {
     | "unknown-directive"
     | "unavailable-scheme";
   readonly field: NotePropertyField;
+  /** Stable English detail for existing non-UI consumers. */
   readonly message: string;
+  readonly details: NotePropertyIssueDetails;
 }
 
 export interface NoteOverrides {
@@ -101,8 +114,9 @@ function issue(
   code: NotePropertyIssue["code"],
   field: NotePropertyField,
   message: string,
+  details: NotePropertyIssueDetails,
 ): void {
-  issues.push({ code, field, message });
+  issues.push({ code, field, message, details });
 }
 
 export function withNotePropertyIssues(
@@ -117,6 +131,7 @@ export function invalidNoteOverrides(message = "Invalid Properties YAML"): NoteO
     code: "source-ambiguous",
     field: "all",
     message,
+    details: { kind: "source-invalid-yaml" },
   }]);
 }
 
@@ -140,19 +155,19 @@ function parseCanonical(
   const unknown: string[] = [];
   if (!present) return { values, entries, unknown };
   if (!Array.isArray(raw)) {
-    issue(issues, "canonical-type", "all", `${NUMBER_SUITE_PROPERTY} must be a list of path=value text items`);
+    issue(issues, "canonical-type", "all", `${NUMBER_SUITE_PROPERTY} must be a list of path=value text items`, { kind: "canonical-type" });
     return { values, entries, unknown };
   }
   const seen = new Set<string>();
   for (const item of raw) {
     if (typeof item !== "string" || item.trim() !== item) {
-      issue(issues, "malformed-directive", "all", `${NUMBER_SUITE_PROPERTY} contains a non-text or padded item`);
+      issue(issues, "malformed-directive", "all", `${NUMBER_SUITE_PROPERTY} contains a non-text or padded item`, { kind: "malformed-item" });
       continue;
     }
     entries.push(item);
     const match = /^([a-z][a-z0-9.-]*)=(.+)$/u.exec(item);
     if (match == null) {
-      issue(issues, "malformed-directive", "all", `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      issue(issues, "malformed-directive", "all", `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     const key = match[1] ?? "";
@@ -160,37 +175,37 @@ function parseCanonical(
     const field = fieldForDirective(key);
     if (field === "all") {
       unknown.push(item);
-      issue(issues, "unknown-directive", "all", `Unknown ${NUMBER_SUITE_PROPERTY} directive: ${key}`);
+      issue(issues, "unknown-directive", "all", `Unknown ${NUMBER_SUITE_PROPERTY} directive: ${key}`, { kind: "unknown-directive", key });
       continue;
     }
     if (seen.has(key)) {
-      issue(issues, "duplicate-directive", field, `Duplicate ${NUMBER_SUITE_PROPERTY} directive: ${key}`);
+      issue(issues, "duplicate-directive", field, `Duplicate ${NUMBER_SUITE_PROPERTY} directive: ${key}`, { kind: "duplicate-directive", key });
       continue;
     }
     seen.add(key);
     if (key === "disabled") {
       if (rawValue === "true" || rawValue === "false") values.disabled = rawValue === "true";
-      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     if (key === "heading.virtual") {
       if (rawValue === "true" || rawValue === "false") values.showVirtualNumbers = rawValue === "true";
-      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     if (key === "heading.hide-stored") {
       if (rawValue === "true" || rawValue === "false") values.concealStoredNumbers = rawValue === "true";
-      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     if (key === "heading.scheme") {
       if (SCHEME_ID.test(rawValue)) values.schemeId = rawValue;
-      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     const levelMatch = /^heading\.(first-number|skip-first)\.h([1-9])$/u.exec(key);
     if (levelMatch == null) {
-      issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
     const level = Number(levelMatch[2]) as HeadingLevel;
@@ -198,7 +213,7 @@ function parseCanonical(
       ? (/^[1-9]\d*$/u.test(rawValue) ? positiveInteger(Number(rawValue)) : null)
       : (/^(?:0|[1-9]\d*)$/u.test(rawValue) ? nonNegativeInteger(Number(rawValue)) : null);
     if (parsed == null) {
-      issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`);
+      issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
     } else if (levelMatch[1] === "first-number") {
       values.starts[level] = parsed;
     } else {
@@ -218,7 +233,7 @@ function parseLegacy(
     if (!hasOwn(data, key)) return undefined;
     const raw = data[key];
     if (typeof raw === "boolean") return raw;
-    issue(issues, "legacy-type", field, `Invalid legacy property ${key}`);
+    issue(issues, "legacy-type", field, `Invalid legacy property ${key}`, { kind: "legacy-type", key });
     return undefined;
   };
   const disabled = readBoolean("number-suite-ignore", "disabled");
@@ -230,18 +245,18 @@ function parseLegacy(
   if (hasOwn(data, "number-suite-scheme")) {
     const raw = data["number-suite-scheme"];
     if (typeof raw === "string" && SCHEME_ID.test(raw)) values.schemeId = raw;
-    else issue(issues, "legacy-type", "heading.scheme", "Invalid legacy property number-suite-scheme");
+    else issue(issues, "legacy-type", "heading.scheme", "Invalid legacy property number-suite-scheme", { kind: "legacy-type", key: "number-suite-scheme" });
   }
   if (hasOwn(data, "number-suite-start")) {
     const starts = record(data["number-suite-start"]);
     if (starts == null) {
-      issue(issues, "legacy-type", "heading.first-number", "Invalid legacy property number-suite-start");
+      issue(issues, "legacy-type", "heading.first-number", "Invalid legacy property number-suite-start", { kind: "legacy-type", key: "number-suite-start" });
     } else {
       for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
         const key = `h${level}`;
         if (!hasOwn(starts, key)) continue;
         const parsed = positiveInteger(starts[key]);
-        if (parsed == null) issue(issues, "legacy-type", "heading.first-number", `Invalid legacy property number-suite-start.${key}`);
+        if (parsed == null) issue(issues, "legacy-type", "heading.first-number", `Invalid legacy property number-suite-start.${key}`, { kind: "legacy-type", key: `number-suite-start.${key}` });
         else values.starts[level as HeadingLevel] = parsed;
       }
     }
@@ -259,7 +274,7 @@ function compareScalar<T>(
 ): void {
   if (canonical === undefined || legacy === undefined) return;
   if (canonical === legacy) redundant.push(legacyKey);
-  else issue(issues, "conflict", field, `Conflicting ${field} values in ${NUMBER_SUITE_PROPERTY} and ${legacyKey}`);
+  else issue(issues, "conflict", field, `Conflicting ${field} values in ${NUMBER_SUITE_PROPERTY} and ${legacyKey}`, { kind: "conflict", legacyKey });
 }
 
 export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
@@ -326,7 +341,7 @@ export function resolveNoteSettings(
     || settings.customSchemes.some((scheme) => scheme.id === requestedScheme);
   const issues = [...overrides.issues];
   if (!schemeExists && requestedScheme != null) {
-    issue(issues, "unavailable-scheme", "heading.scheme", `Unavailable Number Suite scheme: ${requestedScheme}`);
+    issue(issues, "unavailable-scheme", "heading.scheme", `Unavailable Number Suite scheme: ${requestedScheme}`, { kind: "unavailable-scheme", schemeId: requestedScheme });
   }
   return {
     valid: issues.length === 0,

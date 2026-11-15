@@ -30,6 +30,7 @@ export function notePropertySourceIssues(frontmatter: string): NotePropertyIssue
           code: "source-ambiguous",
           field: "all",
           message: `Quoted Number Suite property key requires manual review: ${key}`,
+          details: { kind: "source-quoted-key", key },
         });
       }
     }
@@ -39,6 +40,7 @@ export function notePropertySourceIssues(frontmatter: string): NotePropertyIssue
       code: "source-ambiguous",
       field: "all",
       message: `Duplicate Number Suite property key requires manual review: ${key}`,
+      details: { kind: "source-duplicate-key", key },
     });
   }
   return issues;

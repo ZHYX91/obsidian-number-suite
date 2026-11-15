@@ -5,6 +5,7 @@ All notable changes to Number Suite are documented here.
 ## Unreleased
 
 - Keep valid Markdown link destinations and multiline titles out of note numbering, cross-reference display and semantic export while preserving visible link text and malformed-link prose.
+- Localize current-note Properties diagnostic details in all 12 interface languages while preserving configuration keys and entered values.
 
 ## 0.6.5 - 2026-11-09
 

@@ -22,6 +22,7 @@ import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 import { renderNoteOverridesGuide } from "./settings/note-overrides-guide";
 import { renderNoteOperationGuide } from "./note-operation-guide";
+import { notePropertyIssueText } from "./note-property-diagnostics";
 
 export interface NoteControlActions {
   readonly refreshDisplay: () => void;
@@ -208,7 +209,7 @@ export class NoteControlPane {
       error.setAttribute("role", "alert");
       error.createEl("strong", { text: this.t("panel.properties.invalid") });
       const list = error.createEl("ul");
-      for (const entry of snapshot.issues) list.createEl("li", { text: entry.message });
+      for (const entry of snapshot.issues) list.createEl("li", { text: notePropertyIssueText(entry, this.t) });
     } else if (snapshot.hasLegacy) {
       this.contentEl.createEl("p", {
         cls: "number-suite-note-control-migration",
