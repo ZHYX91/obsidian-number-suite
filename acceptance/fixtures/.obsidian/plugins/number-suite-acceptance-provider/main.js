@@ -5,6 +5,7 @@ const MAX_SOURCE_BYTES = 1024 * 1024;
 const MAX_OBSERVATION_BYTES = 512 * 1024;
 const NOTE_FIXTURE = "Link metadata boundaries.md";
 const NOTE_FIXTURE_SHA256 = "7d35e228f047b6bbdc7f8324a20d8ce4a47f272536b6db3e4886d03cb92d9d83";
+const NOTE_RENDERING_STAGES = ["initial", "reloaded", "caret", "mode-reset"];
 const renderingIdentities = new WeakMap();
 let nextRenderingIdentity = 1;
 
@@ -165,7 +166,8 @@ function decorationObservation(set, from, to) {
 
 // Diagnostic-only access to the host's already-computed editor state. Never call
 // decoration providers, dispatch a transaction, refresh the product, or invoke toDOM.
-async function recordNoteRendering(app) {
+async function recordNoteRendering(app, stage) {
+  if (!NOTE_RENDERING_STAGES.includes(stage)) throw new Error("Unknown note rendering stage");
   const adapter = app.vault.adapter;
   const markerPath = ".obsidian-acceptance/marker.json";
   if (!await adapter.exists(markerPath)) throw new Error("An isolated acceptance marker is required");
@@ -204,7 +206,7 @@ async function recordNoteRendering(app) {
   const product = app.plugins?.getPlugin?.("number-suite");
   const observation = {
     schemaVersion: 1, kind: "number-suite/note-rendering-diagnostic-v1",
-    observedAt: new Date().toISOString(), runId: marker.runId,
+    observedAt: new Date().toISOString(), stage, runId: marker.runId,
     candidateIdentityHash: marker.candidateIdentityHash,
     sourcePath: file.path, sourceSha256: NOTE_FIXTURE_SHA256,
     sourceByteLength: before.byteLength, editorLength: source.length,
@@ -260,25 +262,27 @@ async function recordNoteRendering(app) {
   if (new TextEncoder().encode(output).byteLength > MAX_OBSERVATION_BYTES) {
     throw new Error("Note rendering observation exceeds the output limit");
   }
-  const outputPath = `number-suite-note-rendering-${observation.observedAt.replace(/[:.]/gu, "-")}.json`;
-  if (await adapter.exists(outputPath)) throw new Error("An observation already exists for this timestamp");
+  const outputPath = `number-suite-note-rendering-${stage}.json`;
+  if (await adapter.exists(outputPath)) throw new Error("An observation already exists for this stage");
   await adapter.write(outputPath, output);
-  new Notice("Recorded read-only note rendering diagnostics");
+  new Notice(`Recorded read-only diagnostics: ${outputPath}`);
 }
 
 module.exports = class extends Plugin {
   onload() {
-    this.addCommand({
-      id: "record-note-rendering",
-      name: "Record Link metadata note rendering diagnostics",
-      callback: async () => {
-        try {
-          await recordNoteRendering(this.app);
-        } catch (error) {
-          new Notice(`Note rendering diagnostics unavailable: ${shortText(error?.message ?? error)}`);
-        }
-      },
-    });
+    for (const stage of NOTE_RENDERING_STAGES) {
+      this.addCommand({
+        id: `record-note-rendering-${stage}`,
+        name: `Record note rendering: ${stage}`,
+        callback: async () => {
+          try {
+            await recordNoteRendering(this.app, stage);
+          } catch (error) {
+            new Notice(`Note rendering diagnostics unavailable: ${shortText(error?.message ?? error)}`);
+          }
+        },
+      });
+    }
     // Explicit synthetic input preparation only; no product actions or verdicts.
     this.addCommand({
       id: "prepare-audit-roman-range-and-recovery",

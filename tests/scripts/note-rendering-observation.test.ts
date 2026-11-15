@@ -56,7 +56,7 @@ function harness() {
       showNoteNumbers: true, noteDisplayMode: "formatted", enableLivePreview: true,
     } }) },
   };
-  const module = { exports: {} as { recordNoteRendering: (app: object) => Promise<void> } };
+  const module = { exports: {} as { recordNoteRendering: (app: object, stage: string) => Promise<void> } };
   runInNewContext(`${provider}\nmodule.exports.recordNoteRendering = recordNoteRendering;`, {
     module, TextEncoder, Date,
     require: (name: string) => {
@@ -65,7 +65,7 @@ function harness() {
       throw new Error(`Unexpected diagnostic import: ${name}`);
     },
   });
-  return { record: () => module.exports.recordNoteRendering(app), writes, state, cm, app, active, marker };
+  return { record: (stage = "initial") => module.exports.recordNoteRendering(app, stage), writes, state, cm, app, active, marker };
 }
 
 describe("isolated note rendering observation", () => {
@@ -78,7 +78,7 @@ describe("isolated note rendering observation", () => {
     const setup = harness();
     await setup.record();
     expect(setup.writes).toHaveLength(1);
-    expect(setup.writes[0]?.path).toMatch(/^number-suite-note-rendering-[\dTZ-]+\.json$/u);
+    expect(setup.writes[0]?.path).toBe("number-suite-note-rendering-initial.json");
     const record = JSON.parse(setup.writes[0]!.content) as {
       renderedSets: Array<{ index: number; definitions: { ranges: Array<{ widget: unknown }> } }>;
       plugins: Array<{ renderedSetIndex: number }>;
@@ -106,6 +106,14 @@ describe("isolated note rendering observation", () => {
     const setup = harness();
     setup.marker.pluginId = "other-product";
     await expect(setup.record()).rejects.toThrow("active Number Suite acceptance Vault");
+    expect(setup.writes).toEqual([]);
+  });
+
+  it("refuses an unknown stage or an existing observation without overwriting it", async () => {
+    const setup = harness();
+    await expect(setup.record("arbitrary")).rejects.toThrow("Unknown note rendering stage");
+    setup.app.vault.adapter.exists = async () => true;
+    await expect(setup.record()).rejects.toThrow("already exists for this stage");
     expect(setup.writes).toEqual([]);
   });
 
