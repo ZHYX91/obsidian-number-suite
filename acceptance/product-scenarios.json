@@ -13,6 +13,49 @@
   },
   "scenarios": [
     {
+      "id": "link-metadata-boundaries",
+      "title": "Multiline link titles and native table-cell boundaries",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Link metadata boundaries.md in an isolated Vault. Record its complete source and hash. Enable virtual heading numbers, cross-references and formatted note numbers in Live Preview and Reading View; keep the cursor in ordinary text when observing inactive decorations.",
+        "Inspect the multiline link and the valid link inside one table cell. Their title metadata must not contribute a ghost note number or a hidden cross-reference pill. The ordinary Body reference must be footnote 1 and its body cross-reference must still target Target.",
+        "Inspect the final table, where the apparent title crosses an unescaped cell boundary and a row boundary. Its visible cell marker remains a real footnote after real, and its visible semantic reference remains eligible for enhancement. Record actual native table rendering and any source-to-DOM refusal separately; do not count an unavailable native correspondence as a displayed pass.",
+        "Switch between Live Preview and Reading View, then disable and re-enable the plugin. Check restoration without duplicate decorations, inspect Source mode and compare the complete original source/hash. Record desktop and Android outcomes separately."
+      ],
+      "expected": [
+        "Valid link metadata contributes no notes or semantic references; visible prose and invalid cross-cell title lookalikes retain their semantics. Native rendering and plugin decoration are recorded independently.",
+        "View changes and lifecycle transitions do not write Markdown. Disabling restores native content, and re-enabling does not duplicate decorations."
+      ]
+    },
+    {
+      "id": "properties-diagnostic-locales",
+      "title": "Localized Properties details preserve authored keys and values",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Diagnostic locales.md and record its complete source/hash. Open Current note. In Number Suite General settings select English, Simplified Chinese and Japanese in turn, returning to Current note after each change.",
+        "For each language inspect both diagnostic details, not only the section heading. The invalid item explanation and unknown directive explanation must use the selected language while retaining heading.virtual=maybe and heading.unrecognized exactly as authored.",
+        "Return to the original language, reopen Current note and verify no stale language or duplicate diagnostics remain. Compare the source/hash and acceptance-keep property with the baseline. Record desktop and Android outcomes independently; the other supported languages remain covered by source tests."
+      ],
+      "expected": [
+        "Both diagnostic details follow the selected language while exact directive keys and raw input values remain unchanged and readable as plain text.",
+        "Inspecting diagnostics or changing the UI language does not write the note or remove invalid Properties."
+      ]
+    },
+    {
       "id": "batch-preview-identity-and-overflow",
       "title": "Batch preview file ownership and safe-integer counter limits",
       "surfaces": [

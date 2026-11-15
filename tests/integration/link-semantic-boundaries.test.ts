@@ -132,7 +132,11 @@ describe("Markdown links through shared semantic consumers", () => {
     expect(createSemanticSnapshot(source).objects).toEqual([]);
   });
 
-  const tableMarker = "[^ghost] @[[#Target🐈]]";
+});
+
+const tableMarker = "[^ghost] @[[#Target🐈]]";
+
+describe("native GFM table link boundaries through semantic consumers", () => {
   it.each([
     `| [label](target "title | ${tableMarker}") |`,
     `| [label](target | "${tableMarker}") |`,
@@ -200,11 +204,18 @@ describe("Markdown links through shared semantic consumers", () => {
     assertConsumers(document(body, "\n"), ["real"], ["body"]);
   });
 
+});
+
+describe("Structural Tables extension boundaries through semantic consumers", () => {
+  // These expectations follow the product's structural-row contract. Native GFM
+  // deliberately does not act as an oracle for opaque structural code cells.
   it.each([
-    `Name | Value\n--- || ---\n\`code ${tableMarker} | still code\` | [^visible]`,
-    `Group | Value\nName | Value\n--- | ---\n\`code ${tableMarker} | still code\` | [^visible]`,
-    `Name | Value\n--- | ---\n\`code ${tableMarker} | still code\` | [^visible]\njoined | ^`,
-  ])("retains Structural Tables code-cell ownership: %s", (table) => {
-    assertConsumers(document(table, "\n"), ["visible", "real"], ["body"]);
+    { kind: "internal divider", table: `Name | Value\n--- || ---\n\`code ${tableMarker} | still code\` | [^visible]` },
+    { kind: "multiple header rows", table: `Group | Value\nName | Value\n--- | ---\n\`code ${tableMarker} | still code\` | [^visible]` },
+    { kind: "merge marker", table: `Name | Value\n--- | ---\n\`code ${tableMarker} | still code\` | [^visible]\njoined | ^` },
+  ])("retains code-cell ownership with $kind", ({ table }) => {
+    for (const ending of endings) {
+      assertConsumers(document(table, ending.text), ["visible", "real"], ["body"]);
+    }
   });
 });
