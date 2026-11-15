@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-08
+last_synced: 2026-11-15
 ---
 
 # Number Suite — Architecture
@@ -44,7 +44,7 @@ style, rule, and confidence for plugin, template, and manual prefixes; `prefix-a
 shared display/write entry point.
 
 `markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
-blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code and inline-math ranges; a second parses comment-projected blocks while retaining literal comments inside both. The inline-math extension also provides stable-ID insertion boundaries, so dollar delimiters have one rule. The projection is linear
+blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code, inline-math and link URL/LinkTitle ranges; a second parses comment-projected blocks while retaining literal comments inside those ranges. Notes and explicit semantic markers in visible link text reuse the scanners' syntax as atomic inline nodes so unvalidated nested shortcut links cannot invalidate the outer link; these marker nodes are not masked. Only the complete Markdown parse owns link destinations and titles, without a separate line-based parenthesis guess. The same table row scanner bounds link metadata to one cell, including table paragraphs inside lists and blockquotes. Parser-recorded container-prefix offsets preserve physical positions; cross-cell or cross-row link-like text does not claim prose. The inline-math extension also provides stable-ID insertion boundaries, so dollar delimiters have one rule. The projection is linear
 and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
@@ -102,7 +102,7 @@ and unconstrained canvas translation separate.
 <!-- section: interop-api -->
 ## Consumer interoperability API
 
-The complete source snapshot shares physical lines, code/math protection, note containers and table boundaries. Inline math retains exact ranges within its Markdown inline block; escaped, unmatched and whitespace-delimited dollars do not claim prose. Block equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
+The complete source snapshot shares physical lines, code/math/link-metadata protection, note containers and table boundaries. Inline math retains exact ranges within its Markdown inline block; escaped, unmatched and whitespace-delimited dollars do not claim prose. Block equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
 
 Semantic parsing builds one line-to-unique-target-ID index for both reference creation and export; heading display results are also indexed by line. Consumers do not rescan the source or every block owner for each target. The index retains ambiguity from duplicate IDs and multiple IDs on one target, including a duplicate ID beside another unique ID. Existing standalone IDs follow the same zero-or-one-blank-line ownership rule in both consumers. Original case and reference source offsets remain unchanged.
 

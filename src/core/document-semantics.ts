@@ -1,6 +1,7 @@
 import { scanTableBlocks } from "./markdown-table-blocks";
 import { WORD_JOINER } from "./markers";
 import { noteContainerLines } from "./note-semantics";
+import { SEMANTIC_REFERENCE } from "./markdown-inline-markers";
 import {
   isMarkdownSourceEscaped,
   maskInlineProtectedSyntax,
@@ -67,7 +68,6 @@ export interface SemanticSourceLine {
 const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
 export const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
-const SEMANTIC_REFERENCE = /@\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu;
 
 export function scanSemanticSourceLines(
   source: string,

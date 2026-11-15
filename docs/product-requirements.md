@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-07
+last_synced: 2026-11-15
 ---
 
 # Number Suite — Product requirements
@@ -134,7 +134,7 @@ governed by their own source and settings.
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
 
-Inline code, inline math and block-equation interiors declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
+Inline code, inline math, block-equation interiors and valid Markdown link destinations and titles declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line and markers in visible link text. Invalid or unclosed link-like text is not masked merely because it contains parentheses. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
 
 <!-- section: safety-requirements -->
 ## Safety requirements

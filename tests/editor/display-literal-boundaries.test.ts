@@ -2,6 +2,8 @@
 
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { defineLanguageFacet, Language } from "@codemirror/language";
+import { GFM, parser } from "@lezer/markdown";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { editorLivePreviewField } from "obsidian";
 
@@ -33,7 +35,7 @@ function render(source: string): HTMLElement {
     parent,
     state: EditorState.create({
       doc: source, selection: { anchor: source.length },
-      extensions: [editorLivePreviewField, controller.createExtension()],
+      extensions: [new Language(defineLanguageFacet(), parser.configure(GFM)), editorLivePreviewField, controller.createExtension()],
     }),
   });
   views.push(view);
@@ -64,4 +66,25 @@ it.each([
 ])("renders native code-pipe table ownership for %s", (delimiter, labels) => {
   const parent = render(`\`A | B\` | C\n${delimiter}\nTable: Candidate\n\nTable: Actual\n\nAfter`);
   expect(Array.from(parent.querySelectorAll(".number-suite-caption-pill"), (node) => node.textContent)).toEqual(labels);
+});
+
+it.each([
+  ['[label](target "title\n[^ghost] @[[#Target]]")', ["1"], 1],
+  ["[label](target 'title\n[^ghost] @[[#Target]]')", ["1"], 1],
+  ['[label](target (title\n[^ghost] @[[#Target]]))', ["1"], 1],
+  ['[label](target\n"[^ghost] @[[#Target]]")', ["1"], 1],
+  ['[label](target "[^ghost] @[[#Target]]")', ["1"], 1],
+  ['[label](target)\n[^ghost] @[[#Target]]', ["1", "2"], 2],
+  ['[label](target invalid [^ghost] @[[#Target]])', ["1", "2"], 2],
+  ['[See [^visible] @[[#Target]]](target "title\n[^ghost] @[[#Target]]")', ["1", "2"], 2],
+  ['| Name | Value |\n| --- | --- |\n| [label](target "title | [^ghost] @[[#Target]]") |', ["1", "2"], 2],
+  ['| Name | Value |\n| --- | --- |\n| [label](target "title | [^ghost] @[[#Target]] |\n| more | end") |', ["1", "2"], 2],
+  ['> Name | Value\n> --- | ---\n> [label](target "title | x\n> [^ghost] @[[#Target]] | end")', ["1", "2"], 2],
+  ['- Name | Value\n  --- | ---\n  [label](target "title | x\n  [^ghost] @[[#Target]] | end")', ["1", "2"], 2],
+])("renders only prose markers around Markdown link %s", (body, notes, references) => {
+  const source = ["# Target", "", body, "", "Prose [^real] @[[#Target]]", "",
+    "[^ghost]: Ghost", "[^visible]: Visible", "[^real]: Real", "", "Tail"].join("\n");
+  const parent = render(source);
+  expect(Array.from(parent.querySelectorAll(".number-suite-note-reference"), (node) => node.textContent)).toEqual(notes);
+  expect(parent.querySelectorAll(".number-suite-reference-pill")).toHaveLength(references);
 });
