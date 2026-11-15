@@ -13,6 +13,28 @@
   },
   "scenarios": [
     {
+      "id": "note-rendering-lifecycle-diagnostics",
+      "title": "Read-only native note rendering evidence across plugin reload",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "In a fresh isolated Vault open the unchanged Link metadata boundaries.md fixture in Live Preview, enable formatted note numbers and cross-references, and place the caret on the final blank line. Record the full source/hash and visible note labels. Run Number Suite acceptance provider: Record Link metadata note rendering diagnostics through the command palette to collect the initial observation.",
+        "Switch to Reading View, disable Number Suite through Community plugins and close Settings; observe native reference restoration. Re-enable Number Suite, close Settings, then return to Live Preview. Without editing the fixture, inspect both definition labels and run the same diagnostic command. Record visible absence, presence or duplication without assuming an outcome.",
+        "Click ordinary Body text outside its reference marker and record whether definition labels change. Run the diagnostic command again. Switch to Source mode and back to Live Preview, inspect labels and run the command once more. Compare the full source/hash with the baseline.",
+        "Retain the four number-suite-note-rendering-*.json files and corresponding screenshots through the native owner. Each JSON reports actual DOM, already-computed decoration ranges and editor state; the observer never refreshes the product, dispatches a transaction or issues a product pass. Missing internal fields are diagnostic limitations, not proof that decorations are absent. Record desktop and Android separately."
+      ],
+      "expected": [
+        "Four bounded, immutable observations distinguish the initial state, reload state, ordinary-caret control and mode-reset state while preserving the exact fixture bytes.",
+        "The record identifies actual host behavior and any missing evidence. Diagnostic collection alone does not establish that plugin lifecycle behavior passed."
+      ]
+    },
+    {
       "id": "link-metadata-boundaries",
       "title": "Multiline link titles and native table-cell boundaries",
       "surfaces": [
