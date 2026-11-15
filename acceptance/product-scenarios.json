@@ -13,6 +13,28 @@
   },
   "scenarios": [
     {
+      "id": "note-definition-reload",
+      "title": "Note-definition labels survive plugin reload and remain editable",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "In a fresh isolated Vault open Link metadata boundaries.md in Live Preview with formatted note numbers enabled. Record the complete source/hash and place the caret on the final blank line. Verify the real and next definition labels are [1] and [2]; record their native DOM separately from the ordinary Body reference.",
+        "Switch to Reading View, disable Number Suite through Community plugins and close Settings. Verify native content returns. Re-enable Number Suite, close Settings and return to Live Preview. Both definition labels must return once without a Source-mode reset. Repeat this lifecycle once, then move the caret into ordinary Body text and check both definitions again.",
+        "Select inside the real definition marker. Its exact authored marker must become editable while the inactive next definition retains [2]. Leave the marker and verify [1] returns. On Android open and dismiss the keyboard without entering text; record whether the active marker stays accessible and the inactive label remains intact.",
+        "Switch to Source mode and back to Live Preview. Check exact markers in Source mode and restored single labels in Live Preview, then compare the full source/hash to the baseline. Record Windows and Android outcomes separately. Diagnostic observation commands may collect supplementary evidence but cannot substitute for these visible behavior checks."
+      ],
+      "expected": [
+        "Each reload restores both definition labels without duplicates or a mode-reset workaround; selecting a marker exposes exact source and leaving restores its label.",
+        "Reading View cleanup, Source mode and inactive labels remain correct. The complete Markdown source is byte-identical after all display-only interactions."
+      ]
+    },
+    {
       "id": "note-rendering-lifecycle-diagnostics",
       "title": "Read-only native note rendering evidence across plugin reload",
       "surfaces": [

@@ -191,6 +191,9 @@ structured tooltip controller and is removed during cleanup.
 Footnotes and endnotes also enter only the display decoration plan. CodeMirror replaces visible
 reference and definition labels, but drops a replacement whenever the selection touches its source
 range so the stored marker becomes editable. Note widgets return pointer events to CodeMirror.
+Only definition replacements use a higher-priority decoration facet than native punctuation masks,
+so the complete label survives extension removal and re-registration. Reference, heading and caption
+decorations retain their existing precedence; mode and settings changes clear the definition set too.
 Reading View preserves Obsidian's native footnote links and list structure and stays unchanged unless
 source-plan and rendered-node counts match exactly. Cleanup restores original visible text, ARIA
 labels, and list values on reprocessing, view changes, and plugin disable.

@@ -1,5 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import {
+  Prec,
   StateEffect,
   StateField,
   type EditorState,
@@ -613,6 +614,7 @@ export class HeadingDisplayController {
     });
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
+      definitionDecorations: DecorationSet = Decoration.none;
       private overrides: NoteOverrides;
       private eventCompositionActive = false;
       private touchEditingActive = false;
@@ -718,6 +720,7 @@ export class HeadingDisplayController {
       }
 
       private buildDecorations(): DecorationSet {
+        this.definitionDecorations = Decoration.none;
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
         if ((livePreview && !settings.enableLivePreview) || (!livePreview && !settings.enableSourceMode)) {
@@ -770,6 +773,7 @@ export class HeadingDisplayController {
           composing,
         }, snapshot);
         const ranges: Range<Decoration>[] = [];
+        const definitionRanges: Range<Decoration>[] = [];
         const t = createTranslator(settings.language);
         const decorations = [
           ...plan.map((item) => ({ ...item, semanticKind: null })),
@@ -833,7 +837,7 @@ export class HeadingDisplayController {
             const accessibleLabel = item.noteKind === "endnote"
               ? t("display.note.endnote", { number: item.label })
               : t("display.note.footnote", { number: item.label });
-            ranges.push(Decoration.replace({
+            const replacement = Decoration.replace({
               widget: new NumeralWidget(
                 item.label,
                 item.semanticKind,
@@ -842,7 +846,8 @@ export class HeadingDisplayController {
                 t("display.note.editHint"),
               ),
               inclusive: false,
-            }).range(item.from, item.to));
+            }).range(item.from, item.to);
+            (item.semanticKind === "note-definition" ? definitionRanges : ranges).push(replacement);
           } else if (item.kind === "virtual") {
             ranges.push(Decoration.widget({
               widget: new NumeralWidget(item.label),
@@ -869,10 +874,17 @@ export class HeadingDisplayController {
             }
           }
         }
+        this.definitionDecorations = Decoration.set(definitionRanges, true);
         return Decoration.set(ranges, true);
       }
     }, {
       decorations: (instance) => instance.decorations,
+      // Native Live Preview hides "[^" and "]:" in separate overlapping
+      // replacements. Give only our complete definition label precedence so
+      // initial rendering and extension reload cannot clip its widget differently.
+      provide: (plugin) => Prec.high(EditorView.decorations.of((view) => (
+        view.plugin(plugin)?.definitionDecorations ?? Decoration.none
+      ))),
     });
 
     const compositionHandlers = EditorView.domEventHandlers({

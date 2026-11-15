@@ -28,6 +28,8 @@ Full-snapshot boundary regressions use independent Lezer inline-code/GFM structu
 
 Table row regressions assert caption text and numbering through the real snapshot, display plan and v2 export. Unmatched or escaped backticks are checked against native GFM parsing. Pipes and backslashes inside closed code spans and valid `||` extensions are positive controls; whitespace-only delimiter cells, edge dividers and repeated dividers are negative controls.
 
+Real CodeMirror note-definition regressions combine independent opening/closing punctuation masks and an ID mark with whole-label replacements. Both extension registration orders, repeated removal/re-registration, selection reveal, composition and disabled display modes must preserve inactive labels and source bytes. Native acceptance separately checks Reading View disable/re-enable followed by Live Preview, source-mode round trips and exact file hashes.
+
 <!-- section: evidence-levels -->
 ## Evidence levels
 

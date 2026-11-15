@@ -34,7 +34,7 @@ function harness() {
   const cm = {
     state, dom: root.querySelector(".cm-editor")!, contentDOM: root.querySelector(".cm-content")!,
     docView: { decorations: [nativeSet, productSet], dynamicDecorationMap: [false, true] },
-    plugins: [{ value: { decorations: productSet }, spec: { plugin: { id: 7 } }, mustUpdate: null }],
+    plugins: [{ value: { decorations: Decoration.none, definitionDecorations: productSet }, spec: { plugin: { id: 7 } }, mustUpdate: null }],
     composing: false, hasFocus: false, posAtDOM: () => from,
     dispatch: () => { throw new Error("Observation must not dispatch"); },
   };
@@ -81,14 +81,15 @@ describe("isolated note rendering observation", () => {
     expect(setup.writes[0]?.path).toBe("number-suite-note-rendering-initial.json");
     const record = JSON.parse(setup.writes[0]!.content) as {
       renderedSets: Array<{ index: number; definitions: { ranges: Array<{ widget: unknown }> } }>;
-      plugins: Array<{ renderedSetIndex: number }>;
+      plugins: Array<{ definitionSetIndex: number; definitions: { ranges: Array<{ widget: unknown }> } }>;
       sourceSha256: string; sourceSha256After: string; productAcceptance: boolean;
       dom: { noteWidgets: unknown[] }; selection: Array<{ from: number; to: number }>;
     };
     expect(record.renderedSets.map((set) => set.index)).toEqual([0, 1]);
     expect(record.renderedSets[0]?.definitions.ranges[0]?.widget).toBeNull();
     expect(record.renderedSets[1]?.definitions.ranges[0]?.widget).toMatchObject({ kind: "note-definition", label: "1" });
-    expect(record.plugins[0]?.renderedSetIndex).toBe(1);
+    expect(record.plugins[0]?.definitionSetIndex).toBe(1);
+    expect(record.plugins[0]?.definitions.ranges[0]?.widget).toMatchObject({ kind: "note-definition", label: "1" });
     expect(record.dom.noteWidgets).toEqual([]);
     expect(record.selection).toEqual(setup.state.selection.ranges);
     expect(record.sourceSha256After).toBe(record.sourceSha256);
@@ -141,6 +142,35 @@ describe("isolated note rendering observation", () => {
     let reads = 0;
     setup.app.vault.readBinary = async () => ++reads === 1 ? fixture : Buffer.from("Concurrent edit");
     await expect(setup.record()).rejects.toThrow("changed during the read-only observation");
+    expect(setup.writes).toEqual([]);
+  });
+
+  it("records selection-only transactions after the synchronous snapshot", async () => {
+    const setup = harness();
+    let reads = 0;
+    setup.app.vault.readBinary = async () => {
+      if (++reads === 2) setup.cm.state = { ...setup.state, selection: { ranges: [{ from: 1, to: 1 }] } };
+      return fixture;
+    };
+    await setup.record();
+    const record = JSON.parse(setup.writes[0]!.content) as {
+      selection: Array<{ from: number; to: number }>; selectionAfter: Array<{ from: number; to: number }>;
+      stateChangedAfterCapture: boolean; documentIdentity: number; documentIdentityAfter: number;
+    };
+    expect(record.selection).toEqual(setup.state.selection.ranges);
+    expect(record.selectionAfter).toEqual([{ from: 1, to: 1 }]);
+    expect(record.stateChangedAfterCapture).toBe(true);
+    expect(record.documentIdentityAfter).toBe(record.documentIdentity);
+  });
+
+  it("still refuses a replaced document even if its text is identical", async () => {
+    const setup = harness();
+    let reads = 0;
+    setup.app.vault.readBinary = async () => {
+      if (++reads === 2) setup.cm.state = { ...setup.state, doc: { ...setup.state.doc } };
+      return fixture;
+    };
+    await expect(setup.record()).rejects.toThrow("editor document changed");
     expect(setup.writes).toEqual([]);
   });
 });

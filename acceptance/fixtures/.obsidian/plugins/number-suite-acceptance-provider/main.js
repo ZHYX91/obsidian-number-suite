@@ -192,11 +192,14 @@ async function recordNoteRendering(app, stage) {
   if (before.byteLength > MAX_SOURCE_BYTES || await sha256(before, win) !== NOTE_FIXTURE_SHA256) {
     throw new Error("The diagnostic fixture bytes differ from the checked-in synthetic input");
   }
-  const state = cm.state;
-  const source = state.doc.toString();
+  const source = cm.state.doc.toString();
   if (await sha256(new TextEncoder().encode(source), win) !== NOTE_FIXTURE_SHA256) {
     throw new Error("The editor differs from the checked-in synthetic input");
   }
+  // Finish asynchronous identity checks before taking one synchronous snapshot.
+  // Palette dismissal and background parsing may legitimately replace EditorState.
+  const state = cm.state;
+  if (state.doc.toString() !== source) throw new Error("The editor changed before observation");
   const sets = Array.isArray(cm.docView?.decorations) ? cm.docView.decorations : [];
   const plugins = Array.isArray(cm.plugins) ? cm.plugins : [];
   const noteFrom = source.indexOf("[^ghost]:");
@@ -233,6 +236,8 @@ async function recordNoteRendering(app, stage) {
       constructor: shortText(plugin.value?.constructor?.name),
       pendingUpdate: plugin.mustUpdate != null,
       renderedSetIndex: sets.indexOf(plugin.value?.decorations),
+      definitionSetIndex: sets.indexOf(plugin.value?.definitionDecorations),
+      definitions: decorationObservation(plugin.value?.definitionDecorations, noteFrom, source.length),
       // Include references as well: a native superscript is not proof that the
       // product's reference widget and definition widgets share the same plan.
       decorations: decorationObservation(plugin.value?.decorations, 0, source.length),
@@ -252,11 +257,17 @@ async function recordNoteRendering(app, stage) {
       noteWidgets: nodes.length, lines: lines.length },
     productAcceptance: false,
   };
+  if (cm.state !== state) throw new Error("The editor state changed during synchronous collection");
   const after = await app.vault.readBinary(file);
   observation.sourceSha256After = await sha256(after, win);
-  if (observation.sourceSha256After !== NOTE_FIXTURE_SHA256 || cm.state !== state
+  const afterState = cm.state;
+  observation.stateChangedAfterCapture = afterState !== state;
+  observation.documentIdentityAfter = renderingIdentity(afterState.doc);
+  observation.selectionAfter = afterState.selection.ranges.map(({ from, to }) => ({ from, to }));
+  observation.livePreviewAfter = afterState.field(editorLivePreviewField, false) ?? null;
+  if (observation.sourceSha256After !== NOTE_FIXTURE_SHA256 || afterState.doc !== state.doc
     || app.workspace.getActiveViewOfType(MarkdownView) !== active || active.file !== file) {
-    throw new Error("The fixture or editor state changed during the read-only observation");
+    throw new Error("The fixture or editor document changed during the read-only observation");
   }
   const output = JSON.stringify(observation, null, 2) + "\n";
   if (new TextEncoder().encode(output).byteLength > MAX_OBSERVATION_BYTES) {
