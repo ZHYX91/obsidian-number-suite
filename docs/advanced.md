@@ -101,7 +101,13 @@ one target block the action. Otherwise it previews
 one bounded Markdown change and creates an ID only after confirmation. Caption IDs are appended to
 the caption line; heading IDs use the valid following block-ID line. It then copies a reference with
 a readable alias. This explicit command is the only caption/reference workflow that creates an ID.
-Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged.
+Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged
+by default. The optional **Enhance ordinary same-note Wiki heading links** setting
+is off by default; when enabled, Live Preview shows an effective number on
+unique `[[#Heading]]` heading links (aliases are retained) without writing to
+the source. Cross-file links, links that include a file path, captions,
+block links, embeds, and unresolved or ambiguous targets remain native links.
+Reading View continues to use Obsidian's native rendering for ordinary Wiki links.
 
 ## Footnotes and endnotes
 

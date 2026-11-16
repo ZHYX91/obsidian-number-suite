@@ -761,6 +761,7 @@ export class HeadingDisplayController {
           captionPlacements: captionPlacements(settings),
           showImageCaptionTooltips: settings.showImageCaptionTooltips,
           showCrossReferences: settings.showCrossReferences,
+          enhanceNativeWikiHeadingLinks: settings.enhanceNativeWikiHeadingLinks && livePreview,
           showNoteNumbers: shouldShowNoteWidgets(settings, livePreview),
           noteSelections: selections,
           numbering,

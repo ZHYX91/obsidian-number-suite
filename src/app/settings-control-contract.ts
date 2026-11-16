@@ -18,6 +18,7 @@ export type SettingsControlKey =
   | "captions.codePlacement"
   | "captions.showImageCaptionTooltips"
   | "references.showCrossReferences"
+  | "references.enhanceNativeWikiHeadingLinks"
   | "notes.showNoteNumbers"
   | "notes.displayMode"
   | "general.missingLevelStrategy"
@@ -57,6 +58,7 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "captions.codePlacement",
   "captions.showImageCaptionTooltips",
   "references.showCrossReferences",
+  "references.enhanceNativeWikiHeadingLinks",
   "notes.showNoteNumbers",
   "notes.displayMode",
   "general.missingLevelStrategy",
@@ -98,6 +100,7 @@ export function getSettingsControlValue(
     case "captions.codePlacement": return settings.codeCaptionPlacement;
     case "captions.showImageCaptionTooltips": return settings.showImageCaptionTooltips;
     case "references.showCrossReferences": return settings.showCrossReferences;
+    case "references.enhanceNativeWikiHeadingLinks": return settings.enhanceNativeWikiHeadingLinks;
     case "notes.showNoteNumbers": return settings.showNoteNumbers;
     case "notes.displayMode": return settings.noteDisplayMode;
     case "general.missingLevelStrategy": return settings.missingLevelStrategy;
@@ -191,6 +194,10 @@ export function applySettingsControlValue(
       break;
     case "references.showCrossReferences":
       next.showCrossReferences = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "references.enhanceNativeWikiHeadingLinks":
+      next.enhanceNativeWikiHeadingLinks = controlBoolean(key, value);
       impact = "display";
       break;
     case "notes.showNoteNumbers":

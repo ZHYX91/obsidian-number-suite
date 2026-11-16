@@ -14,6 +14,7 @@ import {
   type CaptionSourcePlacement,
 } from "../core/caption-objects";
 import type { CaptionPlacement } from "../config/settings";
+import { isMarkdownSourceEscaped, maskInlineProtectedSyntax } from "../core/markdown-protection";
 import {
   type NoteKind,
 } from "../core/note-semantics";
@@ -57,6 +58,7 @@ export interface SemanticDisplayPlanOptions {
   readonly captionPlacements?: Readonly<Record<CaptionKind, CaptionPlacement>>;
   readonly showImageCaptionTooltips?: boolean;
   readonly showCrossReferences: boolean;
+  readonly enhanceNativeWikiHeadingLinks?: boolean;
   readonly showNoteNumbers: boolean;
   readonly noteSelections: readonly SelectionSpan[];
   readonly numbering: NumberingOptions;
@@ -186,6 +188,37 @@ export function imageTooltipContentAtOffset(
   return image?.replacementText ? { title: "", body: image.replacementText } : null;
 }
 
+/** Only explicit same-note Wiki heading anchors are eligible for this optional enhancement. */
+function nativeWikiHeadingLinks(snapshot: SemanticSnapshot): Array<{
+  readonly line: number;
+  readonly from: number;
+  readonly to: number;
+  readonly target: string;
+  readonly alias: string | null;
+  readonly kind: "title";
+}> {
+  const result: Array<{ line: number; from: number; to: number; target: string; alias: string | null; kind: "title" }> = [];
+  const pattern = /(?<![@!\[])\[\[#([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/gu;
+  for (const line of snapshot.lines) {
+    if (!line.available) continue;
+    const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
+    for (const match of masked.matchAll(pattern)) {
+      if (match.index == null || isMarkdownSourceEscaped(line.text, match.index)) continue;
+      const target = match[1]?.trim();
+      if (!target || target.startsWith("^")) continue;
+      result.push({
+        kind: "title",
+        line: line.number,
+        from: line.from + match.index,
+        to: line.from + match.index + match[0].length,
+        target,
+        alias: match[2]?.trim() || null,
+      });
+    }
+  }
+  return result;
+}
+
 export function createSemanticDisplayPlan(
   source: string,
   headings: readonly ParsedHeading[],
@@ -273,14 +306,22 @@ export function createSemanticDisplayPlan(
       });
     }
   }
-  if (!options.showCrossReferences) return decorations;
+  if (!options.showCrossReferences && !options.enhanceNativeWikiHeadingLinks) return decorations;
 
   const visibleHeadings = visibleHeadingLabels(headings, options);
   const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
   const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
 
   const titleTargets = headings === snapshot.headings ? snapshot.titleTargets : createSemanticTitleIndex(headings, semantics.captions);
-  for (const reference of semantics.references) {
+  const references = [
+    ...(options.showCrossReferences
+      ? semantics.references.map((reference) => ({ reference, native: false }))
+      : []),
+    ...(options.enhanceNativeWikiHeadingLinks
+      ? nativeWikiHeadingLinks(snapshot).map((reference) => ({ reference, native: true }))
+      : []),
+  ];
+  for (const { reference, native } of references) {
     if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
     const resolved = reference.kind === "title"
       ? titleTargets.get(normalizeSemanticTarget(reference.target))
@@ -293,6 +334,9 @@ export function createSemanticDisplayPlan(
     const caption = captionsByLine.get(targetLine);
     const targetKind = resolved?.kind ?? (heading != null ? "heading" : caption != null ? "caption" : null);
     if (targetKind == null) continue;
+    // Leave Obsidian's ordinary link untouched when no unique numbered
+    // heading exists. Neither captions nor block links are inferred here.
+    if (native && (targetKind !== "heading" || visibleHeadings.get(targetLine) == null)) continue;
     let label: string;
     if (targetKind === "caption" && caption != null) {
       label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);

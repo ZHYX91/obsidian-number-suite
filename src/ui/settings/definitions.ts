@@ -98,6 +98,8 @@ export function createSettingDefinitions(
         saveStatusDefinition(context),
         toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
           t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences),
+        toggleDefinition("references.enhanceNativeWikiHeadingLinks", t("settings.references.nativeWiki"),
+          t("settings.references.nativeWiki.desc"), DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks),
         customDefinition(
           t("settings.references.guide.title"),
           (container) => renderSameFileReferenceGuide(container, t),
