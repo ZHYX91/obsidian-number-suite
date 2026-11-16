@@ -96,6 +96,7 @@ export class NumeralWidget extends WidgetType {
     private readonly accessibleLabel = "",
     private readonly editHint = "",
     private readonly targetLine: number | null = null,
+    private readonly sourceOffset: number | null = null,
   ) {
     super();
   }
@@ -106,13 +107,15 @@ export class NumeralWidget extends WidgetType {
       && this.noteKind === other.noteKind
       && this.accessibleLabel === other.accessibleLabel
       && this.editHint === other.editHint
-      && this.targetLine === other.targetLine;
+      && this.targetLine === other.targetLine
+      && this.sourceOffset === other.sourceOffset;
   }
 
   override toDOM(view: EditorView): HTMLElement {
     if (this.kind === "heading") return createVirtualNumeralElement(view.dom.ownerDocument, this.label);
     if (this.kind === "reference") {
       const element = createReferencePillElement(view.dom.ownerDocument, this.label);
+      if (this.editHint) element.setAttribute("title", this.editHint);
       const navigate = (): void => {
         if (this.targetLine == null || this.targetLine < 0 || this.targetLine >= view.state.doc.lines) return;
         const anchor = view.state.doc.line(this.targetLine + 1).from;
@@ -123,6 +126,12 @@ export class NumeralWidget extends WidgetType {
         sourceToken: () => view.state.doc,
         available: () => element.isConnected && view.dom.contains(element) && !view.composing,
         navigate,
+        editSource: () => {
+          const from = this.sourceOffset;
+          if (from == null || from < 0 || view.state.doc.sliceString(from, from + 3) !== "@[[") return;
+          view.dispatch({ selection: { anchor: from + 3 }, scrollIntoView: true });
+          view.focus();
+        },
       });
       return element;
     }
@@ -813,8 +822,9 @@ export class HeadingDisplayController {
                 "reference",
                 "footnote",
                 "",
-                "",
+                t("display.reference.editHint"),
                 item.targetLine ?? null,
+                item.from,
               ),
               inclusive: false,
             }).range(item.from, item.to));
