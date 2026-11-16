@@ -25,7 +25,7 @@ import type {
 } from "../core/types";
 
 export interface SemanticDisplayDecoration {
-  readonly kind: "caption" | "caption-alignment" | "reference" | "note-reference" | "note-definition";
+  readonly kind: "caption" | "caption-alignment" | "reference" | "native-link-number" | "note-reference" | "note-definition";
   readonly from: number;
   readonly to: number;
   readonly line: number;
@@ -334,9 +334,26 @@ export function createSemanticDisplayPlan(
     const caption = captionsByLine.get(targetLine);
     const targetKind = resolved?.kind ?? (heading != null ? "heading" : caption != null ? "caption" : null);
     if (targetKind == null) continue;
-    // Leave Obsidian's ordinary link untouched when no unique numbered
-    // heading exists. Neither captions nor block links are inferred here.
-    if (native && (targetKind !== "heading" || visibleHeadings.get(targetLine) == null)) continue;
+    // Ordinary Wiki links must retain Obsidian's own click, menu, selection,
+    // embed and modifier semantics. Only add an inert number before the link,
+    // never replace the link with the plugin's navigation widget.
+    if (native) {
+      if (targetKind !== "heading" || heading == null) continue;
+      const number = visibleHeadings.get(targetLine);
+      if (number == null) continue;
+      const originalLabel = (reference.alias ?? heading.content).trimStart();
+      if (originalLabel === number || originalLabel.startsWith(number + " ")) continue;
+      decorations.push({
+        kind: "native-link-number",
+        from: reference.from,
+        to: reference.from,
+        line: reference.line,
+        label: number,
+        targetLine,
+        targetKind: "heading",
+      });
+      continue;
+    }
     let label: string;
     if (targetKind === "caption" && caption != null) {
       label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);
