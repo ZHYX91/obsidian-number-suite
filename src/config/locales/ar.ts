@@ -93,6 +93,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "display.note.footnote": "حاشية سفلية {number}",
   "display.note.endnote": "حاشية ختامية {number}",
   "display.note.editHint": "انقر لتحرير علامة المصدر",
+  "display.reference.editHint": "انقر للانتقال إلى الهدف. ركّز على الرابط ثم اضغط F2 لتحرير مصدر Markdown.",
   "preview.title.write": "معاينة كتابة أرقام العناوين",
   "preview.title.remove": "معاينة إزالة أرقام العناوين",
   "preview.title.renumber": "معاينة إعادة ترقيم العناوين",

@@ -93,6 +93,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "display.note.footnote": "Chú thích chân trang {number}",
   "display.note.endnote": "Chú thích cuối tài liệu {number}",
   "display.note.editHint": "Nhấn để sửa dấu gốc",
+  "display.reference.editHint": "Nhấp để chuyển đến đích. Đưa tiêu điểm vào liên kết rồi nhấn F2 để chỉnh sửa mã Markdown.",
   "preview.title.write": "Xem trước khi ghi số tiêu đề",
   "preview.title.remove": "Xem trước khi xóa số tiêu đề",
   "preview.title.renumber": "Xem trước khi đánh số lại",

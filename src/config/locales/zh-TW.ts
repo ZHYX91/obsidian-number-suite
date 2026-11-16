@@ -93,6 +93,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "display.note.footnote": "腳註 {number}",
   "display.note.endnote": "尾註 {number}",
   "display.note.editHint": "單擊編輯原始標記",
+  "display.reference.editHint": "點擊即可跳轉。將焦點移到此連結後按 F2，可編輯 Markdown 原始碼。",
   "preview.title.write": "預覽寫入標題序號",
   "preview.title.remove": "預覽清理標題序號",
   "preview.title.renumber": "預覽重新編號",
