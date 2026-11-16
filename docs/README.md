@@ -9,6 +9,7 @@ Start with the [project README](../README.md) for installation and everyday use.
 | Architecture | [Read](architecture.md) | [阅读](architecture.zh-CN.md) |
 | Testing strategy | [Read](testing-strategy.md) | [阅读](testing-strategy.zh-CN.md) |
 | Advanced usage | [Read](advanced.md) | [阅读](advanced.zh-CN.md) |
+| Approved navigation target (not a shipped-feature list) | [Read](navigation-target.md) | [阅读](navigation-target.zh-CN.md) |
 
 - [Runtime acceptance](runtime-acceptance.md): repeatable checks in a disposable Vault.
 
