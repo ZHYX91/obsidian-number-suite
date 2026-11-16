@@ -93,6 +93,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "display.note.footnote": "각주 {number}",
   "display.note.endnote": "미주 {number}",
   "display.note.editHint": "클릭하여 원본 표시 편집",
+  "display.reference.editHint": "클릭하면 이동합니다. 링크에 초점을 맞춘 뒤 F2를 누르면 Markdown 원문을 편집할 수 있습니다.",
   "preview.title.write": "제목 번호 쓰기 미리 보기",
   "preview.title.remove": "제목 번호 제거 미리 보기",
   "preview.title.renumber": "제목 번호 다시 매기기 미리 보기",

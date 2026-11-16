@@ -93,6 +93,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "display.note.footnote": "Fußnote {number}",
   "display.note.endnote": "Endnote {number}",
   "display.note.editHint": "Zum Bearbeiten der ursprünglichen Markierung klicken",
+  "display.reference.editHint": "Klicken, um zum Ziel zu springen. Link fokussieren und F2 drücken, um den Markdown-Quelltext zu bearbeiten.",
   "preview.title.write": "Vorschau: Überschriftennummern schreiben",
   "preview.title.remove": "Vorschau: Überschriftennummern entfernen",
   "preview.title.renumber": "Vorschau: Überschriften neu nummerieren",

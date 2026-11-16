@@ -93,6 +93,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "display.note.footnote": "Сноска {number}",
   "display.note.endnote": "Концевое примечание {number}",
   "display.note.editHint": "Нажмите, чтобы изменить исходный маркер",
+  "display.reference.editHint": "Нажмите, чтобы перейти. Выберите ссылку с помощью клавиатуры и нажмите F2, чтобы изменить исходный Markdown.",
   "preview.title.write": "Предпросмотр записи номеров",
   "preview.title.remove": "Предпросмотр удаления номеров",
   "preview.title.renumber": "Предпросмотр перенумерации",

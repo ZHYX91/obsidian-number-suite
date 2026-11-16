@@ -93,6 +93,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "display.note.footnote": "脚注 {number}",
   "display.note.endnote": "文末脚注 {number}",
   "display.note.editHint": "クリックして元の記法を編集",
+  "display.reference.editHint": "クリックすると移動します。リンクにフォーカスして F2 を押すと Markdown のソースを編集できます。",
   "preview.title.write": "見出し番号の書き込みを確認",
   "preview.title.remove": "見出し番号の削除を確認",
   "preview.title.renumber": "見出し番号の振り直しを確認",

@@ -93,6 +93,7 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "display.note.footnote": "Note de bas de page {number}",
   "display.note.endnote": "Note de fin {number}",
   "display.note.editHint": "Cliquer pour modifier le marqueur d’origine",
+  "display.reference.editHint": "Cliquez pour accéder à la cible. Placez le focus sur le lien et appuyez sur F2 pour modifier son code Markdown.",
   "preview.title.write": "Aperçu de l’écriture des numéros",
   "preview.title.remove": "Aperçu de la suppression des numéros",
   "preview.title.renumber": "Aperçu de la renumérotation",
