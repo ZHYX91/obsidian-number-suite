@@ -88,6 +88,30 @@ export function transitionHeadingTouchEditing(
   };
 }
 
+/** Non-interactive prefix: Obsidian continues to own the native Wiki link. */
+class NativeWikiNumberWidget extends WidgetType {
+  constructor(private readonly label: string) {
+    super();
+  }
+
+  override eq(other: NativeWikiNumberWidget): boolean {
+    return this.label === other.label;
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const element = view.dom.ownerDocument.createElement("span");
+    element.className = "number-suite-native-wiki-number";
+    element.textContent = this.label + " ";
+    element.setAttribute("aria-hidden", "true");
+    element.setAttribute("contenteditable", "false");
+    return element;
+  }
+
+  override ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 export class NumeralWidget extends WidgetType {
   constructor(
     private readonly label: string,
@@ -816,6 +840,13 @@ export class HeadingDisplayController {
                 inclusive: false,
               }).range(item.pillFrom, item.pillTo));
             }
+          } else if (item.semanticKind === "native-link-number") {
+            // Keep the original [[#Heading]] link in CodeMirror's native
+            // renderer. A replacement widget would hijack link interactions.
+            ranges.push(Decoration.widget({
+              widget: new NativeWikiNumberWidget(item.label),
+              side: -1,
+            }).range(item.from));
           } else if (item.semanticKind === "reference") {
             ranges.push(Decoration.replace({
               widget: new NumeralWidget(
