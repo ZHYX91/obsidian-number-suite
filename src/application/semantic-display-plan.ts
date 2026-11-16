@@ -342,7 +342,12 @@ export function createSemanticDisplayPlan(
       const number = visibleHeadings.get(targetLine);
       if (number == null) continue;
       const originalLabel = (reference.alias ?? heading.content).trimStart();
-      if (originalLabel === number || originalLabel.startsWith(number + " ")) continue;
+      // Obsidian already renders an authored numeric prefix in ordinary
+      // links; avoid displaying it twice even when punctuation follows it.
+      const suffix = originalLabel.startsWith(number)
+        ? originalLabel.slice(number.length)
+        : null;
+      if (suffix != null && (suffix === "" || /^[\\s.,:、)）]/u.test(suffix))) continue;
       decorations.push({
         kind: "native-link-number",
         from: reference.from,
