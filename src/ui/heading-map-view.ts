@@ -65,6 +65,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 export class NumberSuiteHeadingMapView extends ItemView {
   private currentFile: TFile | null = null;
+  private pinnedToEntry = false;
   private sourceLeaf: WorkspaceLeaf | null = null;
   private roots: readonly HeadingMapNode[] = [];
   private identities = new HeadingMapIdentity();
@@ -146,7 +147,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.viewport.addEventListener("pointercancel", (event) => this.endPan(event));
     this.viewport.addEventListener("lostpointercapture", (event) => this.endPan(event));
 
-    this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
+    this.registerEvent(this.app.workspace.on("file-open", (file) => {
+      if (!this.pinnedToEntry) this.setFile(file);
+    }));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
     this.registerEvent(this.app.workspace.on("editor-change", (_editor, info) => {
       if (info.file?.path === this.currentFile?.path) {
@@ -190,7 +193,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (this.needsInitialFit) this.requestFrame(() => this.fitInitialView());
   }
 
-  showFile(file: TFile | null, sourceLeaf: WorkspaceLeaf | null = null): void {
+  showFile(
+    file: TFile | null,
+    sourceLeaf: WorkspaceLeaf | null = null,
+    pinToEntry = false,
+  ): void {
+    // A map opened from a pinned Outline/Current note must not silently
+    // switch to another file merely because an unrelated editor gets focus.
+    this.pinnedToEntry = pinToEntry;
     this.clearRefreshTimer();
     this.setFile(file, false);
     if (sourceLeaf?.view instanceof MarkdownView && sourceLeaf.view.file === file) {
@@ -407,7 +417,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
-    if (!(leaf?.view instanceof MarkdownView)) return;
+    if (this.pinnedToEntry || !(leaf?.view instanceof MarkdownView)) return;
     this.clearRefreshTimer();
     this.request += 1;
     this.sourceLeaf = leaf;
