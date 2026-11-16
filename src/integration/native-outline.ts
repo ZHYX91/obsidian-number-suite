@@ -107,6 +107,7 @@ interface ObservedOutline {
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
   timer: number | null;
+  mapAction: HTMLElement | null;
 }
 function prop(value: unknown, key: string): unknown {
   return typeof value === "object" && value != null
@@ -145,7 +146,12 @@ export class NativeOutlineEnhancer {
   private generations = new Map<string, number>();
   private stopped = false;
 
-  constructor(private readonly plugin: Plugin, private readonly settings: () => NumberSuiteSettings) {}
+  constructor(
+    private readonly plugin: Plugin,
+    private readonly settings: () => NumberSuiteSettings,
+    private readonly openMap: (path: string) => void = () => undefined,
+    private readonly mapLabel: () => string = () => "Open heading mind map",
+  ) {}
 
   start(): void {
     const app = this.plugin.app;
@@ -191,7 +197,7 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), timer: null,
+      labels: new Map(), timer: null, mapAction: null,
       onDrag: (event) => {
         const target = event.target;
         if (target instanceof Element && target.closest("." + EXTRA_CLASS)) event.preventDefault();
@@ -219,6 +225,14 @@ export class NativeOutlineEnhancer {
     root.addEventListener("drop", current.onDrop, true);
     current.observer.observe(root, { childList: true, subtree: true, characterData: true });
     this.observed.set(view, current);
+    if (view instanceof ItemView) {
+      // Public ItemView toolbar API; avoids private header DOM mutations.
+      current.mapAction = view.addAction("git-branch", this.mapLabel(), () => {
+        const path = pathFor(native);
+        if (path != null) this.openMap(path);
+      });
+      current.mapAction.addClass("number-suite-outline-map-action");
+    }
   }
 
   private schedule(view: View): void {
@@ -299,6 +313,7 @@ export class NativeOutlineEnhancer {
     if (entry.timer != null) window.clearTimeout(entry.timer);
     entry.root.removeEventListener("dragstart", entry.onDrag, true);
     entry.root.removeEventListener("drop", entry.onDrop, true);
+    entry.mapAction?.remove();
     entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
     entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
     if (entry.view.getHeadings === entry.wrapped) {
