@@ -129,3 +129,14 @@ cursor to it to reveal and edit the stored marker. Reading View keeps numbered n
 Missing, duplicate, conflicting, or render-mismatched definitions remain native Obsidian content.
 Two-space multiline note bodies are protected from heading, caption, and semantic-reference
 scanning.
+
+## Native Obsidian Outline enhancements (work in progress)
+
+The **Outline enhancements** settings page defaults the three independent controls on:
+number labels, H7–H9 extended headings, and Figure/Table/Equation/Code caption navigation.
+They do not modify Markdown or change the source numbering rules. The compatibility
+layer augments only the native Outline view, without writing synthetic metadata headings
+into Obsidian's vault-wide cache; when the expected private native view API is missing,
+it retains the unmodified Outline. Synthetic entries are navigation-only: do not drag
+them to rewrite content. Host drag/selection and Android acceptance are still pending.
+The existing Number Suite Document outline is retained until parity and cleanup are verified.
