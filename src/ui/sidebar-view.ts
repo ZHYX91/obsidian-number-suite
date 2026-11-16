@@ -147,6 +147,10 @@ export class NumberSuiteSidebarView extends ItemView {
         },
         openBatch: this.actions.openBatch,
         openGlobalSettings: this.actions.openGlobalSettings,
+        openHeadingMap: () => {
+          const path = this.currentFile?.path;
+          if (path != null) this.actions.openHeadingMap(path, this.sourceLeaf);
+        },
       },
     );
     this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
