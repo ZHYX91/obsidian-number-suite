@@ -1646,3 +1646,25 @@
   position: absolute; inset-inline-end: 0; inset-block-start: 0;
   width: var(--clickable-icon-size); height: var(--clickable-icon-size);
 }
+
+/* Explicit structure editing for the heading map: browsing remains drag-free. */
+.number-suite-heading-map-rearrange[aria-pressed="true"] {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.number-suite-heading-map-card.is-rearrangeable {
+  cursor: grab;
+}
+.number-suite-heading-map-card.is-rearrangeable:active {
+  cursor: grabbing;
+}
+.number-suite-heading-map-card.is-drop-before {
+  outline: 3px solid var(--interactive-accent);
+  outline-offset: 3px;
+  box-shadow: inset 0 4px 0 var(--interactive-accent);
+}
+.number-suite-heading-map-card.is-drop-after {
+  outline: 3px solid var(--interactive-accent);
+  outline-offset: 3px;
+  box-shadow: inset 0 -4px 0 var(--interactive-accent);
+}
