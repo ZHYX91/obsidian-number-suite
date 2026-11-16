@@ -200,6 +200,8 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "settings.references": "同じノート内の相互参照",
   "settings.references.enable": "同じノート内の相互参照を表示",
   "settings.references.enable.desc": "このノート内の @[[#...]] 参照をクリックできるラベルとして表示します。対象に番号があれば、その番号も表示します。",
+  "settings.references.nativeWiki": "同じノート内の通常の Wiki 見出しリンクを拡張",
+  "settings.references.nativeWiki.desc": "初期設定はオフです。ライブプレビューでは、このノート内の一意な見出しを指す `[[#見出し]]` に有効な番号を表示します。Markdown は変更せず、別ファイルや解決できないリンクはそのまま残します。",
   "settings.references.guide.title": "書きやすい名前の参照と、必要なときの安定した参照",
   "settings.references.guide.intro": "このノートの見出しやキャプションへのリンクの前に @ を付けます。例: @[[#インストール]]。Number Suite がクリックできる参照ラベルを表示します。普通の [[#...]] リンクは変わりません。",
   "settings.references.guide.heading.title": "見出しを参照",

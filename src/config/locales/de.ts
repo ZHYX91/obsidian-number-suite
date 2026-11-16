@@ -200,6 +200,8 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "settings.references": "Querverweise innerhalb derselben Notiz",
   "settings.references.enable": "Querverweise innerhalb der Notiz anzeigen",
   "settings.references.enable.desc": "Zeige @[[#...]]-Verweise auf Ziele in dieser Notiz als anklickbare Beschriftungen, einschließlich der Zielnummer, falls vorhanden.",
+  "settings.references.nativeWiki": "Gewöhnliche Wiki-Überschriftenlinks innerhalb derselben Notiz erweitern",
+  "settings.references.nativeWiki.desc": "Standardmäßig aus. In der Live-Vorschau erscheinen gültige Nummern vor `[[#Überschrift]]`-Links zu eindeutigen Überschriften dieser Notiz. Markdown bleibt unverändert; Links zu anderen Dateien oder nicht auflösbare Links bleiben nativ.",
   "settings.references.guide.title": "Lesbare Verweise beim Schreiben, stabile Verweise bei Bedarf",
   "settings.references.guide.intro": "Setze @ vor einen Link zu einer Überschrift oder Beschriftung in dieser Notiz, zum Beispiel @[[#Installation]]. Number Suite zeigt einen anklickbaren Verweis an; normale [[#...]]-Links bleiben unverändert.",
   "settings.references.guide.heading.title": "Ziel: Überschrift",

@@ -200,6 +200,8 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "settings.references": "Referências cruzadas na mesma nota",
   "settings.references.enable": "Mostrar referências cruzadas da mesma nota",
   "settings.references.enable.desc": "Exibir referências @[[#...]] a alvos desta nota como rótulos clicáveis, incluindo o número do alvo quando disponível.",
+  "settings.references.nativeWiki": "Melhorar links Wiki comuns para títulos da mesma nota",
+  "settings.references.nativeWiki.desc": "Desativado por padrão. Na visualização ao vivo, mostra a numeração efetiva antes de links `[[#Título]]` que apontam para um título único desta nota. Não altera o Markdown nem os links de outros arquivos ou não resolvidos.",
   "settings.references.guide.title": "Referências fáceis de ler ao escrever e estáveis quando necessário",
   "settings.references.guide.intro": "Coloque @ antes de um link para título ou legenda desta nota, por exemplo @[[#Instalação]]. O Number Suite mostra um rótulo clicável; links normais [[#...]] continuam iguais.",
   "settings.references.guide.heading.title": "Alvo: título",

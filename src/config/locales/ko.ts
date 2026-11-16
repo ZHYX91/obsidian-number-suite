@@ -200,6 +200,8 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "settings.references": "같은 노트 내 상호 참조",
   "settings.references.enable": "같은 노트 내 상호 참조 표시",
   "settings.references.enable.desc": "현재 노트의 @[[#...]] 참조를 클릭할 수 있는 레이블로 보여 줍니다. 대상 번호가 있으면 번호도 포함합니다.",
+  "settings.references.nativeWiki": "같은 노트의 일반 Wiki 제목 링크 개선",
+  "settings.references.nativeWiki.desc": "기본값은 꺼짐입니다. 라이브 미리 보기에서 이 노트의 유일한 제목으로 연결되는 `[[#제목]]` 링크에 유효한 번호를 표시합니다. Markdown을 변경하지 않으며 다른 파일 및 확인할 수 없는 링크는 그대로 둡니다.",
   "settings.references.guide.title": "쓰기 쉬운 참조와 필요할 때의 안정적인 참조",
   "settings.references.guide.intro": "이 노트의 제목이나 캡션 링크 앞에 @를 붙이세요. 예: @[[#설치]]. Number Suite가 클릭 가능한 참조 레이블을 보여 줍니다. 일반 [[#...]] 링크는 변경되지 않습니다.",
   "settings.references.guide.heading.title": "제목 참조",
