@@ -40,7 +40,7 @@ function references(source: string, enabled: boolean, numbered = true) {
     templateSources,
     headingDisplayPlan,
     composing: false,
-  }).filter((item) => item.kind === "reference");
+  }).filter((item) => item.kind === "native-link-number");
 }
 
 describe("optional same-note Wiki heading link enhancement", () => {
@@ -48,9 +48,17 @@ describe("optional same-note Wiki heading link enhancement", () => {
     const source = "# Heading\nSee [[#Heading]] and [[#Heading|chapter]].";
     expect(references(source, false)).toEqual([]);
     const enabled = references(source, true);
-    expect(enabled.map((item) => item.label)).toEqual(["1 Heading", "1 chapter"]);
+    expect(enabled.map((item) => item.label)).toEqual(["1", "1"]);
     expect(enabled.map((item) => item.targetLine)).toEqual([0, 0]);
+    // The original link text and alias are owned by Obsidian; only numbers
+    // are projected as non-interactive widgets before the native links.
+    expect(enabled.every((item) => item.from === item.to)).toBe(true);
     expect(references(source, true, false)).toEqual([]);
+  });
+
+  it("never attaches a second number to an already-numbered native link label", () => {
+    const source = "# 1. Stored\nSee [[#1. Stored]].";
+    expect(references(source, true)).toEqual([]);
   });
 
   it("leaves other-file, embedded, block, caption and ambiguous links native", () => {
