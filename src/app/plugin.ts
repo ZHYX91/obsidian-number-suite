@@ -234,6 +234,7 @@ export default class NumberSuitePlugin extends Plugin {
     }
     this.ribbonEl?.setAttribute("aria-label", t("panel.ribbon"));
     this.ribbonEl?.setAttribute("title", t("panel.ribbon"));
+    this.nativeOutline?.refresh(); // Update the native Outline map entry label.
   }
 
   private registerCommands(): void {
