@@ -40,7 +40,12 @@ four default to above. Every bound caption is anchored to the carrier block with
 theme-independent gap; changing position never rewrites the file. When the cursor enters a caption
 in Live Preview, its pill disappears and the exact authored `Figure: ... ^id`-style source returns
 at its stored location. Source Mode always shows the authored Markdown. An individual
-cross-reference likewise reveals only its own `@[[...]]` source while it is being edited. Touch and
+cross-reference likewise reveals only its own `@[[...]]` source while it is being edited.
+Click a rendered cross-reference to jump directly; when that link has keyboard focus,
+press **F2** to place the text cursor inside its Markdown source. Moving the
+text cursor into a reference by ordinary keyboard navigation also exposes its
+source. Modifier-assisted selection remains an editing action rather than
+a forced jump. Touch and
 IME editing follow the same local rule: only the active heading, caption, or reference reveals its
 source, while unrelated virtual numbers and pills remain visible.
 
