@@ -136,5 +136,8 @@ The existing Number Suite Document outline is retained until parity and cleanup 
 
 The native Outline header uses the public Obsidian ItemView action for **Open heading mind map**,
 and Current note offers the same action next to the file name. Both resolve the file shown
-by their own pane; the command-palette action continues to work independently. The old
+by their own pane and keep the map on that file when an unrelated editor gets
+focus; the command-palette action continues to follow the active note. The toolbar
+action is independent of the optional private Outline-tree compatibility adapter,
+so a change in the native tree internals does not hide the map shortcut. The old
 Document outline and its tab remain available until native-host acceptance is complete.
