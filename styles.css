@@ -1628,3 +1628,12 @@
 .number-suite-caption-preview code {
   white-space: pre-wrap;
 }
+
+/* Native Wiki link stays under Obsidian's own click/context-menu handling. */
+.number-suite-native-wiki-number {
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre;
+}
