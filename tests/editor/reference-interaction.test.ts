@@ -4,6 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, type DecorationSet } from "@codemirror/view";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NumeralWidget } from "../../src/editor/heading-display-extension";
+import { bindReferenceActivation } from "../../src/editor/reference-interaction";
 
 const SOURCE = "# Target\n\nSee @[[#Target]].\n\nTail";
 const FROM = SOURCE.indexOf("@[[");
@@ -31,7 +32,7 @@ function setup() {
     (range) => range.from <= TO && range.to >= FROM,
   ) ? Decoration.none : Decoration.set([
     Decoration.replace({
-      widget: new NumeralWidget("Target", "reference", "footnote", "", "", 0),
+      widget: new NumeralWidget("Target", "reference", "footnote", "", "F2 to edit", 0, FROM),
       inclusive: false,
     }).range(FROM, TO),
   ]);
@@ -109,6 +110,36 @@ describe("rendered reference activation owns pre-click editor events", () => {
     view.dispatch({ selection: { anchor: SOURCE.length } });
     expect(view.dom.querySelector(".number-suite-reference-pill")).not.toBeNull();
     expect(view.state.doc.toString()).toBe(SOURCE);
+  });
+
+  it("reveals only the authored reference when F2 is pressed on the focused link", () => {
+    const { view, pill } = setup();
+    const element = pill();
+    expect(element.getAttribute("title")).toContain("F2");
+    element.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "F2", bubbles: true, cancelable: true,
+    }));
+    expect(view.state.selection.main.head).toBe(FROM + 3);
+    expect(view.dom.querySelector(".number-suite-reference-pill")).toBeNull();
+    expect(view.state.doc.toString()).toBe(SOURCE);
+  });
+
+  it("does not navigate an accessibility click after a cancelled pointer gesture", () => {
+    const element = document.createElement("span");
+    document.body.append(element);
+    let navigationCount = 0;
+    bindReferenceActivation(element, {
+      sourceToken: () => SOURCE,
+      available: () => true,
+      navigate: () => { navigationCount += 1; },
+    });
+    mouse(element, "mousedown");
+    mouse(element, "mouseleave");
+    mouse(element, "click", { detail: 0 });
+    expect(navigationCount).toBe(0);
+    // A standalone detail=0 accessibility activation is still supported.
+    element.click();
+    expect(navigationCount).toBe(1);
   });
 
   it("does not take over shift-click selection", () => {
