@@ -1631,3 +1631,10 @@
 
 /* Native Outline overlays never rewrite metadata or note contents. */
 .number-suite-native-outline-number { display: inline-block; margin-inline-end: .36em; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Mind-map access in Current note remains visible when the old outline tab retires. */
+.number-suite-note-control-header { position: relative; padding-inline-end: 2.25rem; }
+.number-suite-note-map-action {
+  position: absolute; inset-inline-end: 0; inset-block-start: 0;
+  width: var(--clickable-icon-size); height: var(--clickable-icon-size);
+}
