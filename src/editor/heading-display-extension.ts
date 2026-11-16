@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import { bindReferenceActivation, referenceIgnoresEditorEvent } from "./reference-interaction";
 import {
   Prec,
   StateEffect,
@@ -118,14 +119,10 @@ export class NumeralWidget extends WidgetType {
         view.dispatch({ selection: { anchor }, scrollIntoView: true });
         view.focus();
       };
-      element.addEventListener("click", (event) => {
-        event.preventDefault();
-        navigate();
-      });
-      element.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        navigate();
+      bindReferenceActivation(element, {
+        sourceToken: () => view.state.doc,
+        available: () => element.isConnected && view.dom.contains(element) && !view.composing,
+        navigate,
       });
       return element;
     }
@@ -142,10 +139,9 @@ export class NumeralWidget extends WidgetType {
     );
   }
 
-  override ignoreEvent(): boolean {
-    return this.kind !== "reference"
-      && this.kind !== "note-reference"
-      && this.kind !== "note-definition";
+  override ignoreEvent(event: Event): boolean {
+    if (this.kind === "reference") return referenceIgnoresEditorEvent(event);
+    return this.kind !== "note-reference" && this.kind !== "note-definition";
   }
 }
 
