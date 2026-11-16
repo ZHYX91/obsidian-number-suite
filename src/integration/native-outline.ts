@@ -116,7 +116,6 @@ interface ObservedOutline {
   hasSyntheticEntries: boolean;
   warned: boolean;
   timer: number | null;
-  mapAction: HTMLElement | null;
 }
 function isOutlineRowElement(value: unknown): value is HTMLElement {
   // Popup windows may own a different HTMLElement constructor.
@@ -158,6 +157,8 @@ function pathFor(view: OutlineInternal): string | null {
 /** Scoped, reversible native Outline enhancement. No shared metadata cache writes. */
 export class NativeOutlineEnhancer {
   private observed = new Map<View, ObservedOutline>();
+  // The map entry is independent of the private Outline tree adaptation.
+  private readonly mapActions = new Map<View, HTMLElement>();
   private sources = new Map<string, string>();
   private generations = new Map<string, number>();
   private stopped = false;
@@ -195,13 +196,38 @@ export class NativeOutlineEnhancer {
     for (const view of [...this.observed.keys()]) {
       if (!views.includes(view)) this.remove(view);
     }
+    for (const [view, action] of this.mapActions) {
+      if (!views.includes(view) || !action.isConnected) {
+        action.remove();
+        this.mapActions.delete(view);
+      } else {
+        const label = this.mapLabel();
+        action.setAttribute("aria-label", label);
+        action.setAttribute("title", label);
+      }
+    }
     for (const view of views) {
+      this.ensureMapAction(view);
       if (!this.observed.has(view)) this.attach(view);
       const path = pathFor(view as OutlineInternal);
       if (path != null) {
         this.updatePath(path);
         void this.loadSource(path);
       }
+    }
+  }
+
+  private ensureMapAction(view: View): void {
+    if (!(view instanceof ItemView) || this.mapActions.has(view)) return;
+    try {
+      const action = view.addAction("git-branch", this.mapLabel(), () => {
+        const path = pathFor(view as OutlineInternal);
+        if (path != null) this.openMap(path);
+      });
+      action.classList.add("number-suite-outline-map-action");
+      this.mapActions.set(view, action);
+    } catch {
+      // Keep the native Outline usable even if its header is unavailable.
     }
   }
 
@@ -213,7 +239,7 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null, mapAction: null,
+      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
         const target = event.target;
         // With synthetic headings, the host's section move could mistake a
@@ -265,14 +291,6 @@ export class NativeOutlineEnhancer {
     root.addEventListener("drop", current.onDrop, true);
     current.observer.observe(root, { childList: true, subtree: true, characterData: true });
     this.observed.set(view, current);
-    if (view instanceof ItemView) {
-      // Public ItemView toolbar API; avoids private header DOM mutations.
-      current.mapAction = view.addAction("git-branch", this.mapLabel(), () => {
-        const path = pathFor(native);
-        if (path != null) this.openMap(path);
-      });
-      current.mapAction.addClass("number-suite-outline-map-action");
-    }
   }
 
   private schedule(view: View): void {
@@ -353,7 +371,6 @@ export class NativeOutlineEnhancer {
     if (entry.timer != null) window.clearTimeout(entry.timer);
     entry.root.removeEventListener("dragstart", entry.onDrag, true);
     entry.root.removeEventListener("drop", entry.onDrop, true);
-    entry.mapAction?.remove();
     entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
     entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
     if (entry.view.getHeadings === entry.wrapped) {
@@ -368,6 +385,8 @@ export class NativeOutlineEnhancer {
   stop(): void {
     this.stopped = true;
     for (const view of [...this.observed.keys()]) this.remove(view);
+    for (const action of this.mapActions.values()) action.remove();
+    this.mapActions.clear();
     this.sources.clear();
     this.generations.clear();
   }
