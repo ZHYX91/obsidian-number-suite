@@ -201,6 +201,8 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "settings.references": "Referencias cruzadas dentro de una nota",
   "settings.references.enable": "Mostrar referencias cruzadas en la misma nota",
   "settings.references.enable.desc": "Muestra los enlaces @[[#...]] a destinos de esta nota como etiquetas interactivas, con el número de destino cuando exista.",
+  "settings.references.nativeWiki": "Mejorar los enlaces Wiki normales a títulos de la misma nota",
+  "settings.references.nativeWiki.desc": "Desactivado de forma predeterminada. En la vista previa en vivo, muestra el número efectivo antes de los enlaces `[[#Título]]` a títulos únicos de esta nota. No modifica Markdown ni cambia los enlaces a otros archivos o sin resolver.",
   "settings.references.guide.title": "Referencias legibles al escribir y estables cuando hagan falta",
   "settings.references.guide.intro": "Añade @ delante de un enlace a un título o leyenda de esta nota, por ejemplo @[[#Instalación]]. Number Suite lo muestra como una etiqueta que puedes pulsar; los enlaces [[#...]] normales no cambian.",
   "settings.references.guide.heading.title": "Destino: título",

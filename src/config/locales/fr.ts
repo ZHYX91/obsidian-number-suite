@@ -201,6 +201,8 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "settings.references": "Renvois dans la même note",
   "settings.references.enable": "Afficher les renvois dans la même note",
   "settings.references.enable.desc": "Affichez les renvois @[[#...]] vers des cibles de cette note sous forme d’étiquettes cliquables, avec le numéro de cible s’il existe.",
+  "settings.references.nativeWiki": "Améliorer les liens Wiki ordinaires vers les titres de la même note",
+  "settings.references.nativeWiki.desc": "Désactivé par défaut. En aperçu en direct, affiche le numéro effectif devant les liens `[[#Titre]]` vers un titre unique de cette note. Ne modifie pas le Markdown et laisse intacts les liens vers d’autres fichiers ou non résolus.",
   "settings.references.guide.title": "Des renvois lisibles à écrire, des renvois stables si nécessaire",
   "settings.references.guide.intro": "Ajoutez @ devant un lien vers un titre ou une légende dans cette note, par exemple @[[#Installation]]. Number Suite l’affiche comme une étiquette cliquable ; les liens [[#...]] ordinaires ne changent pas.",
   "settings.references.guide.heading.title": "Cible : titre",
