@@ -3,7 +3,7 @@ import {
   NoteSaveCoordinator,
   type NoteSaveState,
 } from "../application/note-save-coordinator";
-import { App, Notice, Setting, type ButtonComponent, type TFile } from "obsidian";
+import { App, Notice, Setting, setIcon, type ButtonComponent, type TFile } from "obsidian";
 
 import {
   headingLevels,
@@ -29,6 +29,7 @@ export interface NoteControlActions {
   readonly runCurrent: (operation: TransformOperation) => void;
   readonly openBatch: () => void;
   readonly openGlobalSettings: () => void;
+  readonly openHeadingMap?: () => void;
 }
 
 function stateLabel(value: TriState, t: Translate): string {
@@ -191,6 +192,15 @@ export class NoteControlPane {
     const header = this.contentEl.createDiv({ cls: "number-suite-note-control-header" });
     header.createEl("h3", { text: file.basename });
     header.createEl("p", { text: file.path });
+    if (this.actions.openHeadingMap != null) {
+      const label = this.t("command.headingMap.open");
+      const mapButton = header.createEl("button", {
+        cls: "clickable-icon number-suite-note-map-action",
+        attr: { "aria-label": label, title: label, type: "button" },
+      });
+      setIcon(mapButton, "git-branch");
+      mapButton.addEventListener("click", () => this.actions.openHeadingMap?.());
+    }
 
     if (this.frontmatter == null) {
       const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
