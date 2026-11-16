@@ -1628,3 +1628,6 @@
 .number-suite-caption-preview code {
   white-space: pre-wrap;
 }
+
+/* Native Outline overlays never rewrite metadata or note contents. */
+.number-suite-native-outline-number { display: inline-block; margin-inline-end: .36em; color: var(--text-muted); font-variant-numeric: tabular-nums; }

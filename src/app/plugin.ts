@@ -55,6 +55,7 @@ import {
 } from "../integration/semantic-export";
 import { CaptionCarrierMenuBridge } from "../integration/structural-table-caption-menu";
 import { SemanticTooltipController } from "../ui/semantic-tooltip";
+import { NativeOutlineEnhancer } from "../integration/native-outline";
 import { clearNoteControlSessions } from "../ui/note-control-modal";
 import { registerReadingViewRefresh } from "../reading/refresh-reading-views";
 
@@ -67,6 +68,7 @@ export default class NumberSuitePlugin extends Plugin {
   private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
   private tooltipController: SemanticTooltipController | null = null;
+  private nativeOutline: NativeOutlineEnhancer | null = null;
   private readonly localizedCommands: Array<Readonly<{
     command: Command;
     key: Parameters<Translate>[0];
@@ -124,6 +126,8 @@ export default class NumberSuitePlugin extends Plugin {
       getTranslate: () => this.translate(),
     }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
+    this.nativeOutline = new NativeOutlineEnhancer(this, () => this.settings);
+    this.nativeOutline.start();
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
       const contextOffset = this.displayController
         ?.consumeContextMenuOffset(editor, info.file?.path ?? null);
@@ -353,6 +357,7 @@ export default class NumberSuitePlugin extends Plugin {
 
   private refreshDisplay(): void {
     this.tooltipController?.refresh();
+    this.nativeOutline?.refresh();
     this.readingProcessor?.invalidate();
     this.displayController?.refreshAll();
     this.rerenderReadingViews();

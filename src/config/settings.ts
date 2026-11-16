@@ -37,6 +37,9 @@ export interface NumberSuiteSettings {
   showImageCaptionTooltips: boolean;
   showCrossReferences: boolean;
   enhanceNativeWikiHeadingLinks: boolean;
+  showOutlineNumbers: boolean;
+  showOutlineExtendedHeadings: boolean;
+  showOutlineCaptions: boolean;
   showNoteNumbers: boolean;
   noteDisplayMode: "formatted" | "source";
   selectedSchemeId: string;
@@ -119,6 +122,9 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   showImageCaptionTooltips: true,
   showCrossReferences: true,
   enhanceNativeWikiHeadingLinks: false,
+  showOutlineNumbers: true,
+  showOutlineExtendedHeadings: true,
+  showOutlineCaptions: true,
   showNoteNumbers: true,
   noteDisplayMode: "formatted",
   selectedSchemeId: "hierarchical-h2",
@@ -311,6 +317,9 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     ),
     showCrossReferences: booleanOr(raw.showCrossReferences, DEFAULT_SETTINGS.showCrossReferences),
     enhanceNativeWikiHeadingLinks: booleanOr(raw.enhanceNativeWikiHeadingLinks, DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks),
+    showOutlineNumbers: booleanOr(raw.showOutlineNumbers, DEFAULT_SETTINGS.showOutlineNumbers),
+    showOutlineExtendedHeadings: booleanOr(raw.showOutlineExtendedHeadings, DEFAULT_SETTINGS.showOutlineExtendedHeadings),
+    showOutlineCaptions: booleanOr(raw.showOutlineCaptions, DEFAULT_SETTINGS.showOutlineCaptions),
     showNoteNumbers: booleanOr(raw.showNoteNumbers, DEFAULT_SETTINGS.showNoteNumbers),
     noteDisplayMode: oneOf(
       raw.noteDisplayMode,
