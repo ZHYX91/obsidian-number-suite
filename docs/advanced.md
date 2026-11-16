@@ -133,3 +133,8 @@ into Obsidian's vault-wide cache; when the expected private native view API is m
 it retains the unmodified Outline. Synthetic entries are navigation-only: do not drag
 them to rewrite content. Host drag/selection and Android acceptance are still pending.
 The existing Number Suite Document outline is retained until parity and cleanup are verified.
+
+The native Outline header uses the public Obsidian ItemView action for **Open heading mind map**,
+and Current note offers the same action next to the file name. Both resolve the file shown
+by their own pane; the command-palette action continues to work independently. The old
+Document outline and its tab remain available until native-host acceptance is complete.
