@@ -1,3 +1,5 @@
+import { protectReferenceActivation } from "./reference-activation";
+
 export const VIRTUAL_NUMERAL_CLASS = "number-suite-virtual";
 export const VIRTUAL_NUMERAL_SELECTOR = `.${VIRTUAL_NUMERAL_CLASS}`;
 
@@ -43,6 +45,7 @@ export function createReferencePillElement(
   element.setAttribute("role", "link");
   element.setAttribute("tabindex", "0");
   element.setAttribute("contenteditable", "false");
+  protectReferenceActivation(element);
   return element;
 }
 
