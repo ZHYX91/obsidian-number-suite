@@ -104,6 +104,7 @@ interface ObservedOutline {
   wrapped: () => HeadingCache[];
   observer: MutationObserver;
   onDrag: (event: DragEvent) => void;
+  onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
   timer: number | null;
 }
@@ -152,6 +153,7 @@ export class NativeOutlineEnhancer {
     this.plugin.registerEvent(app.workspace.on("file-open", () => this.refresh()));
     this.plugin.registerEvent(app.workspace.on("editor-change", (editor, info) => {
       if (info.file?.path == null) return;
+      this.generations.set(info.file.path, (this.generations.get(info.file.path) ?? 0) + 1);
       this.sources.set(info.file.path, editor.getValue());
       this.updatePath(info.file.path);
     }));
@@ -194,6 +196,13 @@ export class NativeOutlineEnhancer {
         const target = event.target;
         if (target instanceof Element && target.closest("." + EXTRA_CLASS)) event.preventDefault();
       },
+      onDrop: (event) => {
+        const target = event.target;
+        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      },
     };
     current.wrapped = () => {
       const headings = original.call(native);
@@ -207,6 +216,7 @@ export class NativeOutlineEnhancer {
     };
     try { native.getHeadings = current.wrapped; } catch { return; }
     root.addEventListener("dragstart", current.onDrag, true);
+    root.addEventListener("drop", current.onDrop, true);
     current.observer.observe(root, { childList: true, subtree: true, characterData: true });
     this.observed.set(view, current);
   }
@@ -227,10 +237,20 @@ export class NativeOutlineEnhancer {
       entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
       entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
       if (rows == null) return;
+      const path = pathFor(entry.view);
+      const source = path == null ? null : this.sources.get(path);
+      const byLine = new Map(
+        (source == null ? [] : parseAtxHeadings(source)).map((heading) => [heading.line, heading] as const),
+      );
       for (const { item, element } of rows) {
         if (item.__numberSuiteExtra != null) element.closest(".tree-item")?.classList.add(EXTRA_CLASS);
-        const label = entry.labels.get(item.position.start.line);
+        const line = item.position.start.line;
+        const label = entry.labels.get(line);
         if (label == null || item.__numberSuiteExtra === "caption") continue;
+        const heading = byLine.get(line);
+        if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) {
+          continue; // Source and core row can update out of order.
+        }
         const span = element.ownerDocument.createElement("span");
         span.className = NUMBER_CLASS;
         span.setAttribute("aria-hidden", "true");
@@ -278,6 +298,7 @@ export class NativeOutlineEnhancer {
     entry.observer.disconnect();
     if (entry.timer != null) window.clearTimeout(entry.timer);
     entry.root.removeEventListener("dragstart", entry.onDrag, true);
+    entry.root.removeEventListener("drop", entry.onDrop, true);
     entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
     entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
     if (entry.view.getHeadings === entry.wrapped) {
