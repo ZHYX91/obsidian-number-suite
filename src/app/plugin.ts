@@ -119,7 +119,7 @@ export default class NumberSuitePlugin extends Plugin {
       runCurrent: (operation, path) => this.runCurrent(operation, path),
       openBatch: () => this.batchController?.open(this.translate()),
       openGlobalSettings: () => this.openGlobalSettings(),
-      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf),
+      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf, true),
     }));
     this.registerView(NUMBER_SUITE_HEADING_MAP_VIEW, (leaf) => new NumberSuiteHeadingMapView(leaf, {
       getSettings: () => this.settings,
@@ -128,7 +128,7 @@ export default class NumberSuitePlugin extends Plugin {
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
     this.nativeOutline = new NativeOutlineEnhancer(
       this, () => this.settings,
-      (path) => void this.openHeadingMap(path),
+      (path) => void this.openHeadingMap(path, null, true),
       () => this.translate()("command.headingMap.open"),
     );
     this.nativeOutline.start();
@@ -333,7 +333,11 @@ export default class NumberSuitePlugin extends Plugin {
     await this.app.workspace.revealLeaf(leaf);
   }
 
-  private async openHeadingMap(path?: string, sourceLeaf: WorkspaceLeaf | null = null): Promise<void> {
+  private async openHeadingMap(
+    path?: string,
+    sourceLeaf: WorkspaceLeaf | null = null,
+    pinToEntry = false,
+  ): Promise<void> {
     const matchingLeaf = path == null ? null
       : this.app.workspace.getLeavesOfType("markdown").find((leaf) => (
         leaf.view instanceof MarkdownView && leaf.view.file?.path === path
@@ -355,7 +359,7 @@ export default class NumberSuitePlugin extends Plugin {
       await leaf.setViewState({ type: NUMBER_SUITE_HEADING_MAP_VIEW, active: true });
     }
     await this.app.workspace.revealLeaf(leaf);
-    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
+    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin, pinToEntry);
   }
 
   private openGlobalSettings(): void {
