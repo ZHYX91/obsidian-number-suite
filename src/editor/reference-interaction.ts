@@ -8,6 +8,8 @@ export interface ReferenceActivationOptions {
   /** Refuse detached widgets and navigation during IME composition. */
   available: () => boolean;
   navigate: () => void;
+  /** Keyboard editing alternative to an ordinary click's navigation. */
+  editSource?: () => void;
 }
 
 interface Press {
@@ -34,14 +36,17 @@ function primary(event: MouseEvent): boolean {
 export function referenceIgnoresEditorEvent(event: Event): boolean {
   if (event.type === "keydown") {
     const key = event as KeyboardEvent;
-    return !key.isComposing && !modified(event) && (key.key === "Enter" || key.key === " ");
+    return !key.isComposing && !modified(event)
+      && (key.key === "Enter" || key.key === " " || key.key === "F2");
   }
   if (event.type === "mousedown" || event.type === "mouseup" || event.type === "click") {
     return primary(event as MouseEvent);
   }
-  if (event.type.startsWith("pointer") || event.type.startsWith("touch")) {
-    return !modified(event);
+  if (event.type.startsWith("pointer")) {
+    const pointer = event as PointerEvent;
+    return pointer.isPrimary && pointer.button === 0 && !modified(event);
   }
+  if (event.type.startsWith("touch")) return !modified(event);
   return false;
 }
 
@@ -122,18 +127,23 @@ export function bindReferenceActivation(
     event.preventDefault();
     event.stopPropagation();
     if (!options.available()) return;
-    if (event.detail !== 0 && (
-      current == null || !current.released || current.cancelled
-      || current.source !== options.sourceToken()
-    )) return;
+    // An assistive-technology click may have detail=0 and no preceding
+    // pointer press. If there *was* a press, its cancellation and identity
+    // guards must still apply even when the final click has detail=0.
+    if (current != null && (current.cancelled || current.source !== options.sourceToken())) return;
+    if (event.detail !== 0 && (current == null || !current.released)) return;
     options.navigate();
   });
   element.addEventListener("keydown", (event) => {
-    if (event.isComposing || modified(event) || (event.key !== "Enter" && event.key !== " ")) return;
+    const activate = event.key === "Enter" || event.key === " ";
+    const edit = event.key === "F2" && options.editSource != null;
+    if (event.isComposing || modified(event) || (!activate && !edit)) return;
     if (event.defaultPrevented) return;
     event.preventDefault();
     event.stopPropagation();
     press = null;
-    if (!event.repeat && options.available()) options.navigate();
+    if (event.repeat || !options.available()) return;
+    if (edit) options.editSource?.();
+    else options.navigate();
   });
 }
