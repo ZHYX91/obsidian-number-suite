@@ -347,7 +347,7 @@ export function createSemanticDisplayPlan(
       const suffix = originalLabel.startsWith(number)
         ? originalLabel.slice(number.length)
         : null;
-      if (suffix != null && (suffix === "" || /^[\\s.,:、)）]/u.test(suffix))) continue;
+      if (suffix != null && (suffix === "" || /^[\s.,:、)）]/u.test(suffix))) continue;
       decorations.push({
         kind: "native-link-number",
         from: reference.from,
