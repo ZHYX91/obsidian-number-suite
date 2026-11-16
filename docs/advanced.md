@@ -138,3 +138,26 @@ The native Outline header uses the public Obsidian ItemView action for **Open he
 and Current note offers the same action next to the file name. Both resolve the file shown
 by their own pane; the command-palette action continues to work independently. The old
 Document outline and its tab remain available until native-host acceptance is complete.
+
+## Heading mind-map structure editing (experimental)
+
+The heading map remains a non-writing browser **until** the user explicitly
+selects **Adjust structure** in its toolbar. In that mode, dragging a heading
+card onto another heading card may reorder complete sections **only if both
+headings are siblings under the same parent and have the same level**.
+The upper/lower insertion indicator (or left/right for top-to-bottom layout)
+shows the destination; dropping elsewhere is a no-op. No cross-parent moves,
+level changes, synthetic nodes or arbitrary canvas positions are supported.
+
+Each accepted edit moves the original source range, including prose, nested
+headings and captions, by one bounded Obsidian editor transaction so the
+editor's native Undo can reverse it. Source content must still match the
+snapshot at drag start, and the note must be open in a matching Markdown editor.
+The tool refuses a conflicting/stale snapshot or a file-only session rather
+than rewriting the file without the editor's undo history. It does not
+rewrite stored heading numbers or retarget other files' links; run Renumber
+separately if needed.
+
+This is a Draft implementation awaiting real desktop/Android Obsidian acceptance.
+The desktop HTML drag gesture is not yet equivalent to an accessible
+keyboard move control or reliable mobile long-press reorder.
