@@ -126,7 +126,11 @@ export default class NumberSuitePlugin extends Plugin {
       getTranslate: () => this.translate(),
     }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
-    this.nativeOutline = new NativeOutlineEnhancer(this, () => this.settings);
+    this.nativeOutline = new NativeOutlineEnhancer(
+      this, () => this.settings,
+      (path) => void this.openHeadingMap(path),
+      () => this.translate()("command.headingMap.open"),
+    );
     this.nativeOutline.start();
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
       const contextOffset = this.displayController
@@ -330,7 +334,13 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private async openHeadingMap(path?: string, sourceLeaf: WorkspaceLeaf | null = null): Promise<void> {
-    const origin = sourceLeaf ?? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null;
+    const matchingLeaf = path == null ? null
+      : this.app.workspace.getLeavesOfType("markdown").find((leaf) => (
+        leaf.view instanceof MarkdownView && leaf.view.file?.path === path
+      )) ?? null;
+    const origin = sourceLeaf ?? matchingLeaf ?? (path == null
+      ? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null
+      : null);
     let file: TFile | null = null;
     if (path != null) {
       const candidate = this.app.vault.getAbstractFileByPath(path);
