@@ -28,6 +28,7 @@ const EXTRA_CLASS = "number-suite-native-outline-extra";
 
 export function createNativeOutlineProjection(
   source: string, native: readonly HeadingCache[], settings: NumberSuiteSettings,
+  captionTypeLabel?: (kind: CaptionKind) => string,
 ): NativeOutlineProjection {
   const original = [...native];
   const numberLabels = new Map<number, string>();
@@ -68,7 +69,8 @@ export function createNativeOutlineProjection(
       if (usedLines.has(caption.line)) continue;
 
       extras.push({
-        heading: (settings.showCaptionNumbers ? caption.label : caption.kind)
+        heading: (captionTypeLabel?.(caption.kind) ?? caption.kind)
+          + (settings.showCaptionNumbers ? " " + caption.number : "")
           + ": " + withoutTrailingBlockId(caption.content),
         // Higher than every supported heading: attached to the preceding
         // section, then popped before any following heading. Captions stay leaves.
@@ -130,7 +132,7 @@ interface ObservedOutline {
   labels: ReadonlyMap<number, string>;
   titles: ReadonlyMap<number, string>;
   nativeDragging: boolean;
-  drag: { path: string; source: string; line: number } | null;
+  drag: { file: TFile; path: string; source: string; line: number } | null;
   preview: SameParentHeadingMove | null;
   cleanupDrag: () => void;
   hasSyntheticEntries: boolean;
@@ -242,17 +244,26 @@ export class NativeOutlineEnhancer {
   }
 
   private ensureMapAction(view: View): void {
-    if (!(view instanceof ItemView) || this.mapActions.has(view)) return;
-    try {
-      const action = view.addAction("git-branch", this.mapLabel(), () => {
-        const path = pathFor(view as unknown as OutlineInternal);
-        if (path != null) this.openMap(path);
-      });
-      action.classList.add("number-suite-outline-map-action");
-      this.mapActions.set(view, action);
-    } catch {
-      // Keep the native Outline usable even if its header is unavailable.
-    }
+    if (this.mapActions.has(view)) return;
+    // Outline hides the generic ItemView header. Use its visible native
+    // navigation toolbar beside search/collapse/expand instead.
+    const toolbar = view.containerEl.querySelector<HTMLElement>(
+      ".nav-header .nav-buttons-container, .nav-buttons-container",
+    ) ?? view.containerEl.querySelector<HTMLElement>(".nav-header");
+    if (toolbar == null) return;
+    const action = toolbar.createEl("button");
+    action.type = "button";
+    action.className = "clickable-icon nav-action-button number-suite-outline-map-action";
+    action.setAttribute("aria-label", this.mapLabel());
+    action.title = this.mapLabel();
+    setIcon(action, "git-branch");
+    action.addEventListener("click", (event) => {
+      event.preventDefault(); event.stopPropagation();
+      const path = pathFor(view as unknown as OutlineInternal);
+      if (path != null) this.openMap(path);
+    });
+    toolbar.append(action);
+    this.mapActions.set(view, action);
   }
 
   private attach(view: View): void {
@@ -272,14 +283,21 @@ export class NativeOutlineEnhancer {
           return;
         }
         if (row?.item.__numberSuiteExtra === "extended") {
-          event.stopImmediatePropagation();
-          if (!this.beginMove(current, row.item)) { event.preventDefault(); return; }
-          event.dataTransfer?.setData("text/plain", row.item.heading);
-          if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+          // The scoped pointer gesture owns extended-section movement. Never
+          // let native HTML5 dragging take over before its pointerup commits.
+          event.preventDefault(); event.stopImmediatePropagation();
         } else {
           // Native H1-H6 drag still belongs to Obsidian. Give its section
           // algorithm the unmodified core heading list for this gesture.
           current.nativeDragging = true;
+          // A host listener can cancel dragstart after this capture listener,
+          // in which case the platform need not emit dragend.
+          queueMicrotask(() => {
+            if (!event.defaultPrevented || !current.nativeDragging || this.stopped) return;
+            current.nativeDragging = false;
+            const path = pathFor(current.view);
+            if (path != null) this.updatePath(path);
+          });
         }
       },
       onDrop: (event) => {
@@ -303,7 +321,10 @@ export class NativeOutlineEnhancer {
         return headings;
       }
       try {
-        const projection = createNativeOutlineProjection(source, headings, this.settings());
+        const projection = createNativeOutlineProjection(source, headings, this.settings(), (kind) => {
+          const key = ("caption.kind." + kind.toLowerCase()) as Parameters<Translate>[0];
+          return this.translate?.(key) ?? kind;
+        });
         current.labels = projection.numberLabels;
         current.titles = projection.titleLabels ?? new Map();
         current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
@@ -328,8 +349,10 @@ export class NativeOutlineEnhancer {
   }
 
   private rowAt(entry: ObservedOutline, target: EventTarget | null): { item: ExtraOutlineHeading; element: HTMLElement } | null {
-    if (!isOutlineRowElement(target)) return null;
-    return outlineRows(entry.view)?.find((row) => row.element === target || row.element.contains(target)) ?? null;
+    if (!isOutlineRowElement(target) || target.closest(".collapse-icon, .tree-item-icon") != null) return null;
+    const self = target.closest(".tree-item-self");
+    return outlineRows(entry.view)?.find((row) => row.element === target || row.element.contains(target)
+      || (self != null && row.element.closest(".tree-item-self") === self)) ?? null;
   }
 
   private beginMove(entry: ObservedOutline, item: ExtraOutlineHeading): boolean {
@@ -338,7 +361,9 @@ export class NativeOutlineEnhancer {
     if (path == null || source == null || item.__numberSuiteExtra !== "extended") return false;
     const heading = parseAtxHeadings(source).find((value) => value.line === item.position.start.line);
     if (heading == null || heading.level !== item.level || heading.content !== item.heading) return false;
-    entry.drag = { path, source, line: heading.line };
+    const file = this.plugin.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) return false;
+    entry.drag = { file, path, source, line: heading.line };
     entry.preview = null;
     return true;
   }
@@ -377,7 +402,7 @@ export class NativeOutlineEnhancer {
     if (this.stopped || drag == null || plan == null || pathFor(entry.view) !== drag.path
       || this.sources.get(drag.path) !== drag.source) return;
     const file = this.plugin.app.vault.getAbstractFileByPath(drag.path);
-    if (!(file instanceof TFile)) return;
+    if (!(file instanceof TFile) || file !== drag.file) return;
     let editors = this.plugin.app.workspace.getLeavesOfType("markdown")
       .map((leaf) => leaf.view)
       .filter((view): view is MarkdownView => view instanceof MarkdownView && view.file === file);
@@ -406,10 +431,11 @@ export class NativeOutlineEnhancer {
   private installMoveGestures(entry: ObservedOutline): () => void {
     const root = entry.root;
     const owner = root.ownerDocument;
-    let pending: { id: number; x: number; y: number; item: ExtraOutlineHeading } | null = null;
+    let pending: { id: number; x: number; y: number; mouse: boolean; item: ExtraOutlineHeading } | null = null;
     let timer: number | null = null;
     const timerWindow = owner.defaultView ?? window;
     let touchId: number | null = null;
+    let suppressClickUntil = 0;
     const cancelTimer = (): void => { if (timer != null) timerWindow.clearTimeout(timer); timer = null; pending = null; };
     const dragover = (event: DragEvent): void => {
       if (entry.drag == null) return;
@@ -425,12 +451,28 @@ export class NativeOutlineEnhancer {
     const contextmenu = (event: Event): void => {
       if (touchId != null || entry.drag != null) { event.preventDefault(); event.stopImmediatePropagation(); }
     };
-    const finish = (): void => { cancelTimer(); touchId = null; this.clearMove(entry); };
+    const finish = (): void => {
+      const restoreNativeProjection = entry.nativeDragging;
+      cancelTimer(); touchId = null; this.clearMove(entry);
+      // The host may have rebuilt its tree from the unprojected list during
+      // drag/drop. Restore synthetic rows even after a canceled native drag.
+      const path = pathFor(entry.view);
+      if (restoreNativeProjection && path != null && !this.stopped) this.updatePath(path);
+    };
     const down = (event: PointerEvent): void => {
-      if (event.pointerType === "mouse" || !event.isPrimary) return;
+      if (!event.isPrimary) { finish(); return; }
+      if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const row = this.rowAt(entry, event.target);
       if (row?.item.__numberSuiteExtra !== "extended") return;
-      pending = { id: event.pointerId, x: event.clientX, y: event.clientY, item: row.item };
+      cancelTimer();
+      const mouse = event.pointerType === "mouse";
+      pending = { id: event.pointerId, x: event.clientX, y: event.clientY, mouse, item: row.item };
+      if (mouse) {
+        // Prevent host mousedown/native drag initiation, preserving the row's
+        // ordinary click navigation when the pointer never crosses the threshold.
+        event.preventDefault(); event.stopImmediatePropagation();
+        return;
+      }
       timer = timerWindow.setTimeout(() => {
         const candidate = pending;
         timer = null; pending = null;
@@ -438,7 +480,12 @@ export class NativeOutlineEnhancer {
       }, 350);
     };
     const move = (event: PointerEvent): void => {
-      if (pending != null && Math.hypot(event.clientX - pending.x, event.clientY - pending.y) > 8) cancelTimer();
+      const candidate = pending;
+      if (candidate != null && candidate.id === event.pointerId
+        && Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) > (candidate.mouse ? 5 : 8)) {
+        cancelTimer();
+        if (candidate.mouse && this.beginMove(entry, candidate.item)) touchId = candidate.id;
+      }
       if (touchId !== event.pointerId) return;
       event.preventDefault(); event.stopImmediatePropagation();
       this.previewMove(entry, owner.elementFromPoint(event.clientX, event.clientY), event.clientY);
@@ -449,10 +496,18 @@ export class NativeOutlineEnhancer {
       event.preventDefault(); event.stopImmediatePropagation();
       this.previewMove(entry, owner.elementFromPoint(event.clientX, event.clientY), event.clientY);
       touchId = null;
+      suppressClickUntil = Date.now() + 500;
       void this.commitMove(entry);
+    };
+    const click = (event: MouseEvent): void => {
+      if (Date.now() > suppressClickUntil) return;
+      suppressClickUntil = 0;
+      event.preventDefault(); event.stopImmediatePropagation();
     };
     owner.addEventListener("touchmove", touchmove, { capture: true, passive: false });
     root.addEventListener("contextmenu", contextmenu, true);
+    root.addEventListener("click", click, true);
+    timerWindow.addEventListener("blur", finish);
     root.addEventListener("dragover", dragover, true);
     owner.addEventListener("dragend", finish, true);
     root.addEventListener("pointerdown", down, true);
@@ -463,6 +518,8 @@ export class NativeOutlineEnhancer {
       finish();
       owner.removeEventListener("touchmove", touchmove, true);
       root.removeEventListener("contextmenu", contextmenu, true);
+      root.removeEventListener("click", click, true);
+      timerWindow.removeEventListener("blur", finish);
       root.removeEventListener("dragover", dragover, true);
       owner.removeEventListener("dragend", finish, true);
       root.removeEventListener("pointerdown", down, true);
@@ -499,7 +556,7 @@ export class NativeOutlineEnhancer {
         treeItem?.classList.toggle(EXTRA_CLASS, item.__numberSuiteExtra != null);
         treeItem?.classList.toggle("number-suite-native-outline-caption", caption != null);
         if (item.__numberSuiteExtra === "extended") {
-          element.draggable = true;
+          element.draggable = false;
           element.classList.add("number-suite-native-outline-extended");
         }
         const line = item.position.start.line;
@@ -522,7 +579,7 @@ export class NativeOutlineEnhancer {
           continue;
         }
         const heading = byLine.get(line);
-        if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) continue;
+        if (heading == null || heading.level !== item.level || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim()) continue;
         const title = entry.titles.get(line);
         const label = entry.labels.get(line);
         if (title == null) continue;

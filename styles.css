@@ -1558,6 +1558,6 @@
 .number-suite-outline-caption-icon svg { width: 1em; height: 1em; }
 .number-suite-outline-caption-label { flex-shrink: 0; color: var(--text-normal); }
 .number-suite-outline-caption-title { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
-.number-suite-native-outline-extended { -webkit-user-drag: element; }
+.number-suite-native-outline-extended { cursor: grab; }
 .number-suite-outline-drop-before { box-shadow: 0 -2px 0 var(--interactive-accent); }
 .number-suite-outline-drop-after { box-shadow: 0 2px 0 var(--interactive-accent); }

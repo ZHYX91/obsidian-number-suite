@@ -117,6 +117,46 @@ describe("heading map touch targets", () => {
   });
 });
 
+describe("heading map write identity", () => {
+  const source = "# Root\n## A\nbody\n## B\n";
+  function writeHarness() {
+    const view = makeView();
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Same.md", basename: "Same", extension: "md",
+    });
+    const replacement = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Other.md", basename: "Other", extension: "md",
+    });
+    const transaction = vi.fn();
+    const markdown = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
+      file, editor: { getValue: () => source, offsetToPos: (ch: number) => ({ line: 0, ch }), transaction },
+    });
+    const leaf = { view: markdown } as unknown as WorkspaceLeaf;
+    let registered = file;
+    const app = {
+      workspace: { iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => visit(leaf), getActiveViewOfType: () => markdown },
+      vault: { getAbstractFileByPath: () => registered },
+    };
+    Object.assign(view, { app, currentFile: file, sourceLeaf: leaf, lastSource: source, rearranging: true });
+    const drag = { id: "a", line: 1, source, path: file.path, file };
+    return { view, markdown, file, replacement, drag, transaction, replace: () => { registered = Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path, extension: "md", basename: "Same" }); } };
+  }
+  it("rejects a same-content editor that changed to another file during source resolution", async () => {
+    const h = writeHarness();
+    const pending = h.view.applyMove(h.drag, 3, "after");
+    h.markdown.file = h.replacement;
+    await pending;
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+  it("rejects a same-path replacement file while a move awaits its bound source", async () => {
+    const h = writeHarness();
+    const pending = h.view.applyMove(h.drag, 3, "after");
+    h.replace();
+    await pending;
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+});
+
 describe("heading map interactions", () => {
   it("offers keyboard and touch reorder buttons only in edit mode", async () => {
     const view = makeView();

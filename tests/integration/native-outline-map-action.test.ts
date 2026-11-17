@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { installDomFixture } from "../ui/dom-fixture";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
@@ -8,6 +9,11 @@ vi.mock("obsidian", async (original) => ({
     readonly contentEl = document.createElement("div");
     readonly containerEl = document.createElement("div");
     readonly actions = document.createElement("div");
+    constructor() {
+      this.actions.className = "nav-buttons-container";
+      const header = document.createElement("div"); header.className = "nav-header";
+      header.append(this.actions); this.containerEl.append(header);
+    }
     getState(): Record<string, string> { return { file: "Pinned.md" }; }
     addAction(_icon: string, label: string, callback: () => void): HTMLElement {
       const button = document.createElement("button");
@@ -25,6 +31,7 @@ import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NativeOutlineEnhancer } from "../../src/integration/native-outline";
 
 beforeEach(() => {
+  installDomFixture();
   document.body.replaceChildren();
 });
 
@@ -32,7 +39,7 @@ describe("native Outline mind-map entry", () => {
   it("works without a private getHeadings method and cleans up on unload", () => {
     const view = new (ItemView as unknown as new () => ItemView)();
     const actions = (view as unknown as { actions: HTMLElement }).actions;
-    document.body.append(actions);
+    document.body.append(view.containerEl);
     const opened: string[] = [];
     const plugin = {
       app: {
@@ -57,7 +64,7 @@ describe("native Outline mind-map entry", () => {
   it("refreshes an existing action label rather than creating duplicates", () => {
     const view = new (ItemView as unknown as new () => ItemView)();
     const actions = (view as unknown as { actions: HTMLElement }).actions;
-    document.body.append(actions);
+    document.body.append(view.containerEl);
     let label = "Open map";
     const enhancer = new NativeOutlineEnhancer({
       app: {

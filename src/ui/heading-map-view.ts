@@ -92,7 +92,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private lastSource: string | null = null;
   private rearranging = false;
   private moving = false;
-  private dragSource: Readonly<{ id: string; line: number; source: string; path: string }> | null = null;
+  private dragSource: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }> | null = null;
   private rearrangeButton: HTMLButtonElement | null = null;
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
@@ -698,7 +698,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
             return;
           }
           this.dragSource = { id: node.id, line: node.line, source: this.lastSource,
-            path: this.currentFile.path };
+            path: this.currentFile.path, file: this.currentFile };
           event.dataTransfer?.setData("text/plain", "number-suite-heading");
           if (event.dataTransfer != null) event.dataTransfer.effectAllowed = "move";
         });
@@ -761,13 +761,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
           button.addEventListener("click", (event) => {
             event.stopPropagation();
             const source = this.lastSource;
-            const path = this.currentFile?.path;
+            const file = this.currentFile;
+            const path = file?.path;
             const sibling = adjacentHeadingMapSibling(this.roots, node.id, direction);
-            if (!this.rearranging || this.moving || source == null || path == null || sibling == null
+            if (!this.rearranging || this.moving || source == null || file == null || path == null || sibling == null
               || planSameParentHeadingMove(source, node.line, sibling.line,
                 direction === "up" ? "before" : "after") == null) return;
             this.setSelection(node.id);
-            void this.applyMove({ id: node.id, line: node.line, source, path }, sibling.line,
+            void this.applyMove({ id: node.id, line: node.line, source, path, file }, sibling.line,
               direction === "up" ? "before" : "after");
           });
         }
@@ -841,25 +842,29 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private async applyMove(
-    drag: Readonly<{ id: string; line: number; source: string; path: string }>,
+    drag: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }>,
     targetLine: number,
     placement: "before" | "after",
   ): Promise<void> {
     if (this.moving || !this.rearranging || this.lastSource !== drag.source
-      || this.currentFile?.path !== drag.path) return;
+      || this.currentFile !== drag.file || this.currentFile.path !== drag.path
+      || this.app.vault.getAbstractFileByPath(drag.path) !== drag.file) return;
     this.moving = true;
     try {
       const file = this.currentFile;
       if (file == null) return;
       const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
-      if (this.currentFile?.path !== drag.path || this.lastSource !== drag.source
-        || bound.source !== drag.source || !(bound.leaf?.view instanceof MarkdownView)) {
+      if (this.currentFile !== file || file !== drag.file || file.path !== drag.path
+        || this.app.vault.getAbstractFileByPath(drag.path) !== file
+        || this.lastSource !== drag.source || bound.source !== drag.source
+        || !(bound.leaf?.view instanceof MarkdownView) || bound.leaf.view.file !== file) {
         new Notice(this.actions.getTranslate()("headingMap.rearrange.stale"));
         return;
       }
       const editor = bound.leaf.view.editor;
       const current = editor.getValue();
-      if (current !== drag.source) {
+      if (current !== drag.source || bound.leaf.view.file !== file
+        || this.currentFile !== file || this.app.vault.getAbstractFileByPath(drag.path) !== file) {
         new Notice(this.actions.getTranslate()("headingMap.rearrange.stale"));
         return;
       }

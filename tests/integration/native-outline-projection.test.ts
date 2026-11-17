@@ -48,6 +48,14 @@ describe("native Outline projection", () => {
     expect(result.numberLabels.get(0)).toBeTruthy();
   });
 
+  it("localizes the actual host heading field used by native filtering", () => {
+    const result = createNativeOutlineProjection(source, headings, DEFAULT_SETTINGS,
+      (kind) => ({ Figure: "图", Table: "表", Equation: "公式", Code: "代码" }[kind]));
+    expect(result.headings.filter((item) => item.__numberSuiteExtra === "caption")
+      .map((item) => item.heading)).toEqual(["图 1: Diagram", "表 1: Result"]);
+    expect(result.headings[0]).toBe(headings[0]);
+  });
+
   it("keeps all switches independent, including explicit false", () => {
     const off = createNativeOutlineProjection(source, headings, {
       ...DEFAULT_SETTINGS,

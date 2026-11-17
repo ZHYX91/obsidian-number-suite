@@ -24,7 +24,7 @@ import { NativeOutlineEnhancer, type ExtraOutlineHeading } from "../../src/integ
 afterEach(() => { vi.useRealTimers(); document.body.replaceChildren(); });
 
 const source = "# Chapter\n####### First\nbody A\nFigure: Picture\n######## Child\nchild body\n####### Second\nbody B\n";
-function setup() {
+function setup(configured = DEFAULT_SETTINGS) {
   Object.defineProperty(document, "win", { configurable: true, value: {
     createSpan: () => document.createElement("span"),
   } });
@@ -32,6 +32,9 @@ function setup() {
   document.body.append(view.contentEl);
   const file = new (TFile as unknown as new (path: string) => TFile)("Note.md");
   let buffer = source;
+  let registeredFile = file;
+  const requestUpdate = vi.fn();
+  Object.assign(view, { requestUpdate });
   const transaction = vi.fn((request: { changes: Array<{ from: { ch: number }; to: { ch: number }; text: string }> }) => {
     const change = request.changes[0]!;
     buffer = buffer.slice(0, change.from.ch) + change.text + buffer.slice(change.to.ch);
@@ -40,9 +43,9 @@ function setup() {
   const markdown = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, { file, editor });
   const plugin = { app: {
     workspace: { getLeavesOfType: (type: string) => [{ view: type === "outline" ? view : markdown }] },
-    vault: { getAbstractFileByPath: () => file },
+    vault: { getAbstractFileByPath: () => registeredFile },
   } };
-  const enhancer = new NativeOutlineEnhancer(plugin as never, () => DEFAULT_SETTINGS, undefined, undefined, createTranslator("zh"));
+  const enhancer = new NativeOutlineEnhancer(plugin as never, () => configured, undefined, undefined, createTranslator("zh"));
   enhancer.refresh();
   const runtime = enhancer as unknown as {
     sources: Map<string, string>; observed: Map<ItemView, unknown>; decorate(entry: unknown): void;
@@ -60,15 +63,30 @@ function setup() {
   Object.assign(view, { tree: { root: { vChildren: { _children: rows } } } });
   runtime.decorate(runtime.observed.get(view));
   const row = (line: number): HTMLElement => rows.find((value) => value.heading.position.start.line === line)!.innerEl;
-  return { enhancer, runtime, view, row, headings, transaction, editor, setBuffer: (value: string) => { buffer = value; } };
+  return { enhancer, runtime, view, row, headings, transaction, editor, requestUpdate,
+    replaceFile: () => { registeredFile = new (TFile as unknown as new (path: string) => TFile)("Note.md"); }, setBuffer: (value: string) => { buffer = value; } };
 }
 function drag(target: HTMLElement, type: string, clientY = 1): Event {
   const event = new Event(type, { bubbles: true, cancelable: true });
+  if (target.classList.contains("number-suite-native-outline-extended")) {
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => target });
+    if (type === "drop") target.dispatchEvent(Object.assign(new Event("pointermove", { bubbles: true, cancelable: true }), {
+      pointerType: "mouse", button: 0, isPrimary: true, pointerId: 7, clientX: 20, clientY,
+    }));
+    const pointerType = type === "dragstart" ? "pointerdown" : type === "drop" ? "pointerup" : "pointermove";
+    Object.assign(event, { pointerType: "mouse", button: 0, isPrimary: true, pointerId: 7,
+      clientX: type === "dragstart" ? 0 : 20, clientY });
+    target.dispatchEvent(Object.assign(new Event(pointerType, { bubbles: true, cancelable: true }), {
+      pointerType: "mouse", button: 0, isPrimary: true, pointerId: 7,
+      clientX: type === "dragstart" ? 0 : 20, clientY,
+    }));
+    return event;
+  }
   Object.assign(event, { clientY }); target.dispatchEvent(event); return event;
 }
 function pointer(target: EventTarget, type: string, x = 0, y = 1): Event {
   const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.assign(event, { pointerType: "touch", isPrimary: true, pointerId: 3, clientX: x, clientY: y });
+  Object.assign(event, { pointerType: "touch", isPrimary: true, button: 0, pointerId: 3, clientX: x, clientY: y });
   target.dispatchEvent(event); return event;
 }
 
@@ -98,8 +116,48 @@ describe("native Outline section gestures", () => {
     const h = setup(); expect(h.headings.length).toBeGreaterThan(1);
     expect(drag(h.row(0), "dragstart").defaultPrevented).toBe(false);
     expect((h.view as unknown as { getHeadings(): HeadingCache[] }).getHeadings()).toHaveLength(1);
+    const updatesBeforeEnd = h.requestUpdate.mock.calls.length;
     document.dispatchEvent(new Event("dragend"));
+    expect(h.requestUpdate.mock.calls.length).toBeGreaterThan(updatesBeforeEnd);
     expect((h.view as unknown as { getHeadings(): HeadingCache[] }).getHeadings().length).toBeGreaterThan(1);
+    h.enhancer.stop();
+  });
+  it("restores projection when a downstream host listener cancels native dragstart", async () => {
+    const h = setup();
+    h.row(0).addEventListener("dragstart", (event) => event.preventDefault());
+    drag(h.row(0), "dragstart");
+    await Promise.resolve();
+    expect((h.view as unknown as { getHeadings(): HeadingCache[] }).getHeadings().length).toBeGreaterThan(1);
+    expect(h.requestUpdate).toHaveBeenCalled(); h.enhancer.stop();
+  });
+  it("rejects replacing the drag source with a new file object at the same path", () => {
+    const h = setup(); drag(h.row(1), "dragstart"); drag(h.row(6), "dragover");
+    h.replaceFile(); drag(h.row(6), "drop");
+    expect(h.transaction).not.toHaveBeenCalled(); h.enhancer.stop();
+  });
+  it("decorates native heading numbers when the host omits the authored block ID", () => {
+    const h = setup({ ...DEFAULT_SETTINGS, showVirtualNumbers: true, selectedSchemeId: "hierarchical" });
+    h.runtime.sources.set("Note.md", source.replace("# Chapter\n", "# Chapter ^chapter\n"));
+    (h.view as unknown as { getHeadings(): HeadingCache[] }).getHeadings();
+    h.runtime.decorate(h.runtime.observed.get(h.view));
+    expect(h.row(0).querySelector(".number-suite-native-outline-number")?.textContent).toBe("1");
+    h.enhancer.stop();
+  });
+  it("uses row padding for pointer movement and leaves collapse controls native", () => {
+    const h = setup();
+    const self = h.row(1).closest<HTMLElement>(".tree-item-self")!;
+    const arrow = self.querySelector<HTMLElement>(".collapse-icon")!;
+    const click = vi.fn(); self.addEventListener("click", click);
+    const down = new Event("pointerdown", { bubbles: true, cancelable: true });
+    Object.assign(down, { pointerType: "mouse", isPrimary: true, button: 0, pointerId: 7, clientX: 0, clientY: 1 });
+    arrow.dispatchEvent(down); expect(down.defaultPrevented).toBe(false);
+    self.dispatchEvent(Object.assign(new Event("pointerdown", { bubbles: true, cancelable: true }), {
+      pointerType: "mouse", isPrimary: true, button: 0, pointerId: 7, clientX: 0, clientY: 1,
+    }));
+    self.dispatchEvent(Object.assign(new Event("pointerup", { bubbles: true, cancelable: true }), { pointerId: 7 }));
+    self.click(); expect(click).toHaveBeenCalledOnce(); expect(h.transaction).not.toHaveBeenCalled();
+    const nativeDrag = new Event("dragstart", { bubbles: true, cancelable: true });
+    h.row(1).dispatchEvent(nativeDrag); expect(nativeDrag.defaultPrevented).toBe(true);
     h.enhancer.stop();
   });
   it("renders localized caption leaves without a number pill or draggable section", () => {
