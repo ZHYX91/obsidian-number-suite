@@ -392,6 +392,8 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "Thu nhỏ",
   "headingMap.fit": "Vừa màn hình",
   "headingMap.rearrange.enable": "Điều chỉnh cấu trúc",
+  "headingMap.rearrange.up": "Di chuyển mục lên trong các mục cùng cấp",
+  "headingMap.rearrange.down": "Di chuyển mục xuống trong các mục cùng cấp",
   "headingMap.rearrange.active": "Kết thúc điều chỉnh",
   "headingMap.rearrange.description": "Kéo tiêu đề tới một tiêu đề cùng cấp, cùng cha để di chuyển cả mục lên trước hoặc ra sau. Chỉ hỗ trợ sắp xếp các mục ngang cấp; thao tác sửa Markdown, có thể hoàn tác và yêu cầu mở ghi chú trong trình soạn thảo.",
   "headingMap.rearrange.stale": "Không thể di chuyển mục. Hãy mở ghi chú trong trình soạn thảo và làm mới. Các thay đổi sau khi bắt đầu kéo vẫn được giữ lại.",

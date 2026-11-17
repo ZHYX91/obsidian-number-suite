@@ -392,6 +392,8 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "Alejar",
   "headingMap.fit": "Ajustar a la vista",
   "headingMap.rearrange.enable": "Ajustar estructura",
+  "headingMap.rearrange.up": "Subir la sección dentro del mismo nivel",
+  "headingMap.rearrange.down": "Bajar la sección dentro del mismo nivel",
   "headingMap.rearrange.active": "Finalizar ajuste",
   "headingMap.rearrange.description": "Arrastra un encabezado sobre otro del mismo nivel y padre para mover toda su sección antes o después. Solo se permite ordenar elementos hermanos; modifica Markdown, se puede deshacer y requiere abrir la nota en el editor.",
   "headingMap.rearrange.stale": "No se pudo mover la sección. Abre la nota en el editor y actualiza. Se han conservado los cambios realizados desde el inicio del arrastre.",

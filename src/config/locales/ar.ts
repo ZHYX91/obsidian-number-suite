@@ -392,6 +392,8 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "تصغير",
   "headingMap.fit": "ملاءمة العرض",
   "headingMap.rearrange.enable": "تعديل البنية",
+  "headingMap.rearrange.up": "نقل القسم للأعلى بين العناوين الشقيقة",
+  "headingMap.rearrange.down": "نقل القسم للأسفل بين العناوين الشقيقة",
   "headingMap.rearrange.active": "إنهاء التعديل",
   "headingMap.rearrange.description": "اسحب عنوانًا إلى عنوان شقيق له ضمن القسم الأب نفسه لنقل القسم كاملًا قبله أو بعده. يدعم إعادة ترتيب الأشقاء فقط، ويعدّل Markdown مع إمكانية التراجع. يجب فتح الملاحظة في المحرر.",
   "headingMap.rearrange.stale": "تعذر نقل القسم. افتح الملاحظة في المحرر وحدّث العرض. تم الاحتفاظ بالتغييرات التي حدثت بعد بدء السحب.",

@@ -392,6 +392,8 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "縮小",
   "headingMap.fit": "画面に合わせる",
   "headingMap.rearrange.enable": "構造を調整",
+  "headingMap.rearrange.up": "同じ階層内で上に移動",
+  "headingMap.rearrange.down": "同じ階層内で下に移動",
   "headingMap.rearrange.active": "調整を終了",
   "headingMap.rearrange.description": "見出しを同じ親に属する兄弟見出しへドラッグすると、節全体を前後に移動します。同一階層の並べ替えのみ可能で、Markdown が変更されます。元に戻せます。対象ノートをエディターで開いてください。",
   "headingMap.rearrange.stale": "節を移動できませんでした。ノートをエディターで開き、更新してください。ドラッグ開始後の変更は保持されました。",

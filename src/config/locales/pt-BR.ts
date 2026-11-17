@@ -392,6 +392,8 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "Reduzir",
   "headingMap.fit": "Ajustar à tela",
   "headingMap.rearrange.enable": "Ajustar estrutura",
+  "headingMap.rearrange.up": "Mover seção para cima entre títulos irmãos",
+  "headingMap.rearrange.down": "Mover seção para baixo entre títulos irmãos",
   "headingMap.rearrange.active": "Concluir ajuste",
   "headingMap.rearrange.description": "Arraste um título sobre outro do mesmo nível e pai para mover a seção inteira antes ou depois dele. Só é possível reordenar títulos irmãos. A ação altera o Markdown, permite desfazer e exige a nota aberta no editor.",
   "headingMap.rearrange.stale": "Não foi possível mover a seção. Abra a nota no editor e atualize a visualização. As alterações feitas após o início do arrasto foram preservadas.",
