@@ -13,6 +13,28 @@
   },
   "scenarios": [
     {
+      "id": "sidebar-preview-and-map-feedback",
+      "title": "Compact current-note controls, bound sidebar preview and map drop feedback",
+      "surfaces": [
+        "desktop"
+      ],
+      "requiredCapabilities": {
+        "desktop": []
+      },
+      "steps": [
+        "Open Native outline.md in source mode. Open Current note at about 280 px width. Inspect compact file/status header, inherited and overridden virtual/stored/scheme controls, hidden successful-save status, collapsed advanced and write tools, and absence of horizontal overflow. Toggle stored visibility and restore inheritance; verify concealment inversion and preserve source except the explicit Properties changes.",
+        "From Current note invoke Write, Renumber, Remove and Strip markers in turn. Verify each switches the sidebar to an internal preview with fixed filename, counts, complete differences/warnings and Back/Cancel/Apply, rather than appending below controls or opening a Modal. Cancel each without writes. Invoke a current-note command and verify the same sidebar page. Batch still opens its wide Modal.",
+        "Create a write preview for Native outline.md; switch to Reference navigation.md while keeping the original editor open. Verify target filename stays Native outline.md and an applied plan changes only that original file with one native Undo restoring source. Create another preview, edit the target source, then Apply: verify a local stale error, no overwrite, preview retained and Back allows rebuilding. Restore deliberate fixture edits.",
+        "Open the map for Native outline.md, enable the visible Adjust structure mode and inspect its active status and exposed move buttons. Begin a same-parent/same-level drag; capture an actual screenshot while holding above and below a valid peer, including target highlight and before/after insertion marker. Complete one drag and native Undo; compare the complete original source.",
+        "Attempt a cross-parent or cross-level target and inspect the concise local rejection reason without Notice flooding or writes. Cancel a drag and perform an adjacent no-op; neither reports an error. Where feasible test no matching source editor and changed-source rejection; missing observations remain unverified. Leave source restored and record the actual limited observations separately from historical scenarios."
+      ],
+      "expected": [
+        "Compact controls stay readable within a narrow sidebar; inheritance/effective values and inverse stored-visibility mapping are correct; pending/error/conflict saves remain visible.",
+        "All single-note actions use one shared sidebar preview and immutable bounded original-file plans; note switches cannot retarget and stale sources are rejected. Back/Cancel and successful Apply return to Current note. Batch remains separate.",
+        "Adjust structure exposes accessible movement controls and clear before/after insertion feedback. Only same-parent/same-level whole sections move in one native Undo transaction; rejected targets explain locally and cancel/no-op do not misreport errors."
+      ]
+    },
+    {
       "id": "native-outline-enhancement",
       "title": "Native Outline projection, entry migration and reload preserve source and pane ownership",
       "surfaces": [

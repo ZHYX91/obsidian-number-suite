@@ -178,6 +178,27 @@ describe("current-note operations", () => {
     expect(test.transactions).toHaveLength(1);
   });
 
+  it("keeps a command preview bound to its original note after switching the active note", async () => {
+    const test = harness();
+    const other = harness("# Other");
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key);
+    test.setActive(other.view);
+    test.setOpenViews([test.view, other.view]);
+    other.view.file = new (TFile as unknown as new (path: string) => TFile)("other.md");
+    await preview.options?.onConfirm();
+    expect(test.transactions).toHaveLength(1);
+    expect(other.transactions).toHaveLength(0);
+  });
+
+  it("uses the provided sidebar presenter instead of opening a modal", () => {
+    const test = harness();
+    const present = vi.fn();
+    runCurrentNoteOperation(test.app, WRITE_SETTINGS, "write", (key) => key, undefined, undefined, present);
+    expect(present).toHaveBeenCalledOnce();
+    expect(present.mock.calls[0]?.[0].documents[0].path).toBe("note.md");
+    expect(preview.options).toBeNull();
+  });
+
   it("refuses a sidebar write when the same note has multiple editor views", () => {
     const test = harness();
     const FileConstructor = TFile as unknown as new (path: string) => TFile;

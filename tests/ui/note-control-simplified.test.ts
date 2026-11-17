@@ -69,6 +69,9 @@ describe("simplified current-note controls", () => {
     expect(host.querySelector('[role="table"]')).toBeNull();
     expect(host.querySelector<HTMLDetailsElement>(".number-suite-note-file-actions")?.open).toBe(false);
     expect(host.querySelector(".number-suite-note-control-state")?.textContent).toBe("Following global settings");
+    expect(host.querySelector<HTMLElement>(".number-suite-note-save-status")?.hidden).toBe(true);
+    expect(host.querySelector(".number-suite-note-control-header p")).toBeNull();
+    expect(host.querySelector(".number-suite-note-control-header h3")?.getAttribute("title")).toBe("demo.md");
   });
   it("maps stored-number Show to conceal off and supports multiple explicit level rules", () => {
     const { host, internal } = render();

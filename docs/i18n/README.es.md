@@ -26,6 +26,8 @@ Requiere Obsidian 1.12.7 o posterior en escritorio o Android. El comportamiento 
 
 La guía de la nota actual compara el texto de origen, el objetivo y la acción. Las opciones de cada nota se guardan en Properties; la visualización no reescribe los títulos. La vista previa agrupa cambios y avisos por archivo y muestra sus cantidades. Despliega un archivo y carga más resultados para revisarlos todos. Desactivar el complemento detiene nuevas escrituras de lotes o de Deshacer; una escritura ya iniciada puede terminar. Si no se puede revertir con seguridad, conserva `recovery.json` en la carpeta del complemento y revisa primero las notas.
 
+La nota actual muestra de forma compacta el nombre, el estado automático y tres opciones principales; el guardado en curso y los errores siguen visibles. Las acciones sobre una sola nota pasan a una página de vista previa en la barra lateral, con destino fijo y Volver/Cancelar/Aplicar. Cambiar de nota no cambia el destino; si cambia el texto, hay que crear otra vista previa. Los lotes mantienen un diálogo ancho. El modo de estructura muestra su nombre, botones de movimiento, destino resaltado y líneas de inserción antes/después, con motivos breves para destinos inválidos o fuentes no disponibles.
+
 <!-- section: captions -->
 ## Leyendas y referencias
 

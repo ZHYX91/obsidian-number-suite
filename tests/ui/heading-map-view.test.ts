@@ -40,6 +40,9 @@ type Subject = {
   viewport: HTMLElement;
   needsInitialFit: boolean;
   rearranging: boolean;
+  moveStatusEl: HTMLElement;
+  moveStatusError: boolean;
+  dragSource: unknown;
   applyMove: (...args: unknown[]) => Promise<void>;
   onResize(): void;
   refreshMap(source?: string, path?: string): Promise<void>;
@@ -129,7 +132,7 @@ describe("heading map write identity", () => {
     });
     const transaction = vi.fn();
     const markdown = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
-      file, editor: { getValue: () => source, offsetToPos: (ch: number) => ({ line: 0, ch }), transaction },
+      file, getMode: () => "source", editor: { getValue: () => source, offsetToPos: (ch: number) => ({ line: 0, ch }), transaction },
     });
     const leaf = { view: markdown } as unknown as WorkspaceLeaf;
     let registered = file;
@@ -141,6 +144,29 @@ describe("heading map write identity", () => {
     const drag = { id: "a", line: 1, source, path: file.path, file };
     return { view, markdown, file, replacement, drag, transaction, replace: () => { registered = Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path, extension: "md", basename: "Same" }); } };
   }
+  it("reports missing source editor separately without writing", async () => {
+    const h = writeHarness();
+    h.view.moveStatusEl = document.createElement("div");
+    Object.assign(h.markdown, { getMode: () => "preview" });
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.view.moveStatusEl.textContent).toBe("headingMap.rearrange.noEditor");
+  });
+  it("keeps a changed source refusal visible and performs no transaction", async () => {
+    const h = writeHarness();
+    h.view.moveStatusEl = document.createElement("div");
+    Object.assign(h.markdown.editor, { getValue: () => source + "edit" });
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.view.moveStatusEl.textContent).toBe("headingMap.rearrange.stale");
+  });
+  it("retains one bounded transaction for a valid move", async () => {
+    const h = writeHarness();
+    vi.spyOn(h.view, "scheduleRefresh").mockImplementation(() => undefined);
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).toHaveBeenCalledTimes(1);
+    expect(h.transaction.mock.calls[0]?.[0].changes).toHaveLength(1);
+  });
   it("rejects a same-content editor that changed to another file during source resolution", async () => {
     const h = writeHarness();
     const pending = h.view.applyMove(h.drag, 3, "after");
@@ -158,6 +184,32 @@ describe("heading map write identity", () => {
 });
 
 describe("heading map interactions", () => {
+  it("shows insertion targets, explains invalid drops, and clears cancelled drag feedback", async () => {
+    const view = makeView();
+    view.moveStatusEl = document.createElement("div");
+    await view.refreshMap("# Root\n## A\n### Child\n## B\n## C");
+    view.collapsed.clear();
+    view.rearranging = true;
+    view.render();
+    const a = view.roots[0]!.children[0]!;
+    const b = view.roots[0]!.children[1]!;
+    const child = a.children[0]!;
+    const card = (id: string) => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${id}"]`)!;
+    card(a.id).dispatchEvent(new Event("dragstart"));
+    const over = new MouseEvent("dragover", { clientY: 30, cancelable: true });
+    card(b.id).dispatchEvent(over);
+    expect(over.defaultPrevented).toBe(true);
+    expect(card(b.id).classList.contains("is-drop-after")).toBe(true);
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.after");
+    card(child.id).dispatchEvent(new MouseEvent("dragover", { cancelable: true }));
+    expect(card(child.id).classList.contains("is-drop-invalid")).toBe(true);
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.invalid");
+    card(a.id).dispatchEvent(new Event("dragend"));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.hint");
+    expect(view.moveStatusError).toBe(false);
+    expect(view.sceneHost.querySelector(".is-drop-invalid")).toBeNull();
+  });
+
   it("uses one level capsule with a level tooltip and no child control on heading leaves", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child");

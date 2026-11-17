@@ -10,10 +10,11 @@ describe("preview dismissal", () => {
       app: new App(), operation: "write", documents: [], translate: createTranslator("en"),
       onConfirm: async () => undefined,
     });
-    Object.assign(modal, { applying: true });
+    const pane = { canClose: () => false };
+    Object.assign(modal, { pane });
     modal.close();
     expect(close).not.toHaveBeenCalled();
-    Object.assign(modal, { applying: false });
+    pane.canClose = () => true;
     modal.close();
     expect(close).toHaveBeenCalledTimes(1);
     close.mockRestore();

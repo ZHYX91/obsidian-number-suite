@@ -26,6 +26,8 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 
 Die Anleitung in „Aktuelle Notiz“ vergleicht Quelltext, Ziel und passende Aktion. Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
 
+Aktuelle Notiz zeigt Dateiname, automatischen Status und drei Hauptoptionen kompakt; nur laufendes Speichern und Fehler brauchen eine Statuszeile. Schreiben, Neu nummerieren sowie Nummern- und Markerentfernung einer Notiz wechseln zur Vorschauseite in der Seitenleiste mit festem Ziel und Zurück/Abbrechen/Anwenden. Ein Notizwechsel ändert das Ziel nicht; nach Quelltextänderungen ist eine neue Vorschau nötig. Stapel bleiben in breiten Dialogen. Der Strukturmodus zeigt seinen Namen, Verschiebeschaltflächen, hervorgehobene Ziele und Einfügelinien davor/danach sowie kurze Gründe für ungültige Ziele oder nicht verfügbare Quellen.
+
 <!-- section: captions -->
 ## Beschriftungen und Verweise
 

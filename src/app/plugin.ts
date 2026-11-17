@@ -393,7 +393,15 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private runCurrent(operation: TransformOperation, path?: string): void {
-    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path, this.commandLifecycle.signal);
+    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path, this.commandLifecycle.signal,
+      (options) => { void this.presentCurrentPreview(options); });
+  }
+
+  private async presentCurrentPreview(options: import("../ui/preview-modal").PreviewModalOptions): Promise<void> {
+    await this.openSidebar();
+    if (this.commandLifecycle.signal.aborted) return;
+    const view = this.app.workspace.getLeavesOfType(NUMBER_SUITE_SIDEBAR_VIEW)[0]?.view;
+    if (view instanceof NumberSuiteSidebarView) view.showPreview(options);
   }
 
   private async updateDisplayPreference(mode: DisplayPreferenceAction): Promise<void> {

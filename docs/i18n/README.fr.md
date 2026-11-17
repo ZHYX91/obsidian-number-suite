@@ -26,6 +26,8 @@ Obsidian 1.12.7 ou plus récent est requis, sur ordinateur ou Android. Le foncti
 
 Le guide de la note actuelle compare le texte source, le résultat voulu et l’action. Les choix propres à une note sont enregistrés dans ses Properties ; l’affichage lui-même ne réécrit pas les titres. L’aperçu regroupe les changements et avertissements par fichier, avec leurs nombres. Dépliez un fichier et chargez la suite pour tout examiner. Désactiver le module arrête les nouvelles écritures de traitement par lot et d’annulation ; une écriture déjà lancée peut se terminer. Si le retour en arrière ne peut pas être effectué sans écraser une modification, conservez `recovery.json` dans le dossier du module et vérifiez les notes.
 
+La note active affiche de façon compacte le nom, le statut automatique et trois choix principaux ; les enregistrements en cours et les erreurs restent visibles. Les opérations sur une seule note passent à une page d’aperçu dans la barre latérale, avec une cible fixe et Retour/Annuler/Appliquer. Changer de note ne change pas la cible ; une modification de la source impose un nouvel aperçu. Les lots conservent une boîte de dialogue large. Le mode de structure affiche son nom, les boutons de déplacement, la cible surlignée et les lignes d’insertion avant/après, avec une raison concise si la cible ou la source est indisponible.
+
 <!-- section: captions -->
 ## Légendes et renvois
 

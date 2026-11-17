@@ -138,7 +138,7 @@ General provides a default-on Enhance native Outline switch. Turning it off remo
 
 H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
 
-The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do nothing. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do not write and show a concise local reason; canceled and unchanged moves stay quiet. Adjust structure has a visible mode label, always-visible move controls, highlighted targets and before/after insertion lines. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
 
 `NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from native Outline or Current note
 or command palette. It uses the same bound-pane source preference and exact source-line navigation,
@@ -237,6 +237,8 @@ explicit user action.
 The Reading View DOM ownership maps, caption origins, reversible offsets, and cleanup are isolated in `reading-dom-lifecycle.ts`. The postprocessor still validates source bindings and consumes the shared semantic plan; cleanup never writes Markdown.
 
 Batch settlement uses an App-owned queue keyed by `Symbol.for("number-suite.batch-settlement.v1")`, so a new plugin module cannot read or replace recovery until an earlier owner settles. Disposal checks precede forward file writes and run again inside `Vault.process`; dispatched writes finish, then exact compensation and recovery persistence settle under the same owner. Compensation bypasses the forward-lifecycle guard but retains identity and exact-content checks. A disposed owner emits no new notices.
+
+Single-note commands and sidebar actions share one immutable transform-plan path and the sidebar preview renderer. The internal preview page holds its original TFile, editor and source snapshot independently of active-note changes. Apply revalidates the exact binding and source; stale previews remain visible with an error and must be rebuilt. Cancel or success returns to Current note. Batch previews retain their wide modal and reuse the same itemized preview component.
 
 <!-- section: persistence -->
 ## Persistence

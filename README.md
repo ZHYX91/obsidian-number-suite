@@ -94,7 +94,7 @@ To see heading numbers without rewriting the headings, enable **Show virtual num
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
 
-Current note keeps common display choices compact and advanced rules and file operations collapsed. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
+Current note keeps the filename, automatic status and three main choices compact, with secondary help in tooltips and advanced rules and file operations collapsed. Normal saved status takes no extra space; saving and errors remain visible. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
 
 Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
 
@@ -102,8 +102,7 @@ Concealment has one global recognition rule: either only numbers carrying Number
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
 hide/show/inherit, but cannot silently broaden that recognition rule.
 
-The ribbon directly opens **Current note** in the persistent sidebar, without internal tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. File-changing commands still
-open a separate preview before applying anything. Writing or removing a number changes the heading
+The ribbon directly opens **Current note** in the persistent sidebar, without internal tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. Single-note file-changing commands switch to a preview page inside the sidebar, with a fixed target, counts and Back/Cancel/Apply. Switching notes does not retarget the preview; changed source requires a fresh preview. Cancel or successful Apply returns to Current note. Batch previews remain wide dialogs and scheme editing stays in global settings. Writing or removing a number changes the heading
 text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin
 does not guess and rewrite those links.
 
@@ -119,7 +118,7 @@ the current match count; Enter and Shift+Enter move forward and backward through
 changing structural counts. Drag empty space or scroll to pan, hold Ctrl/Cmd while scrolling to zoom
 around the pointer, use two-finger pinch zoom on touch devices, and use +, -, 0 or the toolbar
 controls for zoom/Fit. Double-click a heading card or press Enter on its body to jump to its exact
-source line. The map normally browses without writing and never counts captions as child headings. Explicit **Adjust structure** mode supports same-parent, same-level whole-section dragging and up/down buttons. Moves require unchanged source and support native Undo/Redo.
+source line. The map normally browses without writing and never counts captions as child headings. Explicit **Adjust structure** mode supports same-parent, same-level whole-section dragging and up/down buttons. The mode has a visible label and move controls; highlighted targets and before/after insertion lines show the drop position. Invalid destinations and unavailable or changed source show concise reasons. Moves require unchanged source and support native Undo/Redo.
 
 General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 

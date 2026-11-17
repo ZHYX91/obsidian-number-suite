@@ -187,8 +187,8 @@ export class NoteControlPane {
     }
     this.contentEl.empty();
     const header = this.contentEl.createDiv({ cls: "number-suite-note-control-header" });
-    header.createEl("h3", { text: file.basename });
-    header.createEl("p", { text: file.path });
+    header.createEl("h3", { text: file.basename, attr: { title: file.path, dir: "auto" } });
+    this.summaryHost = header.createDiv();
     if (this.actions.openHeadingMap != null) {
       const label = this.t("command.headingMap.open");
       const mapButton = header.createEl("button", {
@@ -227,7 +227,6 @@ export class NoteControlPane {
     this.saveStatus.setAttribute("role", "status");
     this.saveStatus.setAttribute("aria-live", "polite");
     this.renderSaveStatus();
-    this.summaryHost = this.contentEl.createDiv();
     this.renderSummary(snapshot, settings, this.summaryHost);
     this.renderOverrides(snapshot, settings);
     this.renderActions();
@@ -271,12 +270,12 @@ export class NoteControlPane {
           void this.applyChange({ kind: "scheme", value: value.length === 0 ? null : value });
         });
       });
-    new Setting(section)
+    const ignoreSetting = new Setting(section)
       .setName(this.t("panel.ignore"))
-      .setDesc(this.t("panel.ignore.desc"))
       .addToggle((toggle) => toggle.setValue(snapshot.ignore).onChange((value) => {
         void this.applyChange({ kind: "ignore", value });
       }));
+    ignoreSetting.settingEl.title = this.t("panel.ignore.desc");
 
     const advanced = section.createEl("details", { cls: "number-suite-note-control-levels" });
     advanced.open = headingLevels().some((level) => (
@@ -349,17 +348,17 @@ export class NoteControlPane {
         }));
     };
     refreshPicker();
-    new Setting(section)
+    const resetSetting = new Setting(advanced)
       .setName(this.t("panel.reset"))
-      .setDesc(this.t("panel.reset.desc"))
       .addButton((button) => {
         this.resetButton = button;
         button.setButtonText(this.t("panel.reset.button"))
           .setDisabled(!snapshot.hasAnyOverride)
           .onClick(() => void this.applyChange({ kind: "reset" }));
       });
+    resetSetting.settingEl.title = this.t("panel.reset.desc");
     if (snapshot.hasLegacy) {
-      new Setting(section)
+      new Setting(advanced)
         .setName(this.t("panel.migrate"))
         .setDesc(this.t("panel.migrate.desc"))
         .addButton((button) => button
@@ -515,6 +514,8 @@ export class NoteControlPane {
     const status = this.saveStatus;
     if (status == null) return;
     status.empty();
+    status.hidden = this.saveState === "saved" && this.numberDrafts.size === 0;
+    status.setAttribute("role", this.saveState === "error" ? "alert" : "status");
     status.createSpan({ text: this.t(`panel.save.${this.saveState === "saved" && this.numberDrafts.size > 0 ? "pending" : this.saveState}`) });
     if (this.saveState === "error") {
       if (this.fieldConflict != null) {

@@ -2,8 +2,8 @@ import { App, MarkdownView, Notice, type Editor, type EditorChange } from "obsid
 
 import type { Translate } from "../config/i18n";
 import type { NumberSuiteSettings } from "../config/settings";
-import type { TransformOperation } from "../core/types";
-import { ChangePreviewModal } from "../ui/preview-modal";
+import type { TransformOperation, TransformPlan } from "../core/types";
+import { ChangePreviewModal, type PreviewModalOptions } from "../ui/preview-modal";
 import { captureSourceBinding } from "./source-binding";
 import { createSourcePlan } from "./transform-options";
 
@@ -14,6 +14,7 @@ export function runCurrentNoteOperation(
   translate: Translate,
   targetPath?: string,
   signal?: AbortSignal,
+  presentPreview?: (options: PreviewModalOptions) => void,
 ): void {
   if (signal?.aborted) return;
   const matchingViews = (): MarkdownView[] => {
@@ -65,9 +66,15 @@ export function runCurrentNoteOperation(
     new Notice(translate("notice.noChanges"));
     return;
   }
-  const plan = result.plan;
+  const freezePlan = (plan: TransformPlan): TransformPlan => Object.freeze({ ...plan,
+    changes: Object.freeze(plan.changes.map((change) => Object.freeze({ ...change }))),
+    warnings: Object.freeze(plan.warnings.map((warning) => Object.freeze({ ...warning }))),
+  });
+  const plan = freezePlan(result.plan);
+  let offeredPlan = plan;
   const path = view.file.path;
-  new ChangePreviewModal({
+  const present = presentPreview ?? ((options: PreviewModalOptions) => new ChangePreviewModal(options).open());
+  present({
     app,
     operation,
     documents: [{ path, plan }],
@@ -78,28 +85,33 @@ export function runCurrentNoteOperation(
       onCleanupScopeChange: (scope: import("../core/types").CleanupScope) => {
         if (signal?.aborted) return [];
         const replanned = createSourcePlan(source, operation, settings, scope);
-        return replanned.status === "ready" && replanned.plan != null
-          ? [{ path, plan: replanned.plan }]
-          : [];
+        if (replanned.status !== "ready" || replanned.plan == null) return [];
+        const scopedPlan = freezePlan(replanned.plan);
+        offeredPlan = scopedPlan;
+        return [{ path, plan: scopedPlan }];
       },
     } : {}),
     onConfirm: async (documents = [{ path, plan }]) => {
       if (signal?.aborted) return;
-      const currentMatches = matchingViews();
+      const currentMatches: MarkdownView[] = [];
+      app.workspace.iterateAllLeaves((leaf) => {
+        if (leaf.view instanceof MarkdownView && leaf.view.file?.path === path) currentMatches.push(leaf.view);
+      });
       if (
         currentMatches.length !== 1
         || currentMatches[0] !== view
         || !binding.isCurrent()
       ) {
         new Notice(translate("notice.stalePreview"));
-        return;
+        return false;
       }
       const selected = documents[0]?.plan;
-      if (selected == null || selected.changes.length === 0) return;
+      if (documents.length !== 1 || documents[0]?.path !== path || selected !== offeredPlan) return false;
+      if (selected.changes.length === 0) return;
       applyEditorPlan(binding.editor, selected.changes);
       new Notice(translate("notice.applied", { count: selected.changes.length }));
     },
-  }).open();
+  });
 }
 
 function applyEditorPlan(

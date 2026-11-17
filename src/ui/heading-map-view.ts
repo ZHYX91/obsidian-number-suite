@@ -1,7 +1,6 @@
 import {
   ItemView,
   MarkdownView,
-  Notice,
   TFile,
   setIcon,
   type WorkspaceLeaf,
@@ -94,6 +93,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private moving = false;
   private dragSource: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }> | null = null;
   private rearrangeButton: HTMLButtonElement | null = null;
+  private moveStatusEl: HTMLElement | null = null;
+  private moveStatusError = false;
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
   private canvas: HTMLElement | null = null;
@@ -200,6 +201,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.zoomInButton = null;
     this.fitButton = null;
     this.rearrangeButton = null;
+    this.moveStatusEl = null;
   }
 
   override onResize(): void {
@@ -251,6 +253,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
         }
       }
     }
+    this.contentEl.classList.toggle("is-adjusting-structure", this.rearranging);
+    if (!this.rearranging || (this.moveStatusEl != null && !this.moveStatusError && this.dragSource == null)) this.setMoveStatus();
     if (this.rearrangeButton != null) {
       this.rearrangeButton.setText(t(this.rearranging
         ? "headingMap.rearrange.active" : "headingMap.rearrange.enable"));
@@ -310,9 +314,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
       if (this.moving) return;
       this.rearranging = !this.rearranging;
       this.dragSource = null;
+      this.setMoveStatus();
       this.updateToolbarLabels();
       this.render();
     });
+    this.moveStatusEl = toolbar.createDiv({ cls: "number-suite-heading-map-move-status", attr: { role: "status", "aria-live": "polite" } });
+    this.setMoveStatus();
     const scope = primary.createDiv({ cls: "number-suite-heading-map-scope" });
     this.documentButton = scope.createEl("button");
     this.documentButton.type = "button";
@@ -704,32 +711,50 @@ export class NumberSuiteHeadingMapView extends ItemView {
             event.preventDefault();
             return;
           }
+          this.moveStatusError = false;
+          this.setMoveStatus();
           this.dragSource = { id: node.id, line: node.line, source: this.lastSource,
             path: this.currentFile.path, file: this.currentFile };
           event.dataTransfer?.setData("text/plain", "number-suite-heading");
           if (event.dataTransfer != null) event.dataTransfer.effectAllowed = "move";
         });
         card.addEventListener("dragover", (event) => this.previewMove(event, node, card));
-        card.addEventListener("dragleave", () => this.clearDropIndicators());
+        card.addEventListener("dragleave", (event) => {
+          const related = event.relatedTarget as Node | null;
+          if (related != null && card.contains(related)) return;
+          this.clearDropIndicators();
+        });
         card.addEventListener("drop", (event) => {
           const drag = this.dragSource;
           const placement = this.dropPlacement(event, card);
-          const valid = drag != null && this.lastSource === drag.source
-            && this.currentFile?.path === drag.path
-            && planSameParentHeadingMove(drag.source, drag.line, node.line, placement) != null;
-          this.dragSource = null;
           this.clearDropIndicators();
-          if (!valid || drag == null) return;
+          if (drag == null) return;
           event.preventDefault();
           event.stopPropagation();
+          const valid = this.validateDrop(drag, node, placement);
+          this.dragSource = null;
+          if (!valid) return;
           void this.applyMove(drag, node.line, placement);
         });
         card.addEventListener("dragend", () => {
+          const cancelled = this.dragSource != null;
           this.dragSource = null;
           this.clearDropIndicators();
+          if (cancelled || !this.moveStatusError) this.setMoveStatus();
         });
       }
 
+      if (this.rearranging && documentRoot) {
+        card.addEventListener("dragover", (event) => this.previewMove(event, node, card));
+        card.addEventListener("drop", (event) => {
+          if (this.dragSource == null) return;
+          event.preventDefault();
+          event.stopPropagation();
+          this.dragSource = null;
+          this.clearDropIndicators();
+          this.setMoveStatus("headingMap.rearrange.invalid", true);
+        });
+      }
       const number = card.createEl("button", { cls: "number-suite-heading-map-number" });
       number.type = "button";
       if (documentRoot) setIcon(number, "file-text");
@@ -828,22 +853,65 @@ export class NumberSuiteHeadingMapView extends ItemView {
       : event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
   }
 
+  private setMoveStatus(key?: Parameters<Translate>[0], error = false, values?: Readonly<Record<string, string | number>>): void {
+    this.moveStatusError = error;
+    const text = !this.rearranging ? "" : this.actions.getTranslate()(key ?? "headingMap.rearrange.hint", values);
+    if (this.moveStatusEl?.textContent !== text) this.moveStatusEl?.setText(text);
+    this.moveStatusEl?.classList.toggle("is-error", error);
+    if (this.moveStatusEl != null) this.moveStatusEl.hidden = !this.rearranging;
+  }
+
   private clearDropIndicators(): void {
-    this.canvas?.querySelectorAll(".is-drop-before, .is-drop-after").forEach((element) => {
-      element.classList.remove("is-drop-before", "is-drop-after");
+    this.canvas?.querySelectorAll(".is-drop-before, .is-drop-after, .is-drop-invalid").forEach((element) => {
+      element.classList.remove("is-drop-before", "is-drop-after", "is-drop-invalid");
     });
+  }
+
+  private validateDrop(
+    drag: NonNullable<NumberSuiteHeadingMapView["dragSource"]>,
+    target: HeadingMapTreeNode,
+    placement: "before" | "after",
+  ): boolean {
+    if (this.lastSource !== drag.source || this.currentFile !== drag.file || this.currentFile.path !== drag.path) {
+      this.setMoveStatus("headingMap.rearrange.stale", true);
+      return false;
+    }
+    const source = findHeadingMapNode(this.roots, drag.id);
+    const parentOf = (id: string, nodes: readonly HeadingMapNode[], parent = ""): string | null => {
+      for (const node of nodes) {
+        if (node.id === id) return parent;
+        const found = parentOf(id, node.children, node.id);
+        if (found != null) return found;
+      }
+      return null;
+    };
+    if (source == null || target.id === source.id || source.level !== target.level
+      || parentOf(source.id, this.roots) !== parentOf(target.id, this.roots)) {
+      this.setMoveStatus("headingMap.rearrange.invalid", true);
+      return false;
+    }
+    if (planSameParentHeadingMove(drag.source, drag.line, target.line, placement) == null) {
+      this.setMoveStatus(); // Adjacent no-op is a valid location, not a failure.
+      return false;
+    }
+    return true;
   }
 
   private previewMove(event: DragEvent, target: HeadingMapTreeNode, card: HTMLElement): void {
     const drag = this.dragSource;
     this.clearDropIndicators();
-    if (drag == null || this.moving || this.lastSource !== drag.source
-      || this.currentFile?.path !== drag.path || target.id === HEADING_MAP_DOCUMENT_ID) return;
+    if (drag == null || this.moving) return;
+    event.preventDefault(); // Receive invalid drops too, to explain the refusal locally.
     const placement = this.dropPlacement(event, card);
-    if (planSameParentHeadingMove(drag.source, drag.line, target.line, placement) == null) return;
-    event.preventDefault();
+    if (!this.validateDrop(drag, target, placement)) {
+      if (event.dataTransfer != null) event.dataTransfer.dropEffect = "none";
+      if (this.moveStatusError) card.classList.add("is-drop-invalid");
+      return;
+    }
     if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
     card.classList.add(placement === "before" ? "is-drop-before" : "is-drop-after");
+    card.dataset.dropAxis = this.layoutDirection === "top-to-bottom" ? "horizontal" : "vertical";
+    this.setMoveStatus(`headingMap.rearrange.${placement}`, false, { title: target.title });
   }
 
   private async applyMove(
@@ -851,26 +919,34 @@ export class NumberSuiteHeadingMapView extends ItemView {
     targetLine: number,
     placement: "before" | "after",
   ): Promise<void> {
-    if (this.moving || !this.rearranging || this.lastSource !== drag.source
+    if (this.moving || !this.rearranging) return;
+    if (this.lastSource !== drag.source
       || this.currentFile !== drag.file || this.currentFile.path !== drag.path
-      || this.app.vault.getAbstractFileByPath(drag.path) !== drag.file) return;
+      || this.app.vault.getAbstractFileByPath(drag.path) !== drag.file) {
+      this.setMoveStatus("headingMap.rearrange.stale", true);
+      return;
+    }
     this.moving = true;
     try {
       const file = this.currentFile;
       if (file == null) return;
       const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
+      if (!(bound.leaf?.view instanceof MarkdownView) || bound.leaf.view.getMode() !== "source") {
+        this.setMoveStatus("headingMap.rearrange.noEditor", true);
+        return;
+      }
       if (this.currentFile !== file || file !== drag.file || file.path !== drag.path
         || this.app.vault.getAbstractFileByPath(drag.path) !== file
         || this.lastSource !== drag.source || bound.source !== drag.source
         || !(bound.leaf?.view instanceof MarkdownView) || bound.leaf.view.file !== file) {
-        new Notice(this.actions.getTranslate()("headingMap.rearrange.stale"));
+        this.setMoveStatus("headingMap.rearrange.stale", true);
         return;
       }
       const editor = bound.leaf.view.editor;
       const current = editor.getValue();
       if (current !== drag.source || bound.leaf.view.file !== file
         || this.currentFile !== file || this.app.vault.getAbstractFileByPath(drag.path) !== file) {
-        new Notice(this.actions.getTranslate()("headingMap.rearrange.stale"));
+        this.setMoveStatus("headingMap.rearrange.stale", true);
         return;
       }
       const plan = planSameParentHeadingMove(current, drag.line, targetLine, placement);
@@ -882,11 +958,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
         to: editor.offsetToPos(plan.to),
         text: plan.replacement,
       }] });
+      this.setMoveStatus();
       this.sourceLeaf = bound.leaf;
       this.scheduleRefresh();
     } catch (error: unknown) {
       console.error("Number Suite: could not move mind-map section", error);
-      new Notice(this.actions.getTranslate()("headingMap.rearrange.stale"));
+      this.setMoveStatus("headingMap.rearrange.stale", true);
     } finally {
       this.moving = false;
     }
