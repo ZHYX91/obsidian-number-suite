@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: navigation-target.zh-CN.md
 translation_status: synced
 status: target
-last_synced: 2026-11-16
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Navigation and structure-editing target
@@ -143,7 +143,9 @@ The recommended interaction explicitly separates browsing from Adjust structure.
 existing pan, zoom, selection, collapse and navigation gestures. Editing shows a clear proposed drop
 location. Cancellation, invalid targets, read-only state and stale source do not write. Touch pan, pinch,
 long-press and structure dragging must not trigger one another accidentally; the start gesture needs
-host validation.
+host validation. In Adjust structure mode, provide keyboard-focusable and touch-activatable
+Move up / Move down actions for eligible siblings. They must use the same source-validation
+and undo plan as drag-and-drop; pointer dragging must not be the only way to reorder.
 
 Each structure operation uses an immutable bounded plan and revalidates file, editor and source before
 commit. The visible drop preview serves as the operation preview in this dedicated mode; document this
