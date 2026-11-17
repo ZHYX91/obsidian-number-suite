@@ -33,6 +33,13 @@ export function createNativeOutlineProjection(
   );
   if (effective.disabled || !effective.valid) return { headings: original, numberLabels };
   const headings = parseAtxHeadings(source);
+  const parsedByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
+  // A stale core cache must never be combined with a newer editor heading
+  // at the same position. Until the cache catches up, retain native Outline.
+  if (original.some((item) => {
+    const heading = parsedByLine.get(item.position.start.line);
+    return heading != null && heading.level !== item.level;
+  })) return { headings: original, numberLabels };
   const usedLines = new Set(original.map((item) => item.position.start.line));
   const extras: ExtraOutlineHeading[] = [];
   if (settings.showOutlineExtendedHeadings) {
@@ -108,6 +115,13 @@ interface ObservedOutline {
   labels: ReadonlyMap<number, string>;
   timer: number | null;
 }
+function isOutlineRowElement(value: unknown): value is HTMLElement {
+  // Popup windows may own a different HTMLElement constructor.
+  return typeof value === "object" && value !== null
+    && (value as Node).nodeType === 1
+    && typeof (value as HTMLElement).querySelector === "function"
+    && typeof (value as HTMLElement).prepend === "function";
+}
 function prop(value: unknown, key: string): unknown {
   return typeof value === "object" && value != null
     ? (value as Record<string, unknown>)[key] : undefined;
@@ -125,7 +139,7 @@ function outlineRows(view: OutlineInternal): Array<{ item: ExtraOutlineHeading; 
     for (const child of children) {
       const element = prop(child, "innerEl");
       const item = prop(child, "heading");
-      if (!(element instanceof HTMLElement) || typeof prop(item, "heading") !== "string") return false;
+      if (!isOutlineRowElement(element) || typeof prop(item, "heading") !== "string") return false;
       rows.push({ item: item as ExtraOutlineHeading, element });
       if (!walk(child, depth + 1)) return false;
     }
@@ -210,9 +224,17 @@ export class NativeOutlineEnhancer {
       const path = pathFor(native);
       const source = path == null ? null : this.sources.get(path);
       if (source == null) return headings;
-      const projection = createNativeOutlineProjection(source, headings, this.settings());
-      current.labels = projection.numberLabels;
-      return projection.headings;
+      try {
+        const projection = createNativeOutlineProjection(source, headings, this.settings());
+        current.labels = projection.numberLabels;
+        return projection.headings;
+      } catch (error: unknown) {
+        // The native Outline owns navigation. A failed projection must never
+        // prevent Obsidian from rendering its unmodified heading list.
+        console.warn("Number Suite: native Outline enhancement unavailable", error);
+        current.labels = new Map();
+        return headings;
+      }
     };
     try { native.getHeadings = current.wrapped; } catch { return; }
     root.addEventListener("dragstart", current.onDrag, true);
