@@ -137,6 +137,10 @@ number labels, H7–H9 extended headings, and Figure/Table/Equation/Code caption
 They do not modify Markdown or change the source numbering rules. The compatibility
 layer augments only the native Outline view, without writing synthetic metadata headings
 into Obsidian's vault-wide cache; when the expected private native view API is missing,
-it retains the unmodified Outline. Synthetic entries are navigation-only: do not drag
-them to rewrite content. Host drag/selection and Android acceptance are still pending.
+it retains the unmodified Outline. Synthetic entries are navigation-only. Until a real-host test verifies that
+Obsidian's section-move algorithm treats H7–H9 and captions safely, the adapter
+**blocks native Outline drag/drop for the current Outline whenever any synthetic
+entry is present**. Number-only outlines retain native dragging. This is a
+deliberate safety limitation of the Draft candidate, not final feature parity.
+Host drag/selection and Android acceptance are still pending.
 The existing Number Suite Document outline is retained until parity and cleanup are verified.
