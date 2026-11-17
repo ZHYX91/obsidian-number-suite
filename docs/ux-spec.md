@@ -214,4 +214,3 @@ reflow on narrow screens without dropping fields. Emulator results must not be p
 Failed settings saves retain the pending snapshot. A failed batch rolls back only files that still
 exactly match plugin output and retains usable recovery. Concurrent edits, corrupt recovery data,
 or host-rendering differences fail closed and cannot be hidden behind a success notice.
-
