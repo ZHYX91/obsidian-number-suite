@@ -113,6 +113,8 @@ interface ObservedOutline {
   onDrag: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
+  hasSyntheticEntries: boolean;
+  warned: boolean;
   timer: number | null;
 }
 function isOutlineRowElement(value: unknown): value is HTMLElement {
@@ -205,14 +207,22 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), timer: null,
+      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) event.preventDefault();
+        // With synthetic headings, the host's section move could mistake a
+        // caption for a section boundary. Disable native drag until the host
+        // movement algorithm is verified for this projection.
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
       },
       onDrop: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) {
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
@@ -223,16 +233,24 @@ export class NativeOutlineEnhancer {
       if (!Array.isArray(headings)) return headings;
       const path = pathFor(native);
       const source = path == null ? null : this.sources.get(path);
-      if (source == null) return headings;
+      if (source == null) {
+        current.labels = new Map();
+        current.hasSyntheticEntries = false;
+        return headings;
+      }
       try {
         const projection = createNativeOutlineProjection(source, headings, this.settings());
         current.labels = projection.numberLabels;
+        current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
+        current.warned = false;
         return projection.headings;
       } catch (error: unknown) {
         // The native Outline owns navigation. A failed projection must never
         // prevent Obsidian from rendering its unmodified heading list.
-        console.warn("Number Suite: native Outline enhancement unavailable", error);
+        if (!current.warned) console.warn("Number Suite: native Outline enhancement unavailable", error);
+        current.warned = true;
         current.labels = new Map();
+        current.hasSyntheticEntries = false;
         return headings;
       }
     };
