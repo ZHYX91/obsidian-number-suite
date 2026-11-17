@@ -16,6 +16,7 @@ import { headingMapCollapsedForRange, type HeadingMapExpandRange } from "../appl
 import { zoomHeadingMapViewport } from "../application/heading-map-viewport";
 import {
   findHeadingMapNode,
+  adjacentHeadingMapSibling,
   createHeadingMap,
   createHeadingMapDocument,
   headingMapOverview,
@@ -421,6 +422,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.clearRefreshTimer();
     this.request += 1;
     this.currentFile = markdown;
+    this.rearranging = false;
+    this.dragSource = null;
+    this.updateToolbarLabels();
     this.identities = new HeadingMapIdentity();
     this.roots = [];
     this.lastLayout = null;
@@ -740,6 +744,34 @@ export class NumberSuiteHeadingMapView extends ItemView {
         event.preventDefault();
         void this.navigate(node);
       });
+
+      if (this.rearranging && !documentRoot) {
+        const controls = card.createDiv({ cls: "number-suite-heading-map-order-controls" });
+        for (const direction of ["up", "down"] as const) {
+          const neighbor = adjacentHeadingMapSibling(this.roots, node.id, direction);
+          const label = this.actions.getTranslate()(direction === "up"
+            ? "headingMap.rearrange.up" : "headingMap.rearrange.down");
+          const button = controls.createEl("button", {
+            cls: "number-suite-heading-map-order-action",
+            attr: { type: "button", "aria-label": label, title: label },
+          });
+          setIcon(button, direction === "up" ? "chevron-up" : "chevron-down");
+          button.disabled = neighbor == null || this.lastSource == null || this.moving;
+          button.addEventListener("focus", () => this.revealNode(node.id));
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const source = this.lastSource;
+            const path = this.currentFile?.path;
+            const sibling = adjacentHeadingMapSibling(this.roots, node.id, direction);
+            if (!this.rearranging || this.moving || source == null || path == null || sibling == null
+              || planSameParentHeadingMove(source, node.line, sibling.line,
+                direction === "up" ? "before" : "after") == null) return;
+            this.setSelection(node.id);
+            void this.applyMove({ id: node.id, line: node.line, source, path }, sibling.line,
+              direction === "up" ? "before" : "after");
+          });
+        }
+      }
 
       const childCount = node.children.length;
       const handle = card.createEl("button", {
