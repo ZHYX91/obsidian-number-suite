@@ -125,6 +125,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "preview.confirm": "Применить изменения",
   "preview.targetFixed": "Цель остаётся этим файлом при переключении заметок. Если текст изменится, вернитесь и создайте предпросмотр заново.",
   "preview.back": "К текущей заметке",
+  "preview.applyFailed": "Не удалось применить предпросмотр. Вернитесь к текущей заметке и повторите попытку.",
   "preview.cancel": "Отмена",
   "batch.scope.root": "Всё хранилище",
   "batch.scope.title": "Выберите папку",

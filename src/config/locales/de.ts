@@ -125,6 +125,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "preview.confirm": "Änderungen übernehmen",
   "preview.targetFixed": "Das Ziel bleibt beim Notizwechsel diese Datei. Nach Quelländerungen zurückgehen und die Vorschau neu erstellen.",
   "preview.back": "Zur aktuellen Notiz",
+  "preview.applyFailed": "Die Vorschau konnte nicht angewendet werden. Zur aktuellen Notiz zurückkehren und erneut versuchen.",
   "preview.cancel": "Abbrechen",
   "batch.scope.root": "Gesamter Vault",
   "batch.scope.title": "Ordner wählen",

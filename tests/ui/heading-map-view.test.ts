@@ -208,6 +208,16 @@ describe("heading map interactions", () => {
     expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.hint");
     expect(view.moveStatusError).toBe(false);
     expect(view.sceneHost.querySelector(".is-drop-invalid")).toBeNull();
+    card(a.id).dispatchEvent(new Event("dragstart"));
+    const transfer = { dropEffect: "none" };
+    const invalid = new MouseEvent("dragover", { cancelable: true });
+    Object.defineProperty(invalid, "dataTransfer", { value: transfer });
+    card(child.id).dispatchEvent(invalid);
+    expect(transfer.dropEffect).toBe("move");
+    card(child.id).dispatchEvent(new MouseEvent("drop", { cancelable: true }));
+    card(a.id).dispatchEvent(new Event("dragend"));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.invalid");
+    expect(view.moveStatusError).toBe(true);
   });
 
   it("uses one level capsule with a level tooltip and no child control on heading leaves", async () => {

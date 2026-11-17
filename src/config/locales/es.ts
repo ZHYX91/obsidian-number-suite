@@ -125,6 +125,7 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "preview.confirm": "Aplicar cambios",
   "preview.targetFixed": "El destino sigue siendo este archivo al cambiar de nota. Si cambia el texto, vuelve a generar la vista previa.",
   "preview.back": "Volver a la nota actual",
+  "preview.applyFailed": "No se pudo aplicar la vista previa. Vuelve a la nota actual e inténtalo de nuevo.",
   "preview.cancel": "Cancelar",
   "batch.scope.root": "Toda la bóveda",
   "batch.scope.title": "Elegir una carpeta",

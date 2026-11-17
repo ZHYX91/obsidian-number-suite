@@ -47,7 +47,7 @@ General provides a default-on Enhance native Outline switch. Turning it off remo
 
 H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
 
-The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do not write and show a concise local reason; canceled and unchanged moves stay quiet. Adjust structure has a visible mode label, always-visible move controls, highlighted targets and before/after insertion lines. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do not write and retain a concise local reason after release; canceled and unchanged moves stay quiet. Adjust structure has a visible mode label, always-visible move controls, highlighted targets and before/after insertion lines. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
 
 The heading mind map connects H1-H9 headings to a virtual document root. The root displays the
 basename, a file icon instead of a heading number, and the direct top-level heading count. It remains
@@ -90,7 +90,7 @@ Layout and expansion depth use secondary View options; range, search and zoom st
 Follow global deletes the relevant Property. Restore all deletes every plugin override while
 preserving unrelated Properties. After a successful Property write, the tab exits its busy state,
 rereads Properties, and immediately refreshes Live Preview, Reading View, and the outline. Read
-failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, replace Current note with an internal itemized preview page. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. Switching the active note never retargets the plan; changed source requires a fresh preview. Cancel or successful Apply returns to Current note. Batch selection and previews remain wide modals; scheme editing stays in global settings.
+failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, replace Current note with an internal itemized preview page. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The target and action area stay visible while differences scroll independently. Switching the active note never retargets the plan; a stale refusal disables Apply until a fresh preview is built. Cancel or successful Apply returns to Current note. Batch selection and previews remain wide modals; scheme editing stays in global settings.
 
 <!-- section: settings-experience -->
 ## Global settings experience
@@ -214,3 +214,4 @@ reflow on narrow screens without dropping fields. Emulator results must not be p
 Failed settings saves retain the pending snapshot. A failed batch rolls back only files that still
 exactly match plugin output and retains usable recovery. Concurrent edits, corrupt recovery data,
 or host-rendering differences fail closed and cannot be hidden behind a success notice.
+

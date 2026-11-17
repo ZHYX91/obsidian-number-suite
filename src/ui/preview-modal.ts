@@ -32,6 +32,7 @@ const WARNING_PAGE_SIZE = 200;
 export class ChangePreviewPane {
   private applying = false;
   private failure: string | null = null;
+  private stale = false;
   private closed = false;
   private readonly abort = (): void => { this.applying = false; this.close(); };
   private documents: readonly PreviewDocument[];
@@ -88,17 +89,19 @@ export class ChangePreviewPane {
       text: t("preview.warningLinks"),
     });
 
+    const documents = contentEl.createDiv({ cls: "number-suite-preview-documents" });
     for (const document of this.documents) {
-      this.renderDocument(contentEl, document);
+      this.renderDocument(documents, document);
     }
 
     const actions = new Setting(contentEl);
+    actions.settingEl.addClass("number-suite-preview-actions");
     actions.addButton((button) => button
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));
     actions.addButton((button) => {
       button.setButtonText(t("preview.confirm")).setCta();
-      button.setDisabled(changes === 0);
+      button.setDisabled(changes === 0 || this.stale);
       if (this.options.operation === "remove") {
         button.setWarning();
       }
@@ -113,11 +116,11 @@ export class ChangePreviewPane {
           .then((applied) => {
             this.applying = false;
             if (applied !== false) this.close();
-            else { this.failure = t("notice.stalePreview"); this.render(); }
+            else { this.stale = true; this.failure = t("notice.stalePreview"); this.render(); }
           })
           .catch((error: unknown) => {
             this.applying = false;
-            this.failure = t("panel.saveFailed");
+            this.failure = t("preview.applyFailed");
             this.render();
             console.error("Number Suite preview apply failed", error);
           });
@@ -195,7 +198,7 @@ export class ChangePreviewPane {
   }
 
   close(): void {
-    if (this.applying) return;
+    if (this.applying || this.closed) return;
     this.onClose();
     this.onDismiss();
   }

@@ -904,7 +904,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     event.preventDefault(); // Receive invalid drops too, to explain the refusal locally.
     const placement = this.dropPlacement(event, card);
     if (!this.validateDrop(drag, target, placement)) {
-      if (event.dataTransfer != null) event.dataTransfer.dropEffect = "none";
+      // Receive the drop so its local refusal survives dragend. The immutable
+      // plan validation still rejects the move; Escape remains a cancellation.
+      if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
       if (this.moveStatusError) card.classList.add("is-drop-invalid");
       return;
     }

@@ -2,12 +2,32 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Modal } from "obsidian";
-import { ChangePreviewModal, type PreviewDocument } from "../../src/ui/preview-modal";
+import { ChangePreviewModal, ChangePreviewPane, type PreviewDocument } from "../../src/ui/preview-modal";
 import { changedTextParts } from "../../src/ui/preview-diff";
 import { createTranslator } from "../../src/config/i18n";
 import { installDomFixture } from "./dom-fixture";
 import { planHeadingTransform } from "../../src/core/transform";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+
+vi.mock("obsidian", async (original) => ({
+  ...await original<Record<string, unknown>>(),
+  Setting: class {
+    readonly settingEl: HTMLElement;
+    constructor(host: HTMLElement) { this.settingEl = host.createDiv(); }
+    addButton(callback: (button: unknown) => void): this {
+      const element = this.settingEl.createEl("button");
+      const control = {
+        setButtonText(text: string) { element.textContent = text; return control; },
+        setDisabled(value: boolean) { element.disabled = value; return control; },
+        setCta() { return control; },
+        setWarning() { return control; },
+        onClick(handler: () => void) { element.addEventListener("click", handler); return control; },
+      };
+      callback(control);
+      return this;
+    }
+  },
+}));
 
 function documentPlan(path: string, count: number): PreviewDocument {
   return { path, plan: { operation: "write", source: "", result: "", warnings: [],
@@ -17,6 +37,26 @@ function documentPlan(path: string, count: number): PreviewDocument {
 
 describe("file-grouped heading preview", () => {
   beforeEach(() => { installDomFixture(); document.body.replaceChildren(); });
+  it("keeps stale previews open with disabled Apply and separate scroll content/actions", async () => {
+    const host = document.createElement("div");
+    const close = vi.fn();
+    const apply = vi.fn(async () => false);
+    const pane = new ChangePreviewPane({ app: {} as never, operation: "write",
+      documents: [documentPlan("fixed.md", 1)], translate: createTranslator("en"), onConfirm: apply },
+    host, document.createElement("h3"), host, close);
+    pane.onOpen();
+    expect(host.querySelector(".number-suite-preview-documents .number-suite-change")).not.toBeNull();
+    const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".number-suite-preview-actions button")]
+      .find((button) => button.textContent === createTranslator("en")("preview.confirm"))!;
+    confirm().click();
+    await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(createTranslator("en")("notice.stalePreview")));
+    expect(confirm().disabled).toBe(true);
+    expect(close).not.toHaveBeenCalled();
+    expect(host.querySelectorAll(".number-suite-change")).toHaveLength(1);
+    pane.close();
+    pane.close();
+    expect(close).toHaveBeenCalledOnce();
+  });
   it("explains counter overflow from the real transform plan without any write preview", () => {
     const plan = planHeadingTransform("# First\n# Overflow", "write", {
       numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, starts: { 1: Number.MAX_SAFE_INTEGER }, missingLevelStrategy: "fill-one" },

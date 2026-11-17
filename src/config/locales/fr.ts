@@ -125,6 +125,7 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "preview.confirm": "Appliquer les modifications",
   "preview.targetFixed": "La cible reste ce fichier lorsque vous changez de note. Si la source change, revenez et recréez l’aperçu.",
   "preview.back": "Retour à la note actuelle",
+  "preview.applyFailed": "Impossible d’appliquer l’aperçu. Revenez à la note actuelle et réessayez.",
   "preview.cancel": "Annuler",
   "batch.scope.root": "Tout le coffre",
   "batch.scope.title": "Choisir un dossier",
