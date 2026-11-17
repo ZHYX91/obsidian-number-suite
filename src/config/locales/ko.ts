@@ -402,6 +402,8 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "축소",
   "headingMap.fit": "화면에 맞추기",
   "headingMap.rearrange.enable": "구조 조정",
+  "headingMap.rearrange.up": "같은 단계에서 위로 이동",
+  "headingMap.rearrange.down": "같은 단계에서 아래로 이동",
   "headingMap.rearrange.active": "조정 끝내기",
   "headingMap.rearrange.description": "제목을 같은 부모의 형제 제목으로 끌어 전체 섹션을 앞이나 뒤로 이동합니다. 같은 단계의 정렬만 지원하며 Markdown이 수정됩니다. 실행 취소할 수 있습니다. 해당 노트를 편집기에서 열어야 합니다.",
   "headingMap.rearrange.stale": "섹션을 이동할 수 없습니다. 편집기에서 노트를 열고 새로고침하세요. 드래그가 시작된 뒤의 변경 내용은 보존됩니다.",

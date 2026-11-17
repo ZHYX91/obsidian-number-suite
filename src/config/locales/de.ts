@@ -402,6 +402,8 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "Verkleinern",
   "headingMap.fit": "Ansicht anpassen",
   "headingMap.rearrange.enable": "Struktur anpassen",
+  "headingMap.rearrange.up": "Abschnitt unter Geschwistern nach oben verschieben",
+  "headingMap.rearrange.down": "Abschnitt unter Geschwistern nach unten verschieben",
   "headingMap.rearrange.active": "Anpassen beenden",
   "headingMap.rearrange.description": "Eine Überschrift auf eine gleichrangige Überschrift unter demselben Elternabschnitt ziehen, um den gesamten Abschnitt davor oder danach zu verschieben. Bearbeitet Markdown, ist rückgängig zu machen und erfordert einen offenen Editor.",
   "headingMap.rearrange.stale": "Abschnitt konnte nicht verschoben werden. Öffnen Sie die Notiz im Editor und aktualisieren Sie die Ansicht. Änderungen seit Beginn des Ziehens bleiben erhalten.",

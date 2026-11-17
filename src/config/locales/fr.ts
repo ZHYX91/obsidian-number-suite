@@ -402,6 +402,8 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "headingMap.zoomOut": "Zoom arrière",
   "headingMap.fit": "Ajuster à l’écran",
   "headingMap.rearrange.enable": "Réorganiser la structure",
+  "headingMap.rearrange.up": "Déplacer la section parmi ses sœurs vers le haut",
+  "headingMap.rearrange.down": "Déplacer la section parmi ses sœurs vers le bas",
   "headingMap.rearrange.active": "Terminer la réorganisation",
   "headingMap.rearrange.description": "Faites glisser un titre sur un titre frère de même niveau pour déplacer la section entière avant ou après celui-ci. Seul le réordonnancement au même niveau est possible. Cela modifie le Markdown, peut être annulé et nécessite un éditeur ouvert.",
   "headingMap.rearrange.stale": "Impossible de déplacer la section. Ouvrez la note dans un éditeur et actualisez. Les changements effectués depuis le début du glissement sont conservés.",
