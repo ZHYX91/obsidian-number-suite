@@ -173,5 +173,10 @@ rewrite stored heading numbers or retarget other files' links; run Renumber
 separately if needed.
 
 This is a Draft implementation awaiting real desktop/Android Obsidian acceptance.
-The desktop HTML drag gesture is not yet equivalent to an accessible
-keyboard move control or reliable mobile long-press reorder.
+In **Adjust structure** mode, every heading card also offers accessible
+**Move section up** and **Move section down** buttons. They follow the same
+source-revalidation, same-level/same-parent restriction, and one-transaction
+undo path as drag-and-drop. Disabled buttons indicate that no valid neighboring
+sibling exists. This allows keyboard and touch users to reorder without HTML
+drag-and-drop. Android long-press dragging and physical-device validation
+remain separate follow-ups. Switching to a different note exits edit mode.
