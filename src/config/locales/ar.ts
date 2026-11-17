@@ -318,6 +318,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.scheme.base": "مستوى العنوان الذي يبدأ منه الترقيم",
   "settings.scheme.templates": "قوالب H1–H9",
   "settings.scheme.preview": "معاينة: {value}",
+  "settings.scheme.preview.heading": "عنوان",
   "settings.scheme.disabled": "لا يُرقّم هذا المستوى.",
   "settings.scheme.hidden": "الأنماط المضمّنة المخفية",
   "settings.scheme.noneHidden": "لا توجد أنماط مضمّنة مخفية.",

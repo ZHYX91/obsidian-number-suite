@@ -121,7 +121,11 @@ Settings use seven consistent tabs: General, Heading numbering, Captions, Cross 
 Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template
-previews, and exact exclusions. Empty templates display “This level is not numbered.” Invalid
+previews, and exact exclusions. Built-in and custom-template previews share a heading-number
+pill followed by a localized “Heading” label, with **all example counters set to 1**
+(`1`, `一`, `A`, `a`, `1.1` as their templates dictate); these samples never change
+real note counters or starting values. Placeholder help explains `{2.arabic}` without
+an unexplained “→ 3” marker. Empty templates display “This level is not numbered.” Invalid
 non-empty semantics block save with a comprehensible constraint message.
 
 Frequent changes may be coalesced, but the UI exposes saving, failure reason, and retry. It cannot

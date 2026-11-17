@@ -318,6 +318,7 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "settings.scheme.base": "Nível inicial do título",
   "settings.scheme.templates": "Modelos H1–H9",
   "settings.scheme.preview": "Prévia: {value}",
+  "settings.scheme.preview.heading": "Título",
   "settings.scheme.disabled": "Este nível não recebe número.",
   "settings.scheme.hidden": "Estilos internos ocultos",
   "settings.scheme.noneHidden": "Nenhum estilo interno está oculto.",

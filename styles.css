@@ -416,7 +416,35 @@
 
 .number-suite-readonly-preview {
   margin-inline-start: auto;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+/* Show a real heading-number badge plus a localized heading label, without
+   the misleading "→ 2/3/4" shorthand used by the old fixed counter samples. */
+.number-suite-scheme-example {
+  align-items: center;
+  color: var(--text-normal);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px var(--size-4-2);
+  max-inline-size: 100%;
+}
+.number-suite-scheme-example-number {
+  font-size: var(--font-ui-small);
+  line-height: 1.35;
+  margin-inline-end: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+  vertical-align: baseline;
+  white-space: pre-wrap;
+}
+.number-suite-scheme-example-heading {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+.number-suite-placeholder-explanation {
+  flex: 1 1 14rem;
+  min-inline-size: 0;
 }
 
 .number-suite-scheme-actions {

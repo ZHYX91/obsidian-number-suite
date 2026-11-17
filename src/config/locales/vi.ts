@@ -318,6 +318,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.scheme.base": "Cấp tiêu đề bắt đầu",
   "settings.scheme.templates": "Mẫu H1–H9",
   "settings.scheme.preview": "Xem trước: {value}",
+  "settings.scheme.preview.heading": "Tiêu đề",
   "settings.scheme.disabled": "Cấp này không được đánh số.",
   "settings.scheme.hidden": "Kiểu có sẵn bị ẩn",
   "settings.scheme.noneHidden": "Không có kiểu có sẵn nào bị ẩn.",
