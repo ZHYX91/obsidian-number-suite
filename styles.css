@@ -1514,7 +1514,20 @@
 .number-suite-heading-map-order-action + .number-suite-heading-map-order-action {
   border-block-start: 1px solid var(--background-modifier-border);
 }
-.number-suite-heading-map-order-action svg { height: 13px; width: 13px; }
+.number-suite-heading-map-order-action svg {
+  color: inherit;
+  height: 16px;
+  width: 16px;
+  stroke-width: 2.5px;
+}
+.number-suite-heading-map-order-action:not(:disabled) {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  opacity: 1;
+}
+.number-suite-heading-map-order-controls {
+  border-inline-start-color: var(--text-faint);
+}
 .number-suite-heading-map-order-action:hover:not(:disabled) {
   background: var(--background-modifier-hover);
   color: var(--text-accent);
