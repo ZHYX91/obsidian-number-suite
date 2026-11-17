@@ -62,6 +62,13 @@ describe("native Outline projection", () => {
     expect(result.headings.filter((item) => item.position.start.line === 1)).toHaveLength(1);
   });
 
+  it("keeps the original Outline when the metadata cache has a stale heading level", () => {
+    const stale = [native(0, "Chapter", 3, 0), headings[1]!];
+    const result = createNativeOutlineProjection(source, stale, DEFAULT_SETTINGS);
+    expect(result.headings).toEqual(stale);
+    expect(result.numberLabels.size).toBe(0);
+  });
+
   it("fails closed when Number Suite is disabled for this note", () => {
     const disabled = "---\nnumber-suite: [disabled=true]\n---\n" + source;
     const result = createNativeOutlineProjection(disabled, [], DEFAULT_SETTINGS);
