@@ -47,9 +47,8 @@ Há estilos hierárquicos, exemplos para documentos oficiais e jurídicos chines
 <!-- section: settings -->
 ## Onde ajustar as opções
 
-As oito abas de configurações são: Geral, Numeração de títulos, Aprimoramentos do esquema, Legendas, Referências cruzadas, Notas de rodapé e de fim, Gravar e limpar, Exibição e lote. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties.
 
-O ícone abre diretamente a Nota atual, sem abas laterais. Ative o plugin principal Sumário manualmente; o Number Suite não o ativa automaticamente. As três opções independentes de números, H7–H9 e legendas vêm ativadas e preservam escolhas desativadas. O sumário nativo e a Nota atual abrem o mapa para o próprio arquivo. Ajustar estrutura move seções completas do mesmo pai e nível por arraste ou botões subir/descer, rejeita texto alterado e permite Desfazer/Refazer. Um clique navega nas referências explícitas; F2 ou a ação móvel edita a fonte. A numeração de links Wiki para títulos do mesmo arquivo vem desativada; funciona na prévia e leitura, também com nome de arquivo, preservando aliases e ações nativas.
+As configurações têm sete abas. Geral ativa por padrão o aprimoramento da estrutura nativa. Desativar preserva preferências e nunca ativa o plugin principal. O menu de exibição da estrutura salva quatro opções compartilhadas: números, níveis sem número, H7–H9 e legendas; elas afetam somente a estrutura. Cada título tem um único indicador numérico ou Hn neutro. Nota atual herda ou substitui separadamente números virtuais, visibilidade dos números gravados e estilo, com estado automático. Regras de início e salto ficam recolhidas e são adicionadas conforme necessário. Desativar mantém as escolhas; gravação e limpeza ainda exigem prévia. Folhas do mapa não exibem 0. Layout e profundidade ficam no menu secundário; botões de movimento e destinos só aparecem no modo de ajuste da estrutura.
 
 <!-- section: limitations -->
 ## Escopo e limitações

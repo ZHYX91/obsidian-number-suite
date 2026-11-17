@@ -1298,128 +1298,124 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* Heading cards share the Outline's neutral numbering/level language. */
 .number-suite-heading-map-card {
-  --number-suite-heading-map-handle: color-mix(
-    in srgb,
-    var(--background-modifier-border) 38%,
-    var(--background-primary)
-  );
-  align-items: stretch;
-  background: var(--background-secondary);
+  align-items: center;
+  background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-s);
+  border-radius: 8px;
   display: flex;
+  gap: 2px;
   overflow: hidden;
   position: absolute;
 }
-
+.number-suite-heading-map-card:hover,
+.number-suite-heading-map-card:focus-within {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
 .number-suite-heading-map-card.is-selected {
+  background: var(--background-secondary);
   border-color: var(--interactive-accent);
-  box-shadow: 0 0 0 2px var(--background-modifier-border-focus), var(--shadow-s);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
 }
-
-.number-suite-heading-map-card.is-document {
-  border-color: var(--interactive-accent);
-}
-
 .number-suite-heading-map-card.is-document .number-suite-heading-map-body {
   font-weight: var(--font-semibold);
 }
-
 .number-suite-heading-map-card.is-match:not(.is-selected) {
-  box-shadow: 0 0 0 2px var(--text-accent), var(--shadow-s);
+  border-color: var(--text-accent);
 }
-
-.number-suite-heading-map-number,
-.number-suite-heading-map-children {
-  align-items: center;
-  background: var(--number-suite-heading-map-handle);
-  color: var(--text-muted);
-  display: inline-flex;
-  font-size: var(--font-ui-smaller);
-  font-variant-numeric: tabular-nums;
-  justify-content: center;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-.number-suite-heading-map-number {
-  border-inline-end: 1px solid var(--background-modifier-border);
-  flex: 0 1 auto;
-  max-width: 96px;
-  min-width: 42px;
-  overflow: hidden;
-  padding-inline: 9px;
-  text-overflow: ellipsis;
-}
-
 .number-suite-heading-map-number,
 .number-suite-heading-map-body,
 .number-suite-heading-map-children {
   appearance: none;
   border: 0;
-  border-radius: 0;
   box-shadow: none;
-  height: 100%;
+  color: var(--text-normal);
+  min-width: 0;
 }
-
+.number-suite-heading-map-number {
+  background: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  flex: 0 1 auto;
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  height: 24px;
+  margin-inline-start: 8px;
+  max-width: 96px;
+  min-width: 30px;
+  overflow: hidden;
+  padding: 0 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.number-suite-heading-map-number.is-level {
+  background: transparent;
+  color: var(--text-muted);
+}
 .number-suite-heading-map-body {
   background: transparent;
-  color: var(--text-normal);
+  border-radius: 0;
   display: block;
   flex: 1 1 auto;
   font-size: var(--font-ui-small);
-  min-width: 0;
+  height: 100%;
   overflow: hidden;
-  padding: 0 10px;
+  padding: 0 8px;
   text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.number-suite-heading-map-number {
-  border-inline-end: 1px solid var(--background-modifier-border);
-}
-
 .number-suite-heading-map-children {
-  border-inline-start: 1px solid var(--background-modifier-border);
-  flex: 0 0 46px;
-  padding: 0;
-  gap: 2px;
-}
-
-.number-suite-heading-map-expand-icon {
+  align-items: center;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
   display: inline-flex;
+  flex: 0 0 40px;
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  gap: 3px;
+  height: 28px;
+  justify-content: center;
+  margin-inline-end: 4px;
+  padding: 0;
 }
-
-.number-suite-heading-map-expand-icon svg {
-  height: 12px;
-  width: 12px;
-}
-
-.number-suite-heading-map-children:not(:disabled):hover,
-.number-suite-heading-map-body:hover,
+.number-suite-heading-map-expand-icon { display: inline-flex; }
+.number-suite-heading-map-expand-icon svg { height: 12px; width: 12px; }
+.number-suite-heading-map-children:hover,
 .number-suite-heading-map-number:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
-
 .number-suite-heading-map-children.is-collapsed {
   color: var(--text-accent);
-  font-weight: var(--font-semibold);
 }
-
-.number-suite-heading-map-children:disabled {
-  cursor: default;
-  opacity: 0.65;
-}
-
 .number-suite-heading-map-number:focus-visible,
 .number-suite-heading-map-body:focus-visible,
 .number-suite-heading-map-children:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
-  outline: 0;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+.number-suite-heading-map-options { position: relative; }
+.number-suite-heading-map-options > summary {
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  padding: 5px 8px;
+}
+.number-suite-heading-map-options-body {
+  align-items: center;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-s);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  position: absolute;
+  inset-inline-end: 0;
+  z-index: 5;
 }
 
 .number-suite-heading-map-status {
@@ -1492,6 +1488,7 @@
 /* Keyboard and touch-friendly section moves, shown only in explicit edit mode. */
 .number-suite-heading-map-order-controls {
   align-items: stretch;
+  align-self: stretch;
   background: var(--background-secondary-alt);
   border-inline-start: 1px solid var(--background-modifier-border);
   display: flex;
@@ -1542,6 +1539,11 @@
   margin-inline-end: .4em;
   font-variant-numeric: tabular-nums;
 }
+.number-suite-native-outline-level {
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-faint);
+}
 .number-suite-native-outline-caption > .tree-item-self > .tree-item-icon,
 .number-suite-native-outline-caption > .tree-item-self > .collapse-icon {
   visibility: hidden;
@@ -1561,3 +1563,33 @@
 .number-suite-native-outline-extended { cursor: grab; }
 .number-suite-outline-drop-before { box-shadow: 0 -2px 0 var(--interactive-accent); }
 .number-suite-outline-drop-after { box-shadow: 0 2px 0 var(--interactive-accent); }
+
+/* Current-note controls keep inheritance visible without a summary table. */
+.number-suite-note-control-state {
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+  padding: var(--size-4-2) var(--size-4-3);
+  margin-block-start: var(--size-4-3);
+  font-size: var(--font-ui-small);
+}
+.number-suite-note-file-actions > summary {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  padding-block: var(--size-4-2);
+}
+.number-suite-note-control-levels .setting-item-control {
+  flex-wrap: wrap;
+}
+.number-suite-sidebar .number-suite-note-control-section .setting-item {
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+}
+.number-suite-sidebar .number-suite-note-control-section .setting-item-control {
+  min-width: 0;
+  max-width: 100%;
+}
+.number-suite-sidebar .number-suite-note-control-section .setting-item-control select {
+  max-width: 100%;
+}

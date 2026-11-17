@@ -1,5 +1,18 @@
 /** pt-BR interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "Seguir configurações globais",
+  "panel.status.custom": "{count} configurações personalizadas",
+  "panel.status.disabled": "Desativado nesta nota",
+  "panel.storedNumbers": "Números salvos",
+  "panel.display.show": "Mostrar",
+  "panel.display.hide": "Ocultar",
+  "panel.inheritValue": "Seguir global ({value})",
+  "panel.addLevel": "Adicionar regra de nível",
+  "headingMap.viewOptions": "Opções de visualização",
+  "settings.outline.enabled": "Aprimorar estrutura nativa",
+  "settings.outline.enabled.desc": "Ativar opções da estrutura e acesso ao mapa mental; as preferências são mantidas ao desativar.",
+  "settings.outline.showLevels": "Mostrar nível dos títulos sem número",
+  "outline.displayOptions": "Opções de exibição",
   "panel.modes.title": "Exibição e operações de arquivo",
   "panel.modes.source": "Título salvo",
   "panel.modes.goal": "Objetivo",

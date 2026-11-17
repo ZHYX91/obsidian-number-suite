@@ -1,5 +1,18 @@
 /** ko interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_KO: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "전역 설정 따름",
+  "panel.status.custom": "{count}개 설정 사용자 지정",
+  "panel.status.disabled": "이 노트에서 비활성화",
+  "panel.storedNumbers": "저장된 번호",
+  "panel.display.show": "표시",
+  "panel.display.hide": "숨기기",
+  "panel.inheritValue": "전역 설정 따름 ({value})",
+  "panel.addLevel": "제목 수준 규칙 추가",
+  "headingMap.viewOptions": "보기 옵션",
+  "settings.outline.enabled": "기본 개요 확장",
+  "settings.outline.enabled.desc": "개요 표시 옵션과 마인드맵 진입점을 활성화합니다. 비활성화해도 설정은 유지됩니다.",
+  "settings.outline.showLevels": "번호가 없을 때 제목 수준 표시",
+  "outline.displayOptions": "표시 옵션",
   "panel.modes.title": "표시 및 파일 작업",
   "panel.modes.source": "저장된 제목",
   "panel.modes.goal": "목표",

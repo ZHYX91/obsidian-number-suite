@@ -1,5 +1,18 @@
 /** ar interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_AR: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "اتباع الإعدادات العامة",
+  "panel.status.custom": "تخصيص {count} إعدادات",
+  "panel.status.disabled": "معطّل لهذه الملاحظة",
+  "panel.storedNumbers": "الأرقام المحفوظة",
+  "panel.display.show": "إظهار",
+  "panel.display.hide": "إخفاء",
+  "panel.inheritValue": "اتباع العام ({value})",
+  "panel.addLevel": "إضافة قاعدة لمستوى العنوان",
+  "headingMap.viewOptions": "خيارات العرض",
+  "settings.outline.enabled": "تحسين المخطط الأصلي",
+  "settings.outline.enabled.desc": "تفعيل خيارات المخطط ومدخل الخريطة الذهنية؛ تُحفظ التفضيلات عند التعطيل.",
+  "settings.outline.showLevels": "إظهار مستوى العنوان عند غياب الرقم",
+  "outline.displayOptions": "خيارات العرض",
   "panel.modes.title": "العرض وعمليات الملفات",
   "panel.modes.source": "العنوان المحفوظ",
   "panel.modes.goal": "الهدف",

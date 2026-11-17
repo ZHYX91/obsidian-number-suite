@@ -20,7 +20,6 @@ import { parseFrontmatterRecordFromSource } from "../config/frontmatter-source";
 import { noteSchemeOptions, schemeDisplayName } from "../config/scheme-labels";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
-import { renderNoteOverridesGuide } from "./settings/note-overrides-guide";
 import { renderNoteOperationGuide } from "./note-operation-guide";
 import { notePropertyIssueText } from "./note-property-diagnostics";
 
@@ -30,10 +29,6 @@ export interface NoteControlActions {
   readonly openBatch: () => void;
   readonly openGlobalSettings: () => void;
   readonly openHeadingMap?: () => void;
-}
-
-function stateLabel(value: TriState, t: Translate): string {
-  return t(`panel.state.${value}`);
 }
 
 function booleanLabel(value: boolean, t: Translate): string {
@@ -73,6 +68,7 @@ export class NoteControlPane {
   private frontmatter: Record<string, unknown> | null = null;
   private file: TFile | null = null;
   private request = 0;
+  private readonly addedLevels = new Set<ReturnType<typeof headingLevels>[number]>();
 
   constructor(
     private readonly app: App,
@@ -107,6 +103,7 @@ export class NoteControlPane {
     this.detachCoordinator();
     this.numberDrafts.clear();
     this.fieldConflict = null;
+    this.addedLevels.clear();
     this.file = file;
     this.frontmatter = null;
     this.request += 1;
@@ -232,97 +229,41 @@ export class NoteControlPane {
     this.renderSaveStatus();
     this.summaryHost = this.contentEl.createDiv();
     this.renderSummary(snapshot, settings, this.summaryHost);
-    renderNoteOperationGuide(this.contentEl, this.t);
     this.renderOverrides(snapshot, settings);
     this.renderActions();
   }
 
-  private renderSummary(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings, host: HTMLElement): void {
-    const section = host.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.summary") });
-    const grid = section.createDiv({ cls: "number-suite-note-control-summary" });
-    grid.setAttribute("role", "table");
-    const headingRow = grid.createDiv({ cls: "number-suite-note-control-summary-row is-heading" });
-    headingRow.setAttribute("role", "row");
-    for (const heading of [
-      this.t("panel.summary.setting"),
-      this.t("panel.summary.global"),
-      this.t("panel.summary.override"),
-      this.t("panel.summary.effective"),
-    ]) {
-      const cell = headingRow.createDiv({ cls: "number-suite-note-control-summary-heading" });
-      cell.setAttribute("role", "columnheader");
-      cell.setText(heading);
-    }
-    const ignored = this.t("panel.value.ignored");
-    this.addSummaryRow(grid, this.t("settings.showVirtual"), [
-      booleanLabel(settings.showVirtualNumbers, this.t),
-      stateLabel(snapshot.showVirtual, this.t),
-      snapshot.effectiveIgnore ? ignored : booleanLabel(snapshot.effectiveShowVirtual, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("settings.concealStored"), [
-      booleanLabel(settings.concealStoredNumbers, this.t),
-      stateLabel(snapshot.concealStored, this.t),
-      snapshot.effectiveIgnore ? ignored : booleanLabel(snapshot.effectiveConcealStored, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("settings.scheme"), [
-      schemeDisplayName(settings.selectedSchemeId, settings, this.t),
-      snapshot.schemeId == null
-        ? this.t("panel.state.inherit")
-        : schemeDisplayName(snapshot.schemeId, settings, this.t),
-      snapshot.effectiveIgnore
-        ? ignored
-        : schemeDisplayName(snapshot.effectiveSchemeId, settings, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("panel.ignore"), [
-      this.t("panel.value.off"),
-      snapshot.ignore ? this.t("panel.state.on") : this.t("panel.state.inherit"),
-      booleanLabel(snapshot.effectiveIgnore, this.t),
-    ]);
-  }
-
-  private addSummaryRow(container: HTMLElement, name: string, values: readonly string[]): void {
-    const row = container.createDiv({ cls: "number-suite-note-control-summary-row" });
-    row.setAttribute("role", "row");
-    const nameCell = row.createDiv({ cls: "number-suite-note-control-summary-name" });
-    nameCell.setAttribute("role", "rowheader");
-    nameCell.setText(name);
-    const labels = [
-      this.t("panel.summary.global"),
-      this.t("panel.summary.override"),
-      this.t("panel.summary.effective"),
-    ];
-    values.forEach((value, index) => {
-      const cell = row.createDiv({ cls: "number-suite-note-control-summary-value" });
-      cell.setAttribute("role", "cell");
-      cell.dataset.label = labels[index] ?? "";
-      cell.setText(value);
+  private renderSummary(snapshot: NoteControlSnapshot, _settings: NumberSuiteSettings, host: HTMLElement): void {
+    const count = Number(snapshot.showVirtual !== "inherit") + Number(snapshot.concealStored !== "inherit")
+      + Number(snapshot.schemeId != null) + Object.keys(snapshot.firstNumbers).length + Object.keys(snapshot.skipFirst).length;
+    host.createDiv({
+      cls: "number-suite-note-control-state",
+      text: snapshot.effectiveIgnore ? this.t("panel.status.disabled")
+        : count > 0 ? this.t("panel.status.custom", { count }) : this.t("panel.status.inherit"),
     });
   }
 
   private renderOverrides(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
     const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.overrides") });
-    renderNoteOverridesGuide(section, this.t, "panel");
     this.addTriStateSetting(
       section,
       this.t("settings.showVirtual"),
-      this.t("panel.show.desc"),
+      settings.showVirtualNumbers,
       snapshot.showVirtual,
       (value) => ({ kind: "show-virtual", value }),
     );
     this.addTriStateSetting(
       section,
-      this.t("settings.concealStored"),
-      this.t("panel.conceal.desc"),
+      this.t("panel.storedNumbers"),
+      !settings.concealStoredNumbers,
       snapshot.concealStored,
       (value) => ({ kind: "conceal-stored", value }),
+      true,
     );
     new Setting(section)
       .setName(this.t("settings.scheme"))
-      .setDesc(this.t("panel.scheme.desc"))
       .addDropdown((dropdown) => {
-        dropdown.addOption("", this.t("panel.state.inherit"));
+        dropdown.addOption("", this.t("panel.inheritValue", { value: schemeDisplayName(settings.selectedSchemeId, settings, this.t) }));
         for (const [id, label] of noteSchemeOptions(settings, snapshot.schemeId, this.t)) {
           dropdown.addOption(id, label);
         }
@@ -339,18 +280,22 @@ export class NoteControlPane {
 
     const advanced = section.createEl("details", { cls: "number-suite-note-control-levels" });
     advanced.open = headingLevels().some((level) => (
-      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null
+      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null || this.addedLevels.has(level)
     ));
     advanced.createEl("summary", { text: this.t("panel.numberingByLevel") });
-    advanced.createEl("p", { text: this.t("panel.numberingByLevel.desc") });
-    for (const level of headingLevels()) {
-      const row = new Setting(advanced).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
+    const rows = advanced.createDiv({ cls: "number-suite-note-level-rules" });
+    const visibleLevels = new Set<ReturnType<typeof headingLevels>[number]>();
+    let refreshPicker = (): void => undefined;
+    const addRow = (level: ReturnType<typeof headingLevels>[number]): void => {
+      visibleLevels.add(level);
+      const current = readNoteControlSnapshot(this.frontmatter ?? {}, this.getSettings());
+      const row = new Setting(rows).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
       row.addText((text) => {
         text.inputEl.type = "number";
         text.inputEl.min = "1";
         text.inputEl.step = "1";
         text.setPlaceholder(this.t("panel.state.inherit"));
-        text.setValue(snapshot.firstNumbers[level]?.toString() ?? "");
+        text.setValue(current.firstNumbers[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
         text.inputEl.addEventListener("blur", () => this.finishLevelNumber("first-number", text.inputEl));
         text.inputEl.addEventListener("keydown", (event) => {
@@ -363,7 +308,7 @@ export class NoteControlPane {
         text.inputEl.min = "0";
         text.inputEl.step = "1";
         text.setPlaceholder("0");
-        text.setValue(snapshot.skipFirst[level]?.toString() ?? "");
+        text.setValue(current.skipFirst[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
         text.inputEl.addEventListener("blur", () => this.finishLevelNumber("skip-first", text.inputEl));
         text.inputEl.addEventListener("keydown", (event) => {
@@ -371,7 +316,39 @@ export class NoteControlPane {
         });
         text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw, text.inputEl));
       });
-    }
+      row.addButton((button) => button.setButtonText(this.t("panel.state.inherit")).onClick(() => {
+        this.numberDrafts.forEach((draft, input) => {
+          if (draft.change.level === level) this.numberDrafts.delete(input);
+        });
+        this.applyChange({ kind: "first-number", level, value: null });
+        this.applyChange({ kind: "skip-first", level, value: null });
+        this.addedLevels.delete(level);
+        visibleLevels.delete(level);
+        row.settingEl.remove();
+        refreshPicker();
+      }));
+    };
+    const visible = headingLevels().filter((level) => snapshot.firstNumbers[level] != null
+      || snapshot.skipFirst[level] != null || this.addedLevels.has(level));
+    for (const level of visible) addRow(level);
+    const picker = advanced.createDiv();
+    refreshPicker = (): void => {
+      picker.empty();
+      const available = headingLevels().filter((level) => !visibleLevels.has(level));
+      if (available.length === 0) return;
+      let selected = available[0]!;
+      new Setting(picker).setName(this.t("panel.addLevel"))
+        .addDropdown((dropdown) => {
+          for (const level of available) dropdown.addOption(String(level), `H${level}`);
+          dropdown.setValue(String(selected)).onChange((value) => { selected = Number(value) as typeof selected; });
+        })
+        .addButton((button) => button.setButtonText(this.t("panel.addLevel")).onClick(() => {
+          this.addedLevels.add(selected);
+          addRow(selected);
+          refreshPicker();
+        }));
+    };
+    refreshPicker();
     new Setting(section)
       .setName(this.t("panel.reset"))
       .setDesc(this.t("panel.reset.desc"))
@@ -394,14 +371,19 @@ export class NoteControlPane {
   private addTriStateSetting(
     container: HTMLElement,
     name: string,
-    description: string,
+    globalDisplay: boolean,
     value: TriState,
     change: (value: TriState) => NoteOverrideChange,
+    inverted = false,
   ): void {
-    new Setting(container).setName(name).setDesc(description).addDropdown((dropdown) => dropdown
-      .addOption("inherit", this.t("panel.state.inherit"))
-      .addOption("on", this.t("panel.state.on"))
-      .addOption("off", this.t("panel.state.off"))
+    const showValue = inverted ? "off" : "on";
+    const hideValue = inverted ? "on" : "off";
+    new Setting(container).setName(name).addDropdown((dropdown) => dropdown
+      .addOption("inherit", this.t("panel.inheritValue", {
+        value: this.t(globalDisplay ? "panel.display.show" : "panel.display.hide"),
+      }))
+      .addOption(showValue, this.t("panel.display.show"))
+      .addOption(hideValue, this.t("panel.display.hide"))
       .setValue(value)
       .onChange((next) => void this.applyChange(change(next as TriState))));
   }
@@ -443,8 +425,9 @@ export class NoteControlPane {
   }
 
   private renderActions(): void {
-    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.actions") });
+    const section = this.contentEl.createEl("details", { cls: "number-suite-note-control-section number-suite-note-file-actions" });
+    section.createEl("summary", { text: this.t("settings.tab.cleanup") });
+    renderNoteOperationGuide(section, this.t);
     const actions = section.createDiv({ cls: "number-suite-note-control-actions" });
     for (const [operation, key] of [
       ["write", "command.write.current"],
@@ -606,6 +589,7 @@ export class NoteControlPane {
     try {
       this.coordinator.update(change);
       this.fieldConflict = null;
+      if (change.kind === "reset") this.addedLevels.clear();
       if (change.kind === "reset" || change.kind === "migrate") this.render();
       this.flushDraft();
     } catch (error: unknown) {

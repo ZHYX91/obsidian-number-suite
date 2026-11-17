@@ -1,5 +1,18 @@
 /** ja interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_JA: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "グローバル設定に従う",
+  "panel.status.custom": "{count} 項目をカスタマイズ",
+  "panel.status.disabled": "このノートでは無効",
+  "panel.storedNumbers": "保存済みの番号",
+  "panel.display.show": "表示",
+  "panel.display.hide": "非表示",
+  "panel.inheritValue": "全体設定に従う（{value}）",
+  "panel.addLevel": "見出しレベルのルールを追加",
+  "headingMap.viewOptions": "表示オプション",
+  "settings.outline.enabled": "標準アウトラインを拡張",
+  "settings.outline.enabled.desc": "アウトラインの表示オプションとマインドマップ入口を有効にします。無効時も設定は保持されます。",
+  "settings.outline.showLevels": "番号がない場合に見出しレベルを表示",
+  "outline.displayOptions": "表示オプション",
   "panel.modes.title": "表示とファイル操作",
   "panel.modes.source": "保存済みの見出し",
   "panel.modes.goal": "目的",

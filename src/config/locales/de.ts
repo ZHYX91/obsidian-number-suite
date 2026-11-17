@@ -1,5 +1,18 @@
 /** de interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_DE: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "Globalen Einstellungen folgen",
+  "panel.status.custom": "{count} Einstellungen angepasst",
+  "panel.status.disabled": "Für diese Notiz deaktiviert",
+  "panel.storedNumbers": "Gespeicherte Nummern",
+  "panel.display.show": "Anzeigen",
+  "panel.display.hide": "Ausblenden",
+  "panel.inheritValue": "Global folgen ({value})",
+  "panel.addLevel": "Regel für Überschriftenebene hinzufügen",
+  "headingMap.viewOptions": "Ansichtsoptionen",
+  "settings.outline.enabled": "Native Gliederung erweitern",
+  "settings.outline.enabled.desc": "Anzeigeoptionen und Mindmap-Zugang aktivieren; Einstellungen bleiben beim Deaktivieren erhalten.",
+  "settings.outline.showLevels": "Überschriftenebene ohne Nummer anzeigen",
+  "outline.displayOptions": "Anzeigeoptionen",
   "panel.modes.title": "Anzeige und Dateiaktionen",
   "panel.modes.source": "Gespeicherte Überschrift",
   "panel.modes.goal": "Ziel",

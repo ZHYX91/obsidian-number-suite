@@ -157,7 +157,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const tabs = [
       { id: "general", label: t("settings.tab.general") },
       { id: "headings", label: t("settings.tab.headings") },
-      { id: "outline", label: t("settings.tab.outline") },
       { id: "captions", label: t("settings.tab.captions") },
       { id: "references", label: t("settings.tab.references") },
       { id: "notes", label: t("settings.tab.notes") },
@@ -173,7 +172,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const statusCleanup = this.renderSaveStatus(layout.panel, t);
     if (this.activeTab === "general") this.renderGeneral(layout.panel, t);
     else if (this.activeTab === "headings") this.renderHeadings(layout.panel, t);
-    else if (this.activeTab === "outline") this.renderOutline(layout.panel, t);
     else if (this.activeTab === "captions") this.renderCaptions(layout.panel, t);
     else if (this.activeTab === "references") this.renderReferences(layout.panel, t);
     else if (this.activeTab === "notes") this.renderNotes(layout.panel, t);
@@ -271,6 +269,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderGeneral(container: HTMLElement, t: Translate): void {
+    new Setting(container).setName(t("settings.outline.enabled"))
+      .setDesc(t("settings.outline.enabled.desc"))
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.enhanceNativeOutline)
+        .onChange((value) => this.updateControl("outline.enabled", value)));
     new Setting(container)
       .setName(t("settings.language"))
       .setDesc(t("settings.language.desc"))
@@ -330,21 +332,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.missingLevelStrategy)
         .onChange((value) => this.updateControl("general.missingLevelStrategy", value)));
     this.schemeRenderer(t).renderSchemes(container);
-  }
-
-  private renderOutline(container: HTMLElement, t: Translate): void {
-    new Setting(container).setName(t("settings.outline.showNumbers"))
-      .setDesc(t("settings.outline.showNumbers.desc"))
-      .addToggle((toggle) => toggle.setValue(this.plugin.settings.showOutlineNumbers)
-        .onChange((value) => this.updateControl("outline.showNumbers", value)));
-    new Setting(container).setName(t("settings.outline.showExtended"))
-      .setDesc(t("settings.outline.showExtended.desc"))
-      .addToggle((toggle) => toggle.setValue(this.plugin.settings.showOutlineExtendedHeadings)
-        .onChange((value) => this.updateControl("outline.showExtendedHeadings", value)));
-    new Setting(container).setName(t("settings.outline.showCaptions"))
-      .setDesc(t("settings.outline.showCaptions.desc"))
-      .addToggle((toggle) => toggle.setValue(this.plugin.settings.showOutlineCaptions)
-        .onChange((value) => this.updateControl("outline.showCaptions", value)));
   }
 
   private renderCaptions(container: HTMLElement, t: Translate): void {

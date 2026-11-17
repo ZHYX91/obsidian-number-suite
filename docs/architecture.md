@@ -134,7 +134,7 @@ Native GFM rows split on unescaped pipes before inline parsing, including pipes 
 
 Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
 
-Three independent Outline switches default on: effective heading numbers, H7–H9, and captions. Explicit saved false values remain false. The adapter does not change Markdown or the shared metadata cache. Native collapse, filtering, current-location following, multiple panes and pinned-file behavior remain available. Headings show a small number pill and text. Caption leaves show a type icon, localized type and ordinal, and secondary title without a whole-row pill or expand arrow. Source order and effective counts do not depend on filtering or collapse. Body caption pills stay unchanged.
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
 H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
 
@@ -144,7 +144,7 @@ The native Outline toolbar and Current note header open the heading map for thei
 or command palette. It uses the same bound-pane source preference and exact source-line navigation,
 rendering SVG structure edges in left-to-right or top-to-bottom layout. Pure helpers own structural
 depth expansion and anchored viewport zoom math. A card's left handle shows its heading number or Hn
-fallback; its right handle always shows the total direct-child count and changes only session-local
+fallback; its right arrow shows the direct-child count when children exist; leaves show neither an arrow nor zero, and the control changes only session-local
 branch collapse. The view supports whole-document/selected-subtree scopes, 1/2/3/all depth presets,
 search traversal, empty-space panning, Ctrl/Cmd-wheel or two-finger pointer zoom, keyboard zoom/Fit,
 and toolbar Fit. Search may temporarily reveal ancestors of matches without changing structural

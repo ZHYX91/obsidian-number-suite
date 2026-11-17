@@ -233,7 +233,7 @@ Source markers are disabled by default. Before enabling them for a release claim
   and confirm the same numbering model.
 - [ ] Preview and apply a current-note write, then undo and redo once. Run cleanup and confirm the
   original Markdown is restored without changing unrelated content.
-- [ ] Open all eight settings tabs at phone width, change one setting, reload the plugin, and confirm
+- [ ] Open all seven settings tabs at phone width, change one setting, reload the plugin, and confirm
   persistence without clipped controls or hover-only actions.
 - [ ] Background and foreground Obsidian, switch notes, disable and re-enable the plugin, and confirm
   there is no stale decoration, plugin error, crash, or ANR.
@@ -253,7 +253,7 @@ Vault content or imply that an older candidate's results verify newer code.
 Run `regional-language-and-rtl` for changes to translations, scoped direction or regional schemes.
 Use `Regional numbers.md` to keep authored years, decimal values, quantities and dates visible and
 unchanged during cleanup and concealment. Check live map state across English/Arabic switching,
-eight settings tabs, mixed-direction input and independent persistence of language and scheme.
+seven settings tabs, mixed-direction input and independent persistence of language and scheme.
 Desktop and Android results are separate; report unavailable interactions as unverified.
 
 ## Current safety regressions
@@ -291,7 +291,7 @@ Neither investigation is a completed acceptance result until the exact candidate
 
 ## Native Outline migration and guarded structure edits
 
-- [ ] With core Outline disabled, verify helpful enablement guidance and no automatic enablement. With it enabled, verify three independent default-on settings and persisted explicit false values after reload.
+- [ ] With core Outline disabled, verify helpful enablement guidance and no automatic enablement. With it enabled, verify the General master switch, four shared Display options and persisted explicit false values after reload.
 - [ ] Compare effective numbers with the body across built-in/custom schemes, exclusions and per-note settings. Confirm heading number pills, localized caption type icons/ordinals, secondary titles and non-expandable caption leaves in source order; filtering and collapse must not renumber entries.
 - [ ] Verify native filtering, collapse, current-location following, multiple Outline panes and pinned files. Confirm no Markdown or shared metadata cache changes from display alone.
 - [ ] On Windows and Android, drag an H7, H8 and H9 section before/after a same-parent, same-level peer. Verify visible insertion targets, complete prose/caption/descendant movement, Undo and Redo, and rejection after an intervening source edit. Capture actual touch-drag evidence on Android; up/down buttons alone do not accept dragging.

@@ -43,7 +43,7 @@ Current-note actions are unavailable without an active Markdown note and must sh
 
 Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
 
-Three independent Outline switches default on: effective heading numbers, H7–H9, and captions. Explicit saved false values remain false. The adapter does not change Markdown or the shared metadata cache. Native collapse, filtering, current-location following, multiple panes and pinned-file behavior remain available. Headings show a small number pill and text. Caption leaves show a type icon, localized type and ordinal, and secondary title without a whole-row pill or expand arrow. Source order and effective counts do not depend on filtering or collapse. Body caption pills stay unchanged.
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
 H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
 
@@ -61,9 +61,7 @@ The map projects headings only: captions are neither shown nor counted as child
 headings. Its default layout runs left to right, connecting a parent's right side to each child's
 left side. A card's left handle first shows the virtual number that is actually visible; when there
 is no virtual number, it may show a reliably recognized visible stored number within the current
-recognition scope; otherwise it shows Hn. The right handle always shows the total number of direct
-child headings. When children exist it toggles only that branch without changing the count; zero is
-shown but is not expandable. A skipped-level heading attaches directly to the nearest preceding
+recognition scope; otherwise it shows Hn. The right arrow shows the direct-child count and toggles the branch; leaves show neither an arrow nor zero. A skipped-level heading attaches directly to the nearest preceding
 shallower heading without creating synthetic nodes.
 
 The mind map supports whole-document and Selected subtree scopes, 1/2/3/all structural-depth
@@ -85,19 +83,9 @@ search-revealed ancestor last only for that query and leave the saved collapse i
 Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
 panning, zoom buttons, and two-finger pinch zoom.
 
-The Current note tab first shows note name and path, then a Setting / Global / Current-note override /
-Effective summary for virtual display, concealment, scheme, and full ignore. Display and concealment
-use Follow global / On / Off tri-state controls. Scheme selection shows available names and never
-requires internal IDs. Selecting the sidebar must not make the targeted editor ambiguous: a
-heading-transform action resolves the one open editor for that note and fails closed if zero or multiple
-matching editors exist.
+The Current note panel shows note name and path with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Disabling retains choices. Starting and skip rules are collapsed, with existing rules visible and H1–H9 rules added on demand. Each choice can return to inheritance; Restore all removes overrides. Write and cleanup actions stay in a separate disclosure and retain previews and safety checks. Invalid YAML, conflicts and save failures remain visible. File actions require one matching editor and fail closed for zero or multiple matches.
 
-A collapsed Display and file operations guide follows the effective summary. Its table compares source, goal, action, and heading text changes, and explains that per-note display choices persist Properties.
-
-Current-note content uses quiet grouped surfaces for each effective-value set, with subdued section
-labels, whitespace, and effective-value emphasis instead of stacked full-width dividers. Its helper
-note is compact and has no accent border in the sidebar. Loading uses a separate text-labelled status
-indicator and stops rotating when reduced motion is preferred.
+Layout and expansion depth use secondary View options; range, search and zoom stay primary. Cards use light borders and backgrounds, a single number-or-level pill and consistent hover, selection and focus. Move buttons and insertion targets appear only in Adjust structure mode.
 
 Follow global deletes the relevant Property. Restore all deletes every plugin override while
 preserving unrelated Properties. After a successful Property write, the tab exits its busy state,
@@ -108,7 +96,7 @@ separate itemized preview modal; batch selection and global settings remain sepa
 <!-- section: settings-experience -->
 ## Global settings experience
 
-Settings use eight consistent tabs: General, Heading numbering, Outline enhancements, Captions, Cross references,
+Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
 Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template

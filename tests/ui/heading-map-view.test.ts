@@ -158,6 +158,18 @@ describe("heading map write identity", () => {
 });
 
 describe("heading map interactions", () => {
+  it("uses one level capsule with a level tooltip and no child control on heading leaves", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const child = view.roots[0]!.children[0]!;
+    const card = view.sceneHost.querySelector(`[data-node-id="${child.id}"]`)!;
+    const capsule = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-number")!;
+    expect(capsule.title).toBe("H2");
+    expect(card.querySelectorAll(".number-suite-heading-map-number")).toHaveLength(1);
+    expect(card.querySelector(".number-suite-heading-map-children")).toBeNull();
+    expect(card.querySelector(".number-suite-heading-map-order-controls")).toBeNull();
+  });
+
   it("offers keyboard and touch reorder buttons only in edit mode", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## A\n### A child\n## B\n## C");
@@ -189,15 +201,14 @@ describe("heading map interactions", () => {
   });
 
 
-  it("renders an empty file as a document card with a disabled zero handle", async () => {
+  it("renders an empty file as a document card without an empty expand control", async () => {
     const view = makeView();
     await view.refreshMap("");
     const card = view.sceneHost.querySelector(".is-document")!;
     expect(card.querySelector(".number-suite-heading-map-body")?.textContent).toBe("Same");
     expect(card.querySelector(".number-suite-heading-map-number")?.getAttribute("aria-label")).toBe("Same.md");
     const handle = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
-    expect(handle.disabled).toBe(true);
-    expect(handle.textContent).toBe("0");
+    expect(handle).toBeNull();
     expect(view.lastLayout.edges).toHaveLength(0);
   });
 

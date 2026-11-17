@@ -37,6 +37,8 @@ export interface NumberSuiteSettings {
   showImageCaptionTooltips: boolean;
   showCrossReferences: boolean;
   enhanceNativeWikiHeadingLinks: boolean;
+  enhanceNativeOutline: boolean;
+  showOutlineLevels: boolean;
   showOutlineNumbers: boolean;
   showOutlineExtendedHeadings: boolean;
   showOutlineCaptions: boolean;
@@ -122,6 +124,8 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   showImageCaptionTooltips: true,
   showCrossReferences: true,
   enhanceNativeWikiHeadingLinks: false,
+  enhanceNativeOutline: true,
+  showOutlineLevels: true,
   showOutlineNumbers: true,
   showOutlineExtendedHeadings: true,
   showOutlineCaptions: true,
@@ -317,6 +321,8 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     ),
     showCrossReferences: booleanOr(raw.showCrossReferences, DEFAULT_SETTINGS.showCrossReferences),
     enhanceNativeWikiHeadingLinks: booleanOr(raw.enhanceNativeWikiHeadingLinks, DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks),
+    enhanceNativeOutline: booleanOr(raw.enhanceNativeOutline, DEFAULT_SETTINGS.enhanceNativeOutline),
+    showOutlineLevels: booleanOr(raw.showOutlineLevels, DEFAULT_SETTINGS.showOutlineLevels),
     showOutlineNumbers: booleanOr(raw.showOutlineNumbers, DEFAULT_SETTINGS.showOutlineNumbers),
     showOutlineExtendedHeadings: booleanOr(raw.showOutlineExtendedHeadings, DEFAULT_SETTINGS.showOutlineExtendedHeadings),
     showOutlineCaptions: booleanOr(raw.showOutlineCaptions, DEFAULT_SETTINGS.showOutlineCaptions),

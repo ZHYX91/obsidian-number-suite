@@ -1,5 +1,18 @@
 /** ru interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_RU: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "Следовать общим настройкам",
+  "panel.status.custom": "Изменено настроек: {count}",
+  "panel.status.disabled": "Отключено для этой заметки",
+  "panel.storedNumbers": "Сохранённые номера",
+  "panel.display.show": "Показать",
+  "panel.display.hide": "Скрыть",
+  "panel.inheritValue": "Общая настройка ({value})",
+  "panel.addLevel": "Добавить правило уровня",
+  "headingMap.viewOptions": "Параметры вида",
+  "settings.outline.enabled": "Расширить стандартный план",
+  "settings.outline.enabled.desc": "Включить параметры плана и вход в карту; при отключении настройки сохраняются.",
+  "settings.outline.showLevels": "Показывать уровень заголовков без номера",
+  "outline.displayOptions": "Параметры отображения",
   "panel.modes.title": "Отображение и операции с файлом",
   "panel.modes.source": "Сохранённый заголовок",
   "panel.modes.goal": "Цель",

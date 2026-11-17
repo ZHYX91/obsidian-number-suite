@@ -1,5 +1,18 @@
 /** zh-TW interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "跟隨全域",
+  "panel.status.custom": "已自訂 {count} 項",
+  "panel.status.disabled": "此筆記已停用",
+  "panel.storedNumbers": "已寫入編號",
+  "panel.display.show": "顯示",
+  "panel.display.hide": "隱藏",
+  "panel.inheritValue": "繼承全域（{value}）",
+  "panel.addLevel": "新增層級規則",
+  "headingMap.viewOptions": "顯示選項",
+  "settings.outline.enabled": "增強原生大綱",
+  "settings.outline.enabled.desc": "啟用大綱顯示選項與心智圖入口；停用時保留偏好。",
+  "settings.outline.showLevels": "無編號時顯示標題層級",
+  "outline.displayOptions": "顯示選項",
   "panel.modes.title": "顯示與檔案操作",
   "panel.modes.source": "原有標題",
   "panel.modes.goal": "目標",

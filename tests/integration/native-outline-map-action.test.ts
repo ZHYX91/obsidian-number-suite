@@ -3,8 +3,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installDomFixture } from "../ui/dom-fixture";
 
+const menus = vi.hoisted(() => [] as Array<{ items: Array<{ title: string; checked: boolean; callback: () => void }> }>);
+
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
+  Menu: class {
+    readonly items: Array<{ title: string; checked: boolean; callback: () => void }> = [];
+    constructor() { menus.push(this); }
+    addItem(configure: (item: unknown) => void): this {
+      const data = { title: "", checked: false, callback: () => undefined };
+      const item = {
+        setTitle: (title: string) => { data.title = title; return item; },
+        setChecked: (checked: boolean) => { data.checked = checked; return item; },
+        onClick: (callback: () => undefined) => { data.callback = callback; return item; },
+      };
+      configure(item); this.items.push(data); return this;
+    }
+    showAtPosition(): void {}
+  },
   ItemView: class {
     readonly contentEl = document.createElement("div");
     readonly containerEl = document.createElement("div");
@@ -26,11 +42,13 @@ vi.mock("obsidian", async (original) => ({
   },
 }));
 
-import { ItemView } from "obsidian";
+import { ItemView, Notice } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NativeOutlineEnhancer } from "../../src/integration/native-outline";
 
 beforeEach(() => {
+  menus.length = 0;
+  (Notice as unknown as { messages: string[] }).messages.length = 0;
   installDomFixture();
   document.body.replaceChildren();
 });
@@ -59,6 +77,54 @@ describe("native Outline mind-map entry", () => {
     expect(opened).toEqual(["Pinned.md"]);
     enhancer.stop();
     expect(actions.querySelector(".number-suite-outline-map-action")).toBeNull();
+  });
+
+  it("removes both toolbar enhancements while disabled and restores saved preferences", () => {
+    const view = new (ItemView as unknown as new () => ItemView)();
+    const actions = (view as unknown as { actions: HTMLElement }).actions;
+    document.body.append(view.containerEl);
+    let settings = { ...DEFAULT_SETTINGS, showOutlineNumbers: false };
+    const enhancer = new NativeOutlineEnhancer({ app: {
+      workspace: { getLeavesOfType: () => [{ view }] }, vault: { getAbstractFileByPath: () => null },
+    } } as never, () => settings);
+    enhancer.refresh();
+    expect(actions.querySelectorAll("button")).toHaveLength(2);
+    settings = { ...settings, enhanceNativeOutline: false };
+    enhancer.refresh();
+    expect(actions.querySelectorAll("button")).toHaveLength(0);
+    settings = { ...settings, enhanceNativeOutline: true };
+    enhancer.refresh();
+    expect(actions.querySelectorAll("button")).toHaveLength(2);
+    expect(settings.showOutlineNumbers).toBe(false);
+    enhancer.stop();
+  });
+
+  it("shows four persisted display choices and reports save failures", async () => {
+    const view = new (ItemView as unknown as new () => ItemView)();
+    document.body.append(view.containerEl);
+    let settings = { ...DEFAULT_SETTINGS };
+    let fail = false;
+    const save = vi.fn(async (next: typeof settings) => {
+      if (fail) throw new Error("disk unavailable");
+      settings = next;
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const enhancer = new NativeOutlineEnhancer({ app: {
+      workspace: { getLeavesOfType: () => [{ view }] }, vault: { getAbstractFileByPath: () => null },
+    } } as never, () => settings, () => undefined, undefined, undefined, save);
+    enhancer.refresh();
+    view.containerEl.querySelector<HTMLButtonElement>(".number-suite-outline-options-action")?.click();
+    expect(menus[0]?.items).toHaveLength(4);
+    menus[0]?.items[0]?.callback();
+    await Promise.resolve(); await Promise.resolve();
+    expect(settings.showOutlineNumbers).toBe(false);
+    expect(settings.showVirtualNumbers).toBe(DEFAULT_SETTINGS.showVirtualNumbers);
+    fail = true;
+    menus[0]?.items[1]?.callback();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect((Notice as unknown as { messages: string[] }).messages).toContain("Settings were not saved.");
+    expect(settings.showOutlineLevels).toBe(true);
+    enhancer.stop(); error.mockRestore();
   });
 
   it("refreshes an existing action label rather than creating duplicates", () => {

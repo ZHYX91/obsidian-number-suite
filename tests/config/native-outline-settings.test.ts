@@ -5,13 +5,15 @@ import { DEFAULT_SETTINGS, sanitizeSettings, normalizePluginData } from "../../s
 import { applySettingsControlValue, getSettingsControlValue } from "../../src/app/settings-control-contract";
 
 const controls = [
+  ["outline.enabled", "enhanceNativeOutline"],
+  ["outline.showLevels", "showOutlineLevels"],
   ["outline.showNumbers", "showOutlineNumbers"],
   ["outline.showExtendedHeadings", "showOutlineExtendedHeadings"],
   ["outline.showCaptions", "showOutlineCaptions"],
 ] as const;
 
 describe("native Outline enhancement settings", () => {
-  it("defaults all three controls on without changing the source display setting", () => {
+  it("defaults all Outline controls on without changing the source display setting", () => {
     expect(DEFAULT_SETTINGS.showVirtualNumbers).toBe(false);
     for (const [key, field] of controls) {
       expect(DEFAULT_SETTINGS[field]).toBe(true);
@@ -38,12 +40,26 @@ describe("native Outline enhancement settings", () => {
     }
   });
 
+  it("adds enabled and level defaults without resetting legacy off choices", () => {
+    const upgraded = sanitizeSettings({
+      showOutlineNumbers: false, showOutlineExtendedHeadings: false, showOutlineCaptions: false,
+    });
+    expect(upgraded.enhanceNativeOutline).toBe(true);
+    expect(upgraded.showOutlineLevels).toBe(true);
+    expect(upgraded.showOutlineNumbers).toBe(false);
+    expect(upgraded.showOutlineExtendedHeadings).toBe(false);
+    expect(upgraded.showOutlineCaptions).toBe(false);
+  });
+
   it("provides localized labels and descriptions in every supported language", () => {
     const en = createTranslator("en");
     for (const locale of UI_LOCALES) {
       const t = createTranslator(locale);
       for (const key of [
-        "settings.tab.outline",
+        "settings.outline.enabled",
+        "settings.outline.enabled.desc",
+        "settings.outline.showLevels",
+        "outline.displayOptions",
         "settings.outline.showNumbers",
         "settings.outline.showNumbers.desc",
         "settings.outline.showExtended",

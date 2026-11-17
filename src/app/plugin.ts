@@ -133,6 +133,7 @@ export default class NumberSuitePlugin extends Plugin {
       (path) => void this.openHeadingMap(path, null, true),
       () => this.translate()("command.headingMap.open"),
       (key: string) => this.translate()(key as Parameters<Translate>[0]),
+      (settings) => this.saveSettings(settings, "display"),
     );
     this.nativeOutline.start();
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {

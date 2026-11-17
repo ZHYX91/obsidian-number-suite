@@ -121,7 +121,7 @@ Select representative acceptance on the exact candidate by change impact. Deskto
 When mobile acceptance is selected, use an isolated Android 15 / API 35 emulator.
 Install and hash-check the final candidate, then cover sidebar open/close, both tabs, H1-H9 and
 caption outline navigation, 44-pixel touch targets, current-note controls, Live Preview, Reading
-View, Chinese IME, the write/cleanup round trip, all eight settings tabs, background/foreground,
+View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
 and disable cleanup. Android physical devices and iOS are outside the current acceptance matrix;
 the emulator is Number Suite's complete mobile acceptance surface.
 

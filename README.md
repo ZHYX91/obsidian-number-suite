@@ -18,8 +18,7 @@ The sidebar and write-preview images below render the actual plugin components w
 
 ### Check settings for this note
 
-Use the Current note panel in the Number Suite sidebar to compare global defaults, per-note
-overrides, and effective values before changing the note.
+Use Current note to inherit or override common display choices independently and check its automatic status.
 
 ![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
 
@@ -95,7 +94,7 @@ To see heading numbers without rewriting the headings, enable **Show virtual num
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
 
-The Current note panel includes a **Display and file operations** guide with source, goal, action, and heading-text examples. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
+Current note keeps common display choices compact and advanced rules and file operations collapsed. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
 
 Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
 
@@ -114,8 +113,7 @@ and remains visible even when the note has none. It shows the file name, a file 
 of top-level headings; it never replaces a same-name H1. The initial overview shows the first two levels of the heading tree at a readable size. Click the file name above the map to return from a subtree, or the
 zoom percentage to restore 100%. The left heading-card handle shows the virtual number that is
 actually displayed, or a reliably recognized visible stored number; otherwise it falls back to the
-heading level. The right handle always shows the count of direct child headings and toggles only that
-branch. Select a card and switch between the whole document and that heading's subtree, show 1, 2,
+heading level. The right arrow shows the direct-child count and toggles the branch; leaves show neither an arrow nor zero. Select a card and switch between the whole document and that heading's subtree, show 1, 2,
 3, or all structural depths, and switch between left-to-right and top-to-bottom layout. Search shows
 the current match count; Enter and Shift+Enter move forward and backward through matches without
 changing structural counts. Drag empty space or scroll to pan, hold Ctrl/Cmd while scrolling to zoom
@@ -123,7 +121,7 @@ around the pointer, use two-finger pinch zoom on touch devices, and use +, -, 0 
 controls for zoom/Fit. Double-click a heading card or press Enter on its body to jump to its exact
 source line. The map normally browses without writing and never counts captions as child headings. Explicit **Adjust structure** mode supports same-parent, same-level whole-section dragging and up/down buttons. Moves require unchanged source and support native Undo/Redo.
 
-Three independent native Outline controls default on: numbers, H7–H9, and captions; saved off choices remain off. Heading numbers use small pills; caption leaves use type icons, localized type ordinals and secondary titles, ordered by source without expand arrows or whole-row pills. Counts match the body and ignore filtering/collapse. H7–H9 support guarded same-parent, same-level complete-section dragging with clear insertion targets and Undo/Redo. Native H1–H6 operations remain available; captions cannot drag independently.
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
 ### Extended H7–H9 headings
 
@@ -148,8 +146,8 @@ For exact syntax, object-placement ambiguity, IDs and editor behavior, read the 
 
 Open **Settings → Number Suite → General** for the **User guide** and **Report an issue** links.
 
-Settings use one accessible eight-tab surface on every supported Obsidian version: General,
-Heading numbering, Outline enhancements, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
+Settings use one accessible seven-tab surface on every supported Obsidian version: General,
+Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
 and batch. The tab itself identifies the current section, so its content starts directly with the
 first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
 appearance, and batch operations.
@@ -191,7 +189,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-The sidebar's Current note panel exposes global, override, and effective values. Untouched notes receive no
+Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Starting and skip rules are collapsed and added by level as needed. Disabling retains overrides. Write and cleanup actions have their own disclosure and keep previews. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 

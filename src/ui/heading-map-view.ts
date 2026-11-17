@@ -105,6 +105,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private subtreeButton: HTMLButtonElement | null = null;
   private scaleLabel: HTMLElement | null = null;
   private rangeSelect: HTMLSelectElement | null = null;
+  private viewOptionsSummary: HTMLElement | null = null;
   private zoomOutButton: HTMLButtonElement | null = null;
   private zoomInButton: HTMLButtonElement | null = null;
   private fitButton: HTMLButtonElement | null = null;
@@ -194,6 +195,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.subtreeButton = null;
     this.scaleLabel = null;
     this.rangeSelect = null;
+    this.viewOptionsSummary = null;
     this.zoomOutButton = null;
     this.zoomInButton = null;
     this.fitButton = null;
@@ -237,6 +239,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.searchInput.setAttribute("aria-label", t("headingMap.search"));
     }
     this.viewport?.setAttribute("aria-label", t("headingMap.canvas"));
+    this.viewOptionsSummary?.setText(t("headingMap.viewOptions"));
     this.documentButton?.setText(t("headingMap.scope.document"));
     if (this.rangeSelect != null) {
       this.rangeSelect.setAttribute("aria-label", t("headingMap.expandRange"));
@@ -310,7 +313,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.updateToolbarLabels();
       this.render();
     });
-    const scope = secondary.createDiv({ cls: "number-suite-heading-map-scope" });
+    const scope = primary.createDiv({ cls: "number-suite-heading-map-scope" });
     this.documentButton = scope.createEl("button");
     this.documentButton.type = "button";
     this.documentButton.addEventListener("click", () => {
@@ -325,7 +328,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.render();
     });
 
-    const range = secondary.createEl("select", { cls: "number-suite-heading-map-range" });
+    const options = secondary.createEl("details", { cls: "number-suite-heading-map-options" });
+    this.viewOptionsSummary = options.createEl("summary");
+    const optionsBody = options.createDiv({ cls: "number-suite-heading-map-options-body" });
+    const range = optionsBody.createEl("select", { cls: "number-suite-heading-map-range" });
     this.rangeSelect = range;
     const rangePrompt = range.createEl("option");
     rangePrompt.value = "";
@@ -341,14 +347,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
       else if (value === "all") this.setExpandRange("all");
     });
 
-    this.directionButton = secondary.createEl("button", { cls: "number-suite-heading-map-direction" });
+    this.directionButton = optionsBody.createEl("button", { cls: "number-suite-heading-map-direction" });
     this.directionButton.type = "button";
     this.directionButton.addEventListener("click", () => {
       this.layoutDirection = this.layoutDirection === "left-to-right" ? "top-to-bottom" : "left-to-right";
       this.render();
     });
 
-    const zoom = secondary.createDiv({ cls: "number-suite-heading-map-zoom" });
+    primary.insertBefore(scope, search);
+    const zoom = primary.createDiv({ cls: "number-suite-heading-map-zoom" });
     const zoomOut = zoom.createEl("button");
     zoomOut.type = "button";
     setIcon(zoomOut, "minus");
@@ -727,7 +734,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
       number.type = "button";
       if (documentRoot) setIcon(number, "file-text");
       else number.setText(node.numberLabel ?? `H${node.level}`);
-      number.title = documentRoot ? this.currentFile.path : node.numberLabel ?? `H${node.level}`;
+      number.classList.toggle("is-level", !documentRoot && node.numberLabel == null);
+      number.title = documentRoot ? this.currentFile.path : `H${node.level}`;
       number.setAttribute("aria-label", number.title);
       number.addEventListener("click", () => this.setSelection(node.id));
       number.addEventListener("focus", () => this.revealNode(node.id));
@@ -775,6 +783,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       }
 
       const childCount = node.children.length;
+      if (childCount === 0) continue;
       const handle = card.createEl("button", {
         cls: "number-suite-heading-map-children",
         text: String(childCount),
@@ -785,7 +794,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       handle.disabled = childCount === 0;
       if (childCount > 0) {
         const collapsed = effectiveCollapsed.has(node.id);
-        setIcon(handle.createSpan({ cls: "number-suite-heading-map-expand-icon" }), collapsed ? "plus" : "minus");
+        setIcon(handle.createSpan({ cls: "number-suite-heading-map-expand-icon" }), collapsed ? "chevron-right" : "chevron-down");
         handle.classList.toggle("is-collapsed", collapsed);
         handle.setAttribute("aria-expanded", String(!collapsed));
         handle.setAttribute("aria-label", this.actions.getTranslate()(
@@ -802,10 +811,6 @@ export class NumberSuiteHeadingMapView extends ItemView {
           this.render();
           this.focusControl(node.id);
         });
-      } else {
-        const label = this.actions.getTranslate()("headingMap.childCount", { count: 0 });
-        handle.setAttribute("aria-label", label);
-        handle.title = label;
       }
     }
 

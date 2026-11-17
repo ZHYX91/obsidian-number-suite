@@ -1,4 +1,4 @@
-import { ItemView, MarkdownView, TFile, setIcon, type HeadingCache, type Plugin, type View } from "obsidian";
+import { Menu, Notice, ItemView, MarkdownView, TFile, setIcon, type HeadingCache, type Plugin, type View } from "obsidian";
 import { createHeadingMap } from "../application/heading-map";
 import { planSameParentHeadingMove, type SameParentHeadingMove } from "../application/heading-map-reorder";
 import type { Translate } from "../config/i18n";
@@ -32,7 +32,7 @@ export function createNativeOutlineProjection(
 ): NativeOutlineProjection {
   const original = [...native];
   const numberLabels = new Map<number, string>();
-  if (!settings.showOutlineNumbers && !settings.showOutlineExtendedHeadings && !settings.showOutlineCaptions) {
+  if (!settings.enhanceNativeOutline) {
     return { headings: original, numberLabels };
   }
   const effective = resolveNoteSettings(
@@ -184,6 +184,7 @@ export class NativeOutlineEnhancer {
   private observed = new Map<View, ObservedOutline>();
   // The map entry is independent of the private Outline tree adaptation.
   private readonly mapActions = new Map<View, HTMLElement>();
+  private readonly optionActions = new Map<View, HTMLElement>();
   private sources = new Map<string, string>();
   private generations = new Map<string, number>();
   private stopped = false;
@@ -194,6 +195,7 @@ export class NativeOutlineEnhancer {
     private readonly openMap: (path: string) => void = () => undefined,
     private readonly mapLabel: () => string = () => "Open heading mind map",
     private readonly translate?: Translate,
+    private readonly saveSettings: (settings: NumberSuiteSettings) => Promise<void> = async () => undefined,
   ) {}
 
   start(): void {
@@ -210,7 +212,7 @@ export class NativeOutlineEnhancer {
       if (file instanceof TFile && file.extension === "md") void this.loadSource(file.path);
     }));
     this.plugin.registerEvent(app.metadataCache.on("changed", (file) => {
-      if (file.extension === "md") void this.loadSource(file.path);
+      if (file.extension === "md") void this.loadSource(file.path, true);
     }));
     this.plugin.register(() => this.stop());
     app.workspace.onLayoutReady(() => { if (!this.stopped) this.refresh(); });
@@ -218,7 +220,15 @@ export class NativeOutlineEnhancer {
 
   refresh(): void {
     if (this.stopped) return;
-    const views = this.plugin.app.workspace.getLeavesOfType("outline").map((leaf) => leaf.view);
+    const views = this.settings().enhanceNativeOutline
+      ? this.plugin.app.workspace.getLeavesOfType("outline").map((leaf) => leaf.view) : [];
+    for (const [view, action] of this.optionActions) {
+      if (!views.includes(view) || !action.isConnected) { action.remove(); this.optionActions.delete(view); }
+      else {
+        const label = this.translate?.("outline.displayOptions") ?? "Display options";
+        action.setAttribute("aria-label", label); action.title = label;
+      }
+    }
     for (const view of [...this.observed.keys()]) {
       if (!views.includes(view)) this.remove(view);
     }
@@ -251,6 +261,34 @@ export class NativeOutlineEnhancer {
       ".nav-header .nav-buttons-container, .nav-buttons-container",
     ) ?? view.containerEl.querySelector<HTMLElement>(".nav-header");
     if (toolbar == null) return;
+    const options = toolbar.createEl("button");
+    options.type = "button";
+    options.className = "clickable-icon nav-action-button number-suite-outline-options-action";
+    options.setAttribute("aria-label", this.translate?.("outline.displayOptions") ?? "Display options");
+    options.title = options.getAttribute("aria-label") ?? "Display options";
+    setIcon(options, "sliders-horizontal");
+    options.addEventListener("click", (event) => {
+      event.preventDefault(); event.stopPropagation();
+      const menu = new Menu();
+      const definitions = [
+        ["showOutlineNumbers", "settings.outline.showNumbers"],
+        ["showOutlineLevels", "settings.outline.showLevels"],
+        ["showOutlineExtendedHeadings", "settings.outline.showExtended"],
+        ["showOutlineCaptions", "settings.outline.showCaptions"],
+      ] as const;
+      for (const [property, key] of definitions) menu.addItem((item) => item
+        .setTitle(this.translate?.(key) ?? key).setChecked(this.settings()[property])
+        .onClick(() => {
+          const next = { ...this.settings(), [property]: !this.settings()[property] };
+          void this.saveSettings(next).then(() => this.refresh()).catch((error: unknown) => {
+            console.error("Number Suite: failed to save Outline display options", error);
+            new Notice(this.translate?.("settings.save.pending") ?? "Settings were not saved.");
+          });
+        }));
+      const bounds = options.getBoundingClientRect();
+      menu.showAtPosition({ x: bounds.left, y: bounds.bottom });
+    });
+    this.optionActions.set(view, options);
     const action = toolbar.createEl("button");
     action.type = "button";
     action.className = "clickable-icon nav-action-button number-suite-outline-map-action";
@@ -580,16 +618,18 @@ export class NativeOutlineEnhancer {
         }
         const heading = byLine.get(line);
         if (heading == null || heading.level !== item.level || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim()) continue;
-        const title = entry.titles.get(line);
+        const title = entry.titles.get(line) ?? withoutTrailingBlockId(item.heading);
         const label = entry.labels.get(line);
+        const badge = label ?? (this.settings().showOutlineLevels ? "H" + item.level : null);
         if (title == null) continue;
         // Keep event ownership on the native row; only its display children change.
         element.replaceChildren();
-        if (label != null) {
+        if (badge != null) {
           const span = outlineSpan(element.ownerDocument);
-          span.className = NUMBER_CLASS;
+          span.className = NUMBER_CLASS + (label == null ? " number-suite-native-outline-level" : "");
+          span.title = "H" + item.level;
           span.setAttribute("aria-hidden", "true");
-          span.textContent = label;
+          span.textContent = badge;
           element.append(span);
         }
         element.append(element.ownerDocument.createTextNode(title));
@@ -611,7 +651,7 @@ export class NativeOutlineEnhancer {
     }
   }
 
-  private async loadSource(path: string): Promise<void> {
+  private async loadSource(path: string, refreshProjection = false): Promise<void> {
     const generation = (this.generations.get(path) ?? 0) + 1;
     this.generations.set(path, generation);
     const file = this.plugin.app.vault.getAbstractFileByPath(path);
@@ -623,6 +663,10 @@ export class NativeOutlineEnhancer {
       if (this.stopped || this.generations.get(path) !== generation) return;
       if (this.sources.get(path) !== source) {
         this.sources.set(path, source);
+        this.updatePath(path);
+      } else if (refreshProjection) {
+        // The editor text can arrive before the core heading cache. Once the
+        // cache catches up, retry even though the source itself did not change.
         this.updatePath(path);
       }
     } catch { /* Source unavailable: leave core Outline intact. */ }
@@ -654,6 +698,8 @@ export class NativeOutlineEnhancer {
     for (const view of [...this.observed.keys()]) this.remove(view);
     for (const action of this.mapActions.values()) action.remove();
     this.mapActions.clear();
+    for (const action of this.optionActions.values()) action.remove();
+    this.optionActions.clear();
     this.sources.clear();
     this.generations.clear();
   }

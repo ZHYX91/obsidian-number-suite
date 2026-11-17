@@ -3,6 +3,19 @@ import { NUMBER_SUITE_LOCALE_OVERRIDES } from "./locale-overrides";
 import { isUiLanguage, type UiLanguage, type UiLocale } from "./language-options";
 
 const EN = {
+  "panel.status.inherit": "Following global settings",
+  "panel.status.custom": "Customized {count} settings",
+  "panel.status.disabled": "Disabled for this note",
+  "panel.storedNumbers": "Stored numbers",
+  "panel.display.show": "Show",
+  "panel.display.hide": "Hide",
+  "panel.inheritValue": "Follow global ({value})",
+  "panel.addLevel": "Add heading-level rule",
+  "headingMap.viewOptions": "View options",
+  "settings.outline.enabled": "Enhance native Outline",
+  "settings.outline.enabled.desc": "Enable Outline display options and mind-map entry; saved preferences are retained when disabled.",
+  "settings.outline.showLevels": "Show heading levels when unnumbered",
+  "outline.displayOptions": "Display options",
   "panel.modes.title": "Display and file operations",
   "panel.modes.source": "Stored heading",
   "panel.modes.goal": "Goal",
@@ -494,6 +507,19 @@ const EN = {
 type MessageKey = keyof typeof EN;
 
 const ZH: Record<MessageKey, string> = {
+  "panel.status.inherit": "跟随全局",
+  "panel.status.custom": "已自定义 {count} 项",
+  "panel.status.disabled": "本笔记停用",
+  "panel.storedNumbers": "已写入编号",
+  "panel.display.show": "显示",
+  "panel.display.hide": "隐藏",
+  "panel.inheritValue": "继承全局（{value}）",
+  "panel.addLevel": "添加级别规则",
+  "headingMap.viewOptions": "显示选项",
+  "settings.outline.enabled": "增强原生大纲",
+  "settings.outline.enabled.desc": "启用大纲显示选项与导图入口；关闭时保留偏好。",
+  "settings.outline.showLevels": "无编号时显示标题级别",
+  "outline.displayOptions": "显示选项",
   "panel.modes.title": "显示与文件操作",
   "panel.modes.source": "原有标题",
   "panel.modes.goal": "目标",

@@ -1,5 +1,18 @@
 /** vi interface strings. Preserve fixed Markdown tokens and interpolation placeholders. */
 export const LOCALE_VI: Readonly<Record<string, string>> = {
+  "panel.status.inherit": "Theo thiết lập chung",
+  "panel.status.custom": "Đã tùy chỉnh {count} mục",
+  "panel.status.disabled": "Tắt cho ghi chú này",
+  "panel.storedNumbers": "Số đã lưu",
+  "panel.display.show": "Hiện",
+  "panel.display.hide": "Ẩn",
+  "panel.inheritValue": "Theo thiết lập chung ({value})",
+  "panel.addLevel": "Thêm quy tắc cấp tiêu đề",
+  "headingMap.viewOptions": "Tùy chọn dạng xem",
+  "settings.outline.enabled": "Mở rộng dàn ý gốc",
+  "settings.outline.enabled.desc": "Bật tùy chọn dàn ý và lối vào sơ đồ tư duy; giữ tùy chọn khi tắt.",
+  "settings.outline.showLevels": "Hiện cấp tiêu đề khi không có số",
+  "outline.displayOptions": "Tùy chọn hiển thị",
   "panel.modes.title": "Hiển thị và thao tác tệp",
   "panel.modes.source": "Tiêu đề đã lưu",
   "panel.modes.goal": "Mục tiêu",

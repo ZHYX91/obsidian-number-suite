@@ -47,9 +47,10 @@ Có kiểu phân cấp thông thường, ví dụ cho văn bản hành chính v�
 <!-- section: settings -->
 ## Tìm phần cài đặt
 
-Tám thẻ cài đặt gồm: Chung, Đánh số tiêu đề, Cải tiến dàn ý, Chú thích, Tham chiếu chéo, Chú thích chân trang và cuối tài liệu, Ghi số và dọn dẹp, Hiển thị và hàng loạt. Ngôn ngữ giao diện và kiểu đánh số được chọn riêng. Phần ghi chú hiện tại ở thanh bên phải cho phép đổi riêng từng ghi chú. Chọn theo cài đặt chung sẽ xóa đúng phần ghi đè đó, giữ nguyên Properties khác.
 
-Biểu tượng mở thẳng Ghi chú hiện tại, không có thẻ thanh bên. Hãy tự bật tiện ích Dàn ý lõi; Number Suite không tự bật. Ba tùy chọn riêng cho số, H7–H9 và chú thích mặc định bật, nhưng giữ lựa chọn tắt đã lưu. Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
+Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gốc. Tắt vẫn giữ tùy chọn và không tự bật tiện ích lõi. Menu hiển thị dàn ý lưu bốn lựa chọn dùng chung: số, cấp khi không có số, H7–H9 và chú thích; chỉ ảnh hưởng dàn ý. Mỗi tiêu đề có một nhãn số hoặc Hn trung tính. Ghi chú hiện tại kế thừa hoặc ghi đè riêng số ảo, hiển thị số đã ghi và kiểu, kèm trạng thái tự động. Quy tắc bắt đầu và bỏ qua được thu gọn, thêm theo nhu cầu. Tắt vẫn giữ lựa chọn; ghi và dọn dẹp vẫn cần xem trước. Nút lá của sơ đồ không hiện 0. Bố cục và độ sâu ở menu phụ; nút di chuyển và điểm thả chỉ hiện trong chế độ chỉnh cấu trúc.
+
+Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
 
 <!-- section: limitations -->
 ## Phạm vi và giới hạn
