@@ -14,6 +14,7 @@ export interface ReferenceActivationOptions {
 
 interface Press {
   pointerId: number | null;
+  touch: boolean;
   source: unknown;
   x: number;
   y: number;
@@ -65,6 +66,7 @@ export function bindReferenceActivation(
   const begin = (event: MouseEvent, pointerId: number | null): void => {
     press = {
       pointerId,
+      touch: (event as PointerEvent).pointerType === "touch",
       source: options.sourceToken(),
       x: event.clientX,
       y: event.clientY,
@@ -96,7 +98,18 @@ export function bindReferenceActivation(
   });
   element.addEventListener("pointercancel", cancel);
   element.addEventListener("pointerleave", cancel);
-  element.addEventListener("contextmenu", cancel);
+  element.addEventListener("contextmenu", (event) => {
+    cancel();
+    // Android exposes long-press through contextmenu; retain a source-edit path
+    // without a hardware F2 key. Never navigate as part of this gesture.
+    if (options.editSource == null || modified(event) || !options.available()
+      || (event.button === 2 && press?.touch !== true)
+      || (press != null && press.source !== options.sourceToken())) return;
+    event.preventDefault();
+    event.stopPropagation();
+    press = null;
+    options.editSource();
+  });
   element.addEventListener("dragstart", cancel);
   element.addEventListener("touchstart", (event) => {
     if (event.touches.length > 1) cancel();

@@ -15,9 +15,7 @@ exactly 7, 8, or 9 leading `#` characters, followed by whitespace. Ten or more h
 ordinary text. The extension participates in numbering, starts, resets, exclusions, writes,
 Live Preview, Reading View, and the read-only `number-suite.interop.v2` consumer snapshot.
 
-H7-H9 are not native Obsidian/CommonMark heading levels, so Obsidian's built-in Outline, Backlinks,
-heading-path navigation, and other native heading indexes may not recognize them. Number Suite's
-own sidebar outline does include them and its navigation uses source lines. Use an authored stable
+H7-H9 are not native Obsidian/CommonMark levels. Number Suite enhances native Outline; other host heading indexes may not recognize them. Use an authored stable
 block ID such as `######## Deep topic ^deep-topic` for reliable interoperation and references. Put
 each extended heading in its own paragraph, with a blank line around it, when Reading View
 enhancement is required. The Markdown source remains canonical and unchanged by display-only use.
@@ -108,8 +106,8 @@ the caption line; heading IDs use the valid following block-ID line. It then cop
 a readable alias. This explicit command is the only caption/reference workflow that creates an ID.
 Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged
 by default. The optional **Enhance ordinary same-note Wiki heading links** setting
-is off by default; when enabled, Live Preview shows an effective number on
-unique `[[#Heading]]` heading links (aliases are retained) without writing to
+is off by default; when enabled, Live Preview and Reading View show an effective number on
+unique `[[#Heading]]` and file-qualified same-note `[[Note#Heading]]` links (aliases are retained) without writing to
 the source. The number is a separate, non-interactive visual prefix: Obsidian
 still renders and navigates the actual Wiki link, including its context menu,
 normal selection, and modified-click behavior. Cross-file links, links that include a file path, captions,
@@ -130,53 +128,12 @@ Missing, duplicate, conflicting, or render-mismatched definitions remain native 
 Two-space multiline note bodies are protected from heading, caption, and semantic-reference
 scanning.
 
-## Native Obsidian Outline enhancements (work in progress)
+## Native Outline and structure editing
 
-The **Outline enhancements** settings page defaults the three independent controls on:
-number labels, H7–H9 extended headings, and Figure/Table/Equation/Code caption navigation.
-They do not modify Markdown or change the source numbering rules. The compatibility
-layer augments only the native Outline view, without writing synthetic metadata headings
-into Obsidian's vault-wide cache; when the expected private native view API is missing,
-it retains the unmodified Outline. Synthetic entries are navigation-only. Until a real-host test verifies that
-Obsidian's section-move algorithm treats H7–H9 and captions safely, the adapter
-**blocks native Outline drag/drop for the current Outline whenever any synthetic
-entry is present**. Number-only outlines retain native dragging. This is a
-deliberate safety limitation of the Draft candidate, not final feature parity.
-Host drag/selection and Android acceptance are still pending.
-The existing Number Suite Document outline is retained until parity and cleanup are verified.
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
 
-The native Outline header uses the public Obsidian ItemView action for **Open heading mind map**,
-and Current note offers the same action next to the file name. Both resolve the file shown
-by their own pane and keep the map on that file when an unrelated editor gets
-focus; the command-palette action continues to follow the active note. The toolbar
-action is independent of the optional private Outline-tree compatibility adapter,
-so a change in the native tree internals does not hide the map shortcut. The old
-Document outline and its tab remain available until native-host acceptance is complete.
+Three independent Outline switches default on: effective heading numbers, H7–H9, and captions. Explicit saved false values remain false. The adapter does not change Markdown or the shared metadata cache. Native collapse, filtering, current-location following, multiple panes and pinned-file behavior remain available. Headings show a small number pill and text. Caption leaves show a type icon, localized type and ordinal, and secondary title without a whole-row pill or expand arrow. Source order and effective counts do not depend on filtering or collapse. Body caption pills stay unchanged.
 
-## Heading mind-map structure editing (experimental)
+H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level siblings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
 
-The heading map remains a non-writing browser **until** the user explicitly
-selects **Adjust structure** in its toolbar. In that mode, dragging a heading
-card onto another heading card may reorder complete sections **only if both
-headings are siblings under the same parent and have the same level**.
-The upper/lower insertion indicator (or left/right for top-to-bottom layout)
-shows the destination; dropping elsewhere is a no-op. No cross-parent moves,
-level changes, synthetic nodes or arbitrary canvas positions are supported.
-
-Each accepted edit moves the original source range, including prose, nested
-headings and captions, by one bounded Obsidian editor transaction so the
-editor's native Undo can reverse it. Source content must still match the
-snapshot at drag start, and the note must be open in a matching Markdown editor.
-The tool refuses a conflicting/stale snapshot or a file-only session rather
-than rewriting the file without the editor's undo history. It does not
-rewrite stored heading numbers or retarget other files' links; run Renumber
-separately if needed.
-
-This is a Draft implementation awaiting real desktop/Android Obsidian acceptance.
-In **Adjust structure** mode, every heading card also offers accessible
-**Move section up** and **Move section down** buttons. They follow the same
-source-revalidation, same-level/same-parent restriction, and one-transaction
-undo path as drag-and-drop. Disabled buttons indicate that no valid neighboring
-sibling exists. This allows keyboard and touch users to reorder without HTML
-drag-and-drop. Android long-press dragging and physical-device validation
-remain separate follow-ups. Switching to a different note exits edit mode.
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do nothing. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.

@@ -17,7 +17,7 @@ const templateSources: CleanupTemplateSource[] = [{
   templates: BUILT_IN_SCHEMES.hierarchical.templates,
 }];
 
-function references(source: string, enabled: boolean, numbered = true) {
+function references(source: string, enabled: boolean, numbered = true, isSameFileWikiTarget?: (filePart: string) => boolean) {
   const headings = parseAtxHeadings(source);
   const headingDisplayPlan = createDisplayPlan(headings, {
     showVirtualNumbers: numbered,
@@ -34,6 +34,7 @@ function references(source: string, enabled: boolean, numbered = true) {
     centeredCaptionKinds: [],
     showCrossReferences: false,
     enhanceNativeWikiHeadingLinks: enabled,
+    ...(isSameFileWikiTarget == null ? {} : { isSameFileWikiTarget }),
     showNoteNumbers: false,
     noteSelections: [],
     numbering,
@@ -69,9 +70,19 @@ describe("optional same-note Wiki heading link enhancement", () => {
     expect(references(source, true)).toEqual([]);
   });
 
+  it("authenticates file-qualified links with the host resolver and preserves aliases", () => {
+    const source = "# Heading\n[[note#Heading|chapter]] [[folder/note.md#Heading|named]] [[Other#Heading]] ![[note#Heading]] [[note#^block]]";
+    expect(references(source, true)).toEqual([]);
+    const links = references(source, true, true, (path) => path === "note" || path === "folder/note.md");
+    expect(links.map((item) => item.label)).toEqual(["1", "1"]);
+    expect(links.map((item) => source.slice(item.from).split(" ")[0])).toEqual([
+      "[[note#Heading|chapter]]", "[[folder/note.md#Heading|named]]",
+    ]);
+  });
+
   it("protects fenced and inline code as well as escaped Wiki lookalikes", () => {
     const source = "# Heading\n" + "\\[[#Heading]]" +
-      " \`[[#Heading]]\`\n\`\`\`md\n[[#Heading]]\n\`\`\`";
+      " `[[#Heading]]`\n```md\n[[#Heading]]\n```";
     expect(references(source, true)).toEqual([]);
   });
 });

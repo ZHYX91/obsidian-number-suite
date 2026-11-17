@@ -1,4 +1,8 @@
-import { ItemView, MarkdownView, TFile, type HeadingCache, type Plugin, type View } from "obsidian";
+import { ItemView, MarkdownView, TFile, setIcon, type HeadingCache, type Plugin, type View } from "obsidian";
+import { createHeadingMap } from "../application/heading-map";
+import { planSameParentHeadingMove, type SameParentHeadingMove } from "../application/heading-map-reorder";
+import type { Translate } from "../config/i18n";
+import type { CaptionKind } from "../core/document-semantics";
 import { createDisplayPlan } from "../application/display-plan";
 import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
@@ -12,10 +16,12 @@ import { parseAtxHeadings } from "../core/heading-parser";
 
 export interface ExtraOutlineHeading extends HeadingCache {
   __numberSuiteExtra?: "extended" | "caption";
+  __numberSuiteCaption?: { kind: CaptionKind; ordinal: number; title: string };
 }
 export interface NativeOutlineProjection {
   readonly headings: ExtraOutlineHeading[];
   readonly numberLabels: ReadonlyMap<number, string>;
+  readonly titleLabels?: ReadonlyMap<number, string>;
 }
 const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
@@ -38,7 +44,8 @@ export function createNativeOutlineProjection(
   // at the same position. Until the cache catches up, retain native Outline.
   if (original.some((item) => {
     const heading = parsedByLine.get(item.position.start.line);
-    return heading != null && heading.level !== item.level;
+    return heading == null || heading.level !== item.level
+      || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim();
   })) return { headings: original, numberLabels };
   const usedLines = new Set(original.map((item) => item.position.start.line));
   const extras: ExtraOutlineHeading[] = [];
@@ -57,45 +64,53 @@ export function createNativeOutlineProjection(
     }
   }
   if (settings.showOutlineCaptions) {
-    const headingRows = [...original, ...extras].sort(
-      (a, b) => a.position.start.offset - b.position.start.offset,
-    );
     for (const caption of numberCaptions(parseDocumentSemantics(source).captions)) {
       if (usedLines.has(caption.line)) continue;
-      const ancestors = headingRows.filter((row) => row.position.start.line < caption.line);
-      const parent = ancestors[ancestors.length - 1];
+
       extras.push({
         heading: (settings.showCaptionNumbers ? caption.label : caption.kind)
           + ": " + withoutTrailingBlockId(caption.content),
-        level: parent == null ? 1 : parent.level + 1,
+        // Higher than every supported heading: attached to the preceding
+        // section, then popped before any following heading. Captions stay leaves.
+        level: 10,
         position: {
           start: { line: caption.line, col: 0, offset: caption.lineFrom },
           end: { line: caption.line, col: caption.lineTo - caption.lineFrom, offset: caption.lineTo },
         },
         __numberSuiteExtra: "caption",
+        __numberSuiteCaption: { kind: caption.kind, ordinal: caption.number, title: withoutTrailingBlockId(caption.content) },
       });
       usedLines.add(caption.line);
     }
   }
-  if (settings.showOutlineNumbers) {
-    const plan = createDisplayPlan(headings, {
-      showVirtualNumbers: true, concealStoredNumbers: effective.concealStoredNumbers,
-      numbering: toNumberingOptions(settings, {
-        schemeId: effective.schemeId, starts: effective.starts, skipFirst: effective.skipFirst,
-      }),
-      cleanupScope: settings.concealScope, templateSources: cleanupTemplateSources(settings),
-      revealOnActiveLine: false, selections: [], composing: false,
-    });
-    const concealed = new Set(plan.filter((item) => item.kind === "conceal").map((item) => item.line));
-    for (const item of plan) {
-      if (item.kind === "virtual" && !concealed.has(item.line)) numberLabels.set(item.line, item.label);
+  const numbering = toNumberingOptions(settings, {
+    schemeId: effective.schemeId, starts: effective.starts, skipFirst: effective.skipFirst,
+  });
+  const templateSources = cleanupTemplateSources(settings);
+  const plan = createDisplayPlan(headings, {
+    showVirtualNumbers: effective.showVirtualNumbers,
+    concealStoredNumbers: effective.concealStoredNumbers, numbering,
+    cleanupScope: settings.concealScope, templateSources,
+    revealOnActiveLine: false, selections: [], composing: false,
+  });
+  const titleLabels = new Map<number, string>();
+  const collect = (nodes: ReturnType<typeof createHeadingMap>): void => {
+    for (const node of nodes) {
+      titleLabels.set(node.line, node.title);
+      if (settings.showOutlineNumbers && node.numberLabel != null) numberLabels.set(node.line, node.numberLabel);
+      collect(node.children);
     }
-  }
+  };
+  collect(createHeadingMap(source, {
+    headingDisplayPlan: plan, numbering, cleanupScope: settings.concealScope,
+    templateSources, concealStoredNumbers: effective.concealStoredNumbers,
+    recognizeStoredNumbers: !effective.disabled,
+  }));
   return {
     headings: [...original, ...extras].sort(
       (a, b) => a.position.start.offset - b.position.start.offset,
     ),
-    numberLabels,
+    numberLabels, titleLabels,
   };
 }
 
@@ -113,6 +128,11 @@ interface ObservedOutline {
   onDrag: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
+  titles: ReadonlyMap<number, string>;
+  nativeDragging: boolean;
+  drag: { path: string; source: string; line: number } | null;
+  preview: SameParentHeadingMove | null;
+  cleanupDrag: () => void;
   hasSyntheticEntries: boolean;
   warned: boolean;
   timer: number | null;
@@ -121,8 +141,11 @@ function isOutlineRowElement(value: unknown): value is HTMLElement {
   // Popup windows may own a different HTMLElement constructor.
   return typeof value === "object" && value !== null
     && (value as Node).nodeType === 1
-    && typeof (value as HTMLElement).querySelector === "function"
+    && typeof prop(value, "querySelector") === "function"
     && typeof (value as HTMLElement).prepend === "function";
+}
+function outlineSpan(owner: Document): HTMLSpanElement {
+  return (owner.win as Window & { createSpan(): HTMLSpanElement }).createSpan();
 }
 function prop(value: unknown, key: string): unknown {
   return typeof value === "object" && value != null
@@ -168,6 +191,7 @@ export class NativeOutlineEnhancer {
     private readonly settings: () => NumberSuiteSettings,
     private readonly openMap: (path: string) => void = () => undefined,
     private readonly mapLabel: () => string = () => "Open heading mind map",
+    private readonly translate?: Translate,
   ) {}
 
   start(): void {
@@ -209,7 +233,7 @@ export class NativeOutlineEnhancer {
     for (const view of views) {
       this.ensureMapAction(view);
       if (!this.observed.has(view)) this.attach(view);
-      const path = pathFor(view as OutlineInternal);
+      const path = pathFor(view as unknown as OutlineInternal);
       if (path != null) {
         this.updatePath(path);
         void this.loadSource(path);
@@ -221,7 +245,7 @@ export class NativeOutlineEnhancer {
     if (!(view instanceof ItemView) || this.mapActions.has(view)) return;
     try {
       const action = view.addAction("git-branch", this.mapLabel(), () => {
-        const path = pathFor(view as OutlineInternal);
+        const path = pathFor(view as unknown as OutlineInternal);
         if (path != null) this.openMap(path);
       });
       action.classList.add("number-suite-outline-map-action");
@@ -239,30 +263,38 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null,
+      labels: new Map(), titles: new Map(), nativeDragging: false, drag: null, preview: null, cleanupDrag: () => undefined, hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
-        const target = event.target;
-        // With synthetic headings, the host's section move could mistake a
-        // caption for a section boundary. Disable native drag until the host
-        // movement algorithm is verified for this projection.
-        if (current.hasSyntheticEntries
-          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
+        const row = this.rowAt(current, event.target);
+        if (row?.item.__numberSuiteExtra === "caption") {
           event.preventDefault();
           event.stopImmediatePropagation();
+          return;
+        }
+        if (row?.item.__numberSuiteExtra === "extended") {
+          event.stopImmediatePropagation();
+          if (!this.beginMove(current, row.item)) { event.preventDefault(); return; }
+          event.dataTransfer?.setData("text/plain", row.item.heading);
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+        } else {
+          // Native H1-H6 drag still belongs to Obsidian. Give its section
+          // algorithm the unmodified core heading list for this gesture.
+          current.nativeDragging = true;
         }
       },
       onDrop: (event) => {
-        const target = event.target;
-        if (current.hasSyntheticEntries
-          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
+        if (current.drag != null) {
+          event.preventDefault(); event.stopImmediatePropagation();
+          this.previewMove(current, event.target, event.clientY);
+          void this.commitMove(current);
+        } else if (this.rowAt(current, event.target)?.item.__numberSuiteExtra != null) {
+          event.preventDefault(); event.stopImmediatePropagation();
         }
       },
     };
     current.wrapped = () => {
       const headings = original.call(native);
-      if (!Array.isArray(headings)) return headings;
+      if (!Array.isArray(headings) || current.nativeDragging) return headings;
       const path = pathFor(native);
       const source = path == null ? null : this.sources.get(path);
       if (source == null) {
@@ -273,6 +305,7 @@ export class NativeOutlineEnhancer {
       try {
         const projection = createNativeOutlineProjection(source, headings, this.settings());
         current.labels = projection.numberLabels;
+        current.titles = projection.titleLabels ?? new Map();
         current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
         current.warned = false;
         return projection.headings;
@@ -289,8 +322,154 @@ export class NativeOutlineEnhancer {
     try { native.getHeadings = current.wrapped; } catch { return; }
     root.addEventListener("dragstart", current.onDrag, true);
     root.addEventListener("drop", current.onDrop, true);
+    current.cleanupDrag = this.installMoveGestures(current);
     current.observer.observe(root, { childList: true, subtree: true, characterData: true });
     this.observed.set(view, current);
+  }
+
+  private rowAt(entry: ObservedOutline, target: EventTarget | null): { item: ExtraOutlineHeading; element: HTMLElement } | null {
+    if (!isOutlineRowElement(target)) return null;
+    return outlineRows(entry.view)?.find((row) => row.element === target || row.element.contains(target)) ?? null;
+  }
+
+  private beginMove(entry: ObservedOutline, item: ExtraOutlineHeading): boolean {
+    const path = pathFor(entry.view);
+    const source = path == null ? null : this.sources.get(path);
+    if (path == null || source == null || item.__numberSuiteExtra !== "extended") return false;
+    const heading = parseAtxHeadings(source).find((value) => value.line === item.position.start.line);
+    if (heading == null || heading.level !== item.level || heading.content !== item.heading) return false;
+    entry.drag = { path, source, line: heading.line };
+    entry.preview = null;
+    return true;
+  }
+
+  private clearMove(entry: ObservedOutline): void {
+    entry.drag = null;
+    entry.preview = null;
+    entry.nativeDragging = false;
+    entry.root.querySelectorAll(".number-suite-outline-drop-before, .number-suite-outline-drop-after")
+      .forEach((element) => element.classList.remove("number-suite-outline-drop-before", "number-suite-outline-drop-after"));
+  }
+
+  private previewMove(entry: ObservedOutline, target: EventTarget | null, clientY: number): boolean {
+    entry.root.querySelectorAll(".number-suite-outline-drop-before, .number-suite-outline-drop-after")
+      .forEach((element) => element.classList.remove("number-suite-outline-drop-before", "number-suite-outline-drop-after"));
+    entry.preview = null;
+    const drag = entry.drag;
+    const row = this.rowAt(entry, target);
+    if (drag == null || row == null || row.item.__numberSuiteExtra !== "extended"
+      || pathFor(entry.view) !== drag.path || this.sources.get(drag.path) !== drag.source) return false;
+    const heading = parseAtxHeadings(drag.source).find((value) => value.line === row.item.position.start.line);
+    if (heading == null || heading.level !== row.item.level || heading.content !== row.item.heading) return false;
+    const bounds = row.element.getBoundingClientRect();
+    const placement = clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+    const plan = planSameParentHeadingMove(drag.source, drag.line, row.item.position.start.line, placement);
+    if (plan == null) return false;
+    entry.preview = Object.freeze(plan);
+    row.element.classList.add("number-suite-outline-drop-" + placement);
+    return true;
+  }
+
+  private async commitMove(entry: ObservedOutline): Promise<void> {
+    const drag = entry.drag;
+    const plan = entry.preview;
+    this.clearMove(entry);
+    if (this.stopped || drag == null || plan == null || pathFor(entry.view) !== drag.path
+      || this.sources.get(drag.path) !== drag.source) return;
+    const file = this.plugin.app.vault.getAbstractFileByPath(drag.path);
+    if (!(file instanceof TFile)) return;
+    let editors = this.plugin.app.workspace.getLeavesOfType("markdown")
+      .map((leaf) => leaf.view)
+      .filter((view): view is MarkdownView => view instanceof MarkdownView && view.file === file);
+    // Never fall back to the unrelated active editor or Vault.modify: editor
+    // history owns the complete section move and its single undo/redo step.
+    if (editors.length === 0) {
+      const leaf = this.plugin.app.workspace.getLeaf("tab");
+      await leaf.openFile(file);
+      if (this.stopped || pathFor(entry.view) !== drag.path
+        || this.plugin.app.vault.getAbstractFileByPath(drag.path) !== file) return;
+      editors = leaf.view instanceof MarkdownView && leaf.view.file === file ? [leaf.view] : [];
+    }
+    const view = editors.find((candidate) => candidate.editor.getValue() === plan.expectedSource);
+    if (view == null || editors.some((candidate) => candidate.editor.getValue() !== plan.expectedSource)) return;
+    const editor = view.editor;
+    const source = editor.getValue();
+    if (source !== drag.source || source.slice(plan.from, plan.to) !== plan.original
+      || this.plugin.app.vault.getAbstractFileByPath(drag.path) !== file) return;
+    editor.transaction({ changes: [{
+      from: editor.offsetToPos(plan.from), to: editor.offsetToPos(plan.to), text: plan.replacement,
+    }] });
+    this.sources.set(drag.path, editor.getValue());
+    this.updatePath(drag.path);
+  }
+
+  private installMoveGestures(entry: ObservedOutline): () => void {
+    const root = entry.root;
+    const owner = root.ownerDocument;
+    let pending: { id: number; x: number; y: number; item: ExtraOutlineHeading } | null = null;
+    let timer: number | null = null;
+    const timerWindow = owner.defaultView ?? window;
+    let touchId: number | null = null;
+    const cancelTimer = (): void => { if (timer != null) timerWindow.clearTimeout(timer); timer = null; pending = null; };
+    const dragover = (event: DragEvent): void => {
+      if (entry.drag == null) return;
+      event.stopImmediatePropagation();
+      if (this.previewMove(entry, event.target, event.clientY)) {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      }
+    };
+    const touchmove = (event: TouchEvent): void => {
+      if (touchId != null) event.preventDefault();
+    };
+    const contextmenu = (event: Event): void => {
+      if (touchId != null || entry.drag != null) { event.preventDefault(); event.stopImmediatePropagation(); }
+    };
+    const finish = (): void => { cancelTimer(); touchId = null; this.clearMove(entry); };
+    const down = (event: PointerEvent): void => {
+      if (event.pointerType === "mouse" || !event.isPrimary) return;
+      const row = this.rowAt(entry, event.target);
+      if (row?.item.__numberSuiteExtra !== "extended") return;
+      pending = { id: event.pointerId, x: event.clientX, y: event.clientY, item: row.item };
+      timer = timerWindow.setTimeout(() => {
+        const candidate = pending;
+        timer = null; pending = null;
+        if (candidate != null && this.beginMove(entry, candidate.item)) touchId = candidate.id;
+      }, 350);
+    };
+    const move = (event: PointerEvent): void => {
+      if (pending != null && Math.hypot(event.clientX - pending.x, event.clientY - pending.y) > 8) cancelTimer();
+      if (touchId !== event.pointerId) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      this.previewMove(entry, owner.elementFromPoint(event.clientX, event.clientY), event.clientY);
+    };
+    const up = (event: PointerEvent): void => {
+      cancelTimer();
+      if (touchId !== event.pointerId) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      this.previewMove(entry, owner.elementFromPoint(event.clientX, event.clientY), event.clientY);
+      touchId = null;
+      void this.commitMove(entry);
+    };
+    owner.addEventListener("touchmove", touchmove, { capture: true, passive: false });
+    root.addEventListener("contextmenu", contextmenu, true);
+    root.addEventListener("dragover", dragover, true);
+    owner.addEventListener("dragend", finish, true);
+    root.addEventListener("pointerdown", down, true);
+    owner.addEventListener("pointermove", move, { capture: true, passive: false });
+    owner.addEventListener("pointerup", up, true);
+    owner.addEventListener("pointercancel", finish, true);
+    return () => {
+      finish();
+      owner.removeEventListener("touchmove", touchmove, true);
+      root.removeEventListener("contextmenu", contextmenu, true);
+      root.removeEventListener("dragover", dragover, true);
+      owner.removeEventListener("dragend", finish, true);
+      root.removeEventListener("pointerdown", down, true);
+      owner.removeEventListener("pointermove", move, true);
+      owner.removeEventListener("pointerup", up, true);
+      owner.removeEventListener("pointercancel", finish, true);
+    };
   }
 
   private schedule(view: View): void {
@@ -315,19 +494,48 @@ export class NativeOutlineEnhancer {
         (source == null ? [] : parseAtxHeadings(source)).map((heading) => [heading.line, heading] as const),
       );
       for (const { item, element } of rows) {
-        if (item.__numberSuiteExtra != null) element.closest(".tree-item")?.classList.add(EXTRA_CLASS);
-        const line = item.position.start.line;
-        const label = entry.labels.get(line);
-        if (label == null || item.__numberSuiteExtra === "caption") continue;
-        const heading = byLine.get(line);
-        if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) {
-          continue; // Source and core row can update out of order.
+        const caption = item.__numberSuiteCaption;
+        const treeItem = element.closest(".tree-item");
+        treeItem?.classList.toggle(EXTRA_CLASS, item.__numberSuiteExtra != null);
+        treeItem?.classList.toggle("number-suite-native-outline-caption", caption != null);
+        if (item.__numberSuiteExtra === "extended") {
+          element.draggable = true;
+          element.classList.add("number-suite-native-outline-extended");
         }
-        const span = element.ownerDocument.createElement("span");
-        span.className = NUMBER_CLASS;
-        span.setAttribute("aria-hidden", "true");
-        span.textContent = label;
-        element.prepend(span);
+        const line = item.position.start.line;
+        if (caption != null) {
+          element.replaceChildren();
+          const icon = outlineSpan(element.ownerDocument);
+          icon.className = "number-suite-outline-caption-icon";
+          icon.setAttribute("aria-hidden", "true");
+          setIcon(icon, { Figure: "image", Table: "table", Equation: "sigma", Code: "code" }[caption.kind]);
+          const label = outlineSpan(element.ownerDocument);
+          label.className = "number-suite-outline-caption-label";
+          const key = ("caption.kind." + caption.kind.toLowerCase()) as Parameters<Translate>[0];
+          label.textContent = (this.translate?.(key) ?? caption.kind)
+            + (this.settings().showCaptionNumbers ? " " + caption.ordinal : "");
+          const title = outlineSpan(element.ownerDocument);
+          title.className = "number-suite-outline-caption-title";
+          title.textContent = caption.title;
+          element.append(icon, label, title);
+          element.draggable = false;
+          continue;
+        }
+        const heading = byLine.get(line);
+        if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) continue;
+        const title = entry.titles.get(line);
+        const label = entry.labels.get(line);
+        if (title == null) continue;
+        // Keep event ownership on the native row; only its display children change.
+        element.replaceChildren();
+        if (label != null) {
+          const span = outlineSpan(element.ownerDocument);
+          span.className = NUMBER_CLASS;
+          span.setAttribute("aria-hidden", "true");
+          span.textContent = label;
+          element.append(span);
+        }
+        element.append(element.ownerDocument.createTextNode(title));
       }
     } finally {
       entry.observer.takeRecords();
@@ -368,11 +576,13 @@ export class NativeOutlineEnhancer {
     if (entry == null) return;
     this.observed.delete(view);
     entry.observer.disconnect();
+    entry.cleanupDrag();
     if (entry.timer != null) window.clearTimeout(entry.timer);
     entry.root.removeEventListener("dragstart", entry.onDrag, true);
     entry.root.removeEventListener("drop", entry.onDrop, true);
     entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
     entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
+    entry.root.querySelectorAll(".number-suite-native-outline-caption").forEach((el) => el.classList.remove("number-suite-native-outline-caption"));
     if (entry.view.getHeadings === entry.wrapped) {
       entry.view.getHeadings = entry.original;
       try {

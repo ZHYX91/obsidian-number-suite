@@ -47,7 +47,9 @@ Há estilos hierárquicos, exemplos para documentos oficiais e jurídicos chines
 <!-- section: settings -->
 ## Onde ajustar as opções
 
-As sete abas de configurações são: Geral, Numeração de títulos, Legendas, Referências cruzadas, Notas de rodapé e de fim, Gravar e limpar, Exibição e lote. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties. O sumário do documento e o mapa mental de títulos, somente para leitura, levam ao texto original.
+As oito abas de configurações são: Geral, Numeração de títulos, Aprimoramentos do esquema, Legendas, Referências cruzadas, Notas de rodapé e de fim, Gravar e limpar, Exibição e lote. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties.
+
+O ícone abre diretamente a Nota atual, sem abas laterais. Ative o plugin principal Sumário manualmente; o Number Suite não o ativa automaticamente. As três opções independentes de números, H7–H9 e legendas vêm ativadas e preservam escolhas desativadas. O sumário nativo e a Nota atual abrem o mapa para o próprio arquivo. Ajustar estrutura move seções completas do mesmo pai e nível por arraste ou botões subir/descer, rejeita texto alterado e permite Desfazer/Refazer. Um clique navega nas referências explícitas; F2 ou a ação móvel edita a fonte. A numeração de links Wiki para títulos do mesmo arquivo vem desativada; funciona na prévia e leitura, também com nome de arquivo, preservando aliases e ações nativas.
 
 <!-- section: limitations -->
 ## Escopo e limitações
@@ -55,7 +57,6 @@ As sete abas de configurações são: Geral, Numeração de títulos, Legendas, 
 - Cada arquivo Markdown usa um único estilo de numeração. Legendas e referências também são resolvidas no mesmo arquivo.
 - Títulos e legendas em listas, citações, exemplos de código, blocos HTML e frontmatter não entram na numeração. Notas e referências no texto comum de listas continuam disponíveis.
 - Em Structural Tables, a ação de legenda exige conferir o arquivo, o texto e o intervalo exato. Um item desativado explica quando a versão é antiga ou a tabela não é compatível. Nesses casos, adicione ou edite a legenda no modo fonte.
-- H7–H9 são uma extensão do Number Suite e do DocWen. O sumário e os links de títulos nativos do Obsidian podem não reconhecê-los; IDs de bloco oferecem destinos estáveis.
 
 <!-- section: privacy-and-support -->
 ## Privacidade e ajuda

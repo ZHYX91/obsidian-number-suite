@@ -33,6 +33,31 @@ import { cloneSettings, normalizePluginData } from "../../src/config/settings";
 import { SettingsPersistenceSession } from "../../src/config/settings-persistence-session";
 
 describe("plugin localization lifecycle", () => {
+  it("keeps the legacy outline command without enabling a disabled core plugin", async () => {
+    const ensureSideLeaf = vi.fn();
+    const revealLeaf = vi.fn();
+    const core = { enabled: false };
+    const app = {
+      workspace: { getLeavesOfType: () => [], ensureSideLeaf, revealLeaf },
+      internalPlugins: { getPluginById: () => core },
+    } as unknown as App;
+    const plugin = new NumberSuitePlugin(app, { id: "number-suite", name: "Number Suite" } as PluginManifest);
+    const runtime = plugin as unknown as { openNativeOutline(): Promise<void> };
+    const notices = (Notice as unknown as { messages: string[] }).messages;
+    notices.length = 0;
+    await runtime.openNativeOutline();
+    expect(ensureSideLeaf).not.toHaveBeenCalled();
+    expect(revealLeaf).not.toHaveBeenCalled();
+    expect(core.enabled).toBe(false);
+    expect(notices).toHaveLength(1);
+    core.enabled = true;
+    const leaf = {};
+    ensureSideLeaf.mockResolvedValue(leaf);
+    await runtime.openNativeOutline();
+    expect(ensureSideLeaf).toHaveBeenCalledWith("outline", "right", { active: true, reveal: true });
+    expect(revealLeaf).toHaveBeenCalledWith(leaf);
+  });
+
   it("invalidates the actual registered current-note command when the plugin unloads", async () => {
     const containerEl = document.createElement("div");
     document.body.append(containerEl);

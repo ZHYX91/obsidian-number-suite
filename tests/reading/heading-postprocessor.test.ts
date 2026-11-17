@@ -98,6 +98,9 @@ function harness(source: string, configured: NumberSuiteSettings) {
       getAbstractFileByPath: () => file,
       cachedRead,
     },
+    metadataCache: {
+      getFirstLinkpathDest: (path: string) => path === "note" || path === "note.md" ? file : null,
+    },
     workspace: {
       iterateAllLeaves: (callback: (candidate: typeof leaf) => void) => callback(leaf),
       getLeaf: () => leaf,
@@ -1022,6 +1025,26 @@ describe("HeadingReadingProcessor", () => {
       (item as HTMLElement).dataset.numberSuiteCaptionKind ?? null
     ))).toEqual(["Figure", "Table", "Equation", "Code"]);
     expect(container.querySelector(".number-suite-caption-number")).toBeNull();
+  });
+
+  it("adds inert native Wiki numbers in Reading View and cleans them on unload", async () => {
+    const source = "# Heading\n\n[[#Heading|first]] [[note#Heading|chapter]] [[Other#Heading|other]] [[note.md#Heading]]";
+    const { processor, context } = harness(source, settings({
+      showVirtualNumbers: true, enhanceNativeWikiHeadingLinks: true, selectedSchemeId: "hierarchical",
+    }));
+    const container = document.createElement("div");
+    container.innerHTML = '<h1>Heading</h1><p><a class="internal-link" data-href="#Heading">first</a> '
+      + '<a class="internal-link" data-href="note#Heading">chapter</a> '
+      + '<a class="internal-link" data-href="Other#Heading">other</a> '
+      + '<a class="internal-link" data-href="note.md#Heading">note.md > Heading</a></p>';
+    const links = [...container.querySelectorAll("a")];
+    await processor.process(container, context);
+    expect(links.map((link) => link.textContent)).toEqual(["1 first", "1 chapter", "other", "1 note.md > Heading"]);
+    expect(links.map((link) => link.dataset.href)).toEqual(["#Heading", "note#Heading", "Other#Heading", "note.md#Heading"]);
+    expect(links[0]?.classList.contains("number-suite-reference-pill")).toBe(false);
+    cleanupNumberSuiteReadingDom(container);
+    expect(links.map((link) => link.textContent)).toEqual(["first", "chapter", "other", "note.md > Heading"]);
+    processor.dispose();
   });
 
   it("enhances explicit same-file references while preserving the Obsidian link and alias", async () => {

@@ -47,7 +47,9 @@ Plusieurs styles sont proposés : hiérarchique, exemples administratifs et juri
 <!-- section: settings -->
 ## Où régler les options
 
-Les sept onglets des paramètres sont : Général, Numérotation des titres, Légendes, Renvois, Notes de bas de page et de fin, Écriture et nettoyage, Affichage et lot. La langue et le style de numérotation se choisissent séparément. Dans la barre latérale droite, « Note actuelle » permet de modifier une seule note. Revenir au réglage global supprime uniquement cette exception et conserve les autres Properties. Le plan du document et la carte mentale des titres, en lecture seule, permettent de rejoindre le texte source.
+Les huit onglets des paramètres sont : Général, Numérotation des titres, Améliorations du plan, Légendes, Renvois, Notes de bas de page et de fin, Écriture et nettoyage, Affichage et lot. La langue et le style de numérotation se choisissent séparément. Dans la barre latérale droite, « Note actuelle » permet de modifier une seule note. Revenir au réglage global supprime uniquement cette exception et conserve les autres Properties.
+
+Le ruban ouvre directement « Note actuelle », sans onglets latéraux. Activez vous-même le module principal Plan ; Number Suite ne l’active jamais automatiquement. Les trois options indépendantes pour les numéros, H7–H9 et les légendes sont activées par défaut et conservent les choix désactivés. Le plan natif et Note actuelle ouvrent la carte pour leur propre fichier. « Ajuster la structure » déplace des sections entières de même parent et niveau par glisser-déposer ou boutons haut/bas, avec rejet du texte modifié et Annuler/Rétablir. Un clic sur un renvoi explicite navigue ; F2 ou l’action mobile permet de modifier sa source. La numérotation des liens Wiki vers un titre du même fichier reste désactivée par défaut ; elle fonctionne en aperçu et lecture, aussi avec un nom de fichier, sans modifier alias et actions natives.
 
 <!-- section: limitations -->
 ## Portée et limites
@@ -55,7 +57,6 @@ Les sept onglets des paramètres sont : Général, Numérotation des titres, Lé
 - Un fichier Markdown utilise un seul style de numérotation. Les légendes et les renvois restent également limités au même fichier.
 - Les titres et légendes placés dans les listes, citations, exemples de code, blocs HTML ou frontmatter ne sont pas numérotés. Les notes et renvois dans le texte ordinaire des listes restent utilisables.
 - Pour Structural Tables, l’action de légende exige de vérifier le fichier, le texte source et sa plage. Un élément désactivé explique les cas d’ancienne version ou de tableau non pris en charge. Ajoutez ou modifiez alors la légende en mode source.
-- H7–H9 sont une extension de Number Suite et DocWen. Le plan et les liens de titres natifs d’Obsidian peuvent ne pas les reconnaître ; un identifiant de bloc fournit une cible stable.
 
 <!-- section: privacy-and-support -->
 ## Confidentialité et aide

@@ -31,7 +31,7 @@ function createHost(
 }
 
 describe("Obsidian 1.13 settings definitions", () => {
-  it("retains seven native pages while the host falls back to the custom tablist", () => {
+  it("retains the Outline settings page while the host uses custom global tabs", () => {
     const host = createHost();
     const tab = new NumberSuiteSettingTab(new App(), host as never);
     expect(tab.getSettingDefinitions()).toEqual([]);
@@ -45,10 +45,12 @@ describe("Obsidian 1.13 settings definitions", () => {
       "page",
       "page",
       "page",
+      "page",
     ]);
     expect(definitions.map((definition) => "name" in definition ? definition.name : "")).toEqual([
       "General",
       "Heading numbering",
+      "Outline enhancements",
       "Captions",
       "Cross references",
       "Footnotes & endnotes",
@@ -58,6 +60,9 @@ describe("Obsidian 1.13 settings definitions", () => {
     const serialized = JSON.stringify(definitions);
     expect(serialized).toContain('"key":"general.showVirtualNumbers"');
     expect(serialized).toContain('"key":"general.concealStoredNumbers"');
+    expect(serialized).toContain('"key":"outline.showNumbers"');
+    expect(serialized).toContain('"key":"outline.showExtendedHeadings"');
+    expect(serialized).toContain('"key":"outline.showCaptions"');
     expect(serialized).toContain('"key":"captions.showCaptionNumbers"');
     expect(serialized).toContain('"key":"captions.centerFigure"');
     expect(serialized).toContain('"key":"captions.centerTable"');

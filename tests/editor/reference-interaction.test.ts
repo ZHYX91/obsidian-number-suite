@@ -124,6 +124,63 @@ describe("rendered reference activation owns pre-click editor events", () => {
     expect(view.state.doc.toString()).toBe(SOURCE);
   });
 
+  it("reveals authored source on the Android long-press context gesture", () => {
+    const { view, pill } = setup();
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    pill().dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(view.state.selection.main.head).toBe(FROM + 3);
+    expect(view.state.doc.toString()).toBe(SOURCE);
+  });
+
+  it.each(["pointermove", "pointercancel", "pointerleave", "dragstart"])("cancels navigation after %s and allows the next tap", (type) => {
+    const { view, pill } = setup();
+    const element = pill();
+    const pointer = (name: string, extra: PointerEventInit = {}): PointerEvent => {
+      const event = new PointerEvent(name, {
+        bubbles: true, cancelable: true, pointerId: 1, isPrimary: true,
+        button: 0, pointerType: "touch", ...extra,
+      });
+      element.dispatchEvent(event);
+      return event;
+    };
+    expect(pointer("pointerdown").defaultPrevented).toBe(false);
+    pointer(type, { clientX: 30 });
+    pointer("pointerup", { clientX: 30 });
+    mouse(element, "click", { detail: 1 });
+    expect(view.state.selection.main.head).toBe(SOURCE.length);
+    pointer("pointerdown");
+    pointer("pointerup", { clientX: 3, clientY: 4 });
+    mouse(element, "click", { detail: 1 });
+    expect(view.state.selection.main.head).toBe(0);
+  });
+
+  it("retains desktop right-click context handling", () => {
+    const { view, pill } = setup();
+    const event = mouse(pill(), "contextmenu", { button: 2 });
+    expect(event.defaultPrevented).toBe(false);
+    expect(view.state.selection.main.head).toBe(SOURCE.length);
+  });
+
+  it("rejects a second touch without swallowing native scrolling", () => {
+    const element = document.createElement("span");
+    let navigated = false;
+    bindReferenceActivation(element, {
+      sourceToken: () => SOURCE, available: () => true,
+      navigate: () => { navigated = true; },
+    });
+    for (const [pointerId, isPrimary] of [[1, true], [2, false]] as const) {
+      const event = new PointerEvent("pointerdown", {
+        bubbles: true, cancelable: true, button: 0, pointerId, isPrimary, pointerType: "touch",
+      });
+      element.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    element.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1 }));
+    mouse(element, "click", { detail: 1 });
+    expect(navigated).toBe(false);
+  });
+
   it("does not navigate an accessibility click after a cancelled pointer gesture", () => {
     const element = document.createElement("span");
     document.body.append(element);

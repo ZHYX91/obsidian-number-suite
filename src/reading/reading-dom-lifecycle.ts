@@ -48,7 +48,7 @@ function cleanupHeading(element: HTMLElement): void {
 
 function cleanupSemantic(container: HTMLElement): void {
   for (const virtual of container.querySelectorAll<HTMLElement>(
-    ".number-suite-caption-number, .number-suite-reference-number",
+    ".number-suite-caption-number, .number-suite-reference-number, .number-suite-native-wiki-number",
   )) {
     const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);

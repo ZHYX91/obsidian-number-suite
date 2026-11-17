@@ -45,7 +45,6 @@ import {
 import {
   NUMBER_SUITE_SIDEBAR_VIEW,
   NumberSuiteSidebarView,
-  type NumberSuiteSidebarTab,
 } from "../ui/sidebar-view";
 import { NumberSuiteSettingTab } from "./settings-tab";
 import type { SettingsImpact } from "./settings-impact";
@@ -90,7 +89,10 @@ export default class NumberSuitePlugin extends Plugin {
     this.settings = this.settingsPersistence.initialSettings();
     this.recoverySession = new RecoverySession(new RecoveryStore(this.app, this.manifest));
 
-    this.displayController = new HeadingDisplayController(() => this.settings);
+    this.displayController = new HeadingDisplayController(
+      () => this.settings,
+      (link, path) => this.app.metadataCache.getFirstLinkpathDest(link, path)?.path === path,
+    );
     this.registerEditorExtension(this.displayController.createExtension());
     this.readingProcessor = new HeadingReadingProcessor(this.app, () => this.settings);
     this.registerMarkdownPostProcessor((element, context) => this.readingProcessor?.process(element, context));
@@ -130,6 +132,7 @@ export default class NumberSuitePlugin extends Plugin {
       this, () => this.settings,
       (path) => void this.openHeadingMap(path, null, true),
       () => this.translate()("command.headingMap.open"),
+      (key: string) => this.translate()(key as Parameters<Translate>[0]),
     );
     this.nativeOutline.start();
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
@@ -295,13 +298,13 @@ export default class NumberSuitePlugin extends Plugin {
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
-        if (!checking && available) void this.openSidebar("note");
+        if (!checking && available) void this.openSidebar();
         return available;
       },
     });
     this.addLocalizedCommand("command.sidebar.outline", {
       id: "open-outline",
-      callback: () => void this.openSidebar("outline"),
+      callback: () => void this.openNativeOutline(),
     });
     this.addLocalizedCommand("command.headingMap.open", {
       id: "open-heading-mind-map",
@@ -320,20 +323,29 @@ export default class NumberSuitePlugin extends Plugin {
     });
   }
 
-  private async openSidebar(tab?: NumberSuiteSidebarTab): Promise<void> {
+  private async openSidebar(): Promise<void> {
     const leaf = await this.app.workspace.ensureSideLeaf(
       NUMBER_SUITE_SIDEBAR_VIEW,
       "right",
-      {
-        active: true,
-        reveal: true,
-        state: tab == null ? undefined : { tab },
-      },
+      { active: true, reveal: true },
     );
-    if (leaf.view instanceof NumberSuiteSidebarView && tab != null) leaf.view.selectTab(tab);
     await this.app.workspace.revealLeaf(leaf);
   }
 
+  private async openNativeOutline(): Promise<void> {
+    const core = (this.app as unknown as {
+      internalPlugins?: { getPluginById?(id: string): { enabled?: boolean } | null };
+    }).internalPlugins?.getPluginById?.("outline");
+    const existing = this.app.workspace.getLeavesOfType("outline")[0];
+    if (core?.enabled !== true && existing == null) {
+      new Notice(this.translate()("notice.nativeOutlineDisabled"));
+      return;
+    }
+    const leaf = existing ?? await this.app.workspace.ensureSideLeaf(
+      "outline", "right", { active: true, reveal: true },
+    );
+    await this.app.workspace.revealLeaf(leaf);
+  }
   private async openHeadingMap(
     path?: string,
     sourceLeaf: WorkspaceLeaf | null = null,

@@ -71,5 +71,5 @@ export function planSameParentHeadingMove(
   }
   const original = source.slice(from, to);
   if (replacement === original) return null;
-  return { expectedSource: source, from, to, original, replacement };
+  return Object.freeze({ expectedSource: source, from, to, original, replacement });
 }

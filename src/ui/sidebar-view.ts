@@ -1,41 +1,17 @@
-import { navigateToLine } from "../adapters/navigate-to-line";
-import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import {
   ItemView,
   MarkdownView,
   TFile,
-  setIcon,
   type ViewStateResult,
   type WorkspaceLeaf,
 } from "obsidian";
 
-import { createDisplayPlan } from "../application/display-plan";
-import { HeadingMapIdentity } from "../application/heading-map-identity";
-import {
-  createDocumentOutline,
-  type DocumentOutlineNode,
-} from "../application/document-outline";
-import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
-import { resolveNoteSettings } from "../config/frontmatter";
 import { uiTextDirection, type Translate } from "../config/i18n";
-import {
-  cleanupTemplateSources,
-  toNumberingOptions,
-  type NumberSuiteSettings,
-} from "../config/settings";
-import { parseAtxHeadings } from "../core/heading-parser";
+import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
-import type { CaptionKind } from "../core/document-semantics";
 import { NoteControlPane } from "./note-control-modal";
-import {
-  createSidebarTabs,
-  sidebarPanelElementId,
-  sidebarTabElementId,
-  type SidebarTabsController,
-} from "./sidebar-tabs";
 
 export const NUMBER_SUITE_SIDEBAR_VIEW = "number-suite-sidebar";
-export type NumberSuiteSidebarTab = "outline" | "note";
 
 export interface NumberSuiteSidebarActions {
   readonly getSettings: () => NumberSuiteSettings;
@@ -47,33 +23,10 @@ export interface NumberSuiteSidebarActions {
   readonly openHeadingMap: (path: string, sourceLeaf: WorkspaceLeaf | null) => void;
 }
 
-function sidebarTab(value: unknown): NumberSuiteSidebarTab {
-  return value === "note" ? "note" : "outline";
-}
-
-const CAPTION_ICONS: Readonly<Record<CaptionKind, string>> = {
-  Figure: "image",
-  Table: "table-2",
-  Equation: "sigma",
-  Code: "code-2",
-};
-
 export class NumberSuiteSidebarView extends ItemView {
-  private activeTab: NumberSuiteSidebarTab = "outline";
   private sourceLeaf: WorkspaceLeaf | null = null;
   private currentFile: TFile | null = null;
-  private outlinePanel: HTMLElement | null = null;
-  private notePanel: HTMLElement | null = null;
-  private outlineTabButton: HTMLButtonElement | null = null;
-  private noteTabButton: HTMLButtonElement | null = null;
-  private sidebarTabs: SidebarTabsController<NumberSuiteSidebarTab> | null = null;
   private notePane: NoteControlPane | null = null;
-  private outlineRequest = 0;
-  private outlineTimer: number | null = null;
-  private outlineRoots: readonly DocumentOutlineNode[] = [];
-  private outlineIdentities = new HeadingMapIdentity();
-  private outlineNodeIds = new Map<number, string>();
-  private readonly collapsed = new Set<string>();
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -95,48 +48,23 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   override getState(): Record<string, unknown> {
-    return { tab: this.activeTab };
+    return {};
   }
 
   override async setState(state: unknown, result: ViewStateResult): Promise<void> {
+    // Old workspace states may contain either tab. Both now restore Current note.
     await super.setState(state, result);
-    const value = typeof state === "object" && state != null
-      ? (state as Record<string, unknown>).tab
-      : null;
-    this.activeTab = sidebarTab(value);
-    this.applyActiveTab(true);
+    this.notePane?.setFile(this.currentFile, true);
   }
 
   override async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-sidebar");
     this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
-    this.sidebarTabs = createSidebarTabs(
-      this.contentEl,
-      [
-        { id: "outline", label: this.actions.getTranslate()("sidebar.tab.outline") },
-        { id: "note", label: this.actions.getTranslate()("sidebar.tab.note") },
-      ],
-      this.activeTab,
-      this.actions.getTranslate()("sidebar.tabs.label"),
-      (tab) => this.selectTab(tab),
-    );
-    this.outlineTabButton = this.sidebarTabs.buttons.get("outline") ?? null;
-    this.noteTabButton = this.sidebarTabs.buttons.get("note") ?? null;
-    const panels = this.contentEl.createDiv({ cls: "number-suite-sidebar-panels" });
-    this.outlinePanel = panels.createDiv({ cls: "number-suite-sidebar-panel is-outline" });
-    this.outlinePanel.id = sidebarPanelElementId("outline");
-    this.outlinePanel.setAttribute("role", "tabpanel");
-    this.outlinePanel.setAttribute("aria-labelledby", sidebarTabElementId("outline"));
-    this.outlinePanel.tabIndex = 0;
-    this.notePanel = panels.createDiv({ cls: "number-suite-sidebar-panel is-note" });
-    this.notePanel.id = sidebarPanelElementId("note");
-    this.notePanel.setAttribute("role", "tabpanel");
-    this.notePanel.setAttribute("aria-labelledby", sidebarTabElementId("note"));
-    this.notePanel.tabIndex = 0;
+    const panel = this.contentEl.createDiv({ cls: "number-suite-sidebar-panel is-note" });
     this.notePane = new NoteControlPane(
       this.app,
-      this.notePanel,
+      panel,
       this.actions.getSettings,
       this.actions.getTranslate,
       {
@@ -155,295 +83,36 @@ export class NumberSuiteSidebarView extends ItemView {
     );
     this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
-    this.registerEvent(this.app.workspace.on("editor-change", (editor, info) => {
-      if (
-        this.activeTab === "outline"
-        && info.file?.path === this.currentFile?.path
-      ) {
-        this.scheduleOutlineRefresh(editor.getValue());
-      }
-    }));
     this.registerEvent(this.app.vault.on("modify", (file) => {
-      if (file.path !== this.currentFile?.path) return;
-      if (this.activeTab === "outline") this.scheduleOutlineRefresh();
-      else this.notePane?.refresh();
+      if (file.path === this.currentFile?.path) this.notePane?.refresh();
     }));
-    this.setFile(this.app.workspace.getActiveFile(), false);
-    this.applyActiveTab(true);
+    const active = this.app.workspace.getActiveViewOfType(MarkdownView);
+    this.sourceLeaf = active?.leaf ?? null;
+    this.setFile(active?.file ?? this.app.workspace.getActiveFile());
   }
 
   override async onClose(): Promise<void> {
-    this.outlineRequest += 1;
-    this.clearOutlineTimer();
-    this.sidebarTabs?.destroy();
-    this.contentEl.empty();
-    this.contentEl.removeAttribute("dir");
-    this.outlinePanel = null;
-    this.notePanel = null;
     this.notePane?.destroy();
     this.notePane = null;
-    this.outlineTabButton = null;
-    this.noteTabButton = null;
-    this.sidebarTabs = null;
-  }
-
-  selectTab(tab: NumberSuiteSidebarTab): void {
-    this.activeTab = tab;
-    this.applyActiveTab(true);
-    void this.app.workspace.requestSaveLayout();
+    this.contentEl.empty();
+    this.contentEl.removeAttribute("dir");
   }
 
   refresh(): void {
     this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
-    this.updateTabLabels();
-    if (this.activeTab === "outline") void this.refreshOutline();
-    else this.notePane?.refresh();
+    this.notePane?.refresh();
   }
 
-  private updateTabLabels(): void {
-    this.sidebarTabs?.setAriaLabel(this.actions.getTranslate()("sidebar.tabs.label"));
-    this.outlineTabButton?.setText(this.actions.getTranslate()("sidebar.tab.outline"));
-    this.noteTabButton?.setText(this.actions.getTranslate()("sidebar.tab.note"));
-  }
-
-  private setFile(file: TFile | null, refresh = true): void {
+  private setFile(file: TFile | null): void {
     const markdown = file?.extension.toLowerCase() === "md" ? file : null;
-    if (this.currentFile?.path === markdown?.path) return;
-    this.clearOutlineTimer();
-    this.outlineRequest += 1;
+    if (this.currentFile === markdown) return;
     this.currentFile = markdown;
-    this.outlineRoots = [];
-    this.outlineIdentities = new HeadingMapIdentity();
-    this.outlineNodeIds.clear();
-    this.collapsed.clear();
-    this.notePane?.setFile(markdown, refresh && this.activeTab === "note");
-    if (refresh && this.activeTab === "outline") void this.refreshOutline();
-  }
-
-  private applyActiveTab(refresh: boolean): void {
-    if (
-      this.outlinePanel == null
-      || this.notePanel == null
-      || this.outlineTabButton == null
-      || this.noteTabButton == null
-    ) return;
-    const outline = this.activeTab === "outline";
-    this.outlinePanel.toggleAttribute("hidden", !outline);
-    this.notePanel.toggleAttribute("hidden", outline);
-    this.sidebarTabs?.update(this.activeTab);
-    if (!refresh) return;
-    if (outline) void this.refreshOutline();
-    else this.notePane?.setFile(this.currentFile, true);
-  }
-
-  private clearOutlineTimer(): void {
-    if (this.outlineTimer == null) return;
-    const timerWindow = this.contentEl.ownerDocument.defaultView;
-    timerWindow?.clearTimeout(this.outlineTimer);
-    this.outlineTimer = null;
-  }
-
-  private scheduleOutlineRefresh(source?: string): void {
-    this.clearOutlineTimer();
-    const expectedPath = this.currentFile?.path ?? null;
-    const run = (): void => {
-      this.outlineTimer = null;
-      if (expectedPath !== (this.currentFile?.path ?? null)) return;
-      void this.refreshOutline(source, expectedPath);
-    };
-    const timerWindow = this.contentEl.ownerDocument.defaultView;
-    if (timerWindow == null) {
-      run();
-      return;
-    }
-    this.outlineTimer = timerWindow.setTimeout(run, 120);
+    this.notePane?.setFile(markdown, true);
   }
 
   private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
     if (!(leaf?.view instanceof MarkdownView)) return;
-    this.clearOutlineTimer();
-    this.outlineRequest += 1;
     this.sourceLeaf = leaf;
-    const path = leaf.view.file?.path ?? null;
-    this.setFile(leaf.view.file, this.activeTab === "note");
-    if (this.activeTab === "outline") void this.refreshOutline(leaf.view.editor.getValue(), path);
-  }
-
-  private async sourceForFile(file: TFile): Promise<string> {
-    const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
-    if (bound.leaf != null) this.sourceLeaf = bound.leaf;
-    return bound.source;
-  }
-
-  private async refreshOutline(
-    sourceOverride?: string,
-    expectedPath: string | null = this.currentFile?.path ?? null,
-  ): Promise<void> {
-    if (expectedPath !== (this.currentFile?.path ?? null)) return;
-    const panel = this.outlinePanel;
-    const file = this.currentFile;
-    const request = this.outlineRequest + 1;
-    this.outlineRequest = request;
-    if (panel == null) return;
-    if (file == null) {
-      this.renderOutlineEmpty(panel, "notice.noActiveNote");
-      return;
-    }
-    panel.addClass("is-loading");
-    try {
-      if (sourceOverride != null) {
-        const active = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (active?.file?.path === file.path) this.sourceLeaf = active.leaf;
-      }
-      const source = sourceOverride ?? await this.sourceForFile(file);
-      if (
-        request !== this.outlineRequest
-        || expectedPath !== this.currentFile?.path
-        || file.path !== this.currentFile?.path
-      ) return;
-      const overrides = parseNoteOverridesFromSource(source);
-      if (overrides == null) {
-        this.renderOutlineEmpty(panel, "notice.invalidFrontmatter");
-        return;
-      }
-      const settings = this.actions.getSettings();
-      const effective = resolveNoteSettings(settings, overrides);
-      if (!effective.valid) {
-        this.renderOutlineEmpty(panel, "notice.invalidProperties");
-        return;
-      }
-      const headings = parseAtxHeadings(source);
-      this.outlineNodeIds = new Map(this.outlineIdentities.update(source, headings));
-      const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
-        showVirtualNumbers: effective.showVirtualNumbers,
-        concealStoredNumbers: effective.concealStoredNumbers,
-        numbering: toNumberingOptions(settings, {
-          schemeId: effective.schemeId,
-          starts: effective.starts,
-          skipFirst: effective.skipFirst,
-        }),
-        cleanupScope: settings.concealScope,
-        templateSources: cleanupTemplateSources(settings),
-        revealOnActiveLine: false,
-        selections: [],
-        composing: false,
-      });
-      const outline = createDocumentOutline(source, {
-        headingDisplayPlan: displayPlan,
-        showCaptionNumbers: !effective.disabled && settings.showCaptionNumbers,
-      });
-      this.renderOutline(panel, file, outline);
-    } catch (error: unknown) {
-      console.error("Number Suite: failed to build document outline", error);
-      if (request === this.outlineRequest) this.renderOutlineEmpty(panel, "sidebar.outline.readFailed");
-    } finally {
-      if (request === this.outlineRequest) panel.removeClass("is-loading");
-    }
-  }
-
-  private renderOutline(
-    panel: HTMLElement,
-    file: TFile,
-    outline: readonly DocumentOutlineNode[],
-  ): void {
-    this.outlineRoots = outline;
-    panel.empty();
-    const header = panel.createDiv({ cls: "number-suite-sidebar-file" });
-    const heading = header.createDiv({ cls: "number-suite-sidebar-file-heading" });
-    heading.createEl("h4", { text: file.basename });
-    const map = heading.createEl("button", { cls: "number-suite-sidebar-map-button" });
-    map.type = "button";
-    setIcon(map, "git-fork");
-    map.setAttribute("aria-label", this.actions.getTranslate()("sidebar.outline.openMap"));
-    map.title = this.actions.getTranslate()("sidebar.outline.openMap");
-    map.addEventListener("click", () => this.actions.openHeadingMap(file.path, this.sourceLeaf));
-    header.createEl("p", { text: file.path });
-    if (outline.length === 0) {
-      panel.createEl("p", {
-        cls: "number-suite-sidebar-empty",
-        text: this.actions.getTranslate()("sidebar.outline.empty"),
-      });
-      return;
-    }
-    const tree = panel.createDiv({ cls: "number-suite-outline-tree" });
-    tree.setAttribute("role", "list");
-    for (const node of outline) this.renderOutlineNode(tree, file, node, 0);
-  }
-
-  private renderOutlineNode(
-    container: HTMLElement,
-    file: TFile,
-    node: DocumentOutlineNode,
-    depth: number,
-  ): void {
-    const identity = node.kind === "heading" ? this.outlineNodeIds.get(node.line) ?? String(node.line) : String(node.line);
-    const key = `${file.path}:${node.kind}:${identity}`;
-    const collapsed = this.collapsed.has(key);
-    const item = container.createDiv({ cls: `number-suite-outline-item is-${node.kind}` });
-    item.setAttribute("role", "listitem");
-    item.style.setProperty("--number-suite-outline-depth", String(depth));
-    const row = item.createDiv({ cls: "number-suite-outline-row" });
-    const toggle = row.createEl("button", { cls: "number-suite-outline-toggle" });
-    toggle.type = "button";
-    toggle.dataset.outlineKey = key;
-    if (node.children.length > 0) {
-      setIcon(toggle, collapsed ? "chevron-right" : "chevron-down");
-      toggle.setAttribute("aria-label", this.actions.getTranslate()(
-        collapsed ? "sidebar.outline.expand" : "sidebar.outline.collapse",
-      ));
-      toggle.setAttribute("aria-expanded", String(!collapsed));
-      toggle.addEventListener("click", () => {
-        if (collapsed) this.collapsed.delete(key);
-        else this.collapsed.add(key);
-        if (this.outlinePanel != null) {
-          this.renderOutline(this.outlinePanel, file, this.outlineRoots);
-          const toggles = this.outlinePanel.querySelectorAll<HTMLButtonElement>("button[data-outline-key]");
-          Array.from(toggles).find((button) => button.dataset.outlineKey === key)?.focus();
-        }
-      });
-    } else {
-      toggle.disabled = true;
-      toggle.setAttribute("aria-hidden", "true");
-    }
-    const navigate = row.createEl("button", { cls: "number-suite-outline-link" });
-    navigate.type = "button";
-    const badge = navigate.createSpan({ cls: "number-suite-outline-badge" });
-    if (node.kind === "heading") {
-      badge.setText(`H${node.level}`);
-    } else {
-      setIcon(badge, CAPTION_ICONS[node.captionKind]);
-      badge.setAttribute("aria-label", node.captionKind);
-    }
-    navigate.append(" ");
-    if (node.numberLabel != null) {
-      navigate.createSpan({ cls: "number-suite-outline-number", text: node.numberLabel });
-      navigate.append(" ");
-    }
-    navigate.createSpan({
-      cls: "number-suite-outline-title",
-      text: node.title || this.actions.getTranslate()("sidebar.outline.untitled"),
-    });
-    navigate.addEventListener("click", () => void this.navigateToLine(file, node.line));
-    if (node.children.length > 0 && !collapsed) {
-      const group = item.createDiv({ cls: "number-suite-outline-children" });
-      group.setAttribute("role", "list");
-      for (const child of node.children) this.renderOutlineNode(group, file, child, depth + 1);
-    }
-  }
-
-  private renderOutlineEmpty(
-    panel: HTMLElement,
-    key: "notice.noActiveNote" | "notice.invalidFrontmatter" | "notice.invalidProperties" | "sidebar.outline.readFailed",
-  ): void {
-    this.outlineRoots = [];
-    panel.empty();
-    panel.createEl("p", {
-      cls: "number-suite-sidebar-empty",
-      text: this.actions.getTranslate()(key),
-    });
-  }
-
-  private async navigateToLine(file: TFile, line: number): Promise<void> {
-    await navigateToLine(this.app, file, line, this.sourceLeaf);
+    this.setFile(leaf.view.file);
   }
 }

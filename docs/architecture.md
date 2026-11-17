@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-15
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Architecture
@@ -130,16 +130,17 @@ Native GFM rows split on unescaped pipes before inline parsing, including pipes 
 <!-- section: display-adapters -->
 ## Display adapters
 
-`NumberSuiteSidebarView` is one persistent right-side `ItemView` with two internal tabs. The outline
-and Heading Map share a Markdown-source binding adapter: an existing originating same-file pane wins,
-then the active same-file pane, then a unique same-file pane, and ambiguous unbound panes fall back
-to a cached Vault read. The outline renders the pure projection and reconciles heading collapse
-state with source identities instead of raw line numbers. The current-note tab owns a reusable
-controls pane instead of a modal. Workspace file, leaf, editor, and Vault-modify events refresh only
-the relevant active tab; the selected tab is stored as view state. Navigation resolves an existing
-Markdown leaf when possible and otherwise opens the file at the projected source line.
+## Native Outline and structure editing
 
-`NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from the outline button
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
+
+Three independent Outline switches default on: effective heading numbers, H7–H9, and captions. Explicit saved false values remain false. The adapter does not change Markdown or the shared metadata cache. Native collapse, filtering, current-location following, multiple panes and pinned-file behavior remain available. Headings show a small number pill and text. Caption leaves show a type icon, localized type and ordinal, and secondary title without a whole-row pill or expand arrow. Source order and effective counts do not depend on filtering or collapse. Body caption pills stay unchanged.
+
+H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
+
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do nothing. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
+
+`NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from native Outline or Current note
 or command palette. It uses the same bound-pane source preference and exact source-line navigation,
 rendering SVG structure edges in left-to-right or top-to-bottom layout. Pure helpers own structural
 depth expansion and anchored viewport zoom math. A card's left handle shows its heading number or Hn
@@ -147,8 +148,7 @@ fallback; its right handle always shows the total direct-child count and changes
 branch collapse. The view supports whole-document/selected-subtree scopes, 1/2/3/all depth presets,
 search traversal, empty-space panning, Ctrl/Cmd-wheel or two-finger pointer zoom, keyboard zoom/Fit,
 and toolbar Fit. Search may temporarily reveal ancestors of matches without changing structural
-counts. The view only consumes display plans: it never calls Editor/Vault write APIs and offers no
-drag reordering or heading-level edits.
+counts. The browse mode consumes display plans. Explicit structure editing uses the shared immutable move planner and a guarded Editor transaction, without parent or heading-level changes.
 
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and

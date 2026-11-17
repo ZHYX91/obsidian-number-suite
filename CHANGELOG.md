@@ -4,6 +4,12 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+- Enhance the native Outline with independent default-on heading-number, H7–H9 and caption controls. Caption leaves use localized labels and type icons; headings share effective document numbering.
+- Replace the plugin-owned Document outline and sidebar tabs with direct Current note controls. Keep legacy command and workspace compatibility, and move file-bound mind-map entries to native Outline and Current note.
+- Move complete H7–H9 sections among same-parent, same-level headings by desktop or touch drag with bounded, stale-checked editor transactions and native undo/redo. Mind-map structure editing also offers accessible move controls.
+- Make explicit references navigate on the first click, with F2 and mobile long-press source editing. Add optional, default-off same-note Wiki heading numbers in Live Preview and Reading View while preserving native links and aliases.
+- Preview every heading scheme from first counters with localized heading labels and compact number pills.
+
 - Restore Live Preview note-definition labels after disabling and re-enabling the plugin, while preserving marker editing and original source.
 - Keep valid Markdown link destinations and multiline titles out of note numbering, cross-reference display and semantic export while preserving visible link text and malformed-link prose.
 - Localize current-note Properties diagnostic details in all 12 interface languages while preserving configuration keys and entered values.

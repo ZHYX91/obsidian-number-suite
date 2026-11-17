@@ -3,17 +3,26 @@ import { MarkdownView, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
-  ItemView: class {},
+  ItemView: class { async setState(): Promise<void> {} },
 }));
 
 import { NumberSuiteSidebarView, type NumberSuiteSidebarActions } from "../../src/ui/sidebar-view";
 
 describe("sidebar source pane lifecycle", () => {
+  it.each(["outline", "note"])("migrates old %s workspace state into Current note", async (tab) => {
+    const sidebar = new NumberSuiteSidebarView({} as WorkspaceLeaf, {} as NumberSuiteSidebarActions);
+    const file = { path: "Current.md", extension: "md" };
+    const setFile = vi.fn();
+    Object.assign(sidebar, { currentFile: file, notePane: { setFile } });
+    await sidebar.setState({ tab }, {} as never);
+    expect(setFile).toHaveBeenCalledWith(file, true);
+    expect(sidebar.getState()).toEqual({});
+  });
+
   it("updates the source identity when only the active pane changes", () => {
     const sidebar = new NumberSuiteSidebarView({} as WorkspaceLeaf, {} as NumberSuiteSidebarActions);
     const setFile = vi.fn();
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    Object.assign(sidebar, { setFile, refreshOutline: refresh });
+    Object.assign(sidebar, { setFile });
     const view = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
       file: { path: "Same.md" }, editor: { getValue: () => "# Right buffer" },
     });
@@ -24,7 +33,7 @@ describe("sidebar source pane lifecycle", () => {
     };
     subject.onActiveLeafChange(right);
     expect(subject.sourceLeaf).toBe(right);
-    expect(refresh).toHaveBeenLastCalledWith("# Right buffer", "Same.md");
+    expect(setFile).toHaveBeenLastCalledWith(view.file);
     subject.onActiveLeafChange(null);
     expect(subject.sourceLeaf).toBe(right);
     expect(setFile).toHaveBeenCalledTimes(1);

@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { HeadingCache } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { createNativeOutlineProjection } from "../../src/integration/native-outline";
+
+vi.mock("obsidian", async (original) => ({
+  ...await original<Record<string, unknown>>(),
+  getFrontMatterInfo: (source: string) => {
+    const match = /^---\n([\s\S]*?)\n---\n/u.exec(source);
+    return { exists: match != null, frontmatter: match?.[1] ?? "", from: 0, to: match?.[0].length ?? 0, contentStart: match?.[0].length ?? 0 };
+  },
+  parseYaml: (source: string) => source === "number-suite: [disabled=true]" ? { "number-suite": ["disabled=true"] } : {},
+}));
 
 function native(line: number, heading: string, level: number, from: number): HeadingCache {
   return {
@@ -27,13 +36,13 @@ describe("native Outline projection", () => {
   ];
 
   it("adds H7–H9 and captions as navigation-only entries at true source lines", () => {
-    const result = createNativeOutlineProjection(source, headings, DEFAULT_SETTINGS);
+    const result = createNativeOutlineProjection(source, headings, { ...DEFAULT_SETTINGS, showVirtualNumbers: true });
     expect(result.headings.map((item) => [item.position.start.line, item.level, item.heading])).toEqual([
       [0, 2, "Chapter"],
       [1, 8, "Deep"],
-      [2, 9, "Figure 1: Diagram"],
+      [2, 10, "Figure 1: Diagram"],
       [3, 2, "Next"],
-      [4, 3, "Table 1: Result"],
+      [4, 10, "Table 1: Result"],
     ]);
     expect(result.headings.slice(1).some((item) => item.__numberSuiteExtra === "caption")).toBe(true);
     expect(result.numberLabels.get(0)).toBeTruthy();
@@ -75,4 +84,31 @@ describe("native Outline projection", () => {
     expect(result.headings).toEqual([]);
     expect(result.numberLabels.size).toBe(0);
   });
+  it("matches effective body display rather than inventing heading numbers", () => {
+    const plain = "## Heading";
+    const cache = [native(0, "Heading", 2, 0)];
+    const off = createNativeOutlineProjection(plain, cache, { ...DEFAULT_SETTINGS, showVirtualNumbers: false });
+    expect(off.numberLabels.size).toBe(0);
+    const on = createNativeOutlineProjection(plain, cache, { ...DEFAULT_SETTINGS, showVirtualNumbers: true });
+    expect(on.numberLabels.get(0)).toBe("1");
+    const concealed = createNativeOutlineProjection(plain, cache, {
+      ...DEFAULT_SETTINGS, showVirtualNumbers: true, concealStoredNumbers: true,
+    });
+    expect(concealed.numberLabels.get(0)).toBe("1");
+  });
+
+  it("makes captions leaves so a following skipped-level heading stays under its heading parent", () => {
+    const text = "# Parent\nFigure: One\n####### Deep\nTable: Two\n######### Child\nFigure: Three";
+    const result = createNativeOutlineProjection(text, [native(0, "Parent", 1, 0)], DEFAULT_SETTINGS);
+    const stack: Array<{ level: number; line: number }> = [];
+    const parents = new Map<number, number | null>();
+    for (const heading of result.headings) {
+      while (stack.length > 0 && stack[stack.length - 1]!.level >= heading.level) stack.pop();
+      parents.set(heading.position.start.line, stack[stack.length - 1]?.line ?? null);
+      stack.push({ level: heading.level, line: heading.position.start.line });
+    }
+    expect([...parents]).toEqual([[0, null], [1, 0], [2, 0], [3, 2], [4, 2], [5, 4]]);
+    expect(result.headings.filter((heading) => heading.__numberSuiteExtra === "caption").map((heading) => heading.__numberSuiteCaption?.ordinal)).toEqual([1, 1, 2]);
+  });
+
 });

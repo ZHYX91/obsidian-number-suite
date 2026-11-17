@@ -59,6 +59,8 @@ export interface SemanticDisplayPlanOptions {
   readonly showImageCaptionTooltips?: boolean;
   readonly showCrossReferences: boolean;
   readonly enhanceNativeWikiHeadingLinks?: boolean;
+  /** Host resolver must authenticate file-qualified links against this source file. */
+  readonly isSameFileWikiTarget?: (filePart: string) => boolean;
   readonly showNoteNumbers: boolean;
   readonly noteSelections: readonly SelectionSpan[];
   readonly numbering: NumberingOptions;
@@ -189,7 +191,7 @@ export function imageTooltipContentAtOffset(
 }
 
 /** Only explicit same-note Wiki heading anchors are eligible for this optional enhancement. */
-function nativeWikiHeadingLinks(snapshot: SemanticSnapshot): Array<{
+function nativeWikiHeadingLinks(snapshot: SemanticSnapshot, isSameFile?: (filePart: string) => boolean): Array<{
   readonly line: number;
   readonly from: number;
   readonly to: number;
@@ -198,13 +200,15 @@ function nativeWikiHeadingLinks(snapshot: SemanticSnapshot): Array<{
   readonly kind: "title";
 }> {
   const result: Array<{ line: number; from: number; to: number; target: string; alias: string | null; kind: "title" }> = [];
-  const pattern = /(?<![@!\[])\[\[#([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/gu;
+  const pattern = /(?<![@![])\[\[([^#\]\n|]*)#([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/gu;
   for (const line of snapshot.lines) {
     if (!line.available) continue;
     const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
     for (const match of masked.matchAll(pattern)) {
       if (match.index == null || isMarkdownSourceEscaped(line.text, match.index)) continue;
-      const target = match[1]?.trim();
+      const filePart = match[1]?.trim() ?? "";
+      if (filePart !== "" && isSameFile?.(filePart) !== true) continue;
+      const target = match[2]?.trim();
       if (!target || target.startsWith("^")) continue;
       result.push({
         kind: "title",
@@ -212,7 +216,7 @@ function nativeWikiHeadingLinks(snapshot: SemanticSnapshot): Array<{
         from: line.from + match.index,
         to: line.from + match.index + match[0].length,
         target,
-        alias: match[2]?.trim() || null,
+        alias: match[3]?.trim() || null,
       });
     }
   }
@@ -318,7 +322,7 @@ export function createSemanticDisplayPlan(
       ? semantics.references.map((reference) => ({ reference, native: false }))
       : []),
     ...(options.enhanceNativeWikiHeadingLinks
-      ? nativeWikiHeadingLinks(snapshot).map((reference) => ({ reference, native: true }))
+      ? nativeWikiHeadingLinks(snapshot, options.isSameFileWikiTarget).map((reference) => ({ reference, native: true }))
       : []),
   ];
   for (const { reference, native } of references) {
@@ -354,6 +358,7 @@ export function createSemanticDisplayPlan(
         to: reference.from,
         line: reference.line,
         label: number,
+        target: reference.target,
         targetLine,
         targetKind: "heading",
       });

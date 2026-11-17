@@ -684,174 +684,10 @@
   padding: 0;
 }
 
-.number-suite-sidebar-tabs {
-  border-block-end: 1px solid var(--background-modifier-border);
-  display: grid;
-  flex: 0 0 auto;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.number-suite-sidebar-tab {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  color: var(--text-muted);
-  display: inline-flex;
-  font-size: var(--font-ui-small);
-  font-weight: var(--font-normal);
-  height: auto;
-  justify-content: center;
-  min-height: max(34px, var(--input-height));
-  min-width: 0;
-  overflow-wrap: anywhere;
-  padding: var(--size-4-2) var(--size-4-3);
-  white-space: normal;
-}
-
-.number-suite-sidebar-tab:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-}
-
-.number-suite-sidebar-tab.is-active {
-  box-shadow: inset 0 -2px var(--interactive-accent);
-  color: var(--text-normal);
-  font-weight: var(--font-semibold);
-}
-
-.number-suite-sidebar-tab:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
-  color: var(--text-normal);
-}
-
-.number-suite-sidebar-tab.is-active:focus-visible {
-  box-shadow:
-    inset 0 -2px var(--interactive-accent),
-    inset 0 0 0 2px var(--background-modifier-border-focus);
-}
-
-.number-suite-sidebar-panels {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 .number-suite-sidebar-panel {
   height: 100%;
   overflow-y: auto;
   padding: var(--size-4-2);
-}
-
-.number-suite-sidebar-panel[hidden] {
-  display: none;
-}
-
-.number-suite-sidebar-panel.is-loading {
-  opacity: 0.65;
-  pointer-events: none;
-}
-
-.number-suite-sidebar-file h4,
-.number-suite-sidebar-file p {
-  margin: 0;
-}
-
-.number-suite-sidebar-file p,
-.number-suite-sidebar-empty {
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  overflow-wrap: anywhere;
-}
-
-.number-suite-sidebar-file {
-  border-block-end: 1px solid var(--background-modifier-border);
-  margin-block-end: var(--size-4-2);
-  padding-block-end: var(--size-4-2);
-}
-
-.number-suite-outline-tree {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.number-suite-outline-row {
-  align-items: flex-start;
-  display: flex;
-  min-width: 0;
-  padding-inline-start: calc(var(--number-suite-outline-depth) * min(0.75rem, 2.5%));
-}
-
-.number-suite-outline-toggle,
-.number-suite-outline-link {
-  appearance: none;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: var(--text-normal);
-}
-
-.number-suite-outline-toggle {
-  align-items: center;
-  display: inline-flex;
-  flex: 0 0 1.6rem;
-  height: auto;
-  justify-content: center;
-  min-height: 2rem;
-  padding: 0;
-  width: 1.6rem;
-}
-
-.number-suite-outline-toggle:disabled {
-  opacity: 0;
-}
-
-.number-suite-outline-link {
-  border-radius: var(--radius-s);
-  display: block;
-  flex: 1 1 auto;
-  font-size: var(--font-ui-small);
-  height: auto;
-  line-height: var(--line-height-tight);
-  min-height: 2rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  padding: var(--size-2-2) var(--size-4-2);
-  text-align: start;
-  white-space: normal;
-}
-
-.number-suite-outline-toggle:hover,
-.number-suite-outline-link:hover {
-  background: var(--background-modifier-hover) !important;
-}
-
-.number-suite-outline-toggle:focus-visible,
-.number-suite-outline-link:focus-visible {
-  background: var(--background-modifier-hover) !important;
-  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus) !important;
-}
-
-.number-suite-outline-badge {
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-}
-
-.number-suite-outline-number {
-  color: var(--text-accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.number-suite-outline-title {
-  line-height: var(--line-height-tight);
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.number-suite-outline-item.is-caption > .number-suite-outline-row .number-suite-outline-title {
-  color: var(--text-muted);
 }
 
 .number-suite-note-control-header h3,
@@ -1268,46 +1104,6 @@
 }
 
 
-.number-suite-sidebar-file-heading {
-  align-items: center;
-  display: flex;
-  gap: var(--size-4-2);
-  min-width: 0;
-}
-
-.number-suite-sidebar-file-heading h4 {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.number-suite-sidebar-map-button {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-s);
-  color: var(--text-muted);
-  display: inline-flex;
-  flex: 0 0 28px;
-  height: 28px;
-  justify-content: center;
-  padding: 5px;
-  width: 28px;
-}
-
-.number-suite-sidebar-map-button:hover,
-.number-suite-sidebar-map-button:focus-visible {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-}
-
-.number-suite-sidebar-map-button:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
-}
-
 .number-suite-heading-map-view {
   display: flex;
   flex-direction: column;
@@ -1642,10 +1438,6 @@
 @media (pointer: coarse) {
   .number-suite-heading-map-number,
   .number-suite-heading-map-file,
-  .number-suite-sidebar-tab,
-  .number-suite-outline-link,
-  .number-suite-outline-toggle,
-  .number-suite-sidebar-map-button,
   .number-suite-heading-map-scope button,
   .number-suite-heading-map-zoom button {
     min-height: 44px;
@@ -1738,3 +1530,34 @@
   color: var(--text-faint);
   cursor: default;
 }
+/* Native Outline keeps host row ownership and compact, leaf-only captions. */
+.number-suite-native-outline-number {
+  display: inline-block;
+  padding: 0 .32em;
+  border-radius: .35em;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: .85em;
+  line-height: 1.35;
+  margin-inline-end: .4em;
+  font-variant-numeric: tabular-nums;
+}
+.number-suite-native-outline-caption > .tree-item-self > .tree-item-icon,
+.number-suite-native-outline-caption > .tree-item-self > .collapse-icon {
+  visibility: hidden;
+  pointer-events: none;
+}
+.number-suite-native-outline-caption .tree-item-inner {
+  display: flex;
+  align-items: baseline;
+  gap: .35em;
+  background: transparent;
+  border-radius: 0;
+}
+.number-suite-outline-caption-icon { display: inline-flex; align-self: center; flex-shrink: 0; }
+.number-suite-outline-caption-icon svg { width: 1em; height: 1em; }
+.number-suite-outline-caption-label { flex-shrink: 0; color: var(--text-normal); }
+.number-suite-outline-caption-title { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+.number-suite-native-outline-extended { -webkit-user-drag: element; }
+.number-suite-outline-drop-before { box-shadow: 0 -2px 0 var(--interactive-accent); }
+.number-suite-outline-drop-after { box-shadow: 0 2px 0 var(--interactive-accent); }

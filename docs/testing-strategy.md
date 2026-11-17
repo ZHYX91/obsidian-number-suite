@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-08
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Testing strategy
@@ -59,7 +59,7 @@ protection. Application tests cover virtual/conceal plans, fail-closed same-file
 resolution, independent caption alignment, selection-based note-source reveal, Properties parsing,
 note overrides, and conditional replacement. Adapter tests cover
 recovery data, Reading View DOM-count validation, semantic-marker cleanup, and settings contracts.
-The pure sidebar outline projection covers H1-H9 hierarchy, captions, display labels, protected
+The pure navigation projection covers H1-H9 hierarchy, captions, display labels, protected
 regions, and block-ID removal; targeted current-note tests cover sidebar focus and duplicate-view
 failure.
 Broader recognition requires false-positive fixtures first.
@@ -96,7 +96,7 @@ contract. `release:check` adds version, tag, and clean-worktree checks.
 ## Host acceptance
 
 For selected host scenarios, use an isolated acceptance vault and verify the affected parts of the ribbon-opened sidebar, both
-internal tabs, H1-H9-and-caption outline navigation, current-note controls, independent
+native Outline H1-H9-and-caption navigation, current-note controls, independent
 display/concealment, Live Preview, Reading View, previewed writes and undo, source accessibility,
 plugin-disable cleanup, same-length edits, Properties persistence, and link-risk messaging. Batch
 work also verifies stale previews, concurrent conflicts, mid-run failure, recovery, and exclusions.
@@ -121,7 +121,7 @@ Select representative acceptance on the exact candidate by change impact. Deskto
 When mobile acceptance is selected, use an isolated Android 15 / API 35 emulator.
 Install and hash-check the final candidate, then cover sidebar open/close, both tabs, H1-H9 and
 caption outline navigation, 44-pixel touch targets, current-note controls, Live Preview, Reading
-View, Chinese IME, the write/cleanup round trip, all seven settings tabs, background/foreground,
+View, Chinese IME, the write/cleanup round trip, all eight settings tabs, background/foreground,
 and disable cleanup. Android physical devices and iOS are outside the current acceptance matrix;
 the emulator is Number Suite's complete mobile acceptance surface.
 

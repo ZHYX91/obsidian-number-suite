@@ -47,7 +47,9 @@ Hay estilos jerárquicos, ejemplos para documentos oficiales y jurídicos chinos
 <!-- section: settings -->
 ## Dónde ajustar las opciones
 
-Las siete pestañas de ajustes son: General, Numeración de títulos, Leyendas, Referencias cruzadas, Notas al pie y finales, Escritura y limpieza, Vista y lotes. El idioma y el estilo de numeración se eligen por separado. La sección de nota actual en la barra lateral derecha permite cambiar solo una nota. Volver a seguir los ajustes globales elimina esa excepción y conserva las demás Properties. El esquema del documento y el mapa mental de títulos, de solo lectura, permiten saltar al texto original.
+Las ocho pestañas de ajustes son: General, Numeración de títulos, Mejoras del esquema, Leyendas, Referencias cruzadas, Notas al pie y finales, Escritura y limpieza, Vista y lotes. El idioma y el estilo de numeración se eligen por separado. La sección de nota actual en la barra lateral derecha permite cambiar solo una nota. Volver a seguir los ajustes globales elimina esa excepción y conserva las demás Properties.
+
+La cinta abre directamente «Nota actual», sin pestañas laterales. Activa tú mismo el complemento principal Esquema; Number Suite no lo activa automáticamente. Las tres opciones independientes de números, H7–H9 y leyendas están activadas por defecto y respetan valores guardados desactivados. El esquema nativo y Nota actual abren el mapa para su propio archivo. «Ajustar estructura» mueve secciones completas del mismo padre y nivel mediante arrastre o botones arriba/abajo, rechaza texto modificado y admite Deshacer/Rehacer. Un clic navega por referencias explícitas; F2 o la acción móvil edita la fuente. La numeración de enlaces Wiki a títulos del mismo archivo está desactivada por defecto; funciona en vista previa y lectura, también con nombre de archivo, conservando alias y acciones nativas.
 
 <!-- section: limitations -->
 ## Alcance y límites
@@ -55,7 +57,6 @@ Las siete pestañas de ajustes son: General, Numeración de títulos, Leyendas, 
 - Cada archivo Markdown usa un solo estilo de numeración. Las leyendas y referencias también se resuelven dentro del mismo archivo.
 - Los títulos y leyendas dentro de listas, citas, ejemplos de código, bloques HTML y frontmatter no se numeran. Las notas y referencias del texto normal de una lista siguen funcionando.
 - En Structural Tables, la acción de leyenda requiere comprobar el archivo, el texto y el intervalo exacto. Un elemento desactivado explica los casos de versión antigua o tabla no compatible. En esos casos, añade o edita la leyenda en modo fuente.
-- H7–H9 son una extensión de Number Suite y DocWen. El esquema y los enlaces a títulos de Obsidian pueden no reconocerlos; puedes usar un ID de bloque como destino estable.
 
 <!-- section: privacy-and-support -->
 ## Privacidad y ayuda

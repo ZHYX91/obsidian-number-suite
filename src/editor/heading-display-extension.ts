@@ -612,11 +612,15 @@ export class HeadingDisplayController {
     token: object;
   }>>();
 
-  constructor(private readonly getSettings: () => NumberSuiteSettings) {}
+  constructor(
+    private readonly getSettings: () => NumberSuiteSettings,
+    private readonly resolveWikiTarget?: (filePart: string, sourcePath: string) => boolean,
+  ) {}
 
   createExtension(): Extension {
     const views = this.views;
     const settingsProvider = this.getSettings;
+    const resolveWikiTarget = this.resolveWikiTarget;
     const recordContextMenuOffset = (
       editor: Editor,
       offset: number | null,
@@ -795,6 +799,10 @@ export class HeadingDisplayController {
           showImageCaptionTooltips: settings.showImageCaptionTooltips,
           showCrossReferences: settings.showCrossReferences,
           enhanceNativeWikiHeadingLinks: settings.enhanceNativeWikiHeadingLinks && livePreview,
+          isSameFileWikiTarget: (filePart) => {
+            const path = this.view.state.field(editorInfoField, false)?.file?.path;
+            return path != null && resolveWikiTarget?.(filePart, path) === true;
+          },
           showNoteNumbers: shouldShowNoteWidgets(settings, livePreview),
           noteSelections: selections,
           numbering,

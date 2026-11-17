@@ -47,7 +47,9 @@ Es gibt hierarchische Stile sowie Beispiele für chinesische Amts- und Rechtstex
 <!-- section: settings -->
 ## Einstellungen finden
 
-Die sieben globalen Einstellungsbereiche heißen: Allgemein, Überschriftennummerierung, Beschriftungen, Querverweise, Fuß- und Endnoten, Schreiben und Bereinigen, Anzeige und Stapel. Sprache und Nummerierungsstil werden getrennt gewählt. In „Aktuelle Notiz“ in der rechten Seitenleiste kannst du einzelne Werte überschreiben. „Globaler Einstellung folgen“ entfernt nur diese Ausnahme und lässt andere Properties unverändert. Dokumentgliederung und schreibgeschützte Überschriften-Mindmap führen direkt zur ursprünglichen Zeile.
+Die acht globalen Einstellungsbereiche heißen: Allgemein, Überschriftennummerierung, Outline-Erweiterungen, Beschriftungen, Querverweise, Fuß- und Endnoten, Schreiben und Bereinigen, Anzeige und Stapel. Sprache und Nummerierungsstil werden getrennt gewählt. In „Aktuelle Notiz“ in der rechten Seitenleiste kannst du einzelne Werte überschreiben. „Globaler Einstellung folgen“ entfernt nur diese Ausnahme und lässt andere Properties unverändert.
+
+Das Menüband öffnet direkt „Aktuelle Notiz“, ohne Seitenleisten-Tabs. Aktiviere Obsidian Outline selbst; Number Suite aktiviert es nicht automatisch. Drei unabhängige Optionen für Nummern, H7–H9 und Beschriftungen sind standardmäßig an; gespeicherte Aus-Werte bleiben erhalten. Die native Gliederung und „Aktuelle Notiz“ öffnen die Mindmap für ihre eigene Datei. „Struktur anpassen“ erlaubt ganze Abschnitte nur unter demselben Elternknoten und auf derselben Ebene zu verschieben, per Ziehen oder Auf/Ab. Veralteter Quelltext wird abgelehnt; Rückgängig/Wiederholen bleibt verfügbar. Explizite Verweise springen mit einem Klick; F2 oder die mobile Quelltextaktion dient zum Bearbeiten. Nummern für gewöhnliche Wiki-Überschriftenlinks derselben Datei sind standardmäßig aus und optional in Live-Vorschau und Leseansicht verfügbar, auch mit Dateinamen; Aliase und native Aktionen bleiben erhalten.
 
 <!-- section: limitations -->
 ## Umfang und Grenzen
@@ -55,7 +57,6 @@ Die sieben globalen Einstellungsbereiche heißen: Allgemein, Überschriftennumme
 - Pro Markdown-Datei gilt ein Nummerierungsstil. Auch Beschriftungen und Querverweise werden innerhalb einer Datei ausgewertet.
 - Überschriften und Beschriftungen in Listen, Zitaten, Codebeispielen, HTML-Blöcken und Frontmatter werden nicht mitgezählt. Fußnoten und Querverweise im normalen Listentext bleiben nutzbar.
 - Bei Structural Tables erscheint die Beschriftungsaktion nur, wenn Datei, Quelltext und Bereich eindeutig geprüft werden können. Bei älteren Versionen oder nicht unterstützten Tabellen erklärt ein deaktivierter Eintrag den Grund. Bearbeite die Beschriftung dann im Quellmodus.
-- H7–H9 sind eine Erweiterung von Number Suite und DocWen. Obsidian erkennt sie eventuell nicht in seiner eigenen Gliederung oder in Überschriftenlinks; Block-IDs bieten ein stabiles Verweisziel.
 
 <!-- section: privacy-and-support -->
 ## Datenschutz und Hilfe

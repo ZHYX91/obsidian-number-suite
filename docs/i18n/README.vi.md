@@ -47,7 +47,9 @@ Có kiểu phân cấp thông thường, ví dụ cho văn bản hành chính v�
 <!-- section: settings -->
 ## Tìm phần cài đặt
 
-Bảy thẻ cài đặt gồm: Chung, Đánh số tiêu đề, Chú thích, Tham chiếu chéo, Chú thích chân trang và cuối tài liệu, Ghi số và dọn dẹp, Hiển thị và hàng loạt. Ngôn ngữ giao diện và kiểu đánh số được chọn riêng. Phần ghi chú hiện tại ở thanh bên phải cho phép đổi riêng từng ghi chú. Chọn theo cài đặt chung sẽ xóa đúng phần ghi đè đó, giữ nguyên Properties khác. Dàn ý tài liệu và sơ đồ tư duy tiêu đề chỉ đọc giúp chuyển đến dòng gốc.
+Tám thẻ cài đặt gồm: Chung, Đánh số tiêu đề, Cải tiến dàn ý, Chú thích, Tham chiếu chéo, Chú thích chân trang và cuối tài liệu, Ghi số và dọn dẹp, Hiển thị và hàng loạt. Ngôn ngữ giao diện và kiểu đánh số được chọn riêng. Phần ghi chú hiện tại ở thanh bên phải cho phép đổi riêng từng ghi chú. Chọn theo cài đặt chung sẽ xóa đúng phần ghi đè đó, giữ nguyên Properties khác.
+
+Biểu tượng mở thẳng Ghi chú hiện tại, không có thẻ thanh bên. Hãy tự bật tiện ích Dàn ý lõi; Number Suite không tự bật. Ba tùy chọn riêng cho số, H7–H9 và chú thích mặc định bật, nhưng giữ lựa chọn tắt đã lưu. Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
 
 <!-- section: limitations -->
 ## Phạm vi và giới hạn
@@ -55,7 +57,6 @@ Bảy thẻ cài đặt gồm: Chung, Đánh số tiêu đề, Chú thích, Tham
 - Mỗi tệp Markdown dùng một quy tắc đánh số. Chú thích và tham chiếu cũng được xử lý trong cùng tệp.
 - Tiêu đề và chú thích trong danh sách, trích dẫn, ví dụ mã, khối HTML và frontmatter không tham gia đánh số tài liệu. Chú thích chân trang và tham chiếu trong văn bản danh sách thông thường vẫn dùng được.
 - Với Structural Tables, thao tác chú thích cần xác minh tệp, văn bản nguồn và khoảng chính xác. Phiên bản cũ hoặc bảng chưa được hỗ trợ sẽ hiện mục bị vô hiệu hóa kèm giải thích. Khi đó, hãy thêm hoặc sửa chú thích thủ công ở chế độ nguồn.
-- H7–H9 là cú pháp mở rộng của Number Suite và DocWen. Dàn ý và liên kết tiêu đề gốc của Obsidian có thể không nhận ra; ID khối cung cấp đích tham chiếu ổn định.
 
 <!-- section: privacy-and-support -->
 ## Quyền riêng tư và trợ giúp
