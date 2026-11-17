@@ -75,7 +75,12 @@ describe("plugin localization lifecycle", () => {
     } as unknown as App;
     const plugin = new NumberSuitePlugin(app, { id: "number-suite", name: "Number Suite" } as PluginManifest);
     plugin.settings.selectedSchemeId = "hierarchical";
-    const runtime = plugin as unknown as { registerCommands(): void; localizedCommands: Array<{ command: Command }> };
+    const runtime = plugin as unknown as {
+      registerCommands(): void;
+      presentCurrentPreview(options: PreviewModalOptions): Promise<void>;
+      localizedCommands: Array<{ command: Command }>;
+    };
+    vi.spyOn(runtime, "presentCurrentPreview").mockImplementation(async (options) => { preview.options = options; });
     runtime.registerCommands();
     const command = runtime.localizedCommands.find(({ command }) => command.id.endsWith(":write-numbers-current-note"))!.command;
     command.checkCallback!(false);
