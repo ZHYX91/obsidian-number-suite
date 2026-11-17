@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDisplayPlan } from "../../src/application/display-plan";
-import { createHeadingMap, createHeadingMapDocument, headingMapOverview } from "../../src/application/heading-map";
+import { createHeadingMap, createHeadingMapDocument, headingMapOverview, adjacentHeadingMapSibling } from "../../src/application/heading-map";
 import { layoutHeadingMap } from "../../src/application/heading-map-layout";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
@@ -47,6 +47,25 @@ function mapFor(
 }
 
 describe("heading mind map", () => {
+  it("finds actual same-parent, same-level siblings regardless of visual filtering", () => {
+    const roots = mapFor("# Root\n## A\n### A1\n## B\n## C\n# Other\n## D");
+    const [root, other] = roots;
+    const a = root?.children[0], a1 = a?.children[0];
+    const b = root?.children[1], c = root?.children[2], d = other?.children[0];
+    expect(a && adjacentHeadingMapSibling(roots, a.id, "up")).toBeNull();
+    expect(a && adjacentHeadingMapSibling(roots, a.id, "down")?.id).toBe(b?.id);
+    expect(b && adjacentHeadingMapSibling(roots, b.id, "down")?.id).toBe(c?.id);
+    expect(c && adjacentHeadingMapSibling(roots, c.id, "down")).toBeNull();
+    expect(a1 && adjacentHeadingMapSibling(roots, a1.id, "up")).toBeNull();
+    expect(d && adjacentHeadingMapSibling(roots, d.id, "up")).toBeNull();
+    expect(adjacentHeadingMapSibling(roots, "missing", "down")).toBeNull();
+
+    // Two children under the same parent can still have different actual levels.
+    const skipped = mapFor("# Root\n### High\n## Low");
+    expect(adjacentHeadingMapSibling(skipped, skipped[0]!.children[0]!.id, "down")).toBeNull();
+  });
+
+
   it("connects every parentless heading to the document without merging its namesake H1", () => {
     const roots = mapFor("## Before\n#### Child\n# Note\n## Section\n# Last");
     const document = createHeadingMapDocument("Note", roots);
