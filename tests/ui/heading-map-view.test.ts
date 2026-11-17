@@ -39,6 +39,8 @@ type Subject = {
   sceneHost: HTMLElement;
   viewport: HTMLElement;
   needsInitialFit: boolean;
+  rearranging: boolean;
+  applyMove: (...args: unknown[]) => Promise<void>;
   onResize(): void;
   refreshMap(source?: string, path?: string): Promise<void>;
   scheduleRefresh(source?: string): void;
@@ -114,6 +116,37 @@ describe("heading map touch targets", () => {
 });
 
 describe("heading map interactions", () => {
+  it("offers keyboard and touch reorder buttons only in edit mode", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## A\n### A child\n## B\n## C");
+    expect(view.sceneHost.querySelector(".number-suite-heading-map-order-controls")).toBeNull();
+    view.rearranging = true;
+    const apply = vi.spyOn(view, "applyMove").mockResolvedValue(undefined);
+    view.render();
+    const a = view.roots[0]?.children[0];
+    const b = view.roots[0]?.children[1];
+    const c = view.roots[0]?.children[2];
+    expect(a && b && c).toBeTruthy();
+    if (a == null || b == null || c == null) return;
+    const aCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${a.id}"]`)!;
+    const bCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${b.id}"]`)!;
+    const cCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${c.id}"]`)!;
+    const controls = (card: HTMLElement) =>
+      card.querySelectorAll<HTMLButtonElement>(".number-suite-heading-map-order-action");
+    expect(controls(aCard)[0]?.disabled).toBe(true);
+    expect(controls(aCard)[1]?.disabled).toBe(false);
+    expect(controls(bCard)[0]?.disabled).toBe(false);
+    expect(controls(bCard)[1]?.disabled).toBe(false);
+    expect(controls(cCard)[1]?.disabled).toBe(true);
+    controls(aCard)[1]?.click();
+    expect(apply).toHaveBeenCalledOnce();
+    const args = apply.mock.calls[0]!;
+    expect(args[0]).toMatchObject({ line: a.line, path: "Same.md" });
+    expect(args[1]).toBe(b.line);
+    expect(args[2]).toBe("after");
+  });
+
+
   it("renders an empty file as a document card with a disabled zero handle", async () => {
     const view = makeView();
     await view.refreshMap("");
