@@ -102,6 +102,23 @@ describe("rendered reference activation owns pre-click editor events", () => {
     expect(view.state.doc.toString()).toBe(SOURCE);
   });
 
+  it("accepts the Android touch leave events emitted after release but before click", () => {
+    const { view, pill } = setup();
+    const element = pill();
+    for (const type of ["pointerdown", "pointerup", "pointerleave"]) {
+      element.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, button: 0, pointerId: 1,
+        isPrimary: true, pointerType: "touch",
+      }));
+    }
+    mouse(element, "mousedown");
+    mouse(element, "mouseup");
+    mouse(element, "mouseleave");
+    mouse(element, "click", { detail: 1 });
+    expect(view.state.selection.main.head).toBe(0);
+    expect(view.state.doc.toString()).toBe(SOURCE);
+  });
+
   it("still exposes source when the selection enters the token", () => {
     const { view } = setup();
     view.dispatch({ selection: { anchor: FROM + 3 } });

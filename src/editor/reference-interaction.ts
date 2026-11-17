@@ -63,6 +63,13 @@ export function bindReferenceActivation(
   const cancel = (): void => {
     if (press != null) press.cancelled = true;
   };
+  const leave = (): void => {
+    // Touch pointers normally leave the element after pointerup, before the
+    // compatibility click. Preserve a completed tap; movement, long-press,
+    // cancellation and stale-source guards still reject their own gestures.
+    if (press?.touch === true && press.released) return;
+    cancel();
+  };
   const begin = (event: MouseEvent, pointerId: number | null): void => {
     press = {
       pointerId,
@@ -97,7 +104,7 @@ export function bindReferenceActivation(
     if (press?.pointerId === event.pointerId) finish(event);
   });
   element.addEventListener("pointercancel", cancel);
-  element.addEventListener("pointerleave", cancel);
+  element.addEventListener("pointerleave", leave);
   element.addEventListener("contextmenu", (event) => {
     cancel();
     // Android exposes long-press through contextmenu; retain a source-edit path
@@ -131,7 +138,7 @@ export function bindReferenceActivation(
   element.addEventListener("mouseup", (event) => {
     if (press?.pointerId == null) finish(event);
   });
-  element.addEventListener("mouseleave", cancel);
+  element.addEventListener("mouseleave", leave);
 
   element.addEventListener("click", (event) => {
     const current = press;
