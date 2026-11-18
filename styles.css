@@ -478,7 +478,7 @@
 
 .number-suite-settings-guide {
   background: var(--background-secondary);
-  border-inline-start: 3px solid var(--interactive-accent);
+  border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   box-shadow: none;
   color: var(--text-muted);
@@ -496,7 +496,7 @@
 }
 
 .number-suite-settings-guide-heading strong {
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-medium);
 }
 
 .number-suite-settings-guide-icon {
@@ -1810,4 +1810,26 @@
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-weight: normal;
+}
+
+/* Settings tutorial disclosure: no persistent settings writes, retain session state only. */
+.number-suite-settings-guide.is-collapsible { padding: 0; margin-block: var(--size-4-2); }
+.number-suite-settings-guide.is-collapsible > summary {
+  cursor: pointer; display: list-item; font-size: var(--font-ui-small);
+  font-weight: var(--font-medium); padding: var(--size-4-2) var(--size-4-3);
+  list-style: disclosure-closed inside;
+}
+.number-suite-settings-guide.is-collapsible[open] > summary { list-style: disclosure-open inside; }
+.number-suite-settings-guide.is-collapsible > .number-suite-settings-guide-body {
+  margin: 0; max-inline-size: 100%; padding: 0 var(--size-4-3) var(--size-4-3);
+}
+.number-suite-settings-guide.is-collapsible > summary:focus-visible,
+.number-suite-light-disclosure > summary:focus-visible {
+  outline: 2px solid var(--interactive-accent); outline-offset: -2px;
+}
+.number-suite-settings-guide-exterior {
+  color: var(--text-muted); font-size: var(--font-ui-small); margin-block: var(--size-4-2);
+}
+.number-suite-note-control-levels > summary {
+  font-size: var(--font-ui-small); font-weight: var(--font-medium);
 }

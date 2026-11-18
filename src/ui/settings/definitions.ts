@@ -153,6 +153,23 @@ export function createSettingDefinitions(
         ),
         ...cleanupDefinitions(t),
         customDefinition(t("settings.scheme.history"), context.renderCleanupHistory),
+    customDefinition(
+      t("settings.batch.guide.title"),
+      (container) => renderBatchOperationsGuide(container, t),
+    ),
+    {
+      type: "group",
+      heading: t("settings.batch"),
+      items: [
+        {
+          name: t("settings.excluded"),
+          desc: t("settings.excluded.desc"),
+          control: { type: "text", key: "views.excludedFolders", defaultValue: "" },
+        },
+        sliderDefinition("views.batchBackupLimitMb", t("settings.backupLimit"),
+          DEFAULT_SETTINGS.batchBackupLimitMb, 1, 100, 1),
+      ],
+    },
       ],
     },
     {
@@ -304,23 +321,6 @@ function viewDefinitions(t: Translate): SettingDefinitionItem<SettingsControlKey
           DEFAULT_SETTINGS.virtualOpacity, 0.15, 1, 0.05),
         sliderDefinition("views.virtualGapEm", t("settings.gap"),
           DEFAULT_SETTINGS.virtualGapEm, 0, 2, 0.05),
-      ],
-    },
-    customDefinition(
-      t("settings.batch.guide.title"),
-      (container) => renderBatchOperationsGuide(container, t),
-    ),
-    {
-      type: "group",
-      heading: t("settings.batch"),
-      items: [
-        {
-          name: t("settings.excluded"),
-          desc: t("settings.excluded.desc"),
-          control: { type: "text", key: "views.excludedFolders", defaultValue: "" },
-        },
-        sliderDefinition("views.batchBackupLimitMb", t("settings.backupLimit"),
-          DEFAULT_SETTINGS.batchBackupLimitMb, 1, 100, 1),
       ],
     },
   ];

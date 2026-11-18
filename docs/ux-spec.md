@@ -214,3 +214,6 @@ reflow on narrow screens without dropping fields. Emulator results must not be p
 Failed settings saves retain the pending snapshot. A failed batch rolls back only files that still
 exactly match plugin output and retains usable recovery. Concurrent edits, corrupt recovery data,
 or host-rendering differences fail closed and cannot be hidden behind a success notice.
+
+
+Long syntax tutorials and examples use lightweight native details, while concise context and operation risks stay visible. Their expansion state lives only for the current settings-window session: switching tabs preserves it, closing clears it, and toggling never saves plugin settings. Keep seven tabs with Links & references and Display & appearance; move batch-only controls into Write and cleanup and put Reset at the end of General. Current note's Starts & skips section defaults closed with no overrides and automatically shows the configured rule count otherwise.
