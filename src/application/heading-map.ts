@@ -79,8 +79,10 @@ function visibleStoredPrefix(
   if (!options.recognizeStoredNumbers || options.concealStoredNumbers || options.styleStoredNumbers === false) return null;
   const analysis = analyzeHeadingPrefix({ content, level }, expectedLabel, options.templateSources);
   const first = analysis.first;
-  if (first == null || first.from !== 0 || !meetsCleanupScope(first, options.cleanupScope)
-    || (first.confidence !== "high" && first.confidence !== "certain") || analysis.suspicious) return null;
+  if (first == null || first.from !== 0
+    || (first.confidence !== "high" && first.confidence !== "certain")
+    || analysis.suspicious
+    || (options.styleStoredNumbers !== true && !meetsCleanupScope(first, options.cleanupScope))) return null;
   return first;
 }
 
