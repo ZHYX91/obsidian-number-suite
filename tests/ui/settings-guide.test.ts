@@ -61,8 +61,8 @@ describe("settings guide", () => {
     expect(imperative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(declarative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(panel).not.toContain('renderNoteOverridesGuide(section, this.t, "panel")');
-    expect(messages).toContain("Current-note Properties are optional");
-    expect(messages).toContain("当前笔记属性（Properties）是可选的");
+    expect(messages).toContain("Most notes do not need Number Suite Properties.");
+    expect(messages).toContain("大多数笔记都不需要添加 Number Suite 属性");
     expect(messages).toContain("unrelated Properties stay as they are.");
     expect(messages).toContain("其他属性不变。");
   });

@@ -1,5 +1,6 @@
 /** Per-settings-window tutorial state, never persisted to plugin settings. */
-export function collapseSettingsGuides(root: HTMLElement, expanded: Set<string>): void {
+export function collapseSettingsGuides(root: HTMLElement, expanded: Set<string>): () => void {
+  const rendered = new Map<string, HTMLDetailsElement>();
   const guides = root.querySelectorAll<HTMLElement>(".number-suite-settings-guide:not(details)");
   for (const guide of Array.from(guides)) {
     const heading = guide.querySelector<HTMLElement>(".number-suite-settings-guide-heading");
@@ -33,10 +34,14 @@ export function collapseSettingsGuides(root: HTMLElement, expanded: Set<string>)
     }
     details.appendChild(content);
     details.open = expanded.has(key);
-    details.addEventListener("toggle", () => {
-      if (details.open) expanded.add(key);
-      else expanded.delete(key);
-    });
+    rendered.set(key, details);
     guide.replaceWith(details);
   }
+  // Read the native state before detaching the panel. Toggle events may still be queued.
+  return () => {
+    for (const [key, details] of rendered) {
+      if (details.open) expanded.add(key);
+      else expanded.delete(key);
+    }
+  };
 }

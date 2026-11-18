@@ -18,14 +18,14 @@ describe("settings tutorial disclosure", () => {
   it("is initially closed, keeps essential context visible and never persists settings", () => {
     const panel = build();
     const expanded = new Set<string>();
-    collapseSettingsGuides(panel, expanded);
+    const remember = collapseSettingsGuides(panel, expanded);
     const details = panel.querySelector("details")!;
     expect(details.open).toBe(false);
     expect(details.querySelector("summary")?.textContent).toBe("Example guide");
     expect(panel.querySelector(".number-suite-settings-guide-exterior")?.textContent).toBe("Essential note");
     expect(panel.querySelector("pre")?.textContent).toBe("Long tutorial");
     details.open = true;
-    details.dispatchEvent(new Event("toggle"));
+    remember(); // A panel can be redrawn before a queued toggle event arrives.
     expect(expanded.size).toBe(1);
     // The same settings tab instance re-renders into a fresh panel.
     panel.remove();
@@ -33,6 +33,7 @@ describe("settings tutorial disclosure", () => {
     collapseSettingsGuides(again, expanded);
     expect(again.querySelector("details")?.open).toBe(true);
     expanded.clear(); // NumberSuiteSettingTab.hide() clears only in-memory state.
+    details.dispatchEvent(new Event("toggle"));
     expect(expanded.size).toBe(0);
   });
   it("keeps both batch warnings and exclusions outside the collapsed steps", () => {
