@@ -133,7 +133,7 @@ function outlineRows(view: OutlineInternal): Array<{ item: ExtraOutlineHeading; 
   };
   return walk(root, 0) ? rows : null;
 }
-function pathFor(view: OutlineInternal): string | null {
+function pathFor(view: View): string | null {
   const path = view.getState().file;
   return typeof path === "string" ? path : null;
 }
@@ -193,7 +193,7 @@ export class NativeOutlineEnhancer {
     for (const view of views) {
       this.ensureMapAction(view);
       if (!this.observed.has(view)) this.attach(view);
-      const path = pathFor(view as OutlineInternal);
+      const path = pathFor(view);
       if (path != null) {
         this.updatePath(path);
         void this.loadSource(path);
@@ -205,7 +205,7 @@ export class NativeOutlineEnhancer {
     if (!(view instanceof ItemView) || this.mapActions.has(view)) return;
     try {
       const action = view.addAction("git-branch", this.mapLabel(), () => {
-        const path = pathFor(view as OutlineInternal);
+        const path = pathFor(view);
         if (path != null) this.openMap(path);
       });
       action.classList.add("number-suite-outline-map-action");
@@ -283,7 +283,7 @@ export class NativeOutlineEnhancer {
         if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) {
           continue; // Source and core row can update out of order.
         }
-        const span = element.ownerDocument.createElement("span");
+        const span = element.createSpan();
         span.className = NUMBER_CLASS;
         span.setAttribute("aria-hidden", "true");
         span.textContent = label;
