@@ -106,6 +106,8 @@ export function createHeadingMap(
     const virtual = linePlan.find((item) => item.kind === "virtual");
     const expectedLabel = numbered[index]?.label ?? null;
     const stored = visibleStoredPrefix(heading.content, heading.level, expectedLabel, options);
+    const storedBadge = stored?.fullPrefix
+      .replace(/[ \t\u00a0\u3000]+$/u, "").replace(/\u2060/gu, "") ?? null;
     const prefix = conceal?.sourceText ?? stored?.fullPrefix ?? "";
     const visible = prefix.length > 0 && heading.content.startsWith(prefix)
       ? heading.content.slice(prefix.length).trimStart()
@@ -116,9 +118,9 @@ export function createHeadingMap(
       line: heading.line,
       level: heading.level,
       title,
-      numberLabel: virtual?.label ?? stored?.numberCore ?? null,
+      numberLabel: virtual?.label ?? storedBadge,
       numberKind: virtual != null ? "virtual" : stored != null ? "stored" : null,
-      storedNumberLabel: virtual != null ? stored?.numberCore ?? null : null,
+      storedNumberLabel: virtual != null ? storedBadge : null,
       children: [],
     };
   });
