@@ -211,7 +211,7 @@ export class SchemeSettingsRenderer {
 
   private renderPlaceholderHelp(container: HTMLElement): void {
     const t = this.t;
-    const guide = container.createDiv({ cls: "number-suite-settings-guide" });
+    const guide = container.createDiv({ cls: "number-suite-settings-guide number-suite-placeholder-guide" });
     guide.setAttribute("role", "note");
     const heading = guide.createDiv({ cls: "number-suite-settings-guide-heading" });
     const icon = heading.createSpan({

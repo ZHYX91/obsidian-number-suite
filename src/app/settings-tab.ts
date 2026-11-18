@@ -141,10 +141,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   override hide(): void {
-    this.openedGuides.clear();
     this.imperativeVisible = false;
     this.cleanup?.();
     this.cleanup = null;
+    this.openedGuides.clear();
     super.hide();
   }
 
@@ -180,9 +180,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     else if (this.activeTab === "notes") this.renderNotes(layout.panel, t);
     else if (this.activeTab === "cleanup") this.renderCleanup(layout.panel, t);
     else this.renderViews(layout.panel, t);
-    collapseSettingsGuides(layout.panel, this.openedGuides);
+    const rememberGuides = collapseSettingsGuides(layout.panel, this.openedGuides);
     this.applyReadOnlyState(layout.panel);
     this.cleanup = () => {
+      rememberGuides();
       layout.cleanup();
       statusCleanup();
       containerEl.removeClass("number-suite-settings");

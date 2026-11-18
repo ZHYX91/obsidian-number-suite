@@ -217,3 +217,5 @@ or host-rendering differences fail closed and cannot be hidden behind a success 
 
 
 Long syntax tutorials and examples use lightweight native details, while concise context and operation risks stay visible. Their expansion state lives only for the current settings-window session: switching tabs preserves it, closing clears it, and toggling never saves plugin settings. Keep seven tabs with Links & references and Display & appearance; move batch-only controls into Write and cleanup and put Reset at the end of General. Current note's Starts & skips section defaults closed with no overrides and automatically shows the configured rule count otherwise.
+
+Settings help has a plain, full-width summary with a small directional chevron. Long titles wrap. Keyboard focus stays visible, and touch targets are at least 44 CSS pixels high. Examples open directly below the title; settings controls and operation warnings remain outside the disclosure.
