@@ -1,6 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
 import { bindReferenceActivation, referenceIgnoresEditorEvent } from "./reference-interaction";
-import { hideNativeWikiHeadingPrefix, restoreNativeWikiHeadingPrefix } from "../ui/native-wiki-prefix";
 import {
   Prec,
   StateEffect,
@@ -89,65 +88,19 @@ export function transitionHeadingTouchEditing(
   };
 }
 
-/** Non-interactive prefix: Obsidian continues to own the native Wiki link. */
+/** Non-interactive, source-free number; native Wiki link keeps all its actions. */
 class NativeWikiNumberWidget extends WidgetType {
-  private decoratedAnchor: HTMLElement | null = null;
-  constructor(
-    private readonly label: string,
-    private readonly hiddenPrefix: string,
-  ) {
-    super();
-  }
-
-  override eq(other: NativeWikiNumberWidget): boolean {
-    return this.label === other.label && this.hiddenPrefix === other.hiddenPrefix;
-  }
-
+  constructor(private readonly label: string) { super(); }
+  override eq(other: NativeWikiNumberWidget): boolean { return this.label === other.label; }
   override toDOM(view: EditorView): HTMLElement {
     const element = view.dom.ownerDocument.createElement("span");
     element.className = "number-suite-native-wiki-number";
     element.textContent = this.label;
     element.setAttribute("aria-hidden", "true");
     element.setAttribute("contenteditable", "false");
-    if (this.label === "") element.hidden = true;
-    if (this.hiddenPrefix !== "") {
-      // CodeMirror owns the source token. Run after its native Wiki link is
-      // mounted and touch only an adjacent existing anchor's display text.
-      view.requestMeasure({
-        read: () => {
-          if (!element.isConnected) return null;
-          let candidate = element.nextSibling;
-          for (let count = 0; candidate != null && count < 4; count += 1, candidate = candidate.nextSibling) {
-            if (candidate.nodeType === 3 && candidate.textContent?.trim()) break;
-            if (candidate.nodeType !== 1) continue;
-            const node = candidate as HTMLElement;
-            // Reading View uses an <a>, but CodeMirror Live Preview
-            // renders normal Wiki links as .cm-hmd-internal-link spans.
-            // Never substitute a custom link or change native event owners.
-            const selector = ".cm-hmd-internal-link, a.internal-link";
-            const anchor = node.matches(selector) ? node
-              : node.querySelector<HTMLElement>(selector);
-            if (anchor != null) return anchor;
-          }
-          return null;
-        },
-        write: (anchor) => {
-          if (anchor == null || !element.isConnected) return;
-          if (hideNativeWikiHeadingPrefix(anchor, this.hiddenPrefix)) this.decoratedAnchor = anchor;
-        },
-      });
-    }
     return element;
   }
-
-  override destroy(): void {
-    if (this.decoratedAnchor != null) restoreNativeWikiHeadingPrefix(this.decoratedAnchor);
-    this.decoratedAnchor = null;
-  }
-
-  override ignoreEvent(): boolean {
-    return true;
-  }
+  override ignoreEvent(): boolean { return true; }
 }
 
 export class NumeralWidget extends WidgetType {
@@ -892,12 +845,18 @@ export class HeadingDisplayController {
               }).range(item.pillFrom, item.pillTo));
             }
           } else if (item.semanticKind === "native-link-number") {
-            // Keep the original [[#Heading]] link in CodeMirror's native
-            // renderer. A replacement widget would hijack link interactions.
-            ranges.push(Decoration.widget({
-              widget: new NativeWikiNumberWidget(item.label, item.nativeHiddenPrefix ?? ""),
+            // The prefix badge is outside native link markup, with no focus
+            // target. A CodeMirror mark conceals only verified source text;
+            // never mutate CM-owned DOM or replace Obsidian's native link.
+            if (item.label) ranges.push(Decoration.widget({
+              widget: new NativeWikiNumberWidget(item.label),
               side: -1,
             }).range(item.from));
+            if (item.nativeHiddenFrom != null && item.nativeHiddenTo != null) {
+              ranges.push(Decoration.mark({
+                class: "number-suite-native-wiki-hidden-prefix",
+              }).range(item.nativeHiddenFrom, item.nativeHiddenTo));
+            }
           } else if (item.semanticKind === "reference") {
             ranges.push(Decoration.replace({
               widget: new NumeralWidget(
