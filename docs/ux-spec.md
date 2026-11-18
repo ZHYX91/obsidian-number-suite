@@ -31,7 +31,7 @@ specification.
 <!-- section: entry-points -->
 ## Entry points
 
-The ribbon icon directly opens Current note without internal tabs. Legacy commands and workspace states migrate compatibly. Native Outline and Current note provide source-bound mind-map entries; the command follows the active note. The command palette also offers source-appearance
+The ribbon icon directly opens the Current note sidebar. Legacy commands and workspace states migrate compatibly. Native Outline and Current note provide source-bound mind-map entries; the command follows the active note. The command palette also offers source-appearance
 restore, independent virtual/conceal toggles,
 current-note write/remove/renumber, source-marker removal, batch processing, and latest-batch undo.
 Current-note actions are unavailable without an active Markdown note and must show a clear notice.
@@ -41,7 +41,7 @@ Current-note actions are unavailable without an active Markdown note and must sh
 
 ## Native Outline and structure editing
 
-Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline has been removed; legacy commands, shortcuts and workspace states migrate to the current entries.
 
 General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
@@ -83,14 +83,14 @@ search-revealed ancestor last only for that query and leave the saved collapse i
 Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
 panning, zoom buttons, and two-finger pinch zoom.
 
-The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Disabling retains choices. Starting and skip rules are collapsed, with existing rules visible and H1–H9 rules added on demand. Each choice can return to inheritance; Restore all removes overrides. Write and cleanup actions stay in a separate disclosure and retain previews and safety checks. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.
+The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Display & numbering starts selected and the sidebar remembers the selected tab for its open session. The header menu disables the note while retaining choices, or restores all Number Suite overrides to global settings. Starting and skip rules are collapsed, with existing rules visible and H1–H9 rules added on demand. Each choice can return to inheritance. Edit note text contains write, renumber and clean-up actions, with source marker and multi-file actions below. Global settings have a separate footer entry. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.
 
 Layout and expansion depth use secondary View options; range, search and zoom stay primary. Cards use light borders and backgrounds, a single number-or-level pill and consistent hover, selection and focus. Move buttons and insertion targets appear only in Adjust structure mode.
 
 Follow global deletes the relevant Property. Restore all deletes every plugin override while
 preserving unrelated Properties. After a successful Property write, the tab exits its busy state,
 rereads Properties, and immediately refreshes Live Preview, Reading View, and the outline. Read
-failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, replace Current note with an internal itemized preview page. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The target and action area stay visible while differences scroll independently. Switching the active note never retargets the plan; a stale refusal disables Apply until a fresh preview is built. Cancel or successful Apply returns to Current note. Batch selection and previews remain wide modals; scheme editing stays in global settings.
+failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, open an itemized preview within Edit note text. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The target and action area stay visible while differences scroll independently. Switching the active note or the sidebar tab retains the preview and its original target; a stale refusal disables Apply until a fresh preview is built. Back, Cancel and successful Apply restore the Edit note text action list. Batch selection and previews remain wide modals; scheme editing stays in global settings.
 
 <!-- section: settings-experience -->
 ## Global settings experience

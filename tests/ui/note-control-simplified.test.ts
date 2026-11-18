@@ -31,43 +31,70 @@ vi.mock("obsidian", async (importOriginal) => {
     addButton(callback: (control: unknown) => void): this {
       const button = this.settingEl.createEl("button");
       const control = {
+        setCta() { return control; },
+        setWarning() { return control; },
         setButtonText(text: string) { button.textContent = text; return control; },
         setDisabled(value: boolean) { button.disabled = value; return control; },
         onClick(fn: () => void) { button.addEventListener("click", fn); return control; },
       };
       callback(control); return this;
     }
-    addToggle(callback: (control: unknown) => void): this {
-      const control = { setValue() { return control; }, onChange() { return control; } };
-      callback(control); return this;
+  }
+  class Menu extends (original.Menu as new () => MenuFixture) {
+    showAtPosition(): this {
+      menus.push(this.items);
+      return this;
     }
   }
-  return { ...original, Setting };
+  return { ...original, Setting, Menu, ItemView: class {
+    registerEvent(): void {}
+    async setState(): Promise<void> {}
+  } };
 });
 
-import { TFile, type App } from "obsidian";
+import { TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { createTranslator } from "../../src/config/i18n";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NoteControlPane } from "../../src/ui/note-control-modal";
+import { NumberSuiteSidebarView } from "../../src/ui/sidebar-view";
+import { planHeadingTransform } from "../../src/core/transform";
+import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
-beforeEach(installDomFixture);
-function render(frontmatter: Record<string, unknown> = {}) {
+interface MenuFixture {
+  readonly items: Array<{ title: string; disabled: boolean; callback: () => void }>;
+}
+const menus: Array<MenuFixture["items"]> = [];
+const translate = createTranslator("en");
+
+beforeEach(() => {
+  installDomFixture();
+  document.body.replaceChildren();
+  menus.length = 0;
+});
+function render(frontmatter: Record<string, unknown> = {}, app = {} as App) {
   const file = new (TFile as unknown as new (path: string) => TFile)("demo.md");
   file.path = "demo.md";
   const host = document.createElement("div");
   const actions = { refreshDisplay: vi.fn(), runCurrent: vi.fn(), openBatch: vi.fn(), openGlobalSettings: vi.fn() };
-  const pane = new NoteControlPane({} as App, host, () => DEFAULT_SETTINGS, () => createTranslator("en"), actions);
-  const internal = pane as unknown as { file: TFile; frontmatter: Record<string, unknown>; render(): void; applyChange: ReturnType<typeof vi.fn> };
-  internal.file = file; internal.frontmatter = frontmatter; internal.applyChange = vi.fn(); internal.render();
+  const pane = new NoteControlPane(app, host, () => DEFAULT_SETTINGS, () => createTranslator("en"), actions);
+  const internal = pane as unknown as { file: TFile; frontmatter: Record<string, unknown>; render(): void; createCoordinator(file: TFile): void; applyChange: ReturnType<typeof vi.fn> };
+  internal.file = file;
+  internal.frontmatter = frontmatter;
+  if (app.vault != null) internal.createCoordinator(file);
+  else internal.applyChange = vi.fn();
+  internal.render();
   return { host, pane, internal };
 }
 
 describe("simplified current-note controls", () => {
-  it("starts without numeric fields or a permanent summary table and keeps file operations folded", () => {
+  it("starts on Display & numbering and leaves advanced rules and help closed", () => {
     const { host } = render();
     expect(host.querySelectorAll('input[type="number"]')).toHaveLength(0);
     expect(host.querySelector('[role="table"]')).toBeNull();
-    expect(host.querySelector<HTMLDetailsElement>(".number-suite-note-file-actions")?.open).toBe(false);
+    const display = host.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')!;
+    expect(display.textContent).toBe("Display & numbering");
+    expect(host.querySelector<HTMLDetailsElement>(".number-suite-note-control-levels")?.open).toBe(false);
+    expect(host.querySelector<HTMLDetailsElement>(".number-suite-note-operation-guide")?.open).toBe(false);
     expect(host.querySelector(".number-suite-note-control-state")?.textContent).toBe("Following global settings");
     expect(host.querySelector<HTMLElement>(".number-suite-note-save-status")?.hidden).toBe(true);
     expect(host.querySelector(".number-suite-note-control-header p")).toBeNull();
@@ -90,5 +117,139 @@ describe("simplified current-note controls", () => {
     expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("4");
     expect(host.querySelector<HTMLDetailsElement>(".number-suite-note-control-levels")?.open).toBe(true);
     expect(host.querySelector("select")?.value).toBe("on");
+    expect(host.querySelector<HTMLButtonElement>(".number-suite-note-control-actions button")?.disabled).toBe(true);
   });
+});
+
+describe("current-note overflow menu", () => {
+  it("offers disable, leaves restore disabled for an untouched note and guards stale menu targets", () => {
+    const { host, pane, internal } = render();
+    host.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')!.click();
+    const [disable, reset] = menus[0]!;
+    expect(disable?.title).toBe("Disable for this note");
+    expect(disable?.disabled).toBe(false);
+    expect(reset?.disabled).toBe(true);
+    pane.setFile(null, false);
+    disable?.callback();
+    expect(internal.applyChange).not.toHaveBeenCalled();
+  });
+
+  it("disables and enables without deleting choices, then restores only Number Suite fields", async () => {
+    const initial = { "number-suite": ["heading.virtual=true"], owner: "unrelated" };
+    const stored = structuredClone(initial);
+    const app = {
+      vault: { getAbstractFileByPath: () => file },
+      fileManager: { processFrontMatter: async (_file: TFile, update: (value: typeof stored) => void) => update(stored) },
+    } as unknown as App;
+    const { host, internal } = render(initial, app);
+    const file = internal.file;
+    function choose(index: number): MenuFixture["items"][number] {
+      host.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')!.click();
+      const item = menus[menus.length - 1]![index]!;
+      expect(item.disabled).toBe(false);
+      item.callback();
+      return item;
+    }
+    expect(choose(0).title).toBe("Disable for this note");
+    await vi.waitFor(() => expect(stored["number-suite"]).toContain("disabled=true"));
+    expect(stored["number-suite"]).toContain("heading.virtual=true");
+    expect(choose(0).title).toBe("Enable for this note");
+    await vi.waitFor(() => expect(stored["number-suite"]).toEqual(["heading.virtual=true"]));
+    choose(1);
+    await vi.waitFor(() => expect(stored).toEqual({ owner: "unrelated" }));
+  });
+});
+
+async function openSidebar() {
+  const host = document.body.appendChild(document.createElement("div"));
+  const file = (basename: string): TFile => Object.assign(
+    new (TFile as unknown as new (path: string) => TFile)(`${basename}.md`), { basename },
+  );
+  const original = file("Original");
+  const next = file("Next");
+  let openFile!: (file: TFile | null) => void;
+  const app = {
+    workspace: {
+      getActiveViewOfType: () => null,
+      getActiveFile: () => original,
+      on: (name: string, listener: typeof openFile) => { if (name === "file-open") openFile = listener; },
+    },
+    vault: { on() {}, cachedRead: vi.fn().mockResolvedValue("# Original") },
+  } as unknown as App;
+  const runCurrent = vi.fn();
+  const sidebar = new NumberSuiteSidebarView({} as WorkspaceLeaf, {
+    getSettings: () => DEFAULT_SETTINGS, getTranslate: () => translate,
+    refreshDisplay() {}, runCurrent, openBatch() {}, openGlobalSettings() {}, openHeadingMap() {},
+  });
+  Object.assign(sidebar, { app, contentEl: host });
+  await sidebar.onOpen();
+  const tabs = [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  const [display, edit] = [tabs[0]!, tabs[1]!];
+  const panel = (tab: HTMLButtonElement): HTMLElement => document.getElementById(tab.getAttribute("aria-controls")!)!;
+  const button = (key: Parameters<typeof translate>[0]): HTMLButtonElement => [...host.querySelectorAll("button")]
+    .find((el) => el.textContent === translate(key))!;
+  const plan = planHeadingTransform("# Original", "write", {
+    numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, starts: {}, missingLevelStrategy: "fill-one" },
+    writeMarkers: false, cleanupScope: "templates", templateSources: [],
+    removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+  });
+  const target = { path: original.path, plan };
+  const show = (onConfirm: () => Promise<boolean | void>): void => sidebar.showPreview({
+    app, translate, operation: "write", documents: [target], onConfirm,
+  });
+  return { sidebar, display, edit, panel, show, button, runCurrent, next, openFile, host, target };
+}
+
+describe("sidebar tabs and shared preview", () => {
+  it("links panels and supports click, arrows, Home and End with roving focus", async () => {
+    const h = await openSidebar();
+    expect(h.panel(h.display).getAttribute("aria-labelledby")).toBe(h.display.id);
+    expect(h.panel(h.edit).getAttribute("aria-labelledby")).toBe(h.edit.id);
+    expect(h.panel(h.display).hidden).toBe(false);
+    expect(h.panel(h.edit).hidden).toBe(true);
+    expect(h.display.tabIndex).toBe(0);
+    expect(h.edit.tabIndex).toBe(-1);
+    const key = (input: string): void => {
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: input, bubbles: true }));
+    };
+    h.display.focus();
+    key("ArrowRight");
+    expect(document.activeElement).toBe(h.edit);
+    expect(h.edit.getAttribute("aria-selected")).toBe("true");
+    key("Home");
+    expect(document.activeElement).toBe(h.display);
+    key("End");
+    expect(document.activeElement).toBe(h.edit);
+    key("ArrowLeft");
+    expect(document.activeElement).toBe(h.display);
+    h.edit.click();
+    h.button("command.write.current").click();
+    expect(h.runCurrent).toHaveBeenCalledWith("write", "Original.md");
+    await h.sidebar.onClose();
+  });
+
+  it.each(["preview.back", "preview.cancel", "preview.confirm"] as const)(
+    "keeps the preview and original plan across tab and note changes, then restores actions via %s",
+    async (dismiss) => {
+      const h = await openSidebar();
+      const confirm = vi.fn(async () => true);
+      h.show(confirm);
+      const preview = h.panel(h.edit).querySelector(".number-suite-sidebar-preview");
+      expect(preview?.querySelector(".number-suite-preview-target")?.textContent).toContain("Original.md");
+      h.display.click();
+      h.openFile(h.next);
+      await vi.waitFor(() => expect(h.host.querySelector(".number-suite-note-control-header h3")?.textContent).toBe("Next"));
+      expect(h.panel(h.edit).hidden).toBe(true);
+      h.edit.click();
+      expect(h.panel(h.edit).querySelector(".number-suite-sidebar-preview")).toBe(preview);
+      expect(preview?.querySelector(".number-suite-preview-path")?.textContent).toBe("Original.md");
+      h.button(dismiss).click();
+      await vi.waitFor(() => expect(preview?.isConnected).toBe(false));
+      expect(h.edit.getAttribute("aria-selected")).toBe("true");
+      expect(h.panel(h.edit).querySelector<HTMLElement>(".number-suite-sidebar-edit-actions")?.hidden).toBe(false);
+      if (dismiss === "preview.confirm") expect(confirm).toHaveBeenCalledWith([h.target]);
+      else expect(confirm).not.toHaveBeenCalled();
+      await h.sidebar.onClose();
+    },
+  );
 });

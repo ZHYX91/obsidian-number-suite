@@ -102,7 +102,7 @@ Concealment has one global recognition rule: either only numbers carrying Number
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
 hide/show/inherit, but cannot silently broaden that recognition rule.
 
-The ribbon directly opens **Current note** in the persistent sidebar, without internal tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. Single-note file-changing commands switch to a preview page inside the sidebar, with a fixed target, counts and Back/Cancel/Apply. Switching notes does not retarget the preview; changed source requires a fresh preview. Cancel or successful Apply returns to Current note. Batch previews remain wide dialogs and scheme editing stays in global settings. Writing or removing a number changes the heading
+The ribbon directly opens **Current note** in the persistent sidebar, with **Display & numbering** and **Edit note text** tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. Single-note file-changing commands open a preview inside **Edit note text**, with a fixed target, counts and Back/Cancel/Apply. Switching notes or tabs keeps the original preview target; changed source requires a fresh preview. Back, Cancel and successful Apply return to the **Edit note text** action list. Batch previews remain wide dialogs and scheme editing stays in global settings. Writing or removing a number changes the heading
 text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin
 does not guess and rewrite those links.
 
@@ -188,7 +188,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Starting and skip rules are collapsed and added by level as needed. Disabling retains overrides. Write and cleanup actions have their own disclosure and keep previews. Untouched notes receive no
+Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Starting and skip rules are collapsed and added by level as needed. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 

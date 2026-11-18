@@ -685,9 +685,69 @@
 }
 
 .number-suite-sidebar-panel {
-  height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: var(--size-4-2);
+}
+
+.number-suite-sidebar-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--size-4-1);
+  margin-block-start: var(--size-4-2);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.number-suite-sidebar-tabs button {
+  min-width: 0;
+  height: auto;
+  padding: var(--size-4-2) var(--size-4-1);
+  font-size: var(--font-ui-small);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+  background: transparent;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+}
+
+.number-suite-sidebar-tabs button[aria-selected="true"] {
+  border-block-end-color: var(--interactive-accent);
+  color: var(--text-accent);
+  font-weight: var(--font-semibold);
+}
+
+.number-suite-sidebar-tabpanel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.number-suite-sidebar-tabpanel[hidden],
+.number-suite-sidebar-edit-actions[hidden] {
+  display: none;
+}
+
+.number-suite-sidebar-edit-actions {
+  display: grid;
+  gap: var(--size-4-3);
+  padding-block: var(--size-4-3);
+}
+
+.number-suite-sidebar-footer {
+  padding-block-start: var(--size-4-2);
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+.number-suite-sidebar-footer button,
+.number-suite-sidebar-edit-actions button {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .number-suite-note-control-header h3,
@@ -953,11 +1013,15 @@
 }
 
 .number-suite-note-operation-guide {
-  margin-block: 0.8rem;
   overflow-x: auto;
 }
 
-.number-suite-note-operation-guide summary { cursor: pointer; font-weight: var(--font-semibold); }
+.number-suite-note-operation-guide summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
 .number-suite-note-operation-guide p { color: var(--text-muted); font-size: var(--font-ui-small); }
 .number-suite-note-operation-guide table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-smaller); }
 .number-suite-note-operation-guide th,
@@ -1457,12 +1521,21 @@
 .number-suite-native-outline-number { display: inline-block; margin-inline-end: .36em; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
 /* Mind-map access in Current note remains visible when the old outline tab retires. */
-.number-suite-note-control-header { position: relative; padding-inline-end: 2.25rem; }
-.number-suite-note-map-action {
-  position: absolute; inset-inline-end: 0; inset-block-start: 0;
-  width: var(--clickable-icon-size); height: var(--clickable-icon-size);
+.number-suite-note-control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--size-4-2);
 }
 
+.number-suite-note-control-identity { min-width: 0; }
+.number-suite-note-current-label { display: none; }
+.number-suite-sidebar-panel.has-preview .number-suite-note-current-label {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+.number-suite-note-header-actions { display: flex; flex: none; gap: var(--size-4-1); }
 /* Explicit structure editing for the heading map: browsing remains drag-free. */
 .number-suite-heading-map-rearrange[aria-pressed="true"] {
   background: var(--interactive-accent);
@@ -1699,7 +1772,7 @@
   box-sizing: border-box;
 }
 .number-suite-sidebar-preview > h3 { margin-block: 0 0.4rem; }
-.number-suite-sidebar-preview > button { flex: none; margin-block-end: 0.35rem; }
+.number-suite-sidebar-preview > button { flex: none; height: auto; white-space: normal; margin-block-end: 0.35rem; }
 .number-suite-sidebar-preview .number-suite-preview {
   display: flex;
   flex-direction: column;
@@ -1733,4 +1806,8 @@
 .number-suite-preview-target { overflow-wrap: anywhere; white-space: pre-wrap; }
 .number-suite-preview-target { font-weight: var(--font-semibold); }
 .number-suite-preview-binding { color: var(--text-muted); font-size: var(--font-ui-smaller); margin-block: 0.35rem; }
-.number-suite-sidebar-panel[hidden] { display: none; }
+.number-suite-preview-target > span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: normal;
+}

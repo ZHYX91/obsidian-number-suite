@@ -28,8 +28,6 @@ export class NumberSuiteSidebarView extends ItemView {
   private sourceLeaf: WorkspaceLeaf | null = null;
   private currentFile: TFile | null = null;
   private notePane: NoteControlPane | null = null;
-  private notePanel: HTMLElement | null = null;
-  private previewPanel: HTMLElement | null = null;
   private previewPane: ChangePreviewPane | null = null;
 
   constructor(
@@ -65,8 +63,7 @@ export class NumberSuiteSidebarView extends ItemView {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-sidebar");
     this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
-    const panel = this.contentEl.createDiv({ cls: "number-suite-sidebar-panel is-note" });
-    this.notePanel = panel;
+    const panel = this.contentEl.createDiv({ cls: "number-suite-sidebar-panel" });
     this.notePane = new NoteControlPane(
       this.app,
       panel,
@@ -94,6 +91,7 @@ export class NumberSuiteSidebarView extends ItemView {
     const active = this.app.workspace.getActiveViewOfType(MarkdownView);
     this.sourceLeaf = active?.leaf ?? null;
     this.setFile(active?.file ?? this.app.workspace.getActiveFile());
+    if (this.currentFile == null) this.notePane.setFile(null);
   }
 
   override async onClose(): Promise<void> {
@@ -101,6 +99,8 @@ export class NumberSuiteSidebarView extends ItemView {
     this.previewPane = null;
     this.notePane?.destroy();
     this.notePane = null;
+    this.currentFile = null;
+    this.sourceLeaf = null;
     this.contentEl.empty();
     this.contentEl.removeAttribute("dir");
   }
@@ -111,26 +111,26 @@ export class NumberSuiteSidebarView extends ItemView {
   }
 
   showPreview(options: PreviewModalOptions): void {
+    const notePane = this.notePane;
+    if (notePane == null) return;
     this.previewPane?.onClose();
-    this.previewPanel?.remove();
-    if (this.notePanel != null) this.notePanel.hidden = true;
-    const panel = this.contentEl.createDiv({ cls: "number-suite-sidebar-preview" });
-    this.previewPanel = panel;
+    const panel = notePane.mountPreview();
     const title = panel.createEl("h3");
     const target = options.documents[0]?.path;
-    panel.createDiv({ cls: "number-suite-preview-target", text: target ?? "", attr: { dir: "auto" } });
+    const binding = panel.createDiv({ cls: "number-suite-preview-target" });
+    binding.createSpan({ text: options.translate("sidebar.previewTarget") });
+    binding.createDiv({ text: target ?? "", attr: { dir: "auto" } });
     panel.createEl("p", { cls: "number-suite-preview-binding", text: options.translate("preview.targetFixed") });
     const back = panel.createEl("button", { text: options.translate("preview.back"), attr: { type: "button" } });
     back.addEventListener("click", () => this.previewPane?.close());
     const body = panel.createDiv();
     this.previewPane = new ChangePreviewPane(options, body, title, panel, () => {
-      panel.remove();
-      this.previewPanel = null;
+      notePane.removePreview(true);
       this.previewPane = null;
-      if (this.notePanel != null) this.notePanel.hidden = false;
-      this.notePane?.refresh();
+      notePane.refresh();
     });
     this.previewPane.onOpen();
+    if (!options.signal?.aborted) back.focus();
   }
 
   private setFile(file: TFile | null): void {

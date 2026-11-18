@@ -29,7 +29,7 @@ scoped pass into a claim that every product scenario passed.
 
 ## Highest-value loop
 
-- [ ] Click the ribbon icon and confirm it directly opens Current note without internal tabs or changes to the note or global settings. Reopen saved legacy sidebar state and run old command shortcuts to verify migration.
+- [ ] Click the ribbon icon and confirm it directly opens Current note with Display & numbering selected on first open and the note and global settings unchanged. Reopen saved legacy sidebar state and run old command shortcuts to verify migration.
 - [ ] In Current note, confirm it names the active note and shows global, current-note
   override, and effective values. The command Open current note controls must open this panel.
 - [ ] Set virtual display and concealment independently through Follow global / On / Off; re-open the panel and verify persistence and effective display.
