@@ -14,17 +14,9 @@ without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-The sidebar and write-preview images below render the actual plugin components with a synthetic note in a browser fixture; they are not Obsidian host captures.
+### Preview a batch before writing to Markdown
 
-### Check settings for this note
-
-Use Current note to inherit or override common display choices independently and check its automatic status.
-
-![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
-
-### Review changes before writing to Markdown
-
-Expand each file to review its changes and warnings before applying. Only changed numbering text is highlighted; Before and After labels remain visible.
+Expand a file to see which numbers will change and check its warnings. This example shows the batch preview with sample notes.
 
 ![Number Suite preview of heading number writes](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-write-preview-en.png)
 
@@ -96,7 +88,7 @@ To see heading numbers without rewriting the headings, enable **Show virtual num
 
 Current note keeps the filename, automatic status and three main choices compact, with secondary help in tooltips and advanced rules and file operations collapsed. Normal saved status takes no extra space; saving and errors remain visible. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
 
-Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
+Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops further batch changes. A note that was already saving may finish. If you edited it before Number Suite could undo that change, keep `recovery.json` in the plugin folder and check the note before trying Undo again.
 
 Concealment has one global recognition rule: either only numbers carrying Number Suite source
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
@@ -145,11 +137,7 @@ For exact syntax, object-placement ambiguity, IDs and editor behavior, read the 
 
 Open **Settings → Number Suite → General** for the **User guide** and **Report an issue** links.
 
-Settings use one accessible seven-tab surface on every supported Obsidian version: General,
-Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
-and batch. The tab itself identifies the current section, so its content starts directly with the
-first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
-appearance, and batch operations.
+The seven settings tabs are General, Heading numbering, Captions, Links & references, Footnotes & endnotes, Write and cleanup, and Display & appearance. Open **Write and cleanup** to change batch options.
 
 **Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in **DocWen → Settings → Parse Markdown**; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 

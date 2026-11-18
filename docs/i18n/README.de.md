@@ -22,9 +22,9 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 
 1. Aktiviere unter **Einstellungen → Number Suite → Überschriftennummerierung** die Option **„Virtuelle Nummern anzeigen“**.
 2. Öffne die Live-Vorschau oder Leseansicht. Die Nummern erscheinen neben den Überschriften, der gespeicherte Text bleibt unverändert.
-3. Sollen die Nummern in Markdown stehen, öffne rechts die aktuelle Notiz in Number Suite. Wähle Schreiben oder Neu nummerieren und prüfe die Vorschau vor dem Bestätigen.
+3. Um Nummern in Markdown zu speichern, öffne **Aktuelle Notiz → Notiztext bearbeiten**. Wähle Schreiben oder Neunummerieren, prüfe die Vorschau und bestätige die Änderungen.
 
-Die Anleitung in „Aktuelle Notiz“ vergleicht Quelltext, Ziel und passende Aktion. Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
+Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
 
 Aktuelle Notiz zeigt Dateiname, automatischen Status und drei Hauptoptionen kompakt; nur laufendes Speichern und Fehler brauchen eine Statuszeile. Schreiben, Neu nummerieren sowie Nummern- und Markerentfernung einer Notiz wechseln zur Vorschauseite in der Seitenleiste mit festem Ziel und Zurück/Abbrechen/Anwenden. Ein Notizwechsel ändert das Ziel nicht; nach Quelltextänderungen ist eine neue Vorschau nötig. Stapel bleiben in breiten Dialogen. Der Strukturmodus zeigt seinen Namen, Verschiebeschaltflächen, hervorgehobene Ziele und Einfügelinien davor/danach sowie kurze Gründe für ungültige Ziele oder nicht verfügbare Quellen.
 
@@ -48,6 +48,8 @@ Es gibt hierarchische Stile sowie Beispiele für chinesische Amts- und Rechtstex
 
 <!-- section: settings -->
 ## Einstellungen finden
+
+Stapelverarbeitung findest du unter **Schreiben und Bereinigen**, Links unter **Links und Verweise** und das Aussehen der Nummern unter **Anzeige und Darstellung**.
 
 
 Die Einstellungen haben sieben Tabs. Unter Allgemein ist die Erweiterung der nativen Gliederung standardmäßig aktiv. Ausschalten behält die Vorlieben und aktiviert niemals das Kernplugin. Das Anzeigemenü der Gliederung speichert vier gemeinsame Optionen: Nummern, Ebenen ohne Nummer, H7–H9 und Beschriftungen. Sie wirken nur auf die Gliederung. Jede Überschrift erhält genau eine Nummern- oder neutrale Hn-Markierung. Aktuelle Notiz erbt oder überschreibt virtuelle Nummern, gespeicherte Nummernanzeige und Schema einzeln und zeigt den Status. Start- und Überspringregeln bleiben eingeklappt und werden nach Bedarf ergänzt. Deaktivieren behält die Auswahl; Schreiben und Bereinigen erfordern weiter eine Vorschau. Blätter der Mindmap zeigen keine 0. Layout und Tiefe liegen im Nebenmenü; Verschiebeschaltflächen und Einfügeziele erscheinen nur im Strukturmodus.

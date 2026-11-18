@@ -22,9 +22,9 @@ Requer Obsidian 1.12.7 ou mais recente no computador ou Android. O funcionamento
 
 1. Em **Configurações → Number Suite → Numeração de títulos**, ative **“Mostrar números virtuais”**.
 2. Abra a pré-visualização ao vivo ou o modo de leitura. Os números aparecem ao lado dos títulos, mas o arquivo não muda.
-3. Para salvar números no Markdown, abra a nota atual na barra lateral do Number Suite. Escolha escrever ou renumerar, confira a prévia e confirme.
+3. Para salvar os números no Markdown, abra **Nota atual → Editar o texto**. Escolha gravar ou renumerar, confira a prévia e confirme.
 
-O guia da nota atual compara o texto original, o objetivo e a ação. As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
+As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
 
 A nota atual mostra de forma compacta o nome, o estado automático e três opções principais; o salvamento em andamento e os erros continuam visíveis. Ações em uma única nota abrem uma página de prévia na barra lateral, com destino fixo e Voltar/Cancelar/Aplicar. Trocar de nota não muda o destino; mudanças no texto exigem uma nova prévia. Lotes mantêm uma janela ampla. O modo de estrutura mostra seu nome, botões de movimento, destino destacado e linhas de inserção antes/depois, com motivos breves para destinos inválidos ou fontes indisponíveis.
 
@@ -48,6 +48,8 @@ Há estilos hierárquicos, exemplos para documentos oficiais e jurídicos chines
 
 <!-- section: settings -->
 ## Onde ajustar as opções
+
+Os ajustes de operações em lote ficam em **Gravar e limpar**, os de links em **Links e referências** e a aparência dos números em **Exibição e aparência**.
 
 
 As configurações têm sete abas. Geral ativa por padrão o aprimoramento da estrutura nativa. Desativar preserva preferências e nunca ativa o plugin principal. O menu de exibição da estrutura salva quatro opções compartilhadas: números, níveis sem número, H7–H9 e legendas; elas afetam somente a estrutura. Cada título tem um único indicador numérico ou Hn neutro. Nota atual herda ou substitui separadamente números virtuais, visibilidade dos números gravados e estilo, com estado automático. Regras de início e salto ficam recolhidas e são adicionadas conforme necessário. Desativar mantém as escolhas; gravação e limpeza ainda exigem prévia. Folhas do mapa não exibem 0. Layout e profundidade ficam no menu secundário; botões de movimento e destinos só aparecem no modo de ajuste da estrutura.

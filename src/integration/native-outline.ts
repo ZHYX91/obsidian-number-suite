@@ -1,120 +1,13 @@
 import { Menu, Notice, ItemView, MarkdownView, TFile, setIcon, type HeadingCache, type Plugin, type View } from "obsidian";
-import { createHeadingMap } from "../application/heading-map";
 import { planSameParentHeadingMove, type SameParentHeadingMove } from "../application/heading-map-reorder";
 import type { Translate } from "../config/i18n";
-import type { CaptionKind } from "../core/document-semantics";
-import { createDisplayPlan } from "../application/display-plan";
-import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
-import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
-import {
-  cleanupTemplateSources,
-  toNumberingOptions,
-  type NumberSuiteSettings,
-} from "../config/settings";
-import { numberCaptions, parseDocumentSemantics, withoutTrailingBlockId } from "../core/document-semantics";
+import type { NumberSuiteSettings } from "../config/settings";
+import { withoutTrailingBlockId } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
+import { createNativeOutlineProjection, type ExtraOutlineHeading } from "./native-outline-projection";
 
-export interface ExtraOutlineHeading extends HeadingCache {
-  __numberSuiteExtra?: "extended" | "caption";
-  __numberSuiteCaption?: { kind: CaptionKind; ordinal: number; title: string };
-}
-export interface NativeOutlineProjection {
-  readonly headings: ExtraOutlineHeading[];
-  readonly numberLabels: ReadonlyMap<number, string>;
-  readonly titleLabels?: ReadonlyMap<number, string>;
-}
 const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
-
-export function createNativeOutlineProjection(
-  source: string, native: readonly HeadingCache[], settings: NumberSuiteSettings,
-  captionTypeLabel?: (kind: CaptionKind) => string,
-): NativeOutlineProjection {
-  const original = [...native];
-  const numberLabels = new Map<number, string>();
-  if (!settings.enhanceNativeOutline) {
-    return { headings: original, numberLabels };
-  }
-  const effective = resolveNoteSettings(
-    settings, parseNoteOverridesFromSource(source) ?? invalidNoteOverrides(),
-  );
-  if (effective.disabled || !effective.valid) return { headings: original, numberLabels };
-  const headings = parseAtxHeadings(source);
-  const parsedByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
-  // A stale core cache must never be combined with a newer editor heading
-  // at the same position. Until the cache catches up, retain native Outline.
-  if (original.some((item) => {
-    const heading = parsedByLine.get(item.position.start.line);
-    return heading == null || heading.level !== item.level
-      || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim();
-  })) return { headings: original, numberLabels };
-  const usedLines = new Set(original.map((item) => item.position.start.line));
-  const extras: ExtraOutlineHeading[] = [];
-  if (settings.showOutlineExtendedHeadings) {
-    for (const heading of headings) {
-      if (heading.level < 7 || usedLines.has(heading.line)) continue;
-      extras.push({
-        heading: heading.content, level: heading.level,
-        position: {
-          start: { line: heading.line, col: 0, offset: heading.lineFrom },
-          end: { line: heading.line, col: heading.lineTo - heading.lineFrom, offset: heading.lineTo },
-        },
-        __numberSuiteExtra: "extended",
-      });
-      usedLines.add(heading.line);
-    }
-  }
-  if (settings.showOutlineCaptions) {
-    for (const caption of numberCaptions(parseDocumentSemantics(source).captions)) {
-      if (usedLines.has(caption.line)) continue;
-
-      extras.push({
-        heading: (captionTypeLabel?.(caption.kind) ?? caption.kind)
-          + (settings.showCaptionNumbers ? " " + caption.number : "")
-          + ": " + withoutTrailingBlockId(caption.content),
-        // Higher than every supported heading: attached to the preceding
-        // section, then popped before any following heading. Captions stay leaves.
-        level: 10,
-        position: {
-          start: { line: caption.line, col: 0, offset: caption.lineFrom },
-          end: { line: caption.line, col: caption.lineTo - caption.lineFrom, offset: caption.lineTo },
-        },
-        __numberSuiteExtra: "caption",
-        __numberSuiteCaption: { kind: caption.kind, ordinal: caption.number, title: withoutTrailingBlockId(caption.content) },
-      });
-      usedLines.add(caption.line);
-    }
-  }
-  const numbering = toNumberingOptions(settings, {
-    schemeId: effective.schemeId, starts: effective.starts, skipFirst: effective.skipFirst,
-  });
-  const templateSources = cleanupTemplateSources(settings);
-  const plan = createDisplayPlan(headings, {
-    showVirtualNumbers: effective.showVirtualNumbers,
-    concealStoredNumbers: effective.concealStoredNumbers, numbering,
-    cleanupScope: settings.concealScope, templateSources,
-    revealOnActiveLine: false, selections: [], composing: false,
-  });
-  const titleLabels = new Map<number, string>();
-  const collect = (nodes: ReturnType<typeof createHeadingMap>): void => {
-    for (const node of nodes) {
-      titleLabels.set(node.line, node.title);
-      if (settings.showOutlineNumbers && node.numberLabel != null) numberLabels.set(node.line, node.numberLabel);
-      collect(node.children);
-    }
-  };
-  collect(createHeadingMap(source, {
-    headingDisplayPlan: plan, numbering, cleanupScope: settings.concealScope,
-    templateSources, concealStoredNumbers: effective.concealStoredNumbers,
-    recognizeStoredNumbers: !effective.disabled,
-  }));
-  return {
-    headings: [...original, ...extras].sort(
-      (a, b) => a.position.start.offset - b.position.start.offset,
-    ),
-    numberLabels, titleLabels,
-  };
-}
 
 interface OutlineInternal extends View {
   getHeadings: () => HeadingCache[];
@@ -186,7 +79,7 @@ export class NativeOutlineEnhancer {
   private readonly mapActions = new Map<View, HTMLElement>();
   private readonly optionActions = new Map<View, HTMLElement>();
   private sources = new Map<string, string>();
-  private generations = new Map<string, number>();
+  private pendingReads = new Map<string, symbol>();
   private stopped = false;
 
   constructor(
@@ -203,8 +96,8 @@ export class NativeOutlineEnhancer {
     this.plugin.registerEvent(app.workspace.on("layout-change", () => this.refresh()));
     this.plugin.registerEvent(app.workspace.on("file-open", () => this.refresh()));
     this.plugin.registerEvent(app.workspace.on("editor-change", (editor, info) => {
-      if (info.file?.path == null) return;
-      this.generations.set(info.file.path, (this.generations.get(info.file.path) ?? 0) + 1);
+      if (info.file?.path == null || !this.usesSource(info.file.path)) return;
+      this.pendingReads.delete(info.file.path);
       this.sources.set(info.file.path, editor.getValue());
       this.updatePath(info.file.path);
     }));
@@ -213,6 +106,11 @@ export class NativeOutlineEnhancer {
     }));
     this.plugin.registerEvent(app.metadataCache.on("changed", (file) => {
       if (file.extension === "md") void this.loadSource(file.path, true);
+    }));
+    this.plugin.registerEvent(app.vault.on("delete", (file) => this.forgetSource(file.path)));
+    this.plugin.registerEvent(app.vault.on("rename", (_file, oldPath) => {
+      this.forgetSource(oldPath);
+      this.refresh();
     }));
     this.plugin.register(() => this.stop());
     app.workspace.onLayoutReady(() => { if (!this.stopped) this.refresh(); });
@@ -242,15 +140,30 @@ export class NativeOutlineEnhancer {
         action.setAttribute("title", label);
       }
     }
+    const paths = new Set<string>();
     for (const view of views) {
       this.ensureMapAction(view);
       if (!this.observed.has(view)) this.attach(view);
       const path = pathFor(view as unknown as OutlineInternal);
-      if (path != null) {
-        this.updatePath(path);
-        void this.loadSource(path);
-      }
+      if (path != null && this.observed.has(view)) paths.add(path);
     }
+    for (const path of [...this.sources.keys(), ...this.pendingReads.keys()]) {
+      if (!paths.has(path)) this.forgetSource(path);
+    }
+    for (const path of paths) {
+      this.updatePath(path);
+      void this.loadSource(path);
+    }
+  }
+
+  private usesSource(path: string): boolean {
+    return !this.stopped && this.settings().enhanceNativeOutline
+      && [...this.observed.values()].some((entry) => pathFor(entry.view) === path);
+  }
+
+  private forgetSource(path: string): void {
+    this.pendingReads.delete(path);
+    this.sources.delete(path);
   }
 
   private ensureMapAction(view: View): void {
@@ -462,6 +375,7 @@ export class NativeOutlineEnhancer {
     editor.transaction({ changes: [{
       from: editor.offsetToPos(plan.from), to: editor.offsetToPos(plan.to), text: plan.replacement,
     }] });
+    this.pendingReads.delete(drag.path);
     this.sources.set(drag.path, editor.getValue());
     this.updatePath(drag.path);
   }
@@ -652,15 +566,19 @@ export class NativeOutlineEnhancer {
   }
 
   private async loadSource(path: string, refreshProjection = false): Promise<void> {
-    const generation = (this.generations.get(path) ?? 0) + 1;
-    this.generations.set(path, generation);
+    if (!this.usesSource(path)) return;
     const file = this.plugin.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile) || file.extension !== "md") return;
+    if (!(file instanceof TFile) || file.extension !== "md") {
+      this.forgetSource(path);
+      return;
+    }
+    const request = Symbol();
+    this.pendingReads.set(path, request);
     const editor = this.plugin.app.workspace.getLeavesOfType("markdown").map((leaf) => leaf.view)
       .find((view): view is MarkdownView => view instanceof MarkdownView && view.file?.path === path);
     try {
       const source = editor?.editor.getValue() ?? await this.plugin.app.vault.cachedRead(file);
-      if (this.stopped || this.generations.get(path) !== generation) return;
+      if (this.pendingReads.get(path) !== request || !this.usesSource(path)) return;
       if (this.sources.get(path) !== source) {
         this.sources.set(path, source);
         this.updatePath(path);
@@ -670,6 +588,7 @@ export class NativeOutlineEnhancer {
         this.updatePath(path);
       }
     } catch { /* Source unavailable: leave core Outline intact. */ }
+    finally { if (this.pendingReads.get(path) === request) this.pendingReads.delete(path); }
   }
 
   private remove(view: View): void {
@@ -701,6 +620,6 @@ export class NativeOutlineEnhancer {
     for (const action of this.optionActions.values()) action.remove();
     this.optionActions.clear();
     this.sources.clear();
-    this.generations.clear();
+    this.pendingReads.clear();
   }
 }

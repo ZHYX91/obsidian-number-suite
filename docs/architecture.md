@@ -132,7 +132,9 @@ Native GFM rows split on unescaped pipes before inline parsing, including pipes 
 
 ## Native Outline and structure editing
 
-Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline and internal tabs are removed; legacy commands, shortcuts and workspace states migrate to the current entries.
+The native Outline adapter watches only files shown in an enhanced Outline pane. The projection in `src/integration/native-outline-projection.ts` builds heading and caption rows from that file’s text. Closing the last pane bound to a note, deleting the file, or turning off enhancements releases its source.
+
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. Open headings in Obsidian’s Outline. Current note has two tabs, Display & numbering and Edit note text. Existing shortcuts and saved workspaces continue to open the corresponding view.
 
 General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 

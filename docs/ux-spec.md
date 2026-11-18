@@ -95,8 +95,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 <!-- section: settings-experience -->
 ## Global settings experience
 
-Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
-Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
+Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
+Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template
 previews, and exact exclusions. Built-in and custom-template previews share a heading-number

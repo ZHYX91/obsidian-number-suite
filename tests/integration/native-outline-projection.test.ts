@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { HeadingCache } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
-import { createNativeOutlineProjection } from "../../src/integration/native-outline";
+import { createNativeOutlineProjection } from "../../src/integration/native-outline-projection";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
