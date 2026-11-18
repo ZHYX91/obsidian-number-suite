@@ -81,11 +81,14 @@ export function createDisplayPlan(
     }
     if (options.styleStoredNumbers && !options.concealStoredNumbers && reliablyStored
       && !selectionTouchesHeading(heading, options.selections) && first != null) {
-      const start = first.fullPrefix.indexOf(first.numberCore);
-      if (start >= 0 && first.numberCore.length > 0) {
-        const from = sourceOffsetForHeadingContent(heading, first.from + start);
-        const to = sourceOffsetForHeadingContent(heading, first.from + start + first.numberCore.length);
-        if (to > from) decorations.push({ kind: "stored", from, to, label: first.numberCore, line: heading.line });
+      // Keep punctuation such as "一、", "1." or "（一）" inside the
+      // outlined badge, but leave the separating whitespace with the title.
+      const authored = first.fullPrefix.replace(/[ \t\u00a0\u3000]+$/u, "");
+      const label = authored.replace(/\u2060/gu, "");
+      if (label.length > 0) {
+        const from = sourceOffsetForHeadingContent(heading, first.from);
+        const to = sourceOffsetForHeadingContent(heading, first.from + authored.length);
+        if (to > from) decorations.push({ kind: "stored", from, to, label, line: heading.line });
       }
     }
     if (item.exclusion != null) {
