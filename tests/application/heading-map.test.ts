@@ -115,6 +115,32 @@ describe("heading mind map", () => {
     expect(roots[0]?.children[0]).toMatchObject({ title: "Child", numberLabel: "7.2" });
   });
 
+  it("shows independently sourced virtual and stored numbers with distinct kinds", () => {
+    const source = "# 2.1 Experiment";
+    const headingDisplayPlan = createDisplayPlan(parseAtxHeadings(source), {
+      showVirtualNumbers: true, concealStoredNumbers: false, styleStoredNumbers: true,
+      numbering, cleanupScope: "templates", templateSources: templates,
+      revealOnActiveLine: false, selections: [], composing: false,
+    });
+    const result = createHeadingMap(source, {
+      headingDisplayPlan, numbering, cleanupScope: "templates",
+      templateSources: templates, concealStoredNumbers: false,
+      recognizeStoredNumbers: true, styleStoredNumbers: true,
+    });
+    expect(result[0]).toMatchObject({
+      title: "Experiment", numberKind: "virtual", numberLabel: "1",
+      storedNumberLabel: "2.1",
+    });
+    const suspicious = createHeadingMap("# 2026.11 Release", {
+      headingDisplayPlan: [], numbering, cleanupScope: "templates",
+      templateSources: templates, concealStoredNumbers: false,
+      recognizeStoredNumbers: true, styleStoredNumbers: true,
+    });
+    expect(suspicious[0]).toMatchObject({
+      title: "2026.11 Release", numberLabel: null, storedNumberLabel: null,
+    });
+  });
+
   it("uses the virtual replacement label when a stored prefix is concealed", () => {
     const roots = mapFor("# 7 Stored", true, true);
 
