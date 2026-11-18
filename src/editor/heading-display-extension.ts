@@ -1,5 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import { bindReferenceActivation, referenceIgnoresEditorEvent } from "./reference-interaction";
+import { hideNativeWikiHeadingPrefix, restoreNativeWikiHeadingPrefix } from "../ui/native-wiki-prefix";
 import {
   Prec,
   StateEffect,
@@ -90,21 +91,54 @@ export function transitionHeadingTouchEditing(
 
 /** Non-interactive prefix: Obsidian continues to own the native Wiki link. */
 class NativeWikiNumberWidget extends WidgetType {
-  constructor(private readonly label: string) {
+  private decoratedAnchor: HTMLElement | null = null;
+  constructor(
+    private readonly label: string,
+    private readonly hiddenPrefix: string,
+  ) {
     super();
   }
 
   override eq(other: NativeWikiNumberWidget): boolean {
-    return this.label === other.label;
+    return this.label === other.label && this.hiddenPrefix === other.hiddenPrefix;
   }
 
   override toDOM(view: EditorView): HTMLElement {
     const element = view.dom.ownerDocument.createElement("span");
     element.className = "number-suite-native-wiki-number";
-    element.textContent = this.label + " ";
+    element.textContent = this.label;
     element.setAttribute("aria-hidden", "true");
     element.setAttribute("contenteditable", "false");
+    if (this.label === "") element.hidden = true;
+    if (this.hiddenPrefix !== "") {
+      // CodeMirror owns the source token. Run after its native Wiki link is
+      // mounted and touch only an adjacent existing anchor's display text.
+      view.requestMeasure({
+        read: () => {
+          if (!element.isConnected) return null;
+          let candidate = element.nextSibling;
+          for (let count = 0; candidate != null && count < 4; count += 1, candidate = candidate.nextSibling) {
+            if (candidate.nodeType === 3 && candidate.textContent?.trim()) break;
+            if (candidate.nodeType !== 1) continue;
+            const node = candidate as HTMLElement;
+            const anchor = node.matches("a.internal-link") ? node
+              : node.querySelector<HTMLElement>("a.internal-link");
+            if (anchor != null) return anchor;
+          }
+          return null;
+        },
+        write: (anchor) => {
+          if (anchor == null || !element.isConnected) return;
+          if (hideNativeWikiHeadingPrefix(anchor, this.hiddenPrefix)) this.decoratedAnchor = anchor;
+        },
+      });
+    }
     return element;
+  }
+
+  override destroy(): void {
+    if (this.decoratedAnchor != null) restoreNativeWikiHeadingPrefix(this.decoratedAnchor);
+    this.decoratedAnchor = null;
   }
 
   override ignoreEvent(): boolean {
@@ -136,7 +170,11 @@ export class NumeralWidget extends WidgetType {
   }
 
   override toDOM(view: EditorView): HTMLElement {
-    if (this.kind === "heading") return createVirtualNumeralElement(view.dom.ownerDocument, this.label);
+    if (this.kind === "heading") {
+      const element = createVirtualNumeralElement(view.dom.ownerDocument, this.label);
+      if (this.accessibleLabel) element.title = this.accessibleLabel;
+      return element;
+    }
     if (this.kind === "reference") {
       const element = createReferencePillElement(view.dom.ownerDocument, this.label);
       if (this.editHint) element.setAttribute("title", this.editHint);
@@ -785,6 +823,7 @@ export class HeadingDisplayController {
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
           concealStoredNumbers: effective.concealStoredNumbers,
+          styleStoredNumbers: settings.styleStoredHeadingNumbers && livePreview,
           numbering,
           cleanupScope: settings.concealScope,
           templateSources,
@@ -852,7 +891,7 @@ export class HeadingDisplayController {
             // Keep the original [[#Heading]] link in CodeMirror's native
             // renderer. A replacement widget would hijack link interactions.
             ranges.push(Decoration.widget({
-              widget: new NativeWikiNumberWidget(item.label),
+              widget: new NativeWikiNumberWidget(item.label, item.nativeHiddenPrefix ?? ""),
               side: -1,
             }).range(item.from));
           } else if (item.semanticKind === "reference") {
@@ -896,9 +935,15 @@ export class HeadingDisplayController {
             (item.semanticKind === "note-definition" ? definitionRanges : ranges).push(replacement);
           } else if (item.kind === "virtual") {
             ranges.push(Decoration.widget({
-              widget: new NumeralWidget(item.label),
+              widget: new NumeralWidget(item.label, "heading", "footnote",
+                t("display.heading.virtualHint")),
               side: -1,
             }).range(item.from));
+          } else if (item.kind === "stored") {
+            if (livePreview) ranges.push(Decoration.mark({
+              class: "number-suite-stored-heading-number",
+              attributes: { title: t("display.heading.storedHint") },
+            }).range(item.from, item.to));
           } else {
             ranges.push(Decoration.replace({ inclusive: false }).range(item.from, item.to));
           }

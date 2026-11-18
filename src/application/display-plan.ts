@@ -15,7 +15,7 @@ export interface SelectionSpan {
 }
 
 export interface DisplayDecorationPlan {
-  kind: "virtual" | "conceal";
+  kind: "virtual" | "conceal" | "stored";
   from: number;
   to: number;
   label: string;
@@ -26,6 +26,8 @@ export interface DisplayDecorationPlan {
 export interface DisplayPlanOptions {
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
+  /** Cosmetic source-prefix highlight, never a Markdown write. */
+  styleStoredNumbers?: boolean;
   numbering: NumberingOptions;
   cleanupScope: CleanupScope;
   templateSources: readonly CleanupTemplateSource[];
@@ -50,7 +52,7 @@ export function createDisplayPlan(
   headings: readonly ParsedHeading[],
   options: DisplayPlanOptions,
 ): DisplayDecorationPlan[] {
-  if (!options.showVirtualNumbers && !options.concealStoredNumbers) {
+  if (!options.showVirtualNumbers && !options.concealStoredNumbers && !options.styleStoredNumbers) {
     return [];
   }
   const numbered = numberHeadings(headings, options.numbering);
@@ -65,6 +67,10 @@ export function createDisplayPlan(
     }
     const analysis = analyzeHeadingPrefix(heading, item.label, options.templateSources);
     const { matches } = analysis;
+    const first = matches[0];
+    const reliablyStored = first != null && first.from === 0
+      && (first.confidence === "high" || first.confidence === "certain")
+      && !analysis.suspicious;
     const revealStored = options.concealStoredNumbers
       && options.revealOnActiveLine
       && selectionTouchesHeading(heading, options.selections);
@@ -72,6 +78,15 @@ export function createDisplayPlan(
       revealStored
     ) {
       continue;
+    }
+    if (options.styleStoredNumbers && !options.concealStoredNumbers && reliablyStored
+      && !selectionTouchesHeading(heading, options.selections) && first != null) {
+      const start = first.fullPrefix.indexOf(first.numberCore);
+      if (start >= 0 && first.numberCore.length > 0) {
+        const from = sourceOffsetForHeadingContent(heading, first.from + start);
+        const to = sourceOffsetForHeadingContent(heading, first.from + start + first.numberCore.length);
+        if (to > from) decorations.push({ kind: "stored", from, to, label: first.numberCore, line: heading.line });
+      }
     }
     if (item.exclusion != null) {
       if (options.concealStoredNumbers) {
@@ -114,7 +129,7 @@ export function createDisplayPlan(
     }
     if (
       options.showVirtualNumbers
-      && (concealTo > 0 || (matches.length === 0 && !analysis.suspicious))
+      && (concealTo > 0 || reliablyStored || (matches.length === 0 && !analysis.suspicious))
     ) {
       const virtualFrom = sourceOffsetForHeadingContent(heading, concealTo);
       decorations.push({

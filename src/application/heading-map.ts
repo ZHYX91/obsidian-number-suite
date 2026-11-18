@@ -17,6 +17,8 @@ export interface HeadingMapNode {
   readonly level: HeadingLevel;
   readonly title: string;
   readonly numberLabel: string | null;
+  readonly numberKind?: "virtual" | "stored" | null;
+  readonly storedNumberLabel?: string | null;
   readonly children: HeadingMapNode[];
 }
 
@@ -28,6 +30,8 @@ export interface HeadingMapDocumentNode {
   readonly level: 0;
   readonly title: string;
   readonly numberLabel: null;
+  readonly numberKind?: null;
+  readonly storedNumberLabel?: null;
   readonly children: HeadingMapNode[];
 }
 
@@ -57,6 +61,7 @@ export interface HeadingMapOptions {
   readonly templateSources: readonly CleanupTemplateSource[];
   readonly concealStoredNumbers: boolean;
   readonly recognizeStoredNumbers: boolean;
+  readonly styleStoredNumbers?: boolean;
 }
 
 const TRAILING_BLOCK_ID = /(?:^|[ \t])\^[A-Za-z0-9-]{1,128}[ \t]*$/u;
@@ -71,10 +76,11 @@ function visibleStoredPrefix(
   expectedLabel: string | null,
   options: HeadingMapOptions,
 ): HeadingNumberMatch | null {
-  if (!options.recognizeStoredNumbers || options.concealStoredNumbers) return null;
+  if (!options.recognizeStoredNumbers || options.concealStoredNumbers || options.styleStoredNumbers === false) return null;
   const analysis = analyzeHeadingPrefix({ content, level }, expectedLabel, options.templateSources);
   const first = analysis.first;
-  if (first == null || first.from !== 0 || !meetsCleanupScope(first, options.cleanupScope)) return null;
+  if (first == null || first.from !== 0 || !meetsCleanupScope(first, options.cleanupScope)
+    || (first.confidence !== "high" && first.confidence !== "certain") || analysis.suspicious) return null;
   return first;
 }
 
@@ -109,6 +115,8 @@ export function createHeadingMap(
       level: heading.level,
       title,
       numberLabel: virtual?.label ?? stored?.numberCore ?? null,
+      numberKind: virtual != null ? "virtual" : stored != null ? "stored" : null,
+      storedNumberLabel: virtual != null ? stored?.numberCore ?? null : null,
       children: [],
     };
   });

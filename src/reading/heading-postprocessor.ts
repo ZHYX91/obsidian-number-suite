@@ -41,6 +41,7 @@ import {
   createVirtualSemanticElement,
 } from "../ui/virtual-numeral";
 import { applySemanticTooltip } from "../ui/semantic-tooltip";
+import { hideNativeWikiHeadingPrefix } from "../ui/native-wiki-prefix";
 
 interface ReadingReferenceCandidate {
   readonly from: number;
@@ -660,8 +661,9 @@ function enhanceNoteDefinitions(
   return true;
 }
 
-function prependVirtualNumber(element: HTMLElement, label: string): void {
+function prependVirtualNumber(element: HTMLElement, label: string, hint: string): void {
   const number = createVirtualNumeralElement(element.ownerDocument, label);
+  number.title = hint;
   // The native control uses its static inline position even when absolutely
   // positioned. Keep it before the numeral so its gutter stays at the heading start.
   const collapseIndicator = element.querySelector(":scope > .heading-collapse-indicator");
@@ -687,6 +689,28 @@ function leadingTextNodes(element: HTMLElement): Text[] {
     current = walker.nextNode();
   }
   return nodes;
+}
+
+/** Wrap only a verified source number in-place; original text remains available to cleanup. */
+function markStoredNumber(element: HTMLElement, core: string, hint: string): boolean {
+  if (!core) return false;
+  const nodes = leadingTextNodes(element);
+  if (!nodes.map((node) => node.data).join("").startsWith(core)) return false;
+  let remaining = core.length;
+  for (const node of nodes) {
+    if (remaining <= 0) break;
+    if (!node.data) continue;
+    const take = Math.min(remaining, node.data.length);
+    if (take < node.data.length) node.splitText(take);
+    const parent = node.parentElement;
+    if (parent == null) return false;
+    const span = parent.createSpan({ cls: "number-suite-stored-heading-number" });
+    span.title = hint;
+    parent.insertBefore(span, node);
+    span.appendChild(node);
+    remaining -= take;
+  }
+  return remaining === 0;
 }
 
 function concealPrefix(element: HTMLElement, sourcePrefix: string): boolean {
@@ -828,6 +852,7 @@ export class HeadingReadingProcessor {
       && !hasSectionCaption
       && !effective.showVirtualNumbers
       && !effective.concealStoredNumbers
+      && !settings.styleStoredHeadingNumbers
       && !settings.showCaptionNumbers
       && captionCentering.length === 0
       && !settings.showCrossReferences
@@ -873,6 +898,7 @@ export class HeadingReadingProcessor {
       const items = planByLine.get(sourceHeading.line) ?? [];
       const conceal = items.find((item) => item.kind === "conceal");
       const virtual = items.find((item) => item.kind === "virtual");
+      const stored = items.find((item) => item.kind === "stored");
       let concealed = false;
       if (conceal != null) {
         const prefix = conceal.sourceText ?? source.slice(conceal.from, conceal.to);
@@ -880,8 +906,11 @@ export class HeadingReadingProcessor {
           concealed = true;
         }
       }
+      if (stored != null && !concealed) {
+        markStoredNumber(element, stored.label, createTranslator(settings.language)("display.heading.storedHint"));
+      }
       if (virtual != null && (conceal == null || concealed)) {
-        prependVirtualNumber(element, virtual.label);
+        prependVirtualNumber(element, virtual.label, createTranslator(settings.language)("display.heading.virtualHint"));
       }
       if (virtual != null && concealed) {
         element.setAttribute("data-number-suite-mode", "show-conceal");
@@ -984,11 +1013,14 @@ export class HeadingReadingProcessor {
         && item.targetKind != null
       ) {
         if (item.kind === "native-link-number") {
-          const number = anchor.ownerDocument.createElement("span");
-          number.className = "number-suite-native-wiki-number";
-          number.textContent = `${item.label} `;
-          number.setAttribute("aria-hidden", "true");
-          anchor.prepend(number);
+          if (item.nativeHiddenPrefix) hideNativeWikiHeadingPrefix(anchor, item.nativeHiddenPrefix);
+          if (item.label) {
+            const number = anchor.ownerDocument.createElement("span");
+            number.className = "number-suite-native-wiki-number";
+            number.textContent = item.label;
+            number.setAttribute("aria-hidden", "true");
+            anchor.prepend(number);
+          }
         } else {
           enhanceReference(anchor, item.label, item.targetLine, item.targetKind);
         }
@@ -1044,6 +1076,7 @@ export class HeadingReadingProcessor {
     const displayPlan = createDisplayPlan(headings, {
       showVirtualNumbers: effective.showVirtualNumbers,
       concealStoredNumbers: effective.concealStoredNumbers,
+      styleStoredNumbers: settings.styleStoredHeadingNumbers,
       numbering: toNumberingOptions(settings, {
         schemeId: effective.schemeId,
         starts: effective.starts,

@@ -540,6 +540,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
         showVirtualNumbers: effective.showVirtualNumbers,
         concealStoredNumbers: effective.concealStoredNumbers,
+        styleStoredNumbers: settings.styleStoredHeadingNumbers,
         numbering,
         cleanupScope: settings.concealScope,
         templateSources,
@@ -555,6 +556,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         templateSources,
         concealStoredNumbers: !effective.disabled && effective.concealStoredNumbers,
         recognizeStoredNumbers: !effective.disabled,
+        styleStoredNumbers: settings.styleStoredHeadingNumbers,
       });
       if (!this.overviewInitialized) {
         for (const id of headingMapOverview(this.roots)) this.collapsed.add(id);
@@ -760,10 +762,23 @@ export class NumberSuiteHeadingMapView extends ItemView {
       if (documentRoot) setIcon(number, "file-text");
       else number.setText(node.numberLabel ?? `H${node.level}`);
       number.classList.toggle("is-level", !documentRoot && node.numberLabel == null);
-      number.title = documentRoot ? this.currentFile.path : `H${node.level}`;
+      number.classList.toggle("is-stored", !documentRoot && node.numberKind === "stored");
+      number.classList.toggle("is-virtual", !documentRoot && node.numberKind === "virtual");
+      number.title = documentRoot ? this.currentFile.path
+        : node.numberKind === "stored" ? this.actions.getTranslate()("display.heading.storedHint")
+        : node.numberKind === "virtual" ? this.actions.getTranslate()("display.heading.virtualHint")
+        : `H${node.level}`;
       number.setAttribute("aria-label", number.title);
       number.addEventListener("click", () => this.setSelection(node.id));
       number.addEventListener("focus", () => this.revealNode(node.id));
+      if (!documentRoot && node.storedNumberLabel) {
+        const saved = card.createSpan({
+          cls: "number-suite-heading-map-stored-number",
+          text: node.storedNumberLabel,
+        });
+        saved.title = this.actions.getTranslate()("display.heading.storedHint");
+        saved.setAttribute("aria-label", saved.title);
+      }
 
       const body = card.createEl("button", { cls: "number-suite-heading-map-body" });
       body.type = "button";

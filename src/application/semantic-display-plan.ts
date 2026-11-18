@@ -49,6 +49,8 @@ export interface SemanticDisplayDecoration {
   readonly objectKind?: CaptionKind;
   readonly tooltipTitle?: string;
   readonly tooltipBody?: string;
+  /** Reliable source prefix to conceal in the native link's rendered text, not its href. */
+  readonly nativeHiddenPrefix?: string;
   readonly captionCentered?: boolean;
 }
 
@@ -216,7 +218,7 @@ function nativeWikiHeadingLinks(snapshot: SemanticSnapshot, isSameFile?: (filePa
         from: line.from + match.index,
         to: line.from + match.index + match[0].length,
         target,
-        alias: match[3]?.trim() || null,
+        alias: match[3] == null ? null : match[3],
       });
     }
   }
@@ -338,20 +340,19 @@ export function createSemanticDisplayPlan(
     const caption = captionsByLine.get(targetLine);
     const targetKind = resolved?.kind ?? (heading != null ? "heading" : caption != null ? "caption" : null);
     if (targetKind == null) continue;
-    // Ordinary Wiki links must retain Obsidian's own click, menu, selection,
-    // embed and modifier semantics. Only add an inert number before the link,
-    // never replace the link with the plugin's navigation widget.
+    // Native Wiki links stay native. Only an *actual displayed virtual*
+    // badge is added. A saved prefix must never be used as fallback numbering.
     if (native) {
       if (targetKind !== "heading" || heading == null) continue;
-      const number = visibleHeadings.get(targetLine);
-      if (number == null) continue;
-      const originalLabel = (reference.alias ?? heading.content).trimStart();
-      // Obsidian already renders an authored numeric prefix in ordinary
-      // links; avoid displaying it twice even when punctuation follows it.
-      const suffix = originalLabel.startsWith(number)
-        ? originalLabel.slice(number.length)
-        : null;
-      if (suffix != null && (suffix === "" || /^[\s.,:、)）]/u.test(suffix))) continue;
+      const number = options.headingDisplayPlan.find((item) => (
+        item.kind === "virtual" && item.line === targetLine
+      ))?.label ?? "";
+      const hidden = reference.alias == null
+        ? options.headingDisplayPlan.find((item) => (
+          item.kind === "conceal" && item.line === targetLine
+        ))?.sourceText ?? ""
+        : "";
+      if (number === "" && hidden === "") continue;
       decorations.push({
         kind: "native-link-number",
         from: reference.from,
@@ -361,6 +362,7 @@ export function createSemanticDisplayPlan(
         target: reference.target,
         targetLine,
         targetKind: "heading",
+        ...(hidden ? { nativeHiddenPrefix: hidden } : {}),
       });
       continue;
     }

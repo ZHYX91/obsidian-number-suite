@@ -316,6 +316,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.concealStored.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.concealStoredNumbers)
         .onChange((value) => this.updateControl("general.concealStoredNumbers", value)));
+    new Setting(container).setName(t("settings.styleStored"))
+      .setDesc(t("settings.styleStored.desc"))
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.styleStoredHeadingNumbers)
+        .onChange((value) => this.updateControl("general.styleStoredHeadingNumbers", value)));
     new Setting(container)
       .setName(t("settings.concealScope"))
       .setDesc(t("settings.concealScope.desc"))

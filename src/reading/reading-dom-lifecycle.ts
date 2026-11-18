@@ -1,5 +1,6 @@
 import { VIRTUAL_NUMERAL_SELECTOR } from "../ui/virtual-numeral";
 import { clearSemanticTooltip } from "../ui/semantic-tooltip";
+import { restoreNativeWikiHeadingPrefix } from "../ui/native-wiki-prefix";
 
 export const captionOrigins = new WeakMap<HTMLElement, Readonly<{
   parent: Node;
@@ -32,8 +33,10 @@ function cleanupHeading(element: HTMLElement): void {
     if (original != null) virtual.replaceWith(original);
     else virtual.remove();
   }
-  for (const concealed of element.querySelectorAll<HTMLElement>(".number-suite-concealed")) {
-    concealed.replaceWith(...concealed.childNodes);
+  for (const decorated of element.querySelectorAll<HTMLElement>(
+    ".number-suite-concealed, .number-suite-stored-heading-number"
+  )) {
+    decorated.replaceWith(...decorated.childNodes);
   }
   element.normalize();
   element.removeAttribute("data-number-suite-mode");
@@ -47,6 +50,9 @@ function cleanupHeading(element: HTMLElement): void {
 }
 
 function cleanupSemantic(container: HTMLElement): void {
+  for (const link of container.querySelectorAll<HTMLElement>(
+    "a.internal-link:has(.number-suite-native-wiki-hidden-prefix)"
+  )) restoreNativeWikiHeadingPrefix(link);
   for (const virtual of container.querySelectorAll<HTMLElement>(
     ".number-suite-caption-number, .number-suite-reference-number, .number-suite-native-wiki-number",
   )) {

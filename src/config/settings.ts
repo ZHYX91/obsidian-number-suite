@@ -24,6 +24,7 @@ export interface NumberSuiteSettings {
   language: UiLanguage;
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
+  styleStoredHeadingNumbers: boolean;
   concealScope: ConcealScope;
   showCaptionNumbers: boolean;
   centerFigureCaptions: boolean;
@@ -111,6 +112,7 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   language: "auto",
   showVirtualNumbers: false,
   concealStoredNumbers: false,
+  styleStoredHeadingNumbers: true,
   concealScope: "templates",
   showCaptionNumbers: true,
   centerFigureCaptions: true,
@@ -279,6 +281,7 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     language: isUiLanguage(raw.language) ? raw.language : DEFAULT_SETTINGS.language,
     showVirtualNumbers: booleanOr(raw.showVirtualNumbers, DEFAULT_SETTINGS.showVirtualNumbers),
     concealStoredNumbers: booleanOr(raw.concealStoredNumbers, DEFAULT_SETTINGS.concealStoredNumbers),
+    styleStoredHeadingNumbers: booleanOr(raw.styleStoredHeadingNumbers, DEFAULT_SETTINGS.styleStoredHeadingNumbers),
     concealScope: oneOf(
       raw.concealScope,
       ["plugin", "templates"] as const,

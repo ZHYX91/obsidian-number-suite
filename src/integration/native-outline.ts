@@ -22,6 +22,8 @@ export interface NativeOutlineProjection {
   readonly headings: ExtraOutlineHeading[];
   readonly numberLabels: ReadonlyMap<number, string>;
   readonly titleLabels?: ReadonlyMap<number, string>;
+  readonly numberKinds?: ReadonlyMap<number, "virtual" | "stored">;
+  readonly secondaryStoredNumbers?: ReadonlyMap<number, string>;
 }
 const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
@@ -96,10 +98,16 @@ export function createNativeOutlineProjection(
     revealOnActiveLine: false, selections: [], composing: false,
   });
   const titleLabels = new Map<number, string>();
+  const numberKinds = new Map<number, "virtual" | "stored">();
+  const secondaryStoredNumbers = new Map<number, string>();
   const collect = (nodes: ReturnType<typeof createHeadingMap>): void => {
     for (const node of nodes) {
       titleLabels.set(node.line, node.title);
-      if (settings.showOutlineNumbers && node.numberLabel != null) numberLabels.set(node.line, node.numberLabel);
+      if (settings.showOutlineNumbers && node.numberLabel != null) {
+        numberLabels.set(node.line, node.numberLabel);
+        if (node.numberKind != null) numberKinds.set(node.line, node.numberKind);
+        if (node.storedNumberLabel) secondaryStoredNumbers.set(node.line, node.storedNumberLabel);
+      }
       collect(node.children);
     }
   };
@@ -107,12 +115,13 @@ export function createNativeOutlineProjection(
     headingDisplayPlan: plan, numbering, cleanupScope: settings.concealScope,
     templateSources, concealStoredNumbers: effective.concealStoredNumbers,
     recognizeStoredNumbers: !effective.disabled,
+    styleStoredNumbers: settings.styleStoredHeadingNumbers && settings.showOutlineNumbers,
   }));
   return {
     headings: [...original, ...extras].sort(
       (a, b) => a.position.start.offset - b.position.start.offset,
     ),
-    numberLabels, titleLabels,
+    numberLabels, titleLabels, numberKinds, secondaryStoredNumbers,
   };
 }
 
@@ -131,6 +140,8 @@ interface ObservedOutline {
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
   titles: ReadonlyMap<number, string>;
+  numberKinds: ReadonlyMap<number, "virtual" | "stored">;
+  secondaryStoredNumbers: ReadonlyMap<number, string>;
   nativeDragging: boolean;
   drag: { file: TFile; path: string; source: string; line: number } | null;
   preview: SameParentHeadingMove | null;
@@ -312,7 +323,7 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), titles: new Map(), nativeDragging: false, drag: null, preview: null, cleanupDrag: () => undefined, hasSyntheticEntries: false, warned: false, timer: null,
+      labels: new Map(), titles: new Map(), numberKinds: new Map(), secondaryStoredNumbers: new Map(), nativeDragging: false, drag: null, preview: null, cleanupDrag: () => undefined, hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
         const row = this.rowAt(current, event.target);
         if (row?.item.__numberSuiteExtra === "caption") {
@@ -355,6 +366,8 @@ export class NativeOutlineEnhancer {
       const source = path == null ? null : this.sources.get(path);
       if (source == null) {
         current.labels = new Map();
+        current.numberKinds = new Map();
+        current.secondaryStoredNumbers = new Map();
         current.hasSyntheticEntries = false;
         return headings;
       }
@@ -365,6 +378,8 @@ export class NativeOutlineEnhancer {
         });
         current.labels = projection.numberLabels;
         current.titles = projection.titleLabels ?? new Map();
+        current.numberKinds = projection.numberKinds ?? new Map();
+        current.secondaryStoredNumbers = projection.secondaryStoredNumbers ?? new Map();
         current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
         current.warned = false;
         return projection.headings;
@@ -374,6 +389,8 @@ export class NativeOutlineEnhancer {
         if (!current.warned) console.warn("Number Suite: native Outline enhancement unavailable", error);
         current.warned = true;
         current.labels = new Map();
+        current.numberKinds = new Map();
+        current.secondaryStoredNumbers = new Map();
         current.hasSyntheticEntries = false;
         return headings;
       }
@@ -626,10 +643,26 @@ export class NativeOutlineEnhancer {
         element.replaceChildren();
         if (badge != null) {
           const span = outlineSpan(element.ownerDocument);
-          span.className = NUMBER_CLASS + (label == null ? " number-suite-native-outline-level" : "");
-          span.title = "H" + item.level;
+          const kind = entry.numberKinds.get(line);
+          span.className = NUMBER_CLASS
+            + (label == null ? " number-suite-native-outline-level" : kind === "stored"
+              ? " is-stored" : " is-virtual");
+          span.title = kind === "stored"
+            ? this.translate?.("display.heading.storedHint") ?? "Stored heading number"
+            : kind === "virtual"
+              ? this.translate?.("display.heading.virtualHint") ?? "Virtual heading number"
+              : "H" + item.level;
           span.setAttribute("aria-hidden", "true");
           span.textContent = badge;
+          element.append(span);
+        }
+        const saved = entry.secondaryStoredNumbers.get(line);
+        if (saved) {
+          const span = outlineSpan(element.ownerDocument);
+          span.className = NUMBER_CLASS + " is-stored";
+          span.title = this.translate?.("display.heading.storedHint") ?? "Stored heading number";
+          span.setAttribute("aria-hidden", "true");
+          span.textContent = saved;
           element.append(span);
         }
         element.append(element.ownerDocument.createTextNode(title));
