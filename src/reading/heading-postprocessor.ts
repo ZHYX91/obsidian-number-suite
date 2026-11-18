@@ -1017,7 +1017,9 @@ export class HeadingReadingProcessor {
           if (item.label) {
             const number = anchor.ownerDocument.createElement("span");
             number.className = "number-suite-native-wiki-number";
-            number.textContent = item.label;
+            // Keep the existing readable spacing while the grey badge
+            // remains part of the native anchor (not an independent link).
+            number.textContent = `${item.label} `;
             number.setAttribute("aria-hidden", "true");
             anchor.prepend(number);
           }
