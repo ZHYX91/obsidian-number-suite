@@ -121,8 +121,12 @@ class NativeWikiNumberWidget extends WidgetType {
             if (candidate.nodeType === 3 && candidate.textContent?.trim()) break;
             if (candidate.nodeType !== 1) continue;
             const node = candidate as HTMLElement;
-            const anchor = node.matches("a.internal-link") ? node
-              : node.querySelector<HTMLElement>("a.internal-link");
+            // Reading View uses an <a>, but CodeMirror Live Preview
+            // renders normal Wiki links as .cm-hmd-internal-link spans.
+            // Never substitute a custom link or change native event owners.
+            const selector = ".cm-hmd-internal-link, a.internal-link";
+            const anchor = node.matches(selector) ? node
+              : node.querySelector<HTMLElement>(selector);
             if (anchor != null) return anchor;
           }
           return null;
