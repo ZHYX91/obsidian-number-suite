@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("settings guide", () => {
-  it("uses the shared visual hierarchy and accessible note structure", () => {
+  it("keeps guide semantics with a neutral disclosure presentation", () => {
     const source = readFileSync(
       resolve(process.cwd(), "src/app/scheme-settings-renderer.ts"),
       "utf8",
@@ -17,7 +17,7 @@ describe("settings guide", () => {
     expect(source).toContain("number-suite-settings-guide-body");
     expect(source).toContain("number-suite-settings-guide-example");
     expect(styles).toMatch(
-      /\.number-suite-settings-guide\s*\{[^}]*border-inline-start:\s*3px solid var\(--interactive-accent\);[^}]*box-shadow:\s*none;[^}]*padding:\s*12px 14px;/s,
+      /\.number-suite-settings-guide\s*\{[^}]*border:\s*1px solid var\(--background-modifier-border\);/s,
     );
     expect(styles).toMatch(
       /\.number-suite-settings-guide-body\s*\{[^}]*max-inline-size:\s*68ch;/s,
