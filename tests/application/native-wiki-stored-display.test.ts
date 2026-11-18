@@ -27,7 +27,6 @@ function plans(
   source: string,
   virtual: boolean,
   conceal: boolean,
-  alias = false,
 ) {
   const headings = parseAtxHeadings(source);
   const display = createDisplayPlan(headings, {
