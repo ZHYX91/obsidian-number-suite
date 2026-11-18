@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { HeadingCache } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { createNativeOutlineProjection } from "../../src/integration/native-outline";
+
+vi.mock("obsidian", async (original) => ({
+  ...await original<Record<string, unknown>>(),
+  getFrontMatterInfo: (source: string) => {
+    const match = /^---\n([\s\S]*?)\n---\n/u.exec(source);
+    return { exists: match != null, frontmatter: match?.[1] ?? "", from: 0, to: match?.[0].length ?? 0, contentStart: match?.[0].length ?? 0 };
+  },
+  parseYaml: (source: string) => source === "number-suite: [disabled=true]" ? { "number-suite": ["disabled=true"] } : {},
+}));
 
 function native(line: number, heading: string, level: number, from: number): HeadingCache {
   return {

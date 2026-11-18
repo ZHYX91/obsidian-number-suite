@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeadingCache } from "obsidian";
+import { installDomFixture } from "../ui/dom-fixture";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
@@ -24,7 +25,10 @@ import { ItemView } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NativeOutlineEnhancer } from "../../src/integration/native-outline";
 
-beforeEach(() => document.body.replaceChildren());
+beforeEach(() => {
+  installDomFixture();
+  document.body.replaceChildren();
+});
 
 describe("native Outline synthetic entry safety", () => {
   function setup(synthetic: boolean) {

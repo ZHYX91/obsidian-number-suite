@@ -121,7 +121,7 @@ function isOutlineRowElement(value: unknown): value is HTMLElement {
   // Popup windows may own a different HTMLElement constructor.
   return typeof value === "object" && value !== null
     && (value as Node).nodeType === 1
-    && typeof (value as HTMLElement).querySelector === "function"
+    && typeof prop(value, "querySelector") === "function"
     && typeof (value as HTMLElement).prepend === "function";
 }
 function prop(value: unknown, key: string): unknown {
@@ -149,7 +149,7 @@ function outlineRows(view: OutlineInternal): Array<{ item: ExtraOutlineHeading; 
   };
   return walk(root, 0) ? rows : null;
 }
-function pathFor(view: OutlineInternal): string | null {
+function pathFor(view: View): string | null {
   const path = view.getState().file;
   return typeof path === "string" ? path : null;
 }
@@ -191,7 +191,7 @@ export class NativeOutlineEnhancer {
     }
     for (const view of views) {
       if (!this.observed.has(view)) this.attach(view);
-      const path = pathFor(view as OutlineInternal);
+      const path = pathFor(view);
       if (path != null) {
         this.updatePath(path);
         void this.loadSource(path);
@@ -291,7 +291,7 @@ export class NativeOutlineEnhancer {
         if (heading == null || heading.level !== item.level || heading.content.trim() !== item.heading.trim()) {
           continue; // Source and core row can update out of order.
         }
-        const span = element.ownerDocument.createElement("span");
+        const span = element.createSpan();
         span.className = NUMBER_CLASS;
         span.setAttribute("aria-hidden", "true");
         span.textContent = label;
