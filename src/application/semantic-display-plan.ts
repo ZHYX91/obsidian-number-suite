@@ -51,6 +51,9 @@ export interface SemanticDisplayDecoration {
   readonly tooltipBody?: string;
   /** Reliable source prefix to conceal in the native link's rendered text, not its href. */
   readonly nativeHiddenPrefix?: string;
+  /** A verified raw wiki-label prefix range for reversible Live Preview styling. */
+  readonly nativeHiddenFrom?: number;
+  readonly nativeHiddenTo?: number;
   readonly captionCentered?: boolean;
 }
 
@@ -347,12 +350,23 @@ export function createSemanticDisplayPlan(
       const number = options.headingDisplayPlan.find((item) => (
         item.kind === "virtual" && item.line === targetLine
       ))?.label ?? "";
-      const hidden = reference.alias == null
+      const sourcePrefix = reference.alias == null
         ? options.headingDisplayPlan.find((item) => (
           item.kind === "conceal" && item.line === targetLine
         ))?.sourceText ?? ""
         : "";
-      if (number === "" && hidden === "") continue;
+      // Confirm the actual source link's target text before marking it.
+      // A file-qualified link has its prefix just after its own '#';
+      // an alias is never touched, even when it includes the same digits.
+      const written = source.slice(reference.from, reference.to);
+      const hash = written.indexOf("#");
+      const candidates = [sourcePrefix, sourcePrefix.replace(/\u2060/gu, "")].filter(Boolean);
+      const prefix = hash < 0 ? "" : candidates.find((value) => (
+        written.slice(hash + 1).startsWith(value)
+      )) ?? "";
+      const hiddenFrom = prefix ? reference.from + hash + 1 : null;
+      const hiddenTo = hiddenFrom == null ? null : hiddenFrom + prefix.length;
+      if (number === "" && hiddenTo == null) continue;
       decorations.push({
         kind: "native-link-number",
         from: reference.from,
@@ -362,7 +376,11 @@ export function createSemanticDisplayPlan(
         target: reference.target,
         targetLine,
         targetKind: "heading",
-        ...(hidden ? { nativeHiddenPrefix: hidden } : {}),
+        ...(hiddenTo == null || hiddenFrom == null ? {} : {
+          nativeHiddenPrefix: prefix,
+          nativeHiddenFrom: hiddenFrom,
+          nativeHiddenTo: hiddenTo,
+        }),
       });
       continue;
     }
