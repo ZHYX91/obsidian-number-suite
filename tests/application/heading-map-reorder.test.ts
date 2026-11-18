@@ -68,9 +68,9 @@ describe("heading mind-map same-parent section rearrangement", () => {
   });
 
   it("accepts sibling extended headings but ignores code and malformed headings", () => {
-    const source = "######## Deep A\nA\n\`\`\`\n######## Not heading\n\`\`\`\n######## Deep B\nB\n";
+    const source = "######## Deep A\nA\n```\n######## Not heading\n```\n######## Deep B\nB\n";
     expect(moved(source, 5, 0, "before")).toBe(
-      "######## Deep B\nB\n######## Deep A\nA\n\`\`\`\n######## Not heading\n\`\`\`\n",
+      "######## Deep B\nB\n######## Deep A\nA\n```\n######## Not heading\n```\n",
     );
     expect(moved(source, 3, 0, "before")).toBeNull();
   });
