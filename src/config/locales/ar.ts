@@ -207,6 +207,8 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.references": "مراجع متقاطعة داخل الملف",
   "settings.references.enable": "عرض المراجع المتقاطعة داخل الملف",
   "settings.references.enable.desc": "اعرض المراجع المكتوبة بصيغة @[[#...]] كشارات تفاعلية. يظهر رقم الهدف عندما يتوفر، لكنه ليس شرطًا.",
+  "settings.references.nativeWiki": "تحسين روابط Wiki العادية إلى عناوين الملاحظة نفسها",
+  "settings.references.nativeWiki.desc": "معطّل افتراضيًا. في المعاينة المباشرة، يعرض الرقم الفعلي قبل روابط `[[#Heading]]` التي تشير إلى عنوان فريد في الملاحظة نفسها. لا يغيّر Markdown، وتبقى الروابط إلى الملفات الأخرى أو غير المحلولة كما هي.",
   "settings.references.guide.title": "مراجع مقروءة أثناء الكتابة ومراجع ثابتة عند الحاجة",
   "settings.references.guide.intro": "أضف @ قبل رابط هدف داخل الملف. يحوّل Number Suite الهدف ذي الاسم الفريد إلى شارة تفاعلية، ويترك روابط [[#...]] العادية كما هي.",
   "settings.references.guide.heading.title": "مرجع إلى عنوان",

@@ -207,6 +207,8 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.references": "同檔案交叉引用",
   "settings.references.enable": "顯示同檔案交叉引用",
   "settings.references.enable.desc": "將 `@[[#...]]` 這類同筆記參照顯示為可點擊的標籤。有編號就一起顯示，沒有編號也能參照。",
+  "settings.references.nativeWiki": "增強一般同筆記 Wiki 標題連結",
+  "settings.references.nativeWiki.desc": "預設關閉。在即時預覽中，為指向本筆記唯一標題的 `[[#標題]]` 連結顯示有效編號。不改寫 Markdown；跨檔案和無法解析的連結保持原樣。",
   "settings.references.guide.title": "書寫時可讀，需要穩定時再用塊 ID",
   "settings.references.guide.intro": "在此筆記的標題或圖表標題連結前加上 `@`，例如 `@[[#安裝]]`。外掛會將它顯示成可點擊的參照標籤，普通 `[[#...]]` 連結不變。",
   "settings.references.guide.heading.title": "引用標題",

@@ -207,6 +207,8 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.references": "Tham chiếu chéo trong cùng ghi chú",
   "settings.references.enable": "Hiển thị tham chiếu chéo cùng ghi chú",
   "settings.references.enable.desc": "Hiển thị liên kết @[[#...]] đến đối tượng trong ghi chú này dưới dạng nhãn có thể nhấp, kèm số đối tượng nếu có.",
+  "settings.references.nativeWiki": "Tăng cường liên kết Wiki thông thường đến tiêu đề trong cùng ghi chú",
+  "settings.references.nativeWiki.desc": "Mặc định tắt. Trong Live Preview, hiển thị số hiệu hiện hành trước liên kết `[[#Tiêu đề]]` trỏ đến một tiêu đề duy nhất trong ghi chú này. Không sửa Markdown hoặc thay đổi liên kết sang tệp khác và liên kết không phân giải được.",
   "settings.references.guide.title": "Tham chiếu dễ đọc khi viết, ổn định khi cần",
   "settings.references.guide.intro": "Đặt @ trước liên kết đến tiêu đề hoặc chú thích trong ghi chú này, chẳng hạn @[[#Cài đặt]]. Number Suite hiển thị nhãn có thể nhấp; liên kết [[#...]] thông thường không đổi.",
   "settings.references.guide.heading.title": "Đích là tiêu đề",
