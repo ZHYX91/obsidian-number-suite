@@ -57,6 +57,8 @@ type Subject = {
   movePan(event: PointerEvent): void;
   endPan(event: PointerEvent): void;
   setFile(file: { path: string; extension: string }, refresh?: boolean): void;
+  showFile(file: TFile | null, leaf?: WorkspaceLeaf | null, pin?: boolean): void;
+  currentFile: { path: string; extension: string } | null;
 };
 
 function makeView(): Subject {
@@ -310,6 +312,31 @@ describe("heading map interactions", () => {
     view.onActiveLeafChange({ view: markdown } as WorkspaceLeaf);
     vi.advanceTimersByTime(200);
     expect(refreshMap.mock.calls).toEqual([["# New pane", "Same.md"]]);
+  });
+
+  it("keeps a map opened from another pane bound to that pane's document", () => {
+    const view = makeView();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    Object.assign(view, { refreshMap: refresh });
+    const pinnedFile = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Same.md", basename: "Same", extension: "md",
+    });
+    const otherFile = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Other.md", basename: "Other", extension: "md",
+    });
+    const otherEditor = Object.assign(Object.create(MarkdownView.prototype), {
+      file: otherFile, editor: { getValue: () => "# Other" },
+    });
+    view.showFile(pinnedFile, null, true);
+    view.onActiveLeafChange({ view: otherEditor } as WorkspaceLeaf);
+    expect(view.currentFile?.path).toBe("Same.md");
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // Command-palette use retains the original follow-active behavior.
+    view.showFile(pinnedFile, null, false);
+    view.onActiveLeafChange({ view: otherEditor } as WorkspaceLeaf);
+    expect(view.currentFile?.path).toBe("Other.md");
+    expect(refresh).toHaveBeenCalledTimes(3);
   });
 
   it("applies structural range expansion without changing the heading tree", async () => {

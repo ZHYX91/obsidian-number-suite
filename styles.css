@@ -1637,6 +1637,14 @@
 .number-suite-note-map-action {
   position: absolute; inset-inline-end: 0; inset-block-start: 0;
   width: var(--clickable-icon-size); height: var(--clickable-icon-size);
+
+/* Native Wiki link stays under Obsidian's own click/context-menu handling. */
+.number-suite-native-wiki-number {
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre;
 }
 
 /* Explicit structure editing for the heading map: browsing remains drag-free. */

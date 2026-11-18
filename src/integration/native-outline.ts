@@ -33,6 +33,13 @@ export function createNativeOutlineProjection(
   );
   if (effective.disabled || !effective.valid) return { headings: original, numberLabels };
   const headings = parseAtxHeadings(source);
+  const parsedByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
+  // A stale core cache must never be combined with a newer editor heading
+  // at the same position. Until the cache catches up, retain native Outline.
+  if (original.some((item) => {
+    const heading = parsedByLine.get(item.position.start.line);
+    return heading != null && heading.level !== item.level;
+  })) return { headings: original, numberLabels };
   const usedLines = new Set(original.map((item) => item.position.start.line));
   const extras: ExtraOutlineHeading[] = [];
   if (settings.showOutlineExtendedHeadings) {
@@ -106,8 +113,16 @@ interface ObservedOutline {
   onDrag: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
+  hasSyntheticEntries: boolean;
+  warned: boolean;
   timer: number | null;
-  mapAction: HTMLElement | null;
+}
+function isOutlineRowElement(value: unknown): value is HTMLElement {
+  // Popup windows may own a different HTMLElement constructor.
+  return typeof value === "object" && value !== null
+    && (value as Node).nodeType === 1
+    && typeof prop(value, "querySelector") === "function"
+    && typeof (value as HTMLElement).prepend === "function";
 }
 function prop(value: unknown, key: string): unknown {
   return typeof value === "object" && value != null
@@ -126,7 +141,7 @@ function outlineRows(view: OutlineInternal): Array<{ item: ExtraOutlineHeading; 
     for (const child of children) {
       const element = prop(child, "innerEl");
       const item = prop(child, "heading");
-      if (!(element instanceof HTMLElement) || typeof prop(item, "heading") !== "string") return false;
+      if (!isOutlineRowElement(element) || typeof prop(item, "heading") !== "string") return false;
       rows.push({ item: item as ExtraOutlineHeading, element });
       if (!walk(child, depth + 1)) return false;
     }
@@ -142,6 +157,8 @@ function pathFor(view: View): string | null {
 /** Scoped, reversible native Outline enhancement. No shared metadata cache writes. */
 export class NativeOutlineEnhancer {
   private observed = new Map<View, ObservedOutline>();
+  // The map entry is independent of the private Outline tree adaptation.
+  private readonly mapActions = new Map<View, HTMLElement>();
   private sources = new Map<string, string>();
   private generations = new Map<string, number>();
   private stopped = false;
@@ -179,13 +196,38 @@ export class NativeOutlineEnhancer {
     for (const view of [...this.observed.keys()]) {
       if (!views.includes(view)) this.remove(view);
     }
+    for (const [view, action] of this.mapActions) {
+      if (!views.includes(view) || !action.isConnected) {
+        action.remove();
+        this.mapActions.delete(view);
+      } else {
+        const label = this.mapLabel();
+        action.setAttribute("aria-label", label);
+        action.setAttribute("title", label);
+      }
+    }
     for (const view of views) {
+      this.ensureMapAction(view);
       if (!this.observed.has(view)) this.attach(view);
       const path = pathFor(view);
       if (path != null) {
         this.updatePath(path);
         void this.loadSource(path);
       }
+    }
+  }
+
+  private ensureMapAction(view: View): void {
+    if (!(view instanceof ItemView) || this.mapActions.has(view)) return;
+    try {
+      const action = view.addAction("git-branch", this.mapLabel(), () => {
+        const path = pathFor(view);
+        if (path != null) this.openMap(path);
+      });
+      action.classList.add("number-suite-outline-map-action");
+      this.mapActions.set(view, action);
+    } catch {
+      // Keep the native Outline usable even if its header is unavailable.
     }
   }
 
@@ -197,14 +239,22 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), timer: null, mapAction: null,
+      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) event.preventDefault();
+        // With synthetic headings, the host's section move could mistake a
+        // caption for a section boundary. Disable native drag until the host
+        // movement algorithm is verified for this projection.
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
       },
       onDrop: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) {
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
@@ -215,24 +265,32 @@ export class NativeOutlineEnhancer {
       if (!Array.isArray(headings)) return headings;
       const path = pathFor(native);
       const source = path == null ? null : this.sources.get(path);
-      if (source == null) return headings;
-      const projection = createNativeOutlineProjection(source, headings, this.settings());
-      current.labels = projection.numberLabels;
-      return projection.headings;
+      if (source == null) {
+        current.labels = new Map();
+        current.hasSyntheticEntries = false;
+        return headings;
+      }
+      try {
+        const projection = createNativeOutlineProjection(source, headings, this.settings());
+        current.labels = projection.numberLabels;
+        current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
+        current.warned = false;
+        return projection.headings;
+      } catch (error: unknown) {
+        // The native Outline owns navigation. A failed projection must never
+        // prevent Obsidian from rendering its unmodified heading list.
+        if (!current.warned) console.warn("Number Suite: native Outline enhancement unavailable", error);
+        current.warned = true;
+        current.labels = new Map();
+        current.hasSyntheticEntries = false;
+        return headings;
+      }
     };
     try { native.getHeadings = current.wrapped; } catch { return; }
     root.addEventListener("dragstart", current.onDrag, true);
     root.addEventListener("drop", current.onDrop, true);
     current.observer.observe(root, { childList: true, subtree: true, characterData: true });
     this.observed.set(view, current);
-    if (view instanceof ItemView) {
-      // Public ItemView toolbar API; avoids private header DOM mutations.
-      current.mapAction = view.addAction("git-branch", this.mapLabel(), () => {
-        const path = pathFor(native);
-        if (path != null) this.openMap(path);
-      });
-      current.mapAction.addClass("number-suite-outline-map-action");
-    }
   }
 
   private schedule(view: View): void {
@@ -313,7 +371,6 @@ export class NativeOutlineEnhancer {
     if (entry.timer != null) window.clearTimeout(entry.timer);
     entry.root.removeEventListener("dragstart", entry.onDrag, true);
     entry.root.removeEventListener("drop", entry.onDrop, true);
-    entry.mapAction?.remove();
     entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
     entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
     if (entry.view.getHeadings === entry.wrapped) {
@@ -328,6 +385,8 @@ export class NativeOutlineEnhancer {
   stop(): void {
     this.stopped = true;
     for (const view of [...this.observed.keys()]) this.remove(view);
+    for (const action of this.mapActions.values()) action.remove();
+    this.mapActions.clear();
     this.sources.clear();
     this.generations.clear();
   }
