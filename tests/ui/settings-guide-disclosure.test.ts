@@ -35,6 +35,16 @@ describe("settings tutorial disclosure", () => {
     expanded.clear(); // NumberSuiteSettingTab.hide() clears only in-memory state.
     expect(expanded.size).toBe(0);
   });
+  it("keeps both batch warnings and exclusions outside the collapsed steps", () => {
+    const panel = build("number-suite-batch-guide");
+    const body = panel.querySelector(".number-suite-settings-guide-body")!;
+    body.appendChild(document.createElement("p")).textContent = "Exclusions matter";
+    collapseSettingsGuides(panel, new Set());
+    expect(panel.querySelector("details")?.open).toBe(false);
+    const visible = Array.from(panel.querySelectorAll(":scope > p")).map((p) => p.textContent);
+    expect(visible).toEqual(["Essential note", "Safety warning", "Exclusions matter"]);
+  });
+
   it("keeps operation warnings visible while tutorial instructions are closed", () => {
     const panel = build("number-suite-file-operations-guide");
     collapseSettingsGuides(panel, new Set());
