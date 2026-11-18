@@ -105,7 +105,9 @@ Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets re
 by default. The optional **Enhance ordinary same-note Wiki heading links** setting
 is off by default; when enabled, Live Preview shows an effective number on
 unique `[[#Heading]]` heading links (aliases are retained) without writing to
-the source. Cross-file links, links that include a file path, captions,
+the source. The number is a separate, non-interactive visual prefix: Obsidian
+still renders and navigates the actual Wiki link, including its context menu,
+normal selection, and modified-click behavior. Cross-file links, links that include a file path, captions,
 block links, embeds, and unresolved or ambiguous targets remain native links.
 Reading View continues to use Obsidian's native rendering for ordinary Wiki links.
 
@@ -130,8 +132,12 @@ number labels, H7–H9 extended headings, and Figure/Table/Equation/Code caption
 They do not modify Markdown or change the source numbering rules. The compatibility
 layer augments only the native Outline view, without writing synthetic metadata headings
 into Obsidian's vault-wide cache; when the expected private native view API is missing,
-it retains the unmodified Outline. Synthetic entries are navigation-only: do not drag
-them to rewrite content. Host drag/selection and Android acceptance are still pending.
+it retains the unmodified Outline. Synthetic entries are navigation-only. Until a real-host test verifies that
+Obsidian's section-move algorithm treats H7–H9 and captions safely, the adapter
+**blocks native Outline drag/drop for the current Outline whenever any synthetic
+entry is present**. Number-only outlines retain native dragging. This is a
+deliberate safety limitation of the Draft candidate, not final feature parity.
+Host drag/selection and Android acceptance are still pending.
 The existing Number Suite Document outline is retained until parity and cleanup are verified.
 
 The native Outline header uses the public Obsidian ItemView action for **Open heading mind map**,

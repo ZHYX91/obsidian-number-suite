@@ -33,6 +33,13 @@ export function createNativeOutlineProjection(
   );
   if (effective.disabled || !effective.valid) return { headings: original, numberLabels };
   const headings = parseAtxHeadings(source);
+  const parsedByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
+  // A stale core cache must never be combined with a newer editor heading
+  // at the same position. Until the cache catches up, retain native Outline.
+  if (original.some((item) => {
+    const heading = parsedByLine.get(item.position.start.line);
+    return heading != null && heading.level !== item.level;
+  })) return { headings: original, numberLabels };
   const usedLines = new Set(original.map((item) => item.position.start.line));
   const extras: ExtraOutlineHeading[] = [];
   if (settings.showOutlineExtendedHeadings) {
@@ -106,7 +113,16 @@ interface ObservedOutline {
   onDrag: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
+  hasSyntheticEntries: boolean;
+  warned: boolean;
   timer: number | null;
+}
+function isOutlineRowElement(value: unknown): value is HTMLElement {
+  // Popup windows may own a different HTMLElement constructor.
+  return typeof value === "object" && value !== null
+    && (value as Node).nodeType === 1
+    && typeof prop(value, "querySelector") === "function"
+    && typeof (value as HTMLElement).prepend === "function";
 }
 function prop(value: unknown, key: string): unknown {
   return typeof value === "object" && value != null
@@ -125,7 +141,7 @@ function outlineRows(view: OutlineInternal): Array<{ item: ExtraOutlineHeading; 
     for (const child of children) {
       const element = prop(child, "innerEl");
       const item = prop(child, "heading");
-      if (!(element instanceof HTMLElement) || typeof prop(item, "heading") !== "string") return false;
+      if (!isOutlineRowElement(element) || typeof prop(item, "heading") !== "string") return false;
       rows.push({ item: item as ExtraOutlineHeading, element });
       if (!walk(child, depth + 1)) return false;
     }
@@ -223,14 +239,22 @@ export class NativeOutlineEnhancer {
     const current: ObservedOutline = {
       view: native, root, original, wrapped: () => [],
       observer: new MutationObserver(() => this.schedule(view)),
-      labels: new Map(), timer: null,
+      labels: new Map(), hasSyntheticEntries: false, warned: false, timer: null,
       onDrag: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) event.preventDefault();
+        // With synthetic headings, the host's section move could mistake a
+        // caption for a section boundary. Disable native drag until the host
+        // movement algorithm is verified for this projection.
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
       },
       onDrop: (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("." + EXTRA_CLASS)) {
+        if (current.hasSyntheticEntries
+          || (isOutlineRowElement(target) && target.closest("." + EXTRA_CLASS))) {
           event.preventDefault();
           event.stopImmediatePropagation();
         }
@@ -241,10 +265,26 @@ export class NativeOutlineEnhancer {
       if (!Array.isArray(headings)) return headings;
       const path = pathFor(native);
       const source = path == null ? null : this.sources.get(path);
-      if (source == null) return headings;
-      const projection = createNativeOutlineProjection(source, headings, this.settings());
-      current.labels = projection.numberLabels;
-      return projection.headings;
+      if (source == null) {
+        current.labels = new Map();
+        current.hasSyntheticEntries = false;
+        return headings;
+      }
+      try {
+        const projection = createNativeOutlineProjection(source, headings, this.settings());
+        current.labels = projection.numberLabels;
+        current.hasSyntheticEntries = projection.headings.some((heading) => heading.__numberSuiteExtra != null);
+        current.warned = false;
+        return projection.headings;
+      } catch (error: unknown) {
+        // The native Outline owns navigation. A failed projection must never
+        // prevent Obsidian from rendering its unmodified heading list.
+        if (!current.warned) console.warn("Number Suite: native Outline enhancement unavailable", error);
+        current.warned = true;
+        current.labels = new Map();
+        current.hasSyntheticEntries = false;
+        return headings;
+      }
     };
     try { native.getHeadings = current.wrapped; } catch { return; }
     root.addEventListener("dragstart", current.onDrag, true);
