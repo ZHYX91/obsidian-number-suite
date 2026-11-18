@@ -22,9 +22,11 @@ export function collapseSettingsGuides(root: HTMLElement, expanded: Set<string>)
     }
     if (guide.classList.contains("number-suite-file-operations-guide")
       || guide.classList.contains("number-suite-batch-guide")) {
-      const paragraphs = content.querySelectorAll(":scope > p");
-      const risk = paragraphs[paragraphs.length - 1];
-      if (risk != null && risk !== intro) {
+      // File operations: "operations" and "safety". Batch operations:
+      // "safety" and "exclusions". All must remain visible, not merely
+      // the final paragraph (which otherwise hides the batch risk warning).
+      for (const risk of Array.from(content.querySelectorAll(":scope > p"))) {
+        if (risk === intro) continue;
         risk.classList.add("number-suite-settings-guide-exterior");
         guide.parentElement?.insertBefore(risk, guide);
       }
