@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { collapseSettingsGuides } from "../../src/ui/settings/guide-disclosure";
 
@@ -36,6 +37,25 @@ describe("settings tutorial disclosure", () => {
     details.dispatchEvent(new Event("toggle"));
     expect(expanded.size).toBe(0);
   });
+  it("draws the reading line only on the open tutorial body", () => {
+    const panel = build();
+    const css = document.createElement("style");
+    css.textContent = readFileSync("styles.css", "utf8");
+    panel.appendChild(css);
+    panel.style.setProperty("--background-modifier-border", "#bbb");
+    collapseSettingsGuides(panel, new Set());
+    const details = panel.querySelector("details")!;
+    const body = details.querySelector(".number-suite-settings-guide-body")!;
+    const hasLine = (element: Element) => getComputedStyle(element).borderInlineStart.startsWith("2px solid");
+    expect(hasLine(body)).toBe(false);
+    details.open = true;
+    expect(hasLine(body)).toBe(true);
+    expect(hasLine(details.querySelector("summary")!)).toBe(false);
+    expect(hasLine(panel.querySelector(".number-suite-settings-guide-exterior")!)).toBe(false);
+    details.open = false;
+    expect(hasLine(body)).toBe(false);
+  });
+
   it("keeps both batch warnings and exclusions outside the collapsed steps", () => {
     const panel = build("number-suite-batch-guide");
     const body = panel.querySelector(".number-suite-settings-guide-body")!;
