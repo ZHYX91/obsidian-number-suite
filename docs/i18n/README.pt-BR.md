@@ -22,9 +22,9 @@ Requer Obsidian 1.12.7 ou mais recente no computador ou Android. O funcionamento
 
 1. Em **Configurações → Number Suite → Numeração de títulos**, ative **“Mostrar números virtuais”**.
 2. Abra a pré-visualização ao vivo ou o modo de leitura. Os números aparecem ao lado dos títulos, mas o arquivo não muda.
-3. Para salvar números no Markdown, abra a nota atual na barra lateral do Number Suite. Escolha escrever ou renumerar, confira a prévia e confirme.
+3. Para salvar os números no Markdown, abra **Nota atual → Editar o texto**. Escolha gravar ou renumerar, confira a prévia e confirme.
 
-O guia da nota atual compara o texto original, o objetivo e a ação. As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
+As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
 
 A nota atual mostra de forma compacta o nome, o estado automático e três opções principais; o salvamento em andamento e os erros continuam visíveis. Ações em uma única nota abrem uma página de prévia na barra lateral, com destino fixo e Voltar/Cancelar/Aplicar. Trocar de nota não muda o destino; mudanças no texto exigem uma nova prévia. Lotes mantêm uma janela ampla. O modo de estrutura mostra seu nome, botões de movimento, destino destacado e linhas de inserção antes/depois, com motivos breves para destinos inválidos ou fontes indisponíveis.
 

@@ -22,9 +22,9 @@ Cần Obsidian 1.12.7 trở lên trên máy tính hoặc Android. Chưa xác min
 
 1. Trong **Cài đặt → Number Suite → Đánh số tiêu đề**, bật **“Hiện số ảo”**.
 2. Mở Live Preview hoặc chế độ đọc. Số xuất hiện cạnh tiêu đề nhưng nội dung tệp không thay đổi.
-3. Muốn lưu số vào Markdown, mở ghi chú hiện tại trong thanh bên Number Suite. Chọn ghi số hoặc đánh số lại, kiểm tra bản xem trước rồi xác nhận.
+3. Để lưu số vào Markdown, mở **Ghi chú hiện tại → Sửa nội dung**, chọn ghi số hoặc đánh số lại, xem trước rồi xác nhận.
 
-Phần hướng dẫn trong ghi chú hiện tại so sánh văn bản gốc, mục tiêu và thao tác. Tùy chọn riêng của ghi chú được lưu vào Properties; bản thân việc hiển thị không viết lại tiêu đề. Bản xem trước thu gọn theo tệp và hiện số thay đổi, cảnh báo. Mở từng tệp rồi tải thêm để xem hết kết quả. Tắt plugin sẽ dừng các lần ghi mới của xử lý hàng loạt hoặc hoàn tác; lần ghi đã gửi vẫn có thể hoàn tất. Nếu không thể khôi phục an toàn, hãy giữ `recovery.json` trong thư mục plugin và kiểm tra các ghi chú trước.
+Tùy chọn riêng của ghi chú được lưu vào Properties; bản thân việc hiển thị không viết lại tiêu đề. Bản xem trước thu gọn theo tệp và hiện số thay đổi, cảnh báo. Mở từng tệp rồi tải thêm để xem hết kết quả. Tắt plugin sẽ dừng các lần ghi mới của xử lý hàng loạt hoặc hoàn tác; lần ghi đã gửi vẫn có thể hoàn tất. Nếu không thể khôi phục an toàn, hãy giữ `recovery.json` trong thư mục plugin và kiểm tra các ghi chú trước.
 
 Ghi chú hiện tại hiển thị gọn tên tệp, trạng thái tự động và ba lựa chọn chính; trạng thái đang lưu và lỗi vẫn hiện rõ. Thao tác với một ghi chú chuyển sang trang xem trước trong thanh bên với đích cố định và Quay lại/Hủy/Áp dụng. Chuyển ghi chú không đổi đích; khi nguồn đổi phải tạo lại bản xem trước. Xử lý hàng loạt vẫn dùng hộp thoại rộng. Chế độ cấu trúc hiện tên chế độ, nút di chuyển, đích được tô sáng và đường chèn trước/sau, kèm lý do ngắn khi đích không hợp lệ hoặc nguồn không sẵn có.
 

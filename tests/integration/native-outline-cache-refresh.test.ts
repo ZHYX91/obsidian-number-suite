@@ -82,4 +82,69 @@ describe("native Outline metadata catch-up", () => {
     expect(innerEl.querySelector(".number-suite-native-outline-number")?.textContent).toBe("1");
     enhancer.stop();
   });
+
+  it("reads only bound notes and forgets closed, renamed, deleted and disabled paths", async () => {
+    let enabled = false;
+    const paths = ["A.md", "B.md", "Other.md"];
+    const files = paths.map((path) => new (TFile as unknown as new (path: string) => TFile)(path));
+    const listeners = new Map<string, (...args: unknown[]) => void>();
+    const on = (name: string, callback: (...args: unknown[]) => void) => { listeners.set(name, callback); };
+    const emit = (name: string, ...args: unknown[]) => listeners.get(name)?.(...args);
+    const outline = (file: TFile) => Object.assign(new (ItemView as unknown as new () => ItemView)(), {
+      getState: () => ({ file: file.path }), getHeadings: () => [] as HeadingCache[],
+    });
+    let views = [outline(files[0]!)];
+    // Delay the original read past a close/reopen of the same file.
+    let finishOldRead: (value: string) => void = () => {};
+    const read = vi.fn((file: TFile): Promise<string> => Promise.resolve("####### " + file.path));
+    const plugin = {
+      registerEvent: vi.fn(), register: vi.fn(),
+      app: {
+        workspace: { on, onLayoutReady: (callback: () => void) => callback(),
+          getLeavesOfType: (type: string) => type === "outline" ? views.map((view) => ({ view })) : [] },
+        vault: { on, cachedRead: read, getAbstractFileByPath: (path: string) => files.find((f) => f.path === path) },
+        metadataCache: { on },
+      },
+    };
+    const enhancer = new NativeOutlineEnhancer(plugin as never, () => ({ ...DEFAULT_SETTINGS, enhanceNativeOutline: enabled }));
+    enhancer.start();
+    for (const file of files) { emit("modify", file); emit("changed", file); }
+    const getValue = vi.fn(() => "####### Untouched");
+    emit("editor-change", { getValue }, { file: files[2] });
+    expect(read).not.toHaveBeenCalled();
+    expect(getValue).not.toHaveBeenCalled();
+
+    enabled = true;
+    read.mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve; }));
+    enhancer.refresh();
+    expect(read).toHaveBeenCalledExactlyOnceWith(files[0]);
+    views = [];
+    emit("layout-change");
+    emit("changed", files[0]);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    views = [outline(files[0]!), outline(files[0]!)];
+    emit("layout-change");
+    await Promise.resolve();
+    finishOldRead("####### Stale");
+    await Promise.resolve();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(views[0]!.getHeadings().map((h) => h.heading)).toEqual(["A.md"]);
+    emit("delete", files[0]);
+    expect(views[0]!.getHeadings()).toEqual([]);
+
+    views = [outline(files[1]!)];
+    emit("rename", files[1], "A.md");
+    await Promise.resolve();
+    emit("changed", files[0]);
+    emit("modify", files[2]);
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(views[0]!.getHeadings().map((h) => h.heading)).toEqual(["B.md"]);
+    enabled = false;
+    enhancer.refresh();
+    emit("changed", files[1]);
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(views[0]!.getHeadings()).toEqual([]);
+    enhancer.stop();
+  });
 });

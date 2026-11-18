@@ -19,7 +19,8 @@ vi.mock("obsidian", async (original) => ({
 import { ItemView, MarkdownView, TFile } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { createTranslator } from "../../src/config/i18n";
-import { NativeOutlineEnhancer, type ExtraOutlineHeading } from "../../src/integration/native-outline";
+import { NativeOutlineEnhancer } from "../../src/integration/native-outline";
+import type { ExtraOutlineHeading } from "../../src/integration/native-outline-projection";
 
 afterEach(() => { vi.useRealTimers(); document.body.replaceChildren(); });
 
