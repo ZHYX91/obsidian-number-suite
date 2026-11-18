@@ -69,7 +69,7 @@ describe("virtual and reliable source-number presentation", () => {
 
   it("handles all four virtual/conceal combinations without modifying Markdown", () => {
     const offOff = plans(base, false, false);
-    expect(offOff.display.some((x) => x.kind === "stored")).toBe(true);
+    expect(offOff.display.find((x) => x.kind === "stored")?.label).toBe("一、");
     expect(offOff.display.some((x) => x.kind === "virtual")).toBe(false);
     expect(offOff.semantic).toEqual([]);
 
