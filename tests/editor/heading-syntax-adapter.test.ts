@@ -91,9 +91,10 @@ describe("Live Preview note widgets", () => {
   });
 
   it("returns note-widget events to CodeMirror so a click can reveal source", () => {
-    expect(new NumeralWidget("1", "note-reference").ignoreEvent()).toBe(false);
-    expect(new NumeralWidget("[1]", "note-definition").ignoreEvent()).toBe(false);
-    expect(new NumeralWidget("1", "heading").ignoreEvent()).toBe(true);
+    const click = new Event("click");
+    expect(new NumeralWidget("1", "note-reference").ignoreEvent(click)).toBe(false);
+    expect(new NumeralWidget("[1]", "note-definition").ignoreEvent(click)).toBe(false);
+    expect(new NumeralWidget("1", "heading").ignoreEvent(click)).toBe(true);
   });
 });
 
