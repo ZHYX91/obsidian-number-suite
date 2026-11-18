@@ -1892,16 +1892,24 @@
   .number-suite-settings-guide.is-collapsible > summary { min-block-size: 44px; }
 }
 
-.number-suite-settings-guide.is-collapsible > .number-suite-settings-guide-body {
+details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
+  border-inline-start: 2px solid var(--background-modifier-border);
   box-sizing: border-box;
-  margin: 6px 0 0;
+  margin-block: 6px 0;
+  margin-inline: 6px 0;
   max-inline-size: 68ch;
   min-inline-size: 0;
-  padding-inline-start: 18px;
+  padding-inline-start: 10px;
+}
+
+@supports (color: color-mix(in srgb, red, blue)) {
+  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
+    border-inline-start-color: color-mix(in srgb, var(--interactive-accent) 30%, var(--background-modifier-border));
+  }
 }
 
 @container number-suite-help (max-width: 24rem) {
-  .number-suite-settings-guide.is-collapsible > .number-suite-settings-guide-body { padding-inline-start: 0; }
+  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body { margin-inline-start: 0; }
 }
 
 .number-suite-settings-guide.is-collapsible pre {
