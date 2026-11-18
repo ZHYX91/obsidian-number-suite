@@ -198,7 +198,7 @@ function nativeWikiHeadingLinks(snapshot: SemanticSnapshot): Array<{
   readonly kind: "title";
 }> {
   const result: Array<{ line: number; from: number; to: number; target: string; alias: string | null; kind: "title" }> = [];
-  const pattern = /(?<![@!\[])\[\[#([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/gu;
+  const pattern = /(?<![@![])\[\[#([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/gu;
   for (const line of snapshot.lines) {
     if (!line.available) continue;
     const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);

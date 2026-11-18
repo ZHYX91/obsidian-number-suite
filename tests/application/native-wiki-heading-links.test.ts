@@ -63,7 +63,7 @@ describe("optional same-note Wiki heading link enhancement", () => {
 
   it("protects fenced and inline code as well as escaped Wiki lookalikes", () => {
     const source = "# Heading\n" + "\\[[#Heading]]" +
-      " \`[[#Heading]]\`\n\`\`\`md\n[[#Heading]]\n\`\`\`";
+      " `[[#Heading]]`\n```md\n[[#Heading]]\n```";
     expect(references(source, true)).toEqual([]);
   });
 });
