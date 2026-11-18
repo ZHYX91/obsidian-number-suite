@@ -52,10 +52,10 @@ describe("Obsidian 1.13 settings definitions", () => {
       "Heading numbering",
       "Outline enhancements",
       "Captions",
-      "Cross references",
+      "Links & references",
       "Footnotes & endnotes",
       "Write and cleanup",
-      "Display and batch",
+      "Display & appearance",
     ]);
     const serialized = JSON.stringify(definitions);
     expect(serialized).toContain('"key":"general.showVirtualNumbers"');

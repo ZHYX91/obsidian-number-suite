@@ -22,9 +22,9 @@ Cần Obsidian 1.12.7 trở lên trên máy tính hoặc Android. Chưa xác min
 
 1. Trong **Cài đặt → Number Suite → Đánh số tiêu đề**, bật **“Hiện số ảo”**.
 2. Mở Live Preview hoặc chế độ đọc. Số xuất hiện cạnh tiêu đề nhưng nội dung tệp không thay đổi.
-3. Muốn lưu số vào Markdown, mở ghi chú hiện tại trong thanh bên Number Suite. Chọn ghi số hoặc đánh số lại, kiểm tra bản xem trước rồi xác nhận.
+3. Để lưu số vào Markdown, mở **Ghi chú hiện tại → Sửa nội dung**, chọn ghi số hoặc đánh số lại, xem trước rồi xác nhận.
 
-Phần hướng dẫn trong ghi chú hiện tại so sánh văn bản gốc, mục tiêu và thao tác. Tùy chọn riêng của ghi chú được lưu vào Properties; bản thân việc hiển thị không viết lại tiêu đề. Bản xem trước thu gọn theo tệp và hiện số thay đổi, cảnh báo. Mở từng tệp rồi tải thêm để xem hết kết quả. Tắt plugin sẽ dừng các lần ghi mới của xử lý hàng loạt hoặc hoàn tác; lần ghi đã gửi vẫn có thể hoàn tất. Nếu không thể khôi phục an toàn, hãy giữ `recovery.json` trong thư mục plugin và kiểm tra các ghi chú trước.
+Tùy chọn riêng của ghi chú được lưu vào Properties; bản thân việc hiển thị không viết lại tiêu đề. Bản xem trước thu gọn theo tệp và hiện số thay đổi, cảnh báo. Mở từng tệp rồi tải thêm để xem hết kết quả. Tắt plugin sẽ dừng các lần ghi mới của xử lý hàng loạt hoặc hoàn tác; lần ghi đã gửi vẫn có thể hoàn tất. Nếu không thể khôi phục an toàn, hãy giữ `recovery.json` trong thư mục plugin và kiểm tra các ghi chú trước.
 
 Ghi chú hiện tại hiển thị gọn tên tệp, trạng thái tự động và ba lựa chọn chính; trạng thái đang lưu và lỗi vẫn hiện rõ. Thao tác với một ghi chú chuyển sang trang xem trước trong thanh bên với đích cố định và Quay lại/Hủy/Áp dụng. Chuyển ghi chú không đổi đích; khi nguồn đổi phải tạo lại bản xem trước. Xử lý hàng loạt vẫn dùng hộp thoại rộng. Chế độ cấu trúc hiện tên chế độ, nút di chuyển, đích được tô sáng và đường chèn trước/sau, kèm lý do ngắn khi đích không hợp lệ hoặc nguồn không sẵn có.
 
@@ -49,8 +49,10 @@ Có kiểu phân cấp thông thường, ví dụ cho văn bản hành chính v�
 <!-- section: settings -->
 ## Tìm phần cài đặt
 
+Tùy chọn xử lý hàng loạt nằm trong **Ghi số và dọn dẹp**, liên kết trong **Liên kết và tham chiếu** và cách hiển thị số trong **Hiển thị và giao diện**.
 
-Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gốc. Tắt vẫn giữ tùy chọn và không tự bật tiện ích lõi. Menu hiển thị dàn ý lưu bốn lựa chọn dùng chung: số, cấp khi không có số, H7–H9 và chú thích; chỉ ảnh hưởng dàn ý. Mỗi tiêu đề có một nhãn số hoặc Hn trung tính. Ghi chú hiện tại kế thừa hoặc ghi đè riêng số ảo, hiển thị số đã ghi và kiểu, kèm trạng thái tự động. Quy tắc bắt đầu và bỏ qua được thu gọn, thêm theo nhu cầu. Tắt vẫn giữ lựa chọn; ghi và dọn dẹp vẫn cần xem trước. Nút lá của sơ đồ không hiện 0. Bố cục và độ sâu ở menu phụ; nút di chuyển và điểm thả chỉ hiện trong chế độ chỉnh cấu trúc.
+
+Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gốc. Tắt vẫn giữ tùy chọn và không tự bật tiện ích lõi. Menu hiển thị dàn ý lưu bốn lựa chọn dùng chung: số, cấp khi không có số, H7–H9 và chú thích; chỉ ảnh hưởng dàn ý. Số do tiện ích tính có nền màu, còn số đã ghi trong tiêu đề có viền khi được hiển thị. Có thể thấy cả hai cùng lúc. Khi không có số, bạn có thể hiện cấp tiêu đề (Hn). Ghi chú hiện tại kế thừa hoặc ghi đè riêng số ảo, hiển thị số đã ghi và kiểu, kèm trạng thái tự động. Quy tắc bắt đầu và bỏ qua được thu gọn, thêm theo nhu cầu. Tắt vẫn giữ lựa chọn; ghi và dọn dẹp vẫn cần xem trước. Nút lá của sơ đồ không hiện 0. Bố cục và độ sâu ở menu phụ; nút di chuyển và điểm thả chỉ hiện trong chế độ chỉnh cấu trúc.
 
 Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
 

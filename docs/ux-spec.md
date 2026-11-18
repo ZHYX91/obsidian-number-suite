@@ -94,8 +94,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 <!-- section: settings-experience -->
 ## Global settings experience
 
-Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
-Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
+Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
+Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template
 previews, and exact exclusions. Built-in and custom-template previews share a heading-number
@@ -224,4 +224,4 @@ The global **Outline stored heading numbers** setting defaults on beside **Hide 
 
 The separate **ordinary same-note Wiki link enhancement** remains off by default. With it on, only a target that actually displays a virtual number gains a neutral grey, inert prefix badge; a stored number or H level never substitutes. An explicit `|alias` remains exactly authored and never has its digits deduplicated or rewritten. Without an alias, **Hide stored numbers** removes a reliably recognized source prefix from the visible label only, leaving `href`, link selection, modifier-click, context menu and the original `[[...]]` unchanged. No alias + no virtual number means no badge, although concealment may still apply. Live Preview and Reading View use the same rule for `[[#Heading]]` and links that Obsidian resolves to the current note; other-file, block and embed links stay native. If the source prefix cannot be authenticated, do not conceal or mark it. The explicit `@[[...]]` reference continues as one whole reference pill.
 
-The four visible combinations for a reliably numbered heading with source prefix `一、` and a calculated number `1` are: virtual OFF / conceal OFF → `一、标题`; OFF / ON → `标题`; ON / OFF → neutral `1` prefix + `一、标题`; ON / ON → neutral `1` prefix + `标题`. This is only display: toggles never rewrite links or heading text.
+The [advanced guide](advanced.md#source-numbers-and-native-wiki-headings--presentation-rules) lists the four combinations of virtual numbering and prefix concealment, including the space required by template recognition.

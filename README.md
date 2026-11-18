@@ -14,17 +14,9 @@ without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-The sidebar and write-preview images below render the actual plugin components with a synthetic note in a browser fixture; they are not Obsidian host captures.
+### Preview a batch before writing to Markdown
 
-### Check settings for this note
-
-Use Current note to inherit or override common display choices independently and check its automatic status.
-
-![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
-
-### Review changes before writing to Markdown
-
-Expand each file to review its changes and warnings before applying. Only changed numbering text is highlighted; Before and After labels remain visible.
+Expand a file to see which numbers will change and check its warnings. This example shows the batch preview with sample notes.
 
 ![Number Suite preview of heading number writes](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-write-preview-en.png)
 
@@ -96,7 +88,7 @@ To see heading numbers without rewriting the headings, enable **Show virtual num
 
 Current note keeps the filename, automatic status and three main choices compact, with secondary help in tooltips and advanced rules and file operations collapsed. Normal saved status takes no extra space; saving and errors remain visible. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
 
-Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
+Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops further batch changes. A note that was already saving may finish. If you edited it before Number Suite could undo that change, keep `recovery.json` in the plugin folder and check the note before trying Undo again.
 
 Concealment has one global recognition rule: either only numbers carrying Number Suite source
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
@@ -120,7 +112,7 @@ around the pointer, use two-finger pinch zoom on touch devices, and use +, -, 0 
 controls for zoom/Fit. Double-click a heading card or press Enter on its body to jump to its exact
 source line. The map normally browses without writing and never counts captions as child headings. Explicit **Adjust structure** mode supports same-parent, same-level whole-section dragging and up/down buttons. The mode has a visible label and move controls; highlighted targets and before/after insertion lines show the drop position. Invalid destinations and unavailable or changed source show concise reasons. Moves require unchanged source and support native Undo/Redo.
 
-General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. A filled badge shows the calculated number. A separate outlined badge can show a visible number already written in the heading. If neither is shown, you can display the heading level (H1–H9). Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
 ### Extended H7–H9 headings
 
@@ -145,11 +137,7 @@ For exact syntax, object-placement ambiguity, IDs and editor behavior, read the 
 
 Open **Settings → Number Suite → General** for the **User guide** and **Report an issue** links.
 
-Settings use one accessible seven-tab surface on every supported Obsidian version: General,
-Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
-and batch. The tab itself identifies the current section, so its content starts directly with the
-first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
-appearance, and batch operations.
+The seven settings tabs are General, Heading numbering, Captions, Links & references, Footnotes & endnotes, Write and cleanup, and Display & appearance. Open **Write and cleanup** to change batch options.
 
 **Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in **DocWen → Settings → Parse Markdown**; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 

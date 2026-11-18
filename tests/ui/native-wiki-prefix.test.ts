@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { installDomFixture } from "./dom-fixture";
+
+beforeAll(installDomFixture);
 import {
   hideNativeWikiHeadingPrefix,
   restoreNativeWikiHeadingPrefix,

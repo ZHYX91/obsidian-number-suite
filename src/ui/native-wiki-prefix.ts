@@ -29,7 +29,7 @@ export function hideNativeWikiHeadingPrefix(anchor: HTMLElement, prefix: string)
     if (take < node.data.length) node.splitText(take);
     const parent = node.parentElement;
     if (parent == null) return false;
-    const span = anchor.ownerDocument.createElement("span");
+    const span = parent.createSpan();
     span.className = CLASS_NAME;
     span.setAttribute("aria-hidden", "true");
     parent.insertBefore(span, node);

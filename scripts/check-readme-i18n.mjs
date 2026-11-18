@@ -117,10 +117,19 @@ for (const { path } of editions.slice(2)) {
   const locale = /README\.([^.]+)\.md$/u.exec(path)?.[1];
   assert.ok(locale, `${path}: cannot identify README locale`);
   const catalog = await readFile(`src/config/locales/${locale}.ts`, "utf8");
-  const match = /^\s*"settings\.showVirtual":\s*"((?:\\.|[^"\\])*)",?$/mu.exec(catalog);
-  assert.ok(match, `${locale}: missing setting label for the README quick start`);
-  const settingLabel = JSON.parse(`"${match[1]}"`);
   const source = await readFile(path, "utf8");
+  const messages = new Map([...catalog.matchAll(/^ {2}"([^"]+)":\s*("(?:\\.|[^"\\])*"),?$/gmu)]
+    .map(([, key, value]) => [key, JSON.parse(value)]));
+  const quickStart = source.split("<!-- section: quick-start -->")[1]?.split("<!-- section: captions -->")[0] ?? "";
+  for (const key of ["settings.showVirtual", "sidebar.tab.edit"]) {
+    const label = messages.get(key);
+    assert.ok(label && quickStart.includes(label), `${path}: quick start must use the localized control for ${key}`);
+  }
+  const settings = source.split("<!-- section: settings -->")[1]?.split("<!-- section: limitations -->")[0] ?? "";
+  for (const key of ["settings.tab.cleanup", "settings.tab.references", "settings.tab.views"]) {
+    const label = messages.get(key);
+    assert.ok(label && settings.includes(label), `${path}: settings must use the localized tab for ${key}`);
+  }
   assert.deepEqual(
     [...source.matchAll(/<!-- section: ([a-z0-9-]+) -->/gu)].map((match) => match[1]),
     ["installation", "quick-start", "captions", "numbering", "settings", "limitations", "privacy-and-support"],
@@ -133,7 +142,6 @@ for (const { path } of editions.slice(2)) {
     assert.ok(source.includes(`](${advancedPath})`),
       `${path}: compact guide must identify its advanced-language reference`);
   }
-  assert.ok(source.includes(settingLabel), `${path}: quick start must use the actual localized control label`);
   assert.doesNotMatch(source, /`Show virtual numbers`/u, `${path}: stale English-only button label`);
 }
 for (const file of ["docs/advanced.md", "docs/advanced.zh-CN.md"]) {
