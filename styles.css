@@ -1631,3 +1631,12 @@
 
 /* Native Outline overlays never rewrite metadata or note contents. */
 .number-suite-native-outline-number { display: inline-block; margin-inline-end: .36em; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Native Wiki link stays under Obsidian's own click/context-menu handling. */
+.number-suite-native-wiki-number {
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre;
+}

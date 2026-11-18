@@ -105,7 +105,9 @@ Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets re
 by default. The optional **Enhance ordinary same-note Wiki heading links** setting
 is off by default; when enabled, Live Preview shows an effective number on
 unique `[[#Heading]]` heading links (aliases are retained) without writing to
-the source. Cross-file links, links that include a file path, captions,
+the source. The number is a separate, non-interactive visual prefix: Obsidian
+still renders and navigates the actual Wiki link, including its context menu,
+normal selection, and modified-click behavior. Cross-file links, links that include a file path, captions,
 block links, embeds, and unresolved or ambiguous targets remain native links.
 Reading View continues to use Obsidian's native rendering for ordinary Wiki links.
 
