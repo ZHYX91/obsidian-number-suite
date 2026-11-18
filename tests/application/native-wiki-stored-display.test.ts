@@ -79,6 +79,8 @@ describe("virtual and reliable source-number presentation", () => {
     expect(offOn.display.some((x) => x.kind === "stored")).toBe(false);
     expect(offOn.semantic).toHaveLength(1);
     expect(offOn.semantic[0]).toMatchObject({ label: "", nativeHiddenPrefix: "一、" });
+    expect(offOn.semantic[0]?.nativeHiddenFrom).toBe(base.indexOf("一、", base.indexOf("[[")));
+    expect(offOn.semantic[0]?.nativeHiddenTo).toBe((offOn.semantic[0]?.nativeHiddenFrom ?? 0) + 2);
 
     const onOff = plans(base, true, false);
     expect(onOff.display.some((x) => x.kind === "virtual")).toBe(true);
@@ -104,7 +106,17 @@ describe("virtual and reliable source-number presentation", () => {
     expect(actual.semantic).toHaveLength(1);
     expect(actual.semantic[0]?.label).toBe("1");
     expect(actual.semantic[0]?.nativeHiddenPrefix).toBeUndefined();
+    expect(actual.semantic[0]?.nativeHiddenFrom).toBeUndefined();
+    expect(actual.semantic[0]?.nativeHiddenTo).toBeUndefined();
     expect(withAlias).toContain("[[#一、实验设计|my own alias]]");
+  });
+
+  it("does not mark a misleading prefix in a differently authored link target", () => {
+    const source = "# 一、实验设计\nSee [[#一、实验设计]].";
+    const items = plans(source, true, true).semantic;
+    expect(items).toHaveLength(1);
+    const start = items[0]?.nativeHiddenFrom;
+    expect(start == null ? "" : source.slice(start, items[0]!.nativeHiddenTo)).toBe("一、");
   });
 
   it("never deduplicates a user-authored number against a virtual badge", () => {
