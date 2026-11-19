@@ -84,4 +84,9 @@ export function renderSameFileReferenceGuide(container: HTMLElement, t: Translat
     text: t("settings.references.guide.unchanged.title"),
   });
   body.createEl("p", { text: t("settings.references.guide.unchanged.body") });
+  body.createEl("strong", {
+    cls: "number-suite-reference-guide-section-title",
+    text: t("settings.references.nativeWiki"),
+  });
+  body.createEl("p", { text: t("settings.references.nativeWiki.desc") });
 }

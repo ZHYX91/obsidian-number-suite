@@ -25,6 +25,7 @@ describe("settings guide", () => {
       t("settings.references.guide.heading.source"), t("settings.references.guide.caption.source"),
     ]);
     expect(details?.textContent).toContain(t("settings.references.guide.requirements.sameFile"));
+    expect(details?.textContent).toContain(t("settings.references.nativeWiki.desc"));
   });
 
   it("documents footnote and endnote syntax in both settings paths", () => {

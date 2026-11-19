@@ -95,6 +95,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 <!-- section: settings-experience -->
 ## Global settings experience
 
+The Links & references tab keeps a short explanation beside the ordinary Wiki link toggle. Its reference guide covers eligible targets, native link behavior and exclusions.
+
 Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
 Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
