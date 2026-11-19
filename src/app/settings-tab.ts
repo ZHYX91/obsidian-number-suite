@@ -392,7 +392,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCrossReferences)
         .onChange((value) => this.updateControl("references.showCrossReferences", value)));
     new Setting(container).setName(t("settings.references.nativeWiki"))
-      .setDesc(t("settings.references.nativeWiki.desc"))
+      .setDesc(t("settings.references.nativeWiki.brief"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.enhanceNativeWikiHeadingLinks)
         .onChange((value) => this.updateControl("references.enhanceNativeWikiHeadingLinks", value)));
     renderSameFileReferenceGuide(container, t);
