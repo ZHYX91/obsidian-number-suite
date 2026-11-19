@@ -332,6 +332,18 @@ describe("heading map interactions", () => {
     expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
     expect(view.contentEl.querySelector(".number-suite-heading-map-search")).not.toBeNull();
     expect(view.contentEl.querySelectorAll(".number-suite-heading-map-card")).toHaveLength(3);
+    const search = view.contentEl.querySelector<HTMLInputElement>(".number-suite-heading-map-search")!;
+    const cycleSearch = vi.spyOn(view as unknown as Subject, "cycleSearch");
+    search.value = "Root";
+    Object.assign(view, { searchQuery: "Root" });
+    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true }));
+    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true, cancelable: true }));
+    expect(cycleSearch).not.toHaveBeenCalled();
+    expect(search.value).toBe("Root");
+    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    expect(cycleSearch).toHaveBeenCalledOnce();
+    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(search.value).toBe("");
     const hostSwipe = vi.fn();
     const hostPointer = vi.fn();
     view.contentEl.addEventListener("touchstart", hostSwipe);
