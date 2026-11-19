@@ -60,6 +60,27 @@ describe("virtual and reliable source-number presentation", () => {
   const base = heading + "\nSee [[#一、 实验设计]].";
   const withAlias = heading + "\nSee [[#一、 实验设计|my own alias]].";
 
+  it("looks up each ordinary link without rescanning the heading plan", () => {
+    const count = 128;
+    const source = Array.from({ length: count }, (_, index) => (
+      `# Heading ${index}\nSee [[#Heading ${index}]].`
+    )).join("\n");
+    const headings = parseAtxHeadings(source);
+    let entryVisits = 0;
+    const headingDisplayPlan = headings.map((heading, index) => ({
+      get kind(): "virtual" { entryVisits++; return "virtual"; },
+      from: heading.contentFrom, to: heading.contentFrom,
+      label: String(index + 1), line: heading.line,
+    }));
+    const plan = createSemanticDisplayPlan(source, headings, {
+      showCaptionNumbers: false, centeredCaptionKinds: [], showCrossReferences: false,
+      enhanceNativeWikiHeadingLinks: true, showNoteNumbers: false, noteSelections: [],
+      numbering, templateSources, headingDisplayPlan, composing: false,
+    });
+    expect(plan.map((entry) => entry.label)).toEqual(headings.map((_, index) => String(index + 1)));
+    expect(entryVisits).toBeLessThanOrEqual(4 * count);
+  });
+
   it("defaults stored-number outlining ON and keeps the Wiki enhancement OFF", () => {
     expect(DEFAULT_SETTINGS.styleStoredHeadingNumbers).toBe(true);
     expect(DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks).toBe(false);

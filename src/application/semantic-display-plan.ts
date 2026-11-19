@@ -94,19 +94,19 @@ function selectionTouchesRange(
 function visibleHeadingLabels(
   headings: readonly ParsedHeading[],
   options: SemanticDisplayPlanOptions,
+  virtualByLine: ReadonlyMap<number, string>,
+  concealedByLine: ReadonlyMap<number, string>,
 ): ReadonlyMap<number, string> {
   const numbered = numberHeadings(headings, options.numbering);
   const labels = new Map<number, string>();
-  const virtualByLine = new Map(options.headingDisplayPlan.filter((entry) => entry.kind === "virtual").map((entry) => [entry.line, entry]));
-  const concealLines = new Set(options.headingDisplayPlan.filter((entry) => entry.kind === "conceal").map((entry) => entry.line));
   for (const item of numbered) {
     const line = item.heading.line;
     const virtual = virtualByLine.get(line);
     if (virtual != null) {
-      labels.set(line, virtual.label);
+      labels.set(line, virtual);
       continue;
     }
-    const concealed = concealLines.has(line);
+    const concealed = concealedByLine.has(line);
     const analysis = analyzeHeadingPrefix(item.heading, item.label, options.templateSources);
     const first = analysis.first;
     if (
@@ -317,11 +317,6 @@ export function createSemanticDisplayPlan(
   }
   if (!options.showCrossReferences && !options.enhanceNativeWikiHeadingLinks) return decorations;
 
-  const visibleHeadings = visibleHeadingLabels(headings, options);
-  const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
-  const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
-
-  const titleTargets = headings === snapshot.headings ? snapshot.titleTargets : createSemanticTitleIndex(headings, semantics.captions);
   const references = [
     ...(options.showCrossReferences
       ? semantics.references.map((reference) => ({ reference, native: false }))
@@ -330,6 +325,21 @@ export function createSemanticDisplayPlan(
       ? nativeWikiHeadingLinks(snapshot, options.isSameFileWikiTarget).map((reference) => ({ reference, native: true }))
       : []),
   ];
+  if (references.length === 0) return decorations;
+
+  const virtualByLine = new Map<number, string>();
+  const concealedByLine = new Map<number, string>();
+  for (const item of options.headingDisplayPlan) {
+    if (item.kind === "virtual") virtualByLine.set(item.line, item.label);
+    else if (item.kind === "conceal") concealedByLine.set(item.line, item.sourceText ?? "");
+  }
+  const visibleHeadings = options.showCrossReferences && semantics.references.length > 0
+    ? visibleHeadingLabels(headings, options, virtualByLine, concealedByLine)
+    : null;
+  const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
+  const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
+  const titleTargets = headings === snapshot.headings ? snapshot.titleTargets : createSemanticTitleIndex(headings, semantics.captions);
+
   for (const { reference, native } of references) {
     if (selectionTouchesRange(reference.from, reference.to, options.noteSelections)) continue;
     const resolved = reference.kind === "title"
@@ -347,14 +357,8 @@ export function createSemanticDisplayPlan(
     // badge is added. A saved prefix must never be used as fallback numbering.
     if (native) {
       if (targetKind !== "heading" || heading == null) continue;
-      const number = options.headingDisplayPlan.find((item) => (
-        item.kind === "virtual" && item.line === targetLine
-      ))?.label ?? "";
-      const sourcePrefix = reference.alias == null
-        ? options.headingDisplayPlan.find((item) => (
-          item.kind === "conceal" && item.line === targetLine
-        ))?.sourceText ?? ""
-        : "";
+      const number = virtualByLine.get(targetLine) ?? "";
+      const sourcePrefix = reference.alias == null ? concealedByLine.get(targetLine) ?? "" : "";
       // Confirm the actual source link's target text before marking it.
       // A file-qualified link has its prefix just after its own '#';
       // an alias is never touched, even when it includes the same digits.
@@ -388,7 +392,7 @@ export function createSemanticDisplayPlan(
     if (targetKind === "caption" && caption != null) {
       label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);
     } else if (targetKind === "heading" && heading != null) {
-      const number = visibleHeadings.get(targetLine) ?? null;
+      const number = visibleHeadings?.get(targetLine) ?? null;
       const title = reference.alias ?? headingTitle(heading, number, options.templateSources);
       label = number == null || title === number || title.startsWith(`${number} `)
         ? title

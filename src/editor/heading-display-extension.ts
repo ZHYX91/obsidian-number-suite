@@ -525,6 +525,24 @@ export function captionBlockWidgetAnchor(
 
 const semanticSnapshots = new SemanticSnapshotCache();
 
+function caretMoveKeepsDecorations(before: EditorState, after: EditorState): boolean {
+  const previous = before.selection.main;
+  const next = after.selection.main;
+  if (before.selection.ranges.length !== 1 || after.selection.ranges.length !== 1
+    || !previous.empty || !next.empty) return false;
+
+  // Headings and captions reveal their entire line. Notes and Wiki references
+  // can reveal a smaller span anywhere on a line containing an opening bracket.
+  const oldLine = before.doc.lineAt(previous.head);
+  if (oldLine.text.includes("[")) return false;
+  if (next.head >= oldLine.from && next.head <= oldLine.to) return true;
+
+  const newLine = after.doc.lineAt(next.head);
+  if (newLine.text.includes("[")) return false;
+  const lines = semanticSnapshots.peek(before.doc)?.headingOrCaptionLines;
+  return lines != null && !lines.has(oldLine.number - 1) && !lines.has(newLine.number - 1);
+}
+
 function buildAnchoredCaptionDecorations(
   state: EditorState,
   settingsProvider: () => NumberSuiteSettings,
@@ -630,9 +648,9 @@ export class HeadingDisplayController {
           !== transaction.state.field(editorLivePreviewField, false);
         if (
           !transaction.docChanged
-          && transaction.selection == null
           && !refreshed
           && !modeChanged
+          && (transaction.selection == null || caretMoveKeepsDecorations(transaction.startState, transaction.state))
         ) {
           return value;
         }
@@ -647,6 +665,8 @@ export class HeadingDisplayController {
       private eventCompositionActive = false;
       private touchEditingActive = false;
       private imageTooltipGeneration = 0;
+      private displayTree: ReturnType<typeof syntaxTree> | null = null;
+      private displayComposing = false;
 
       constructor(private readonly view: EditorView) {
         this.overrides = parseNoteOverridesFromSource(view.state.doc.toString()) ?? invalidNoteOverrides();
@@ -681,7 +701,11 @@ export class HeadingDisplayController {
         ));
         if (
           update.docChanged
-          || update.selectionSet
+          || (update.selectionSet && (
+            this.displayTree !== syntaxTree(update.state)
+            || this.displayComposing !== this.isComposing()
+            || !caretMoveKeepsDecorations(update.startState, update.state)
+          ))
           || livePreviewChanged
           || previousFile !== currentFile
           || explicitlyRefreshed
@@ -747,7 +771,13 @@ export class HeadingDisplayController {
         }
       }
 
+      private isComposing(): boolean {
+        return isHeadingCompositionActive(this.view.composing, this.eventCompositionActive || this.touchEditingActive);
+      }
+
       private buildDecorations(): DecorationSet {
+        this.displayTree = syntaxTree(this.view.state);
+        this.displayComposing = this.isComposing();
         this.definitionDecorations = Decoration.none;
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
@@ -768,10 +798,7 @@ export class HeadingDisplayController {
           to: range.to,
         }));
         const templateSources = cleanupTemplateSources(settings);
-        const composing = isHeadingCompositionActive(
-          this.view.composing,
-          this.eventCompositionActive || this.touchEditingActive,
-        );
+        const composing = this.displayComposing;
         const numbering = toNumberingOptions(settings, {
           schemeId: effective.schemeId,
           starts: effective.starts,
