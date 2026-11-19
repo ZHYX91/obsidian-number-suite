@@ -335,14 +335,19 @@ describe("heading map interactions", () => {
     const search = view.contentEl.querySelector<HTMLInputElement>(".number-suite-heading-map-search")!;
     const cycleSearch = vi.spyOn(view as unknown as Subject, "cycleSearch");
     search.value = "Root";
-    Object.assign(view, { searchQuery: "Root" });
-    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true }));
-    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true, cancelable: true }));
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    for (const key of ["Enter", "Escape"]) {
+      const composing = new KeyboardEvent("keydown", { key, isComposing: true, bubbles: true, cancelable: true });
+      const legacy = new KeyboardEvent("keydown", { key, isComposing: false, bubbles: true, cancelable: true });
+      Object.defineProperty(legacy, "keyCode", { value: 229 });
+      expect(search.dispatchEvent(composing)).toBe(true);
+      expect(search.dispatchEvent(legacy)).toBe(true);
+    }
     expect(cycleSearch).not.toHaveBeenCalled();
     expect(search.value).toBe("Root");
-    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    expect(search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }))).toBe(false);
     expect(cycleSearch).toHaveBeenCalledOnce();
-    search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))).toBe(false);
     expect(search.value).toBe("");
     const hostSwipe = vi.fn();
     const hostPointer = vi.fn();

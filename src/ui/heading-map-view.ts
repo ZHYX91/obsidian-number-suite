@@ -291,8 +291,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.render();
     });
     search.addEventListener("keydown", (event) => {
-      // IME owns Enter/Escape while a composition is active (including legacy 229 key events).
-      if (event.isComposing || event.keyCode === 229) return;
+      // Some input methods clear isComposing before the final keydown and report only 229.
+      if (event.isComposing || Reflect.get(event, "keyCode") === 229) return;
       if (event.key === "Escape" && this.searchQuery.length > 0) {
         event.preventDefault();
         search.value = "";
