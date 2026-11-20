@@ -66,6 +66,7 @@ governed by their own source and settings.
    schemes fail closed. An explicit Current note edit may migrate that note without touching
    unrelated Properties; cleanup scope is an operation-preview choice, not note metadata.
 9. A level may have both a starting number and a note-wide skip count (`heading.skip-first.hN`). H2–H9 also support a per-parent count (`heading.skip-per-parent.hN`). Each non-empty heading of that level occupies its source-order position in both counts, even inside an already skipped section or when excluded by the scheme. The per-parent count starts again at the nearest enclosing higher-level heading, or at the note root when no such heading exists. Unused positions do not carry into another group. Either count skips the whole section through its last descendant, once even if both match. Skipped headings consume no numbering counters. Existing `heading.skip-first.hN` settings keep their note-wide scope.
+   After a skip rule changes, the Renumber preview removes a skipped heading’s previous number when a single intact Number Suite source marker confirms its ownership. Unmarked text and ambiguous prefixes remain in place.
 10. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
     `Listing:` is not compatible. Each type counts independently from 1 per Markdown file, with or
     without a block ID, and display must never write a stored caption number. A recognized caption

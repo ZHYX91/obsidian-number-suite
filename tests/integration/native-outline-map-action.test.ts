@@ -43,6 +43,7 @@ vi.mock("obsidian", async (original) => ({
 }));
 
 import { ItemView, Notice } from "obsidian";
+import { createTranslator } from "../../src/config/i18n";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NativeOutlineEnhancer } from "../../src/integration/native-outline";
 
@@ -72,7 +73,7 @@ describe("native Outline mind-map entry", () => {
     enhancer.refresh();
     const button = actions.querySelector<HTMLButtonElement>(".number-suite-outline-map-action");
     expect(button).not.toBeNull();
-    expect(button?.getAttribute("aria-label")).toBe("Open heading mind map");
+    expect(button?.getAttribute("aria-label")).toBe("Number Suite · Open heading mind map");
     button?.click();
     expect(opened).toEqual(["Pinned.md"]);
     enhancer.stop();
@@ -127,24 +128,29 @@ describe("native Outline mind-map entry", () => {
     enhancer.stop(); error.mockRestore();
   });
 
-  it("refreshes an existing action label rather than creating duplicates", () => {
+  it("identifies both plugin actions on hover and for screen readers after a language change", () => {
     const view = new (ItemView as unknown as new () => ItemView)();
     const actions = (view as unknown as { actions: HTMLElement }).actions;
     document.body.append(view.containerEl);
-    let label = "Open map";
+    let translate = createTranslator("en");
     const enhancer = new NativeOutlineEnhancer({
       app: {
         workspace: { getLeavesOfType: () => [{ view }] },
         vault: { getAbstractFileByPath: () => null },
       },
-    } as never, () => DEFAULT_SETTINGS, () => undefined, () => label);
+    } as never, () => DEFAULT_SETTINGS, () => undefined, () => translate("command.headingMap.open"), (key) => translate(key));
     enhancer.refresh();
-    const first = actions.querySelector(".number-suite-outline-map-action");
-    label = "打开标题思维导图";
+    const map = actions.querySelector<HTMLButtonElement>(".number-suite-outline-map-action");
+    const options = actions.querySelector<HTMLButtonElement>(".number-suite-outline-options-action");
+    expect(map?.title).toBe("Number Suite · Open heading mind map");
+    expect(options?.title).toBe("Number Suite · Display options");
+    translate = createTranslator("zh");
     enhancer.refresh();
-    expect(actions.querySelector(".number-suite-outline-map-action")).toBe(first);
-    expect(actions.querySelectorAll(".number-suite-outline-map-action")).toHaveLength(1);
-    expect(first?.getAttribute("aria-label")).toBe(label);
+    expect(actions.querySelectorAll("button")).toHaveLength(2);
+    expect(map?.title).toBe("Number Suite · 打开标题思维导图");
+    expect(map?.getAttribute("aria-label")).toBe(map?.title);
+    expect(options?.title).toBe("Number Suite · 显示选项");
+    expect(options?.getAttribute("aria-label")).toBe(options?.title);
     enhancer.stop();
   });
 });

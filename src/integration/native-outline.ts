@@ -9,6 +9,12 @@ import { createNativeOutlineProjection, type ExtraOutlineHeading } from "./nativ
 const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
 
+function setOutlineActionLabel(button: HTMLElement, action: string): void {
+  const label = `Number Suite · ${action}`;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+}
+
 interface OutlineInternal extends View {
   getHeadings: () => HeadingCache[];
   update?: () => void;
@@ -125,8 +131,7 @@ export class NativeOutlineEnhancer {
     for (const [view, action] of this.optionActions) {
       if (!views.includes(view) || !action.isConnected) { action.remove(); this.optionActions.delete(view); }
       else {
-        const label = this.translate?.("outline.displayOptions") ?? "Display options";
-        action.setAttribute("aria-label", label); action.title = label;
+        setOutlineActionLabel(action, this.translate?.("outline.displayOptions") ?? "Display options");
       }
     }
     for (const view of [...this.observed.keys()]) {
@@ -137,9 +142,7 @@ export class NativeOutlineEnhancer {
         action.remove();
         this.mapActions.delete(view);
       } else {
-        const label = this.mapLabel();
-        action.setAttribute("aria-label", label);
-        action.setAttribute("title", label);
+        setOutlineActionLabel(action, this.mapLabel());
       }
     }
     const paths = new Set<string>();
@@ -179,8 +182,7 @@ export class NativeOutlineEnhancer {
     const options = toolbar.createEl("button");
     options.type = "button";
     options.className = "clickable-icon nav-action-button number-suite-outline-options-action";
-    options.setAttribute("aria-label", this.translate?.("outline.displayOptions") ?? "Display options");
-    options.title = options.getAttribute("aria-label") ?? "Display options";
+    setOutlineActionLabel(options, this.translate?.("outline.displayOptions") ?? "Display options");
     setIcon(options, "sliders-horizontal");
     options.addEventListener("click", (event) => {
       event.preventDefault(); event.stopPropagation();
@@ -207,8 +209,7 @@ export class NativeOutlineEnhancer {
     const action = toolbar.createEl("button");
     action.type = "button";
     action.className = "clickable-icon nav-action-button number-suite-outline-map-action";
-    action.setAttribute("aria-label", this.mapLabel());
-    action.title = this.mapLabel();
+    setOutlineActionLabel(action, this.mapLabel());
     setIcon(action, "git-branch");
     action.addEventListener("click", (event) => {
       event.preventDefault(); event.stopPropagation();

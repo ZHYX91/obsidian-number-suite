@@ -139,6 +139,7 @@ export interface NumberingOptions {
 export interface NumberedHeading {
   heading: ParsedHeading;
   label: string | null;
+  skippedBySectionRule?: true;
   counters: Counters;
   warning: "missing-parent" | "counter-overflow" | "roman-range" | null;
   exclusion: HeadingExclusionScope | null;

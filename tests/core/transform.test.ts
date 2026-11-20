@@ -114,6 +114,27 @@ describe("heading transforms", () => {
     expect(plan.result).toBe("# Preface\n# 3 Chapter\n## Lead\n## 3.2 Topic");
   });
 
+  it("previews removal of previously marked numbers in a newly skipped section on renumber", () => {
+    const source = "# Chapter\n## Introduction\n### Context\n## Methods\n### Design";
+    const opts = options({ writeMarkers: true, cleanupScope: "plugin" });
+    const marked = planHeadingTransform(source, "write", opts).result;
+    const skipped = { ...opts, numbering: { ...opts.numbering, skipPerParent: { 2: 1 } } };
+    const renumber = planHeadingTransform(marked, "renumber", skipped);
+    expect(renumber.source).toBe(marked);
+    expect(renumber.result).toBe(planHeadingTransform(source, "write", skipped).result);
+    expect(renumber.changes.filter((change) => change.ruleId === "remove-skipped-number").map((change) => change.line)).toEqual([1, 2]);
+    expect(planHeadingTransform(renumber.result, "renumber", skipped).changes).toEqual([]);
+    expect(planHeadingTransform(marked, "write", skipped).result.split("\n").slice(0, 3)).toEqual(marked.split("\n").slice(0, 3));
+  });
+
+  it("preserves unmarked, ambiguous and malformed prefixes inside skipped sections", () => {
+    const lines = [
+      "## 8.1 Authored", `### ${WORD_JOINER}2.1${WORD_JOINER} 3.7 Multiple`, `### ${WORD_JOINER}2.2 Malformed`,
+    ];
+    const opts = options({ cleanupScope: "common", numbering: { ...options().numbering, skipFirst: { 2: 1 } } });
+    expect(planHeadingTransform(lines.join("\n"), "renumber", opts).result).toBe(lines.join("\n"));
+  });
+
   it("skips manual prefixes on write and only normalizes high confidence on renumber", () => {
     const source = "# 9.2 Existing\n# 3.14 Pi\n# Plain";
     const write = planHeadingTransform(source, "write", options());

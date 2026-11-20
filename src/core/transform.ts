@@ -207,7 +207,8 @@ export function planHeadingTransform(
       continue;
     }
 
-    if (item.exclusion != null) {
+    const removeSkippedNumber = operation === "renumber" && item.skippedBySectionRule === true && first?.provenance === "plugin";
+    if (item.exclusion != null || removeSkippedNumber) {
       if (first == null) {
         if (analysis.suspicious) {
           warnings.push({
@@ -239,7 +240,7 @@ export function planHeadingTransform(
         level: heading.level,
         before: content,
         after: previewAfter(content, 0, first.to, ""),
-        ruleId: "remove-excluded-number",
+        ruleId: removeSkippedNumber ? "remove-skipped-number" : "remove-excluded-number",
         confidence: first.confidence,
         provenance: first.provenance,
       });

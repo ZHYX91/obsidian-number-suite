@@ -112,6 +112,7 @@ export function numberHeadings(
       output.push({
         heading,
         label: null,
+        skippedBySectionRule: true,
         counters: cloneCounters(counters),
         warning: null,
         exclusion: null,
