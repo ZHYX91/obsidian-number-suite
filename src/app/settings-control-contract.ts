@@ -6,6 +6,7 @@ export type SettingsControlKey =
   | "general.language"
   | "general.showVirtualNumbers"
   | "general.concealStoredNumbers"
+  | "general.styleStoredHeadingNumbers"
   | "general.concealScope"
   | "captions.showCaptionNumbers"
   | "captions.centerFigure"
@@ -51,6 +52,7 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "general.language",
   "general.showVirtualNumbers",
   "general.concealStoredNumbers",
+  "general.styleStoredHeadingNumbers",
   "general.concealScope",
   "captions.showCaptionNumbers",
   "captions.centerFigure",
@@ -98,6 +100,7 @@ export function getSettingsControlValue(
     case "general.language": return settings.language;
     case "general.showVirtualNumbers": return settings.showVirtualNumbers;
     case "general.concealStoredNumbers": return settings.concealStoredNumbers;
+    case "general.styleStoredHeadingNumbers": return settings.styleStoredHeadingNumbers;
     case "general.concealScope": return settings.concealScope;
     case "captions.showCaptionNumbers": return settings.showCaptionNumbers;
     case "captions.centerFigure": return settings.centerFigureCaptions;
@@ -155,6 +158,10 @@ export function applySettingsControlValue(
       break;
     case "general.concealStoredNumbers":
       next.concealStoredNumbers = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "general.styleStoredHeadingNumbers":
+      next.styleStoredHeadingNumbers = controlBoolean(key, value);
       impact = "display";
       break;
     case "general.concealScope":

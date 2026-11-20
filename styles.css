@@ -1012,16 +1012,10 @@
   margin-block: 0.25rem 0.75rem;
 }
 
-.number-suite-note-operation-guide {
+.number-suite-note-operation-guide > .number-suite-settings-guide-body {
   overflow-x: auto;
 }
 
-.number-suite-note-operation-guide summary {
-  cursor: pointer;
-  width: fit-content;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
 .number-suite-note-operation-guide p { color: var(--text-muted); font-size: var(--font-ui-small); }
 .number-suite-note-operation-guide table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-smaller); }
 .number-suite-note-operation-guide th,
@@ -1928,4 +1922,73 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
 }
 .number-suite-note-control-levels > summary {
   font-size: var(--font-ui-small); font-weight: var(--font-medium);
+}
+
+
+/* Two distinct heading-number sources: computed (filled) vs authored (outlined).
+   Markup remains the original editable Markdown in both Live Preview and Reading. */
+.number-suite-stored-heading-number {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.65em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  padding: 0.08em 0.48em;
+  vertical-align: 0.22em;
+  white-space: nowrap;
+}
+.number-suite-native-wiki-number {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-block;
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  margin-inline-end: 0.35em;
+  padding: 0.02em 0.38em;
+  pointer-events: none;
+  user-select: none;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.number-suite-native-wiki-number[hidden],
+.number-suite-native-wiki-hidden-prefix {
+  display: none !important;
+}
+.number-suite-native-outline-number.is-virtual,
+.number-suite-heading-map-number.is-virtual {
+  background: color-mix(in srgb, var(--interactive-accent) 15%, var(--background-secondary));
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 34%, transparent);
+  color: var(--text-accent);
+}
+.number-suite-native-outline-number.is-stored,
+.number-suite-heading-map-number.is-stored,
+.number-suite-heading-map-stored-number {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+.number-suite-heading-map-stored-number {
+  align-items: center;
+  border-radius: var(--radius-s);
+  display: inline-flex;
+  font-size: var(--font-ui-smaller);
+  flex: 0 0 auto;
+  justify-content: center;
+  max-width: 5.5em;
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 0.3em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.number-suite-native-outline-level,
+.number-suite-heading-map-number.is-level {
+  background: var(--background-secondary);
+  border-color: var(--background-modifier-border);
+  color: var(--text-muted);
 }

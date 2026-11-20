@@ -231,6 +231,12 @@ function headingDefinitions(
       t("settings.concealStored.desc"),
       DEFAULT_SETTINGS.concealStoredNumbers,
     ),
+    toggleDefinition(
+      "general.styleStoredHeadingNumbers",
+      t("settings.styleStored"),
+      t("settings.styleStored.desc"),
+      DEFAULT_SETTINGS.styleStoredHeadingNumbers,
+    ),
     dropdownDefinition(
       "general.concealScope",
       t("settings.concealScope"),

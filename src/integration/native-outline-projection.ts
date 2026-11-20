@@ -20,6 +20,8 @@ export interface NativeOutlineProjection {
   readonly headings: ExtraOutlineHeading[];
   readonly numberLabels: ReadonlyMap<number, string>;
   readonly titleLabels?: ReadonlyMap<number, string>;
+  readonly numberKinds?: ReadonlyMap<number, "virtual" | "stored">;
+  readonly secondaryStoredNumbers?: ReadonlyMap<number, string>;
 }
 
 export function createNativeOutlineProjection(
@@ -92,10 +94,16 @@ export function createNativeOutlineProjection(
     revealOnActiveLine: false, selections: [], composing: false,
   });
   const titleLabels = new Map<number, string>();
+  const numberKinds = new Map<number, "virtual" | "stored">();
+  const secondaryStoredNumbers = new Map<number, string>();
   const collect = (nodes: ReturnType<typeof createHeadingMap>): void => {
     for (const node of nodes) {
       titleLabels.set(node.line, node.title);
-      if (settings.showOutlineNumbers && node.numberLabel != null) numberLabels.set(node.line, node.numberLabel);
+      if (settings.showOutlineNumbers && node.numberLabel != null) {
+        numberLabels.set(node.line, node.numberLabel);
+        if (node.numberKind != null) numberKinds.set(node.line, node.numberKind);
+        if (node.storedNumberLabel) secondaryStoredNumbers.set(node.line, node.storedNumberLabel);
+      }
       collect(node.children);
     }
   };
@@ -103,11 +111,12 @@ export function createNativeOutlineProjection(
     headingDisplayPlan: plan, numbering, cleanupScope: settings.concealScope,
     templateSources, concealStoredNumbers: effective.concealStoredNumbers,
     recognizeStoredNumbers: !effective.disabled,
+    styleStoredNumbers: settings.styleStoredHeadingNumbers && settings.showOutlineNumbers,
   }));
   return {
     headings: [...original, ...extras].sort(
       (a, b) => a.position.start.offset - b.position.start.offset,
     ),
-    numberLabels, titleLabels,
+    numberLabels, titleLabels, numberKinds, secondaryStoredNumbers,
   };
 }

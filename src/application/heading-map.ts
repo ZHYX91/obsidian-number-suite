@@ -17,6 +17,8 @@ export interface HeadingMapNode {
   readonly level: HeadingLevel;
   readonly title: string;
   readonly numberLabel: string | null;
+  readonly numberKind?: "virtual" | "stored" | null;
+  readonly storedNumberLabel?: string | null;
   readonly children: HeadingMapNode[];
 }
 
@@ -28,6 +30,8 @@ export interface HeadingMapDocumentNode {
   readonly level: 0;
   readonly title: string;
   readonly numberLabel: null;
+  readonly numberKind?: null;
+  readonly storedNumberLabel?: null;
   readonly children: HeadingMapNode[];
 }
 
@@ -57,6 +61,7 @@ export interface HeadingMapOptions {
   readonly templateSources: readonly CleanupTemplateSource[];
   readonly concealStoredNumbers: boolean;
   readonly recognizeStoredNumbers: boolean;
+  readonly styleStoredNumbers?: boolean;
 }
 
 const TRAILING_BLOCK_ID = /(?:^|[ \t])\^[A-Za-z0-9-]{1,128}[ \t]*$/u;
@@ -71,10 +76,13 @@ function visibleStoredPrefix(
   expectedLabel: string | null,
   options: HeadingMapOptions,
 ): HeadingNumberMatch | null {
-  if (!options.recognizeStoredNumbers || options.concealStoredNumbers) return null;
+  if (!options.recognizeStoredNumbers || options.concealStoredNumbers || options.styleStoredNumbers === false) return null;
   const analysis = analyzeHeadingPrefix({ content, level }, expectedLabel, options.templateSources);
   const first = analysis.first;
-  if (first == null || first.from !== 0 || !meetsCleanupScope(first, options.cleanupScope)) return null;
+  if (first == null || first.from !== 0
+    || (first.confidence !== "high" && first.confidence !== "certain")
+    || analysis.suspicious
+    || (options.styleStoredNumbers !== true && !meetsCleanupScope(first, options.cleanupScope))) return null;
   return first;
 }
 
@@ -98,6 +106,8 @@ export function createHeadingMap(
     const virtual = linePlan.find((item) => item.kind === "virtual");
     const expectedLabel = numbered[index]?.label ?? null;
     const stored = visibleStoredPrefix(heading.content, heading.level, expectedLabel, options);
+    const storedBadge = stored?.fullPrefix
+      .replace(/[ \t\u00a0\u3000]+$/u, "").replace(/\u2060/gu, "") ?? null;
     const prefix = conceal?.sourceText ?? stored?.fullPrefix ?? "";
     const visible = prefix.length > 0 && heading.content.startsWith(prefix)
       ? heading.content.slice(prefix.length).trimStart()
@@ -108,7 +118,9 @@ export function createHeadingMap(
       line: heading.line,
       level: heading.level,
       title,
-      numberLabel: virtual?.label ?? stored?.numberCore ?? null,
+      numberLabel: virtual?.label ?? storedBadge,
+      numberKind: virtual != null ? "virtual" : stored != null ? "stored" : null,
+      storedNumberLabel: virtual != null ? storedBadge : null,
       children: [],
     };
   });

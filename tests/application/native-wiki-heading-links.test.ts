@@ -57,9 +57,9 @@ describe("optional same-note Wiki heading link enhancement", () => {
     expect(references(source, true, false)).toEqual([]);
   });
 
-  it("never attaches a second number to an already-numbered native link label", () => {
-    const source = "# 1. Stored\nSee [[#1. Stored]].";
-    expect(references(source, true)).toEqual([]);
+  it("never deduplicates a badge against a user-authored numeric alias", () => {
+    const source = "# Heading\nSee [[#Heading|1 Heading]].";
+    expect(references(source, true).map((item) => item.label)).toEqual(["1"]);
   });
 
   it("leaves other-file, embedded, block, caption and ambiguous links native", () => {

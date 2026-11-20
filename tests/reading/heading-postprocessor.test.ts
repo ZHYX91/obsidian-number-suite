@@ -1047,6 +1047,30 @@ describe("HeadingReadingProcessor", () => {
     processor.dispose();
   });
 
+  it("keeps an unaliased Wiki label's stored prefix reversible while preserving native links", async () => {
+    const source = "# 1 Stored\n\n[[#1 Stored]] [[#1 Stored|alias]]";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: true, concealStoredNumbers: true,
+      enhanceNativeWikiHeadingLinks: true, selectedSchemeId: "hierarchical",
+    }));
+    container.innerHTML = '<h1>1 Stored</h1><p>'
+      + '<a class="internal-link" data-href="#1 Stored">1 Stored</a> '
+      + '<a class="internal-link" data-href="#1 Stored">alias</a></p>';
+    const links = [...container.querySelectorAll<HTMLAnchorElement>("a")];
+    const originalHrefs = links.map((link) => link.getAttribute("data-href"));
+    await processor.process(container, context);
+    expect(container.querySelectorAll("h1 .number-suite-concealed")).toHaveLength(1);
+    expect(links[0]?.querySelector(".number-suite-native-wiki-hidden-prefix")?.textContent).toBe("1 ");
+    expect(links[0]?.querySelector(".number-suite-native-wiki-number")?.textContent).toBe("1 ");
+    expect(links[1]?.querySelector(".number-suite-native-wiki-hidden-prefix")).toBeNull();
+    expect(links[1]?.textContent).toBe("1 alias");
+    expect(links.map((link) => link.getAttribute("data-href"))).toEqual(originalHrefs);
+    cleanupNumberSuiteReadingDom(container);
+    expect(links.map((link) => link.textContent)).toEqual(["1 Stored", "alias"]);
+    expect(container.querySelector("h1")?.textContent).toBe("1 Stored");
+    processor.dispose();
+  });
+
   it("enhances explicit same-file references while preserving the Obsidian link and alias", async () => {
     const { processor, context, container } = harness(
       "# Heading\nCross @[[Other#Heading]]\nSee @[[#Heading|chapter]]",

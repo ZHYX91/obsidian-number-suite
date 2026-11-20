@@ -88,28 +88,19 @@ export function transitionHeadingTouchEditing(
   };
 }
 
-/** Non-interactive prefix: Obsidian continues to own the native Wiki link. */
+/** Non-interactive, source-free number; native Wiki link keeps all its actions. */
 class NativeWikiNumberWidget extends WidgetType {
-  constructor(private readonly label: string) {
-    super();
-  }
-
-  override eq(other: NativeWikiNumberWidget): boolean {
-    return this.label === other.label;
-  }
-
+  constructor(private readonly label: string) { super(); }
+  override eq(other: NativeWikiNumberWidget): boolean { return this.label === other.label; }
   override toDOM(view: EditorView): HTMLElement {
     const element = view.dom.ownerDocument.createElement("span");
     element.className = "number-suite-native-wiki-number";
-    element.textContent = this.label + " ";
+    element.textContent = this.label;
     element.setAttribute("aria-hidden", "true");
     element.setAttribute("contenteditable", "false");
     return element;
   }
-
-  override ignoreEvent(): boolean {
-    return true;
-  }
+  override ignoreEvent(): boolean { return true; }
 }
 
 export class NumeralWidget extends WidgetType {
@@ -136,7 +127,11 @@ export class NumeralWidget extends WidgetType {
   }
 
   override toDOM(view: EditorView): HTMLElement {
-    if (this.kind === "heading") return createVirtualNumeralElement(view.dom.ownerDocument, this.label);
+    if (this.kind === "heading") {
+      const element = createVirtualNumeralElement(view.dom.ownerDocument, this.label);
+      if (this.accessibleLabel) element.title = this.accessibleLabel;
+      return element;
+    }
     if (this.kind === "reference") {
       const element = createReferencePillElement(view.dom.ownerDocument, this.label);
       if (this.editHint) element.setAttribute("title", this.editHint);
@@ -530,6 +525,24 @@ export function captionBlockWidgetAnchor(
 
 const semanticSnapshots = new SemanticSnapshotCache();
 
+function caretMoveKeepsDecorations(before: EditorState, after: EditorState): boolean {
+  const previous = before.selection.main;
+  const next = after.selection.main;
+  if (before.selection.ranges.length !== 1 || after.selection.ranges.length !== 1
+    || !previous.empty || !next.empty) return false;
+
+  // Headings and captions reveal their entire line. Notes and Wiki references
+  // can reveal a smaller span anywhere on a line containing an opening bracket.
+  const oldLine = before.doc.lineAt(previous.head);
+  if (oldLine.text.includes("[")) return false;
+  if (next.head >= oldLine.from && next.head <= oldLine.to) return true;
+
+  const newLine = after.doc.lineAt(next.head);
+  if (newLine.text.includes("[")) return false;
+  const lines = semanticSnapshots.peek(before.doc)?.headingOrCaptionLines;
+  return lines != null && !lines.has(oldLine.number - 1) && !lines.has(newLine.number - 1);
+}
+
 function buildAnchoredCaptionDecorations(
   state: EditorState,
   settingsProvider: () => NumberSuiteSettings,
@@ -635,9 +648,9 @@ export class HeadingDisplayController {
           !== transaction.state.field(editorLivePreviewField, false);
         if (
           !transaction.docChanged
-          && transaction.selection == null
           && !refreshed
           && !modeChanged
+          && (transaction.selection == null || caretMoveKeepsDecorations(transaction.startState, transaction.state))
         ) {
           return value;
         }
@@ -652,6 +665,8 @@ export class HeadingDisplayController {
       private eventCompositionActive = false;
       private touchEditingActive = false;
       private imageTooltipGeneration = 0;
+      private displayTree: ReturnType<typeof syntaxTree> | null = null;
+      private displayComposing = false;
 
       constructor(private readonly view: EditorView) {
         this.overrides = parseNoteOverridesFromSource(view.state.doc.toString()) ?? invalidNoteOverrides();
@@ -686,7 +701,11 @@ export class HeadingDisplayController {
         ));
         if (
           update.docChanged
-          || update.selectionSet
+          || (update.selectionSet && (
+            this.displayTree !== syntaxTree(update.state)
+            || this.displayComposing !== this.isComposing()
+            || !caretMoveKeepsDecorations(update.startState, update.state)
+          ))
           || livePreviewChanged
           || previousFile !== currentFile
           || explicitlyRefreshed
@@ -752,7 +771,13 @@ export class HeadingDisplayController {
         }
       }
 
+      private isComposing(): boolean {
+        return isHeadingCompositionActive(this.view.composing, this.eventCompositionActive || this.touchEditingActive);
+      }
+
       private buildDecorations(): DecorationSet {
+        this.displayTree = syntaxTree(this.view.state);
+        this.displayComposing = this.isComposing();
         this.definitionDecorations = Decoration.none;
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
@@ -773,10 +798,7 @@ export class HeadingDisplayController {
           to: range.to,
         }));
         const templateSources = cleanupTemplateSources(settings);
-        const composing = isHeadingCompositionActive(
-          this.view.composing,
-          this.eventCompositionActive || this.touchEditingActive,
-        );
+        const composing = this.displayComposing;
         const numbering = toNumberingOptions(settings, {
           schemeId: effective.schemeId,
           starts: effective.starts,
@@ -785,6 +807,7 @@ export class HeadingDisplayController {
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
           concealStoredNumbers: effective.concealStoredNumbers,
+          styleStoredNumbers: settings.styleStoredHeadingNumbers && livePreview,
           numbering,
           cleanupScope: settings.concealScope,
           templateSources,
@@ -849,12 +872,18 @@ export class HeadingDisplayController {
               }).range(item.pillFrom, item.pillTo));
             }
           } else if (item.semanticKind === "native-link-number") {
-            // Keep the original [[#Heading]] link in CodeMirror's native
-            // renderer. A replacement widget would hijack link interactions.
-            ranges.push(Decoration.widget({
+            // The prefix badge is outside native link markup, with no focus
+            // target. A CodeMirror mark conceals only verified source text;
+            // never mutate CM-owned DOM or replace Obsidian's native link.
+            if (item.label) ranges.push(Decoration.widget({
               widget: new NativeWikiNumberWidget(item.label),
               side: -1,
             }).range(item.from));
+            if (item.nativeHiddenFrom != null && item.nativeHiddenTo != null) {
+              ranges.push(Decoration.mark({
+                class: "number-suite-native-wiki-hidden-prefix",
+              }).range(item.nativeHiddenFrom, item.nativeHiddenTo));
+            }
           } else if (item.semanticKind === "reference") {
             ranges.push(Decoration.replace({
               widget: new NumeralWidget(
@@ -896,9 +925,15 @@ export class HeadingDisplayController {
             (item.semanticKind === "note-definition" ? definitionRanges : ranges).push(replacement);
           } else if (item.kind === "virtual") {
             ranges.push(Decoration.widget({
-              widget: new NumeralWidget(item.label),
+              widget: new NumeralWidget(item.label, "heading", "footnote",
+                t("display.heading.virtualHint")),
               side: -1,
             }).range(item.from));
+          } else if (item.kind === "stored") {
+            if (livePreview) ranges.push(Decoration.mark({
+              class: "number-suite-stored-heading-number",
+              attributes: { title: t("display.heading.storedHint") },
+            }).range(item.from, item.to));
           } else {
             ranges.push(Decoration.replace({ inclusive: false }).range(item.from, item.to));
           }

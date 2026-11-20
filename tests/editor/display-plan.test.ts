@@ -43,11 +43,12 @@ describe("display plan", () => {
     ]);
   });
 
-  it("adds virtual numbers only to unnumbered, unambiguous headings", () => {
+  it("shows virtual numbers alongside recognized source numbers and skips ambiguous decimals", () => {
     const source = "# Plain\n## 1.1 Stored\n## 3.14 Pi\n## Next";
     const plan = createDisplayPlan(parseAtxHeadings(source), options({}));
     expect(plan.map((item) => ({ line: item.line, label: item.label }))).toEqual([
       { line: 0, label: "1" },
+      { line: 1, label: "1.1" },
       { line: 3, label: "1.3" },
     ]);
   });

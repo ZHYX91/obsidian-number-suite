@@ -2,10 +2,13 @@ import type { Translate } from "../config/i18n";
 
 /** The same source/display/write distinction used in the README task table. */
 export function renderNoteOperationGuide(container: HTMLElement, t: Translate): void {
-  const guide = container.createEl("details", { cls: "number-suite-note-operation-guide" });
+  const guide = container.createEl("details", {
+    cls: "number-suite-note-operation-guide number-suite-settings-guide is-collapsible",
+  });
   guide.createEl("summary", { text: t("sidebar.help") });
-  guide.createEl("p", { text: t("panel.modes.properties") });
-  const table = guide.createEl("table");
+  const content = guide.createDiv({ cls: "number-suite-settings-guide-body" });
+  content.createEl("p", { text: t("panel.modes.properties") });
+  const table = content.createEl("table");
   const headings = table.createEl("thead").createEl("tr");
   for (const key of ["source", "goal", "action", "markdown"] as const) {
     headings.createEl("th", { text: t(`panel.modes.${key}`), attr: { scope: "col" } });
