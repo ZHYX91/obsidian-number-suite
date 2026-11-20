@@ -8,7 +8,6 @@ import {
   type CleanupTemplateSource,
   type CustomNumberingScheme,
   type HeadingExclusionRule,
-  type HeadingLevel,
   type MissingLevelStrategy,
   type NumberingOptions,
   type SchemeId,
@@ -472,8 +471,9 @@ export function toNumberingOptions(
   settings: NumberSuiteSettings,
   overrides: Readonly<{
     schemeId?: SchemeId;
-    starts?: Readonly<Partial<Record<HeadingLevel, number>>>;
-    skipFirst?: Readonly<Partial<Record<HeadingLevel, number>>>;
+    starts?: NumberingOptions["starts"];
+    skipFirst?: NumberingOptions["skipFirst"];
+    skipPerParent?: NumberingOptions["skipPerParent"];
   }> = {},
 ): NumberingOptions {
   const scheme = resolveScheme(overrides.schemeId ?? settings.selectedSchemeId, settings.customSchemes);
@@ -482,6 +482,7 @@ export function toNumberingOptions(
     missingLevelStrategy: settings.missingLevelStrategy,
     starts: overrides.starts ?? {},
     skipFirst: overrides.skipFirst ?? {},
+    skipPerParent: overrides.skipPerParent ?? {},
   };
 }
 

@@ -52,6 +52,12 @@ export function clearNoteControlSessions(app: App): void {
 
 const NOTE_TABS = ["display", "edit"] as const;
 type NoteTab = typeof NOTE_TABS[number];
+const LEVEL_NUMBER_FIELDS = {
+  "first-number": { values: "firstNumbers", label: "panel.firstNumber.label", aria: "panel.firstNumber.aria" },
+  "skip-first": { values: "skipFirst", label: "panel.skipFirst.label", aria: "panel.skipFirst.aria" },
+  "skip-per-parent": { values: "skipPerParent", label: "panel.skipPerParent.label", aria: "panel.skipPerParent.aria" },
+} as const;
+type LevelNumberKind = keyof typeof LEVEL_NUMBER_FIELDS;
 let nextPaneId = 0;
 
 export class NoteControlPane {
@@ -61,7 +67,7 @@ export class NoteControlPane {
   private readonly coordinators: WeakMap<TFile, NoteSaveCoordinator>;
   private fieldConflict: NoteOverrideFieldConflictError | null = null;
   private readonly numberDrafts = new Map<HTMLInputElement, {
-    change: Extract<NoteOverrideChange, { kind: "first-number" | "skip-first" }>;
+    change: Extract<NoteOverrideChange, { kind: LevelNumberKind }>;
     valid: boolean;
     coordinator: NoteSaveCoordinator | null;
   }>();
@@ -359,7 +365,8 @@ export class NoteControlPane {
 
   private renderSummary(snapshot: NoteControlSnapshot, host: HTMLElement): void {
     const count = Number(snapshot.showVirtual !== "inherit") + Number(snapshot.concealStored !== "inherit")
-      + Number(snapshot.schemeId != null) + Object.keys(snapshot.firstNumbers).length + Object.keys(snapshot.skipFirst).length;
+      + Number(snapshot.schemeId != null) + Object.keys(snapshot.firstNumbers).length
+      + Object.keys(snapshot.skipFirst).length + Object.keys(snapshot.skipPerParent).length;
     host.createDiv({
       cls: "number-suite-note-control-state",
       text: snapshot.effectiveIgnore ? this.t("panel.status.disabled")
@@ -397,7 +404,8 @@ export class NoteControlPane {
       });
     const advanced = section.createEl("details", { cls: "number-suite-note-control-levels number-suite-light-disclosure" });
     const configured = headingLevels().filter((level) => (
-      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null || this.addedLevels.has(level)
+      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null
+      || snapshot.skipPerParent[level] != null || this.addedLevels.has(level)
     ));
     advanced.open = configured.length > 0;
     const summary = advanced.createEl("summary");
@@ -408,19 +416,29 @@ export class NoteControlPane {
     const addRow = (level: ReturnType<typeof headingLevels>[number]): void => {
       visibleLevels.add(level);
       const current = readNoteControlSnapshot(this.frontmatter ?? {}, this.getSettings());
-      const row = rows.createEl("fieldset", { cls: "number-suite-level-rule" });
+      const descriptionId = `${this.panels.display.id}-skip-h${level}`;
+      const row = rows.createEl("fieldset", {
+        cls: "number-suite-level-rule", attr: { "aria-describedby": descriptionId },
+      });
       row.createEl("legend", { text: this.t("panel.levelRule.title", { level }) });
+      row.createEl("p", {
+        cls: "setting-item-description", attr: { id: descriptionId },
+        text: level === 1 ? this.t("panel.skipPerParent.rootDesc")
+          : this.t("panel.skipPerParent.desc", { level, parent: level - 1 }),
+      });
       const fields = row.createDiv({ cls: "number-suite-level-rule-fields" });
-      for (const kind of ["first-number", "skip-first"] as const) {
+      for (const kind of ["first-number", "skip-first", "skip-per-parent"] as const) {
+        if (level === 1 && kind === "skip-per-parent") continue;
+        const { values, label, aria } = LEVEL_NUMBER_FIELDS[kind];
         const first = kind === "first-number";
         const field = fields.createEl("label");
-        field.createSpan({ text: this.t(first ? "panel.firstNumber.label" : "panel.skipFirst.label") });
+        field.createSpan({ text: this.t(label) });
         const input = field.createEl("input", { attr: {
           type: "number", min: first ? "1" : "0", step: "1",
           placeholder: first ? this.t("panel.state.inherit") : "0",
-          "aria-label": this.t(first ? "panel.firstNumber.aria" : "panel.skipFirst.aria", { level }),
+          "aria-label": this.t(aria, { level }),
         } });
-        input.value = (first ? current.firstNumbers[level] : current.skipFirst[level])?.toString() ?? "";
+        input.value = current[values][level]?.toString() ?? "";
         input.addEventListener("input", () => this.applyLevelNumber(kind, level, input.value, input));
         input.addEventListener("blur", () => this.finishLevelNumber(kind, input));
         input.addEventListener("keydown", (event) => {
@@ -492,7 +510,7 @@ export class NoteControlPane {
   }
 
   private applyLevelNumber(
-    kind: "first-number" | "skip-first",
+    kind: LevelNumberKind,
     level: ReturnType<typeof headingLevels>[number],
     raw: string,
     input: HTMLInputElement,
@@ -517,7 +535,7 @@ export class NoteControlPane {
   }
 
   private finishLevelNumber(
-    _kind: "first-number" | "skip-first",
+    _kind: LevelNumberKind,
     input: HTMLInputElement,
   ): void {
     const draft = this.numberDrafts.get(input);
@@ -618,8 +636,8 @@ export class NoteControlPane {
         const list = status.createEl("ul");
         for (const entry of this.fieldConflict.conflicts) {
           const change = entry.change;
-          const name = change.kind === "first-number" || change.kind === "skip-first"
-            ? this.t(change.kind === "first-number" ? "panel.firstNumber.aria" : "panel.skipFirst.aria", { level: change.level })
+          const name = change.kind === "first-number" || change.kind === "skip-first" || change.kind === "skip-per-parent"
+            ? this.t(LEVEL_NUMBER_FIELDS[change.kind].aria, { level: change.level })
             : this.t(change.kind === "scheme" ? "settings.scheme" : change.kind === "ignore" ? "panel.ignore"
               : change.kind === "show-virtual" ? "settings.showVirtual" : "settings.concealStored");
           const label = (value: string | number | boolean | null): string => value == null ? this.t("panel.state.inherit")

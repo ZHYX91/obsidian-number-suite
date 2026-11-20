@@ -17,9 +17,8 @@ function normalizedStart(options: NumberingOptions, level: number): number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : 1;
 }
 
-function normalizedSkip(options: NumberingOptions, level: number): number {
-  const key = level as HeadingLevel;
-  const value = options.skipFirst?.[key];
+function normalizedSkip(skips: NumberingOptions["skipFirst"], level: number): number {
+  const value = skips?.[level as HeadingLevel];
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
@@ -44,8 +43,10 @@ export function numberHeadings(
   const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
   const templateCounters = scheme.templates.map((template) => compileTemplate(template).nodes
     .filter((node) => node.kind === "counter"));
-  const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options, index + 1));
-  const seenNonEmpty = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
+  const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options.skipFirst, index + 1));
+  const skipPerParent = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options.skipPerParent, index + 1));
+  const seenInDocument = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
+  const seenInParent = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
   const counters = starts.map((start) => start - 1) as Counters;
   const initialized = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const active = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
@@ -56,6 +57,8 @@ export function numberHeadings(
 
   for (const heading of headings) {
     if (skippedSectionLevel != null && heading.level <= skippedSectionLevel) skippedSectionLevel = null;
+    // This heading starts a fresh group for every deeper level, even when levels are missing.
+    seenInParent.fill(0, heading.level);
     if (heading.content.trim().length === 0) {
       output.push({
         heading,
@@ -67,11 +70,12 @@ export function numberHeadings(
       continue;
     }
     const index = heading.level - 1;
-    // A skipped section's descendants do not consume their own level's quota.
-    if (skippedSectionLevel == null) {
-      seenNonEmpty[index] = (seenNonEmpty[index] ?? 0) + 1;
-      if (seenNonEmpty[index] <= (skipFirst[index] ?? 0)) skippedSectionLevel = heading.level;
-    }
+    // Both positions follow the source, including headings inside a skipped or excluded section.
+    seenInDocument[index] = (seenInDocument[index] ?? 0) + 1;
+    seenInParent[index] = (seenInParent[index] ?? 0) + 1;
+    const skipDocument = seenInDocument[index] <= (skipFirst[index] ?? 0);
+    const skipParent = heading.level > 1 && seenInParent[index] <= (skipPerParent[index] ?? 0);
+    if (skippedSectionLevel == null && (skipDocument || skipParent)) skippedSectionLevel = heading.level;
     if (excludedSubtreeLevel != null && heading.level > excludedSubtreeLevel) {
       output.push({
         heading,

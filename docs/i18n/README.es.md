@@ -56,7 +56,9 @@ Los ajustes tienen siete pestañas. General activa por defecto la mejora del esq
 
 El esquema nativo y Nota actual abren el mapa para su propio archivo. «Ajustar estructura» mueve secciones completas del mismo padre y nivel mediante arrastre o botones arriba/abajo, rechaza texto modificado y admite Deshacer/Rehacer. Un clic navega por referencias explícitas; F2 o la acción móvil edita la fuente. La numeración de enlaces Wiki a títulos del mismo archivo está desactivada por defecto; funciona en vista previa y lectura, también con nombre de archivo, conservando alias y acciones nativas.
 
-Si la numeración comienza en H2, elige 4 como número inicial y 1 como número de secciones que se omiten. El primer H2 no vacío y todos sus subtítulos quedan sin numerar. El siguiente H2 recibe el número `4` y su primer H3, `4.1`. **Quitar regla** borra ambos ajustes de ese nivel.
+Si la numeración parte de H2 con el número inicial 4, `heading.skip-first.h2=1` omite la primera sección H2 no vacía de la nota. `heading.skip-per-parent.h2=1` omite la primera bajo cada H1. Si ambas reglas coinciden, la sección se omite una sola vez con todos sus subtítulos. El siguiente H2 bajo el primer H1 recibe `4` y su primer H3, `4.1`. Para H1 solo se cuenta en toda la nota. **Quitar regla** borra todos los ajustes de ese nivel.
+
+Cada regla cuenta los títulos en su orden original, incluso dentro de secciones omitidas. Si falta el nivel superior inmediato, se usa el título superior más cercano o, si no hay ninguno, la raíz de la nota.
 
 <!-- section: limitations -->
 ## Alcance y límites

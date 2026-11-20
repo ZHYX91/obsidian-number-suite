@@ -11,7 +11,7 @@ All notable changes to Number Suite are documented here.
 - Preview every heading scheme from first counters with localized heading labels and compact number pills.
 - Group Current note controls by display and text editing, keep single-note previews bound to their original note, and use lightweight, keyboard-accessible help disclosures.
 - Choose the batch scope and operation together. Review the selected folder, how many notes were checked and how many will change, or go back and adjust the selection before writing.
-- Skip complete sections, including all subheadings, when a note sets a per-level skip count. Each rule card now labels the starting number and section count and can remove both overrides together.
+- Skip whole sections using independent note-wide and per-parent counts. H2–H9 rules can skip the opening sections under each parent as well as the opening sections in the note. Overlap skips a section once. Current note labels the applicable fields and can remove the whole level rule.
 - Restore Live Preview note-definition labels after disabling and re-enabling the plugin, while preserving marker editing and original source.
 - Keep valid Markdown link destinations and multiline titles out of note numbering, cross-reference display and semantic export while preserving visible link text and malformed-link prose.
 - Localize current-note Properties diagnostic details in all 12 interface languages while preserving configuration keys and entered values.

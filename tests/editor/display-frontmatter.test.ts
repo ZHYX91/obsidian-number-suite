@@ -54,9 +54,21 @@ const cases = [
 ];
 
 describe("source Properties validation at display entry points", () => {
-  it("uses the same section skips in both note views, native Outline and the write preview", async () => {
-    const source = readFileSync("acceptance/fixtures/Section skip rules.md", "utf8");
-    host.parsed = { "number-suite": ["heading.virtual=true", "heading.scheme=hierarchical-h2", "heading.first-number.h2=4", "heading.skip-first.h2=1"] };
+  type SkipFixture = { fileName: string; h2Start: number | null; labels: [string, string][] };
+  const fixtures: SkipFixture[] = [
+    { fileName: "Section skip rules.md", h2Start: null, labels: [["## 试用总结", "4"], ["### 下一步", "4.1"]] },
+    ...[1, 2].map((start): SkipFixture => ({
+      fileName: "Two chapter skip rules.md", h2Start: start === 1 ? null : start,
+      labels: [
+        ["# 第一章", "1"], ["## 研究背景", `1.${start}`], ["### 背景小结", `1.${start}.1`],
+        ["# 第二章", "2"], ["## 实验设计", `2.${start}`], ["### 实验步骤", `2.${start}.1`],
+      ],
+    })),
+  ];
+  it.each(fixtures)("matches both views, native Outline and the write preview for $fileName (H2 start $h2Start)", async ({ fileName, h2Start, labels }) => {
+    const original = readFileSync(`acceptance/fixtures/${fileName}`, "utf8");
+    const source = h2Start == null ? original : original.replace("number-suite:\n", `number-suite:\n  - heading.first-number.h2=${h2Start}\n`);
+    host.parsed = { "number-suite": source.split("\n").filter((line) => line.startsWith("  - ")).map((line) => line.slice(4)) };
     const parent = document.body.appendChild(document.createElement("div"));
     const controller = new HeadingDisplayController(() => configured);
     const view = new EditorView({ parent, state: EditorState.create({
@@ -65,19 +77,17 @@ describe("source Properties validation at display entry points", () => {
     }) });
     views.push(view);
     const lines = source.split("\n");
-    const summaryLine = lines.indexOf("## 试用总结");
-    const nextLine = lines.indexOf("### 下一步");
-    const expected = [[summaryLine, "4"], [nextLine, "4.1"]];
+    const expected = labels.map(([heading, number]) => [lines.indexOf(heading), number]);
     expect([...createNativeOutlineProjection(source, [], configured).numberLabels]).toEqual(expected);
     const preview = createSourcePlan(source, "write", configured).plan;
-    expect(preview?.changes.map(({ line, after }) => [line, after])).toEqual([
-      [summaryLine, "4 试用总结"], [nextLine, "4.1 下一步"],
-    ]);
+    expect(preview?.changes.map(({ line, after }) => [line, after])).toEqual(
+      labels.map(([heading, number]) => [lines.indexOf(heading), `${number} ${heading.replace(/^#+ /u, "")}`]),
+    );
     expect([...parent.querySelectorAll(".number-suite-heading-number")].map((element) => [
       view.state.doc.lineAt(view.posAtDOM(element)).number - 1, element.textContent?.trim(),
     ])).toEqual(expected);
     expect(view.state.doc.toString()).toBe(source);
-    const file = new (TFile as unknown as new (path: string) => TFile)("Section skip rules.md");
+    const file = new (TFile as unknown as new (path: string) => TFile)(fileName);
     const app = { vault: { getAbstractFileByPath: () => file, cachedRead: async () => source } } as unknown as App;
     const processor = new HeadingReadingProcessor(app, () => configured);
     const reading = document.body.appendChild(document.createElement("div"));

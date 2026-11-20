@@ -55,7 +55,9 @@ Les réglages comportent sept onglets. Dans Général, l’amélioration du plan
 
 Le plan natif et Note actuelle ouvrent la carte pour leur propre fichier. « Ajuster la structure » déplace des sections entières de même parent et niveau par glisser-déposer ou boutons haut/bas, avec rejet du texte modifié et Annuler/Rétablir. Un clic sur un renvoi explicite navigue ; F2 ou l’action mobile permet de modifier sa source. La numérotation des liens Wiki vers un titre du même fichier reste désactivée par défaut ; elle fonctionne en aperçu et lecture, aussi avec un nom de fichier, sans modifier alias et actions natives.
 
-Si la numérotation commence au niveau H2, choisissez 4 comme numéro de départ et 1 comme nombre de sections à ignorer. Le premier H2 non vide et tous ses sous-titres restent sans numéro. Le H2 suivant porte le numéro `4` et son premier H3, le numéro `4.1`. **Supprimer la règle** efface les deux réglages de ce niveau.
+Avec une numérotation à partir de H2 et un numéro de départ de 4, `heading.skip-first.h2=1` ignore la première section H2 non vide de la note. `heading.skip-per-parent.h2=1` ignore la première sous chaque H1. Si les deux règles désignent la même section, elle est ignorée une seule fois avec tous ses sous-titres. Le H2 suivant sous le premier H1 porte le numéro `4` et son premier H3, `4.1`. Pour H1, seul le décompte sur toute la note s’applique. **Supprimer la règle** efface tous les réglages de ce niveau.
+
+Chaque règle compte les titres dans leur ordre d’origine, même dans une section ignorée. Si le niveau parent immédiat manque, le titre englobant le plus proche sert de parent. En son absence, le groupe commence à la racine de la note.
 
 <!-- section: limitations -->
 ## Portée et limites

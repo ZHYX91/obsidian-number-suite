@@ -367,6 +367,8 @@
 .number-suite-level-rule-fields label {
   display: grid;
   gap: var(--size-2-2);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }

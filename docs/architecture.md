@@ -56,10 +56,10 @@ Root indented code follows the parser's actual CodeBlock boundaries, shared by n
 
 Each note Properties save attempt captures the original TFile and its current path, then rechecks Vault registration identity and path before FileManager dispatch and inside the actual frontmatter callback. Deletion, same-path replacement, or a rename while waiting retains the unsaved draft as an error without mutating the replacement. A normal rename of the original object before a new attempt, or a valid pending save after switching/closing the control pane, remains supported.
 
-`numbering-engine.ts` owns H1-H9 counters, first displayed numbers, whole-file per-level counts of initial sections to skip,
+`numbering-engine.ts` owns H1-H9 counters, first displayed numbers, independent note-wide and per-parent skip counts in source order,
 counter resets, empty-template structural semantics, exclusions, and skipped-level strategy.
 `frontmatter.ts` resolves the single `number-suite` directive list together with read-compatible
-legacy fields. It keeps first-number and skip-first distinct, reports conflicts or invalid tokens,
+legacy fields. It keeps the starting number, note-wide skip count and per-parent skip count distinct, reports conflicts or invalid tokens,
 and fails closed when an explicitly requested scheme is unavailable. `scheme-template-validation.ts` enforces template semantics
 before a custom scheme can be saved.
 

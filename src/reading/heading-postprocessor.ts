@@ -1079,22 +1079,14 @@ export class HeadingReadingProcessor {
       showVirtualNumbers: effective.showVirtualNumbers,
       concealStoredNumbers: effective.concealStoredNumbers,
       styleStoredNumbers: settings.styleStoredHeadingNumbers,
-      numbering: toNumberingOptions(settings, {
-        schemeId: effective.schemeId,
-        starts: effective.starts,
-        skipFirst: effective.skipFirst,
-      }),
+      numbering: toNumberingOptions(settings, effective),
       cleanupScope: settings.concealScope,
       templateSources: cleanupTemplateSources(settings),
       revealOnActiveLine: false,
       selections: [],
       composing: false,
     });
-    const numbering = toNumberingOptions(settings, {
-      schemeId: effective.schemeId,
-      starts: effective.starts,
-      skipFirst: effective.skipFirst,
-    });
+    const numbering = toNumberingOptions(settings, effective);
     const templateSources = cleanupTemplateSources(settings);
     return {
       headings,

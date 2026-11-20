@@ -135,6 +135,31 @@ describe("current note overrides", () => {
     });
   });
 
+  it("stores each skip scope independently and removes all three fields for a level", () => {
+    const values = { "number-suite": ["heading.first-number.h2=4", "heading.skip-first.h2=1"], title: "keep" };
+    expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS)).toMatchObject({ skipFirst: { 2: 1 }, skipPerParent: {} });
+    expect(applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 2, value: 3 })).toBe(true);
+    expect(readNoteControlSnapshot(values, DEFAULT_SETTINGS)).toMatchObject({
+      valid: true, firstNumbers: { 2: 4 }, skipFirst: { 2: 1 }, skipPerParent: { 2: 3 },
+    });
+    expect(applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 2, value: 3 })).toBe(false);
+    applyNoteOverrideChange(values, { kind: "skip-first", level: 2, value: null });
+    expect(values["number-suite"]).toEqual(["heading.first-number.h2=4", "heading.skip-per-parent.h2=3"]);
+    applyNoteOverrideChange(values, { kind: "skip-first", level: 2, value: 1 });
+    applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 2, value: 0 });
+    expect(values["number-suite"]).toEqual(["heading.first-number.h2=4", "heading.skip-first.h2=1"]);
+    applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 2, value: 3 });
+    applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 9, value: 2 });
+    applyNoteOverrideChange(values, { kind: "remove-level-rule", level: 2 });
+    expect(values).toEqual({ "number-suite": ["heading.skip-per-parent.h9=2"], title: "keep" });
+  });
+
+  it("rejects H1 for the per-parent scope without changing Properties", () => {
+    const values = { title: "keep" };
+    expect(() => applyNoteOverrideChange(values, { kind: "skip-per-parent", level: 1, value: 2 })).toThrow();
+    expect(values).toEqual({ title: "keep" });
+  });
+
   it.each([
     "heading.first-number.h0=2",
     "heading.first-number.h10=2",

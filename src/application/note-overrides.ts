@@ -20,6 +20,7 @@ export type NoteOverrideChange =
   | { readonly kind: "ignore"; readonly value: boolean }
   | { readonly kind: "first-number"; readonly level: HeadingLevel; readonly value: number | null }
   | { readonly kind: "skip-first"; readonly level: HeadingLevel; readonly value: number | null }
+  | { readonly kind: "skip-per-parent"; readonly level: HeadingLevel; readonly value: number | null }
   | { readonly kind: "remove-level-rule"; readonly level: HeadingLevel }
   | { readonly kind: "migrate" }
   | { readonly kind: "reset" };
@@ -31,6 +32,7 @@ export interface NoteControlSnapshot {
   readonly ignore: boolean;
   readonly firstNumbers: Readonly<Partial<Record<HeadingLevel, number>>>;
   readonly skipFirst: Readonly<Partial<Record<HeadingLevel, number>>>;
+  readonly skipPerParent: Readonly<Partial<Record<HeadingLevel, number>>>;
   readonly effectiveShowVirtual: boolean;
   readonly effectiveConcealStored: boolean;
   readonly effectiveSchemeId: string;
@@ -62,6 +64,7 @@ export function readNoteControlSnapshot(
     ignore: overrides.disabled,
     firstNumbers: { ...overrides.starts },
     skipFirst: { ...overrides.skipFirst },
+    skipPerParent: { ...overrides.skipPerParent },
     effectiveShowVirtual: effective.showVirtualNumbers,
     effectiveConcealStored: effective.concealStoredNumbers,
     effectiveSchemeId: effective.schemeId,
@@ -87,6 +90,13 @@ export function applyNoteOverrideChange(
   values: Record<string, unknown>,
   change: NoteOverrideChange,
 ): boolean {
+  if ((change.kind === "first-number" || change.kind === "skip-first" || change.kind === "skip-per-parent")
+    && change.value != null && (!Number.isSafeInteger(change.value) || change.value < (change.kind === "first-number" ? 1 : 0))) {
+    throw new RangeError("Invalid heading override number");
+  }
+  if (change.kind === "skip-per-parent" && change.level === 1) {
+    throw new RangeError("An H1 heading has no parent heading");
+  }
   if (change.kind === "reset") {
     let changed = false;
     for (const key of NOTE_OVERRIDE_KEYS) changed = remove(values, key) || changed;
@@ -103,12 +113,14 @@ export function applyNoteOverrideChange(
     schemeId: current.schemeId,
     starts: { ...current.starts },
     skipFirst: { ...current.skipFirst },
+    skipPerParent: { ...current.skipPerParent },
   };
   switch (change.kind) {
     case "migrate": break;
     case "remove-level-rule":
       delete next.starts[change.level];
       delete next.skipFirst[change.level];
+      delete next.skipPerParent[change.level];
       break;
     case "show-virtual": next.showVirtualNumbers = stateValue(change.value); break;
     case "conceal-stored": next.concealStoredNumbers = stateValue(change.value); break;
@@ -119,9 +131,12 @@ export function applyNoteOverrideChange(
       else next.starts[change.level] = change.value;
       break;
     case "skip-first":
-      if (change.value == null || change.value === 0) delete next.skipFirst[change.level];
-      else next.skipFirst[change.level] = change.value;
+    case "skip-per-parent": {
+      const skips = change.kind === "skip-first" ? next.skipFirst : next.skipPerParent;
+      if (change.value == null || change.value === 0) delete skips[change.level];
+      else skips[change.level] = change.value;
       break;
+    }
   }
   const entries = canonicalNoteOverrideEntries(next);
   const before = JSON.stringify(Object.fromEntries(NOTE_OVERRIDE_KEYS
@@ -165,6 +180,7 @@ function fieldValue(values: ReturnType<typeof parseNoteOverrides>, change: NoteO
     case "scheme": return values.schemeId;
     case "first-number": return values.starts[change.level] ?? null;
     case "skip-first": return values.skipFirst[change.level] ?? null;
+    case "skip-per-parent": return values.skipPerParent[change.level] ?? null;
     case "remove-level-rule": case "migrate": case "reset": return null;
   }
 }
@@ -208,6 +224,9 @@ export function rebaseNoteOverrideDraft(
     }
     if (!sameNumber(acknowledged.skipFirst, desired.skipFirst, level)) {
       changes.push({ kind: "skip-first", level, value: desired.skipFirst[level] ?? null });
+    }
+    if (!sameNumber(acknowledged.skipPerParent, desired.skipPerParent, level)) {
+      changes.push({ kind: "skip-per-parent", level, value: desired.skipPerParent[level] ?? null });
     }
   }
 

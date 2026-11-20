@@ -532,11 +532,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         this.renderStatus(this.actions.getTranslate()("notice.invalidProperties"));
         return;
       }
-      const numbering = toNumberingOptions(settings, {
-        schemeId: effective.schemeId,
-        starts: effective.starts,
-        skipFirst: effective.skipFirst,
-      });
+      const numbering = toNumberingOptions(settings, effective);
       const templateSources = cleanupTemplateSources(settings);
       const headings = parseAtxHeadings(source);
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {

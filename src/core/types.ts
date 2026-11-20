@@ -133,6 +133,7 @@ export interface NumberingOptions {
   missingLevelStrategy: MissingLevelStrategy;
   starts: Readonly<Partial<Record<HeadingLevel, number>>>;
   skipFirst?: Readonly<Partial<Record<HeadingLevel, number>>>;
+  skipPerParent?: Readonly<Partial<Record<HeadingLevel, number>>>;
 }
 
 export interface NumberedHeading {

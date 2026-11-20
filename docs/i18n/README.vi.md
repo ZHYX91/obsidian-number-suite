@@ -56,7 +56,9 @@ Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gố
 
 Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
 
-Với kiểu đánh số bắt đầu từ H2, đặt số bắt đầu là 4 và số mục cần bỏ qua là 1. H2 đầu tiên không trống cùng mọi tiêu đề con của nó sẽ không được đánh số. H2 kế tiếp mang số `4` và H3 đầu tiên bên dưới mang số `4.1`. **Xóa quy tắc** sẽ xóa cả hai thiết lập của cấp đó.
+Với kiểu đánh số từ H2 và số bắt đầu là 4, `heading.skip-first.h2=1` bỏ qua mục H2 đầu tiên không trống trong toàn bộ ghi chú. `heading.skip-per-parent.h2=1` bỏ qua mục H2 đầu tiên dưới mỗi H1. Nếu cả hai quy tắc cùng chọn một mục, mục đó cùng mọi tiêu đề con chỉ bị bỏ qua một lần. H2 kế tiếp dưới H1 đầu tiên mang số `4` và H3 đầu tiên bên dưới mang số `4.1`. Với H1, chỉ có quy tắc cho toàn bộ ghi chú. **Xóa quy tắc** sẽ xóa mọi thiết lập của cấp đó.
+
+Mỗi quy tắc đếm tiêu đề theo thứ tự gốc, kể cả trong các mục đã bỏ qua. Khi thiếu cấp cha trực tiếp, tiêu đề cấp trên gần nhất được dùng làm cha. Nếu không có, nhóm bắt đầu từ gốc của ghi chú.
 
 <!-- section: limitations -->
 ## Phạm vi và giới hạn
