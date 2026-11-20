@@ -20,6 +20,7 @@ import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
 import { createSettingsTabs, type SettingsTabId } from "../ui/settings/tabs";
+import { collapseSettingsGuides } from "../ui/settings/guide-disclosure";
 import { applyModalDirection } from "../ui/modal-direction";
 import {
   renderBatchOperationsGuide,
@@ -73,6 +74,7 @@ class ResetSettingsModal extends Modal {
 
 export class NumberSuiteSettingTab extends PluginSettingTab {
   private activeTab: SettingsTabId = "general";
+  private readonly openedGuides = new Set<string>();
   private cleanup: (() => void) | null = null;
   private imperativeVisible = false;
 
@@ -142,6 +144,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     this.imperativeVisible = false;
     this.cleanup?.();
     this.cleanup = null;
+    this.openedGuides.clear();
     super.hide();
   }
 
@@ -177,8 +180,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     else if (this.activeTab === "notes") this.renderNotes(layout.panel, t);
     else if (this.activeTab === "cleanup") this.renderCleanup(layout.panel, t);
     else this.renderViews(layout.panel, t);
+    const rememberGuides = collapseSettingsGuides(layout.panel, this.openedGuides);
     this.applyReadOnlyState(layout.panel);
     this.cleanup = () => {
+      rememberGuides();
       layout.cleanup();
       statusCleanup();
       containerEl.removeClass("number-suite-settings");
@@ -280,12 +285,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
         .addOptions(languageOptions(t("language.auto")))
         .setValue(this.plugin.settings.language)
         .onChange((value) => this.updateControl("general.language", value)));
-    new Setting(container)
-      .setName(t("settings.reset"))
-      .setDesc(t("settings.reset.desc"))
-      .addButton((button) => button.setButtonText(t("settings.reset.button")).setWarning().onClick(() => {
-        this.openResetModal(t);
-      }));
     const help = new Setting(container).setName(t("settings.help"));
     const locale = resolvedUiLocale(this.plugin.settings.language);
     const guidePath = locale === "en" ? "README.md"
@@ -299,6 +298,12 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       attr: { href: "https://github.com/ZHYX91/obsidian-number-suite/issues/new/choose" },
     });
     renderExportGuide(container, t);
+    new Setting(container)
+      .setName(t("settings.reset"))
+      .setDesc(t("settings.reset.desc"))
+      .addButton((button) => button.setButtonText(t("settings.reset.button")).setWarning().onClick(() => {
+        this.openResetModal(t);
+      }));
   }
 
   private renderHeadings(container: HTMLElement, t: Translate): void {
@@ -383,7 +388,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCrossReferences)
         .onChange((value) => this.updateControl("references.showCrossReferences", value)));
     new Setting(container).setName(t("settings.references.nativeWiki"))
-      .setDesc(t("settings.references.nativeWiki.desc"))
+      .setDesc(t("settings.references.nativeWiki.brief"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.enhanceNativeWikiHeadingLinks)
         .onChange((value) => this.updateControl("references.enhanceNativeWikiHeadingLinks", value)));
     renderSameFileReferenceGuide(container, t);
@@ -427,6 +432,14 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setValue(this.plugin.settings.normalizeManualOnRenumber)
       .onChange((value) => this.updateControl("cleanup.normalizeManualOnRenumber", value)));
     this.schemeRenderer(t).renderCleanupHistory(container);
+    new Setting(container).setName(t("settings.batch")).setHeading();
+    renderBatchOperationsGuide(container, t);
+    new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
+      .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
+        .onChange((value) => this.updateControl("views.excludedFolders", value)));
+    new Setting(container).setName(t("settings.backupLimit")).setDesc(t("settings.backupLimit.desc")).addSlider((slider) => slider
+      .setLimits(1, 100, 1).setDynamicTooltip().setValue(this.plugin.settings.batchBackupLimitMb)
+      .onChange((value) => this.updateControl("views.batchBackupLimitMb", value)));
   }
 
   private renderViews(container: HTMLElement, t: Translate): void {
@@ -448,14 +461,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     new Setting(container).setName(t("settings.gap")).addSlider((slider) => slider
       .setLimits(0, 2, 0.05).setDynamicTooltip().setValue(this.plugin.settings.virtualGapEm)
       .onChange((value) => this.updateControl("views.virtualGapEm", value)));
-    new Setting(container).setName(t("settings.batch")).setHeading();
-    renderBatchOperationsGuide(container, t);
-    new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
-      .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
-        .onChange((value) => this.updateControl("views.excludedFolders", value)));
-    new Setting(container).setName(t("settings.backupLimit")).setDesc(t("settings.backupLimit.desc")).addSlider((slider) => slider
-      .setLimits(1, 100, 1).setDynamicTooltip().setValue(this.plugin.settings.batchBackupLimitMb)
-      .onChange((value) => this.updateControl("views.batchBackupLimitMb", value)));
   }
 }
 

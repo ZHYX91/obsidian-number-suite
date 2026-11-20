@@ -1,50 +1,31 @@
+// @vitest-environment happy-dom
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { createTranslator } from "../../src/config/i18n";
+import { renderSameFileReferenceGuide } from "../../src/ui/settings/reference-guide";
+import { collapseSettingsGuides } from "../../src/ui/settings/guide-disclosure";
+import { installDomFixture } from "./dom-fixture";
+
 describe("settings guide", () => {
-  it("uses the shared visual hierarchy and accessible note structure", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/app/scheme-settings-renderer.ts"),
-      "utf8",
-    );
-    const styles = readFileSync(resolve(process.cwd(), "styles.css"), "utf8");
+  it.each(["en", "zh"] as const)("shows real reference examples and instructions in %s", (locale) => {
+    installDomFixture();
+    const panel = document.createElement("div");
+    const t = createTranslator(locale);
+    renderSameFileReferenceGuide(panel, t);
+    collapseSettingsGuides(panel, new Set());
 
-    expect(source).toContain('guide.setAttribute("role", "note")');
-    expect(source).toContain('setIcon(icon, "info")');
-    expect(source).toContain("number-suite-settings-guide-heading");
-    expect(source).toContain("number-suite-settings-guide-body");
-    expect(source).toContain("number-suite-settings-guide-example");
-    expect(styles).toMatch(
-      /\.number-suite-settings-guide\s*\{[^}]*border-inline-start:\s*3px solid var\(--interactive-accent\);[^}]*box-shadow:\s*none;[^}]*padding:\s*12px 14px;/s,
-    );
-    expect(styles).toMatch(
-      /\.number-suite-settings-guide-body\s*\{[^}]*max-inline-size:\s*68ch;/s,
-    );
-  });
-
-  it("renders same-file reference prerequisites, examples, and failure behavior in both settings paths", () => {
-    const guide = readFileSync(
-      resolve(process.cwd(), "src/ui/settings/reference-guide.ts"),
-      "utf8",
-    );
-    const imperative = readFileSync(resolve(process.cwd(), "src/app/settings-tab.ts"), "utf8");
-    const declarative = readFileSync(resolve(process.cwd(), "src/ui/settings/definitions.ts"), "utf8");
-    const messages = readFileSync(resolve(process.cwd(), "src/config/i18n.ts"), "utf8");
-    const styles = readFileSync(resolve(process.cwd(), "styles.css"), "utf8");
-
-    expect(guide).toContain('guide.setAttribute("role", "note")');
-    expect(guide).toContain('setIcon(icon, "info")');
-    expect(guide).toContain("settings.references.guide.heading.source");
-    expect(guide).toContain("settings.references.guide.caption.source");
-    expect(guide).toContain("settings.references.guide.requirements.sameFile");
-    expect(guide).toContain("settings.references.guide.unchanged.body");
-    expect(imperative).toContain("renderSameFileReferenceGuide(container, t)");
-    expect(declarative).toContain("renderSameFileReferenceGuide(container, t)");
-    expect(messages).toContain("请参见 @[[#安装|安装章节]]");
-    expect(messages).toContain("See @[[#Installation|installation section]]");
-    expect(styles).toContain(".number-suite-reference-guide-example");
+    const details = panel.querySelector("details");
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector("summary")?.textContent).toBe(t("settings.references.guide.title"));
+    expect(panel.querySelector(":scope > p")?.textContent).toBe(t("settings.references.guide.intro"));
+    expect([...panel.querySelectorAll("pre code")].map((node) => node.textContent)).toEqual([
+      t("settings.references.guide.heading.source"), t("settings.references.guide.caption.source"),
+    ]);
+    expect(details?.textContent).toContain(t("settings.references.guide.requirements.sameFile"));
+    expect(details?.textContent).toContain(t("settings.references.nativeWiki.desc"));
   });
 
   it("documents footnote and endnote syntax in both settings paths", () => {
@@ -81,8 +62,8 @@ describe("settings guide", () => {
     expect(imperative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(declarative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(panel).not.toContain('renderNoteOverridesGuide(section, this.t, "panel")');
-    expect(messages).toContain("Current-note Properties are optional");
-    expect(messages).toContain("当前笔记属性（Properties）是可选的");
+    expect(messages).toContain("Most notes do not need Number Suite Properties.");
+    expect(messages).toContain("大多数笔记都不需要添加 Number Suite 属性");
     expect(messages).toContain("unrelated Properties stay as they are.");
     expect(messages).toContain("其他属性不变。");
   });

@@ -395,18 +395,22 @@ export class NoteControlPane {
           void this.applyChange({ kind: "scheme", value: value.length === 0 ? null : value });
         });
       });
-    const advanced = section.createEl("details", { cls: "number-suite-note-control-levels" });
-    advanced.open = headingLevels().some((level) => (
+    const advanced = section.createEl("details", { cls: "number-suite-note-control-levels number-suite-light-disclosure" });
+    const configured = headingLevels().filter((level) => (
       snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null || this.addedLevels.has(level)
     ));
-    advanced.createEl("summary", { text: this.t("panel.numberingByLevel") });
+    advanced.open = configured.length > 0;
+    advanced.createEl("summary", {
+      text: this.t("panel.numberingByLevel") + (configured.length === 0 ? "" : ` (${configured.length})`),
+    });
+    advanced.createEl("p", { cls: "setting-item-description", text: this.t("panel.numberingByLevel.desc") });
     const rows = advanced.createDiv({ cls: "number-suite-note-level-rules" });
     const visibleLevels = new Set<ReturnType<typeof headingLevels>[number]>();
     let refreshPicker = (): void => undefined;
     const addRow = (level: ReturnType<typeof headingLevels>[number]): void => {
       visibleLevels.add(level);
       const current = readNoteControlSnapshot(this.frontmatter ?? {}, this.getSettings());
-      const row = new Setting(rows).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
+      const row = new Setting(rows).setName(`H${level}`);
       row.addText((text) => {
         text.inputEl.type = "number";
         text.inputEl.min = "1";

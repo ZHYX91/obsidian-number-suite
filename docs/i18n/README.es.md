@@ -49,6 +49,8 @@ Hay estilos jerárquicos, ejemplos para documentos oficiales y jurídicos chinos
 <!-- section: settings -->
 ## Dónde ajustar las opciones
 
+Las opciones de procesamiento por lotes están en **Escritura y limpieza**, los enlaces en **Enlaces y referencias** y el aspecto de los números en **Visualización y apariencia**.
+
 
 Los ajustes tienen siete pestañas. General activa por defecto la mejora del esquema nativo. Desactivarla conserva preferencias y nunca activa el complemento principal. El menú de visualización del esquema guarda cuatro opciones comunes: números, niveles sin número, H7–H9 y leyendas; solo afectan al esquema. Cada título tiene una única insignia numérica o Hn neutra. Nota actual hereda o sustituye por separado números virtuales, visibilidad de números guardados y estilo, con estado automático. Las reglas de inicio y omisión están plegadas y se añaden según necesidad. Desactivar conserva las opciones; escritura y limpieza siguen requiriendo vista previa. Las hojas del mapa no muestran 0. Diseño y profundidad están en un menú secundario; botones de movimiento y destinos solo aparecen al ajustar estructura.
 

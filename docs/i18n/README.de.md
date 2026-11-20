@@ -49,6 +49,8 @@ Es gibt hierarchische Stile sowie Beispiele für chinesische Amts- und Rechtstex
 <!-- section: settings -->
 ## Einstellungen finden
 
+Stapelverarbeitung findest du unter **Schreiben und Bereinigen**, Links unter **Links und Verweise** und das Aussehen der Nummern unter **Anzeige und Darstellung**.
+
 
 Die Einstellungen haben sieben Tabs. Unter Allgemein ist die Erweiterung der nativen Gliederung standardmäßig aktiv. Ausschalten behält die Vorlieben und aktiviert niemals das Kernplugin. Das Anzeigemenü der Gliederung speichert vier gemeinsame Optionen: Nummern, Ebenen ohne Nummer, H7–H9 und Beschriftungen. Sie wirken nur auf die Gliederung. Jede Überschrift erhält genau eine Nummern- oder neutrale Hn-Markierung. Aktuelle Notiz erbt oder überschreibt virtuelle Nummern, gespeicherte Nummernanzeige und Schema einzeln und zeigt den Status. Start- und Überspringregeln bleiben eingeklappt und werden nach Bedarf ergänzt. Deaktivieren behält die Auswahl; Schreiben und Bereinigen erfordern weiter eine Vorschau. Blätter der Mindmap zeigen keine 0. Layout und Tiefe liegen im Nebenmenü; Verschiebeschaltflächen und Einfügeziele erscheinen nur im Strukturmodus.
 

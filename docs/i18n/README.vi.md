@@ -49,6 +49,8 @@ Có kiểu phân cấp thông thường, ví dụ cho văn bản hành chính v�
 <!-- section: settings -->
 ## Tìm phần cài đặt
 
+Tùy chọn xử lý hàng loạt nằm trong **Ghi số và dọn dẹp**, liên kết trong **Liên kết và tham chiếu** và cách hiển thị số trong **Hiển thị và giao diện**.
+
 
 Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gốc. Tắt vẫn giữ tùy chọn và không tự bật tiện ích lõi. Menu hiển thị dàn ý lưu bốn lựa chọn dùng chung: số, cấp khi không có số, H7–H9 và chú thích; chỉ ảnh hưởng dàn ý. Mỗi tiêu đề có một nhãn số hoặc Hn trung tính. Ghi chú hiện tại kế thừa hoặc ghi đè riêng số ảo, hiển thị số đã ghi và kiểu, kèm trạng thái tự động. Quy tắc bắt đầu và bỏ qua được thu gọn, thêm theo nhu cầu. Tắt vẫn giữ lựa chọn; ghi và dọn dẹp vẫn cần xem trước. Nút lá của sơ đồ không hiện 0. Bố cục và độ sâu ở menu phụ; nút di chuyển và điểm thả chỉ hiện trong chế độ chỉnh cấu trúc.
 

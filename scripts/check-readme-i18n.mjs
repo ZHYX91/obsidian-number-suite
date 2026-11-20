@@ -125,6 +125,11 @@ for (const { path } of editions.slice(2)) {
     const label = messages.get(key);
     assert.ok(label && quickStart.includes(label), `${path}: quick start must use the localized control for ${key}`);
   }
+  const settings = source.split("<!-- section: settings -->")[1]?.split("<!-- section: limitations -->")[0] ?? "";
+  for (const key of ["settings.tab.cleanup", "settings.tab.references", "settings.tab.views"]) {
+    const label = messages.get(key);
+    assert.ok(label && settings.includes(label), `${path}: settings must use the localized tab for ${key}`);
+  }
   assert.deepEqual(
     [...source.matchAll(/<!-- section: ([a-z0-9-]+) -->/gu)].map((match) => match[1]),
     ["installation", "quick-start", "captions", "numbering", "settings", "limitations", "privacy-and-support"],

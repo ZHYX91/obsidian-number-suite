@@ -95,8 +95,10 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 <!-- section: settings-experience -->
 ## Global settings experience
 
-Settings use seven consistent tabs: General, Heading numbering, Captions, Cross references,
-Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
+The Links & references tab keeps a short explanation beside the ordinary Wiki link toggle. Its reference guide covers eligible targets, native link behavior and exclusions.
+
+Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
+Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template
 previews, and exact exclusions. Built-in and custom-template previews share a heading-number
@@ -214,3 +216,8 @@ reflow on narrow screens without dropping fields. Emulator results must not be p
 Failed settings saves retain the pending snapshot. A failed batch rolls back only files that still
 exactly match plugin output and retains usable recovery. Concurrent edits, corrupt recovery data,
 or host-rendering differences fail closed and cannot be hidden behind a success notice.
+
+
+Long syntax tutorials and examples use lightweight native details, while concise context and operation risks stay visible. Their expansion state lives only for the current settings-window session: switching tabs preserves it, closing clears it, and toggling never saves plugin settings. Keep seven tabs with Links & references and Display & appearance; move batch-only controls into Write and cleanup and put Reset at the end of General. Current note's Starts & skips section defaults closed with no overrides and automatically shows the configured rule count otherwise.
+
+Settings help has a plain, full-width summary with a small directional chevron. Long titles wrap. Keyboard focus stays visible, and touch targets are at least 44 CSS pixels high. Expanded tutorials have a thin, muted theme accent line beside the text, on the left in LTR languages and the right in RTL languages. Settings controls and operation warnings remain outside the disclosure.

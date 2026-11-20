@@ -478,7 +478,7 @@
 
 .number-suite-settings-guide {
   background: var(--background-secondary);
-  border-inline-start: 3px solid var(--interactive-accent);
+  border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   box-shadow: none;
   color: var(--text-muted);
@@ -496,7 +496,7 @@
 }
 
 .number-suite-settings-guide-heading strong {
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-medium);
 }
 
 .number-suite-settings-guide-icon {
@@ -1810,4 +1810,122 @@
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-weight: normal;
+}
+
+/* Settings tutorial disclosure: no persistent settings writes, retain session state only. */
+.number-suite-settings-guide.is-collapsible {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-muted);
+  container: number-suite-help / inline-size;
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  margin-block: 4px 12px;
+  padding: 0;
+}
+
+.number-suite-settings-guide.is-collapsible > summary {
+  align-content: center;
+  box-sizing: border-box;
+  column-gap: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  font-size: inherit;
+  font-weight: normal;
+  grid-template-columns: 12px minmax(0, 1fr);
+  list-style: none;
+  min-block-size: 32px;
+  overflow-wrap: anywhere;
+  padding: 0;
+  text-align: start;
+}
+
+.number-suite-settings-guide.is-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.number-suite-settings-guide.is-collapsible > summary::before {
+  align-self: start;
+  border-block-start: 1.5px solid currentColor;
+  border-inline-end: 1.5px solid currentColor;
+  box-sizing: border-box;
+  content: "";
+  height: 8.5px;
+  justify-self: center;
+  margin-block-start: calc(0.75em - 4.25px);
+  transform: rotate(45deg);
+  width: 8.5px;
+}
+
+.number-suite-settings-guide.is-collapsible > summary:dir(rtl)::before {
+  transform: rotate(-45deg);
+}
+
+.number-suite-settings-guide.is-collapsible[open] > summary::before {
+  transform: rotate(135deg);
+}
+
+.number-suite-settings-guide.is-collapsible[open] > summary:dir(rtl)::before {
+  transform: rotate(-135deg);
+}
+
+@media (hover: hover) {
+  .number-suite-settings-guide.is-collapsible > summary:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.number-suite-settings-guide.is-collapsible > summary:focus-visible {
+  color: var(--text-normal);
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+@media (forced-colors: active) {
+  .number-suite-settings-guide.is-collapsible > summary:focus-visible { outline-color: Highlight; }
+}
+
+@media (any-pointer: coarse) {
+  .number-suite-settings-guide.is-collapsible > summary { min-block-size: 44px; }
+}
+
+details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
+  border-inline-start: 2px solid var(--background-modifier-border);
+  box-sizing: border-box;
+  margin-block: 6px 0;
+  margin-inline: 6px 0;
+  max-inline-size: 68ch;
+  min-inline-size: 0;
+  padding-inline-start: 10px;
+}
+
+@supports (color: color-mix(in srgb, red, blue)) {
+  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
+    border-inline-start-color: color-mix(in srgb, var(--interactive-accent) 30%, var(--background-modifier-border));
+  }
+}
+
+@container number-suite-help (max-width: 24rem) {
+  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body { margin-inline-start: 0; }
+}
+
+.number-suite-settings-guide.is-collapsible pre {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+.number-suite-light-disclosure > summary:focus-visible {
+  outline: 2px solid var(--interactive-accent); outline-offset: -2px;
+}
+.number-suite-settings-guide-exterior {
+  color: var(--text-muted); font-size: var(--font-ui-small); margin-block: var(--size-4-2);
+}
+.number-suite-note-control-levels > summary {
+  font-size: var(--font-ui-small); font-weight: var(--font-medium);
 }

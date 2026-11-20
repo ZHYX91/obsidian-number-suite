@@ -49,6 +49,8 @@ Plusieurs styles sont proposés : hiérarchique, exemples administratifs et juri
 <!-- section: settings -->
 ## Où régler les options
 
+Les réglages du traitement par lot se trouvent dans **Écriture et nettoyage**, ceux des liens dans **Liens et références** et l’apparence des numéros dans **Affichage et apparence**.
+
 Les réglages comportent sept onglets. Dans Général, l’amélioration du plan natif est activée par défaut. La désactiver conserve les préférences et n’active jamais le module principal. Le menu d’affichage du plan mémorise quatre choix communs : numéros, niveaux sans numéro, H7–H9 et légendes. Ils concernent uniquement le plan. Chaque titre affiche un seul badge numérique ou Hn neutre. Note actuelle hérite ou remplace séparément les numéros virtuels, l’affichage des numéros enregistrés et le style, avec un état automatique. Les règles de départ et d’exclusion sont repliées et ajoutées selon les besoins. Désactiver conserve les choix ; écriture et nettoyage exigent toujours un aperçu. Les feuilles de la carte n’affichent pas 0. Disposition et profondeur sont dans un menu secondaire ; les boutons de déplacement et cibles apparaissent seulement en mode structure.
 
 Le plan natif et Note actuelle ouvrent la carte pour leur propre fichier. « Ajuster la structure » déplace des sections entières de même parent et niveau par glisser-déposer ou boutons haut/bas, avec rejet du texte modifié et Annuler/Rétablir. Un clic sur un renvoi explicite navigue ; F2 ou l’action mobile permet de modifier sa source. La numérotation des liens Wiki vers un titre du même fichier reste désactivée par défaut ; elle fonctionne en aperçu et lecture, aussi avec un nom de fichier, sans modifier alias et actions natives.

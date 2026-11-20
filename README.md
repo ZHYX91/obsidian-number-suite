@@ -137,11 +137,7 @@ For exact syntax, object-placement ambiguity, IDs and editor behavior, read the 
 
 Open **Settings → Number Suite → General** for the **User guide** and **Report an issue** links.
 
-Settings use one accessible seven-tab surface on every supported Obsidian version: General,
-Heading numbering, Captions, Cross references, Footnotes & endnotes, Write and cleanup, and Display
-and batch. The tab itself identifies the current section, so its content starts directly with the
-first control or guide. Headings are reserved for genuine subgroups such as caption placement and alignment,
-appearance, and batch operations.
+The seven settings tabs are General, Heading numbering, Captions, Links & references, Footnotes & endnotes, Write and cleanup, and Display & appearance. Open **Write and cleanup** to change batch options.
 
 **Exporting to Word:** Number Suite uses optional Markdown extensions for captions, references, H7–H9 headings, and typed endnotes. [DocWen Assistant](https://github.com/ZHYX91/obsidian-docwen-assistant) can export through a separately installed local DocWen application on Windows/Linux desktop. Enable the needed **input** extensions in **DocWen → Settings → Parse Markdown**; Word-export numbering follows DocWen's selected conversion options, not necessarily the numbers visible in Obsidian.
 
