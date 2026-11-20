@@ -31,7 +31,7 @@ La nota actual muestra de forma compacta el nombre, el estado automático y tres
 <!-- section: captions -->
 ## Leyendas y referencias
 
-Encima de una imagen, tabla, ecuación independiente o bloque de código, escribe una línea que empiece por `Figure:`, `Table:`, `Equation:` o `Code:`. Estas palabras clave se escriben en inglés. Las leyendas pueden mostrar números. Las referencias dentro de la misma nota usan `@[[#Título]]`; los enlaces normales `[[#...]]` no cambian. Las notas al pie `[^id]` y las notas finales `[^endnote:id]` se numeran por separado.
+Encima de una imagen, tabla, ecuación independiente o bloque de código, escribe una línea que empiece por `Figure:`, `Table:`, `Equation:` o `Code:`. Estas palabras clave se escriben en inglés. Las leyendas pueden mostrar números. Las referencias dentro de la misma nota usan `@[[#Título]]`. Puedes usar `@[[#^block-id]]` si el ID pertenece a un título o a una leyenda. Los enlaces a bloques de párrafo normales conservan el comportamiento de Obsidian. Las notas al pie `[^id]` y las notas finales `[^endnote:id]` se numeran por separado.
 
 ```markdown
 Figure: Architecture
@@ -55,6 +55,8 @@ Las opciones de procesamiento por lotes están en **Escritura y limpieza**, los 
 Los ajustes tienen siete pestañas. General activa por defecto la mejora del esquema nativo. Desactivarla conserva preferencias y nunca activa el complemento principal. El menú de visualización del esquema guarda cuatro opciones comunes: números, niveles sin número, H7–H9 y leyendas; solo afectan al esquema. El número calculado lleva un distintivo relleno y el número escrito visible, uno con borde. Pueden aparecer juntos. Si no hay número, puedes mostrar el nivel (Hn). Nota actual hereda o sustituye por separado números virtuales, visibilidad de números guardados y estilo, con estado automático. Las reglas de inicio y omisión están plegadas y se añaden según necesidad. Desactivar conserva las opciones; escritura y limpieza siguen requiriendo vista previa. Las hojas del mapa no muestran 0. Diseño y profundidad están en un menú secundario; botones de movimiento y destinos solo aparecen al ajustar estructura.
 
 El esquema nativo y Nota actual abren el mapa para su propio archivo. «Ajustar estructura» mueve secciones completas del mismo padre y nivel mediante arrastre o botones arriba/abajo, rechaza texto modificado y admite Deshacer/Rehacer. Un clic navega por referencias explícitas; F2 o la acción móvil edita la fuente. La numeración de enlaces Wiki a títulos del mismo archivo está desactivada por defecto; funciona en vista previa y lectura, también con nombre de archivo, conservando alias y acciones nativas.
+
+Si la numeración comienza en H2, elige 4 como número inicial y 1 como número de secciones que se omiten. El primer H2 no vacío y todos sus subtítulos quedan sin numerar. El siguiente H2 recibe el número `4` y su primer H3, `4.1`. **Quitar regla** borra ambos ajustes de ese nivel.
 
 <!-- section: limitations -->
 ## Alcance y límites

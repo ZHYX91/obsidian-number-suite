@@ -160,12 +160,32 @@ describe("numberHeadings", () => {
     expect(result.map((item) => item.label)).toEqual([null, "3", null, "3.2", "4"]);
   });
 
-  it("does not spend skip quota on empty headings and does not skip descendants as a subtree", () => {
+  it("does not spend skip quota on empty headings and skips the full section", () => {
     const result = numberHeadings(
       parseAtxHeadings("#\n# Preface\n## Detail\n# Chapter"),
       options({ skipFirst: { 1: 1 } }),
     );
-    expect(result.map((item) => item.label)).toEqual([null, null, "1.1", "2"]);
+    expect(result.map((item) => item.label)).toEqual([null, null, null, "1"]);
+  });
+
+  it("keeps deeper quotas for participating sections and resumes through H9", () => {
+    const source = "## Skip\n####### Hidden child\n######### Hidden leaf\n## First\n####### Skip deep\n######### Hidden\n####### Included\n######### Leaf\n## Next";
+    const result = numberHeadings(parseAtxHeadings(source), options({
+      scheme: BUILT_IN_SCHEMES["hierarchical-h2"],
+      starts: { 2: 4 }, skipFirst: { 2: 1, 7: 1 },
+    }));
+    expect(result.map((item) => item.label)).toEqual([
+      null, null, null, "4", null, null, "4.1.1.1.1.1", "4.1.1.1.1.1.1.1", "5",
+    ]);
+  });
+
+  it("resumes at a shallower heading and preserves title exclusions within an ordinal skip", () => {
+    const result = numberHeadings(parseAtxHeadings("## Skip\n### Ignored\n#### Nested\n# Resume\n## First"), options({
+      skipFirst: { 2: 1 },
+      scheme: { ...BUILT_IN_SCHEMES.hierarchical, exclusions: [{ title: "Ignored", scope: "subtree" }] },
+    }));
+    expect(result.map((item) => item.label)).toEqual([null, null, null, "1", "1.1"]);
+    expect(result.map((item) => item.exclusion)).toEqual([null, "subtree", "subtree", null, null]);
   });
 
   it("lets excluded headings occupy their source-order skip position while retaining exclusion behavior", () => {

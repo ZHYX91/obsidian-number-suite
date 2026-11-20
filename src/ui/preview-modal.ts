@@ -2,6 +2,7 @@ import { App, Modal, Setting } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
+import { planChangesSource } from "../core/transform";
 import { applyModalDirection } from "./modal-direction";
 import type { CleanupScope, TransformOperation, TransformPlan } from "../core/types";
 import { changedTextParts, renderPreviewDifference } from "./preview-diff";
@@ -31,6 +32,7 @@ const WARNING_PAGE_SIZE = 200;
 
 export class ChangePreviewPane {
   private applying = false;
+  private replanning = false;
   private failure: string | null = null;
   private stale = false;
   private closed = false;
@@ -47,6 +49,7 @@ export class ChangePreviewPane {
     private readonly titleEl: HTMLElement,
     private readonly modalEl: HTMLElement,
     private readonly onDismiss: () => void,
+    private readonly batch?: { scope: string; checked: number; onBack: () => void },
   ) {
     this.documents = options.documents;
     this.cleanupScope = options.cleanupScope ?? null;
@@ -66,6 +69,11 @@ export class ChangePreviewPane {
     contentEl.empty();
     titleEl.setText(t(`preview.title.${this.options.operation}`));
     contentEl.addClass("number-suite-preview");
+    if (this.batch) {
+      const scope = contentEl.createDiv({ cls: "number-suite-batch-scope" });
+      scope.createSpan({ text: t("batch.scope.label") });
+      scope.createEl("bdi", { text: this.batch.scope });
+    }
     if (this.failure != null) contentEl.createDiv({ cls: "number-suite-note-control-error", text: this.failure, attr: { role: "alert" } });
     if (this.cleanupScope != null && this.options.onCleanupScopeChange != null) {
       new Setting(contentEl)
@@ -80,9 +88,11 @@ export class ChangePreviewPane {
     }
     const changes = this.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
     const warnings = this.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
+    const files = this.batch ? this.documents.filter(({ plan }) => planChangesSource(plan)).length : 0;
     contentEl.createEl("p", {
       cls: "number-suite-preview-summary",
-      text: t("preview.summary", { changes, warnings }),
+      text: this.batch ? t("batch.summary", { checked: this.batch.checked, files, changes, warnings })
+        : t("preview.summary", { changes, warnings }),
     });
     contentEl.createEl("p", {
       cls: "number-suite-preview-risk",
@@ -96,17 +106,22 @@ export class ChangePreviewPane {
 
     const actions = new Setting(contentEl);
     actions.settingEl.addClass("number-suite-preview-actions");
+    const batch = this.batch;
+    if (batch) actions.addButton((button) => button.setButtonText(t("batch.back")).onClick(() => {
+      if (!this.closed && !this.applying) batch.onBack();
+    }));
     actions.addButton((button) => button
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));
     actions.addButton((button) => {
-      button.setButtonText(t("preview.confirm")).setCta();
-      button.setDisabled(changes === 0 || this.stale);
+      button.setButtonText(batch ? t("batch.confirm", { files }) : t("preview.confirm")).setCta();
+      const canApply = !this.stale && (batch ? files > 0 : changes > 0);
+      button.setDisabled(!canApply);
       if (this.options.operation === "remove") {
         button.setWarning();
       }
       button.onClick(() => {
-        if (this.closed || this.options.signal?.aborted || this.applying) return;
+        if (!canApply || this.closed || this.options.signal?.aborted || this.applying || this.replanning) return;
         this.applying = true;
         for (const control of this.contentEl.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>("input, button, select")) {
           control.disabled = true;
@@ -180,8 +195,10 @@ export class ChangePreviewPane {
   }
 
   private async changeCleanupScope(scope: CleanupScope): Promise<void> {
-    if (this.closed || this.options.signal?.aborted || this.applying || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
-    this.applying = true;
+    if (this.closed || this.options.signal?.aborted || this.applying || this.replanning || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
+    this.replanning = true;
+    const select = this.contentEl.querySelector("select");
+    if (select) select.disabled = true;
     try {
       const documents = await this.options.onCleanupScopeChange(scope);
       if (this.closed || this.options.signal?.aborted) return;
@@ -189,11 +206,14 @@ export class ChangePreviewPane {
       this.cleanupScope = scope;
       this.visibleChangeLimits.clear();
       this.visibleWarningLimits.clear();
-      this.applying = false;
-      this.render();
     } catch (error: unknown) {
-      this.applying = false;
       console.error("Number Suite preview replanning failed", error);
+    } finally {
+      this.replanning = false;
+      if (!this.closed && !this.options.signal?.aborted) {
+        this.render();
+        this.contentEl.querySelector("select")?.focus();
+      }
     }
   }
 

@@ -31,7 +31,7 @@ La note active affiche de façon compacte le nom, le statut automatique et trois
 <!-- section: captions -->
 ## Légendes et renvois
 
-Au-dessus d’une image, d’un tableau, d’une formule isolée ou d’un bloc de code, ajoutez une ligne commençant par `Figure:`, `Table:`, `Equation:` ou `Code:`. Ces mots-clés restent en anglais. Les légendes peuvent afficher un numéro. Les renvois au sein de la même note utilisent `@[[#Titre]]` ; les liens ordinaires `[[#...]]` restent inchangés. Les notes de bas de page `[^id]` et les notes de fin `[^endnote:id]` sont numérotées séparément.
+Au-dessus d’une image, d’un tableau, d’une formule isolée ou d’un bloc de code, ajoutez une ligne commençant par `Figure:`, `Table:`, `Equation:` ou `Code:`. Ces mots-clés restent en anglais. Les légendes peuvent afficher un numéro. Les renvois au sein de la même note utilisent `@[[#Titre]]`. Utilisez `@[[#^block-id]]` si l’identifiant du bloc appartient à un titre ou à une légende. Obsidian ouvre les liens vers des paragraphes ordinaires comme d’habitude. Les notes de bas de page `[^id]` et les notes de fin `[^endnote:id]` sont numérotées séparément.
 
 ```markdown
 Figure: Architecture
@@ -54,6 +54,8 @@ Les réglages du traitement par lot se trouvent dans **Écriture et nettoyage**,
 Les réglages comportent sept onglets. Dans Général, l’amélioration du plan natif est activée par défaut. La désactiver conserve les préférences et n’active jamais le module principal. Le menu d’affichage du plan mémorise quatre choix communs : numéros, niveaux sans numéro, H7–H9 et légendes. Ils concernent uniquement le plan. Le numéro calculé a un fond coloré et le numéro écrit dans le titre, un contour. Les deux peuvent apparaître ensemble. En leur absence, vous pouvez afficher le niveau (Hn). Note actuelle hérite ou remplace séparément les numéros virtuels, l’affichage des numéros enregistrés et le style, avec un état automatique. Les règles de départ et d’exclusion sont repliées et ajoutées selon les besoins. Désactiver conserve les choix ; écriture et nettoyage exigent toujours un aperçu. Les feuilles de la carte n’affichent pas 0. Disposition et profondeur sont dans un menu secondaire ; les boutons de déplacement et cibles apparaissent seulement en mode structure.
 
 Le plan natif et Note actuelle ouvrent la carte pour leur propre fichier. « Ajuster la structure » déplace des sections entières de même parent et niveau par glisser-déposer ou boutons haut/bas, avec rejet du texte modifié et Annuler/Rétablir. Un clic sur un renvoi explicite navigue ; F2 ou l’action mobile permet de modifier sa source. La numérotation des liens Wiki vers un titre du même fichier reste désactivée par défaut ; elle fonctionne en aperçu et lecture, aussi avec un nom de fichier, sans modifier alias et actions natives.
+
+Si la numérotation commence au niveau H2, choisissez 4 comme numéro de départ et 1 comme nombre de sections à ignorer. Le premier H2 non vide et tous ses sous-titres restent sans numéro. Le H2 suivant porte le numéro `4` et son premier H3, le numéro `4.1`. **Supprimer la règle** efface les deux réglages de ce niveau.
 
 <!-- section: limitations -->
 ## Portée et limites

@@ -98,15 +98,15 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Reference navigation.md in Live Preview with virtual numbers and explicit references enabled; record full source/hash. Verify ordinary Wiki heading enhancement is initially off: ordinary bare, aliased and file-qualified links retain native labels/actions. Inactive explicit title, alias, caption and block references show their expected labels.",
+        "Open Reference navigation.md in Live Preview with virtual numbers and explicit references enabled; record full source/hash. Verify ordinary Wiki heading enhancement is initially off: ordinary bare, aliased and file-qualified links retain native labels/actions. Inactive explicit title, alias, caption and heading-owned block references show their expected labels. The explicit paragraph control retains its native link and has no Number Suite label.",
         "Single-click each explicit title/alias/caption/block reference and verify navigation to the correct authored target on the first click, without requiring a first click to reveal source. Focus an explicit reference and use F2 on desktop; on Android use the visible mobile-accessible source-edit action. Verify the exact authored marker/alias becomes editable, dismiss without edits, and confirm an unrelated inactive reference remains rendered. Record source-edit access independently from navigation.",
         "Enable Enhance ordinary same-note Wiki heading links. In Live Preview and Reading View verify the unique local, aliased, file-qualified basename and .md forms receive exactly one inert effective number; aliases remain authored text and native navigation, modifier/context actions remain owned by Obsidian. Move the caret across links and switch views to check source access and absence of duplicated labels.",
-        "Inspect cross-file, block, embed, ordinary Markdown, missing and ambiguous control links. None receives the ordinary-heading enhancement or a plugin-owned replacement interaction. The explicit @ block reference remains independently supported. Confirm Link metadata boundaries.md still excludes protected metadata; do not infer a native table source-to-DOM mapping from this simpler fixture.",
+        "Inspect cross-file, block, embed, ordinary Markdown, missing and ambiguous control links. None receives the ordinary-heading enhancement or a plugin-owned replacement interaction. Compare the supported explicit heading block with the unnumbered explicit paragraph control. Confirm Link metadata boundaries.md still excludes protected metadata; do not infer a native table source-to-DOM mapping from this simpler fixture.",
         "Turn the ordinary Wiki option off, reload Number Suite and confirm the saved false remains false and ordinary links return to native labels/actions. Turn it on and repeat reload, Reading View, Source mode and Live Preview. Disable/unload the plugin and verify decorations/source-edit controls are removed without breaking native links, then re-enable and verify only one copy returns.",
         "In the disposable Vault exercise old settings without the ordinary Wiki field and confirm the option migrates to off. Observe English and Simplified Chinese source-edit labels and Outline caption type labels without changing authored text. Return to the initial settings and view, compare full source/hash with baseline and record desktop and Android separately. Do not mark F2-only desktop evidence as mobile source-edit acceptance."
       ],
       "expected": [
-        "Explicit references navigate on the first click and provide working F2 plus Android-accessible source editing without modifying authored markers or unrelated references.",
+        "Explicit references to headings and captions, including their block IDs, navigate on the first click and provide working F2 plus Android-accessible source editing without modifying authored markers or unrelated references. The ordinary paragraph target keeps its native link label.",
         "The ordinary Wiki option defaults/migrates to off, preserves explicit false and, when enabled, adds only inert effective numbers to unique same-file heading links in Live Preview and Reading View, including file-qualified forms and aliases.",
         "Native interactions and excluded link classes remain intact through source/view/lifecycle changes. Full fixture bytes remain identical; each platform and missing interaction is reported independently."
       ]
@@ -211,6 +211,7 @@
       },
       "steps": [
         "Use an isolated Vault containing Batch safety/Original.md, Batch safety/Second.md and Counter overflow.md. Record their complete original source and hashes. Select Hierarchical globally, with source markers disabled.",
+        "Open batch editing and check that neither scope nor operation is preselected. Choose Batch safety and Write in the same dialog. Preview must name that folder and operation and report two notes checked, two to edit, two changes and zero warnings. Back keeps the choices. Switch to Remove Number Suite markers, verify zero notes to edit, disabled Apply and working Back. Switch back to Write for the identity test.",
         "Preview a write limited to the Batch safety folder. Keep the preview open, rename Original.md to Moved.md, and create a new Original.md with byte-identical content. Wait until the host registers both files, then confirm the original preview. Confirm a changed-batch notice, no numbering in any of the three notes, and no new recovery snapshot.",
         "Dismiss the stale preview and restore the fixture paths. Start a fresh preview, confirm, then restore the last batch. Verify both original notes return exactly to their recorded source. This is the positive control for the same candidate.",
         "In a separate temporary copy of Original.md use the heading '# 1. Original'. Preview Remove numbers with plugin-owned recognition, change recognition to common prefixes and verify the preview now removes '1. '. Before confirmation rename the source and create an identical replacement at its old path; confirm and verify no file is changed. Repeat replacement before changing recognition: the old preview must not produce a writable replan.",
@@ -715,10 +716,12 @@
         "android-emulator": []
       },
       "steps": [
+        "Open Section skip rules.md in Live Preview and Current note. Its H2 rule has Starting number 4 and Sections to skip 1. The skipped section 访谈提纲 and its subheadings 访谈目标 and 开放问题 have no virtual numbers. Verify 试用总结 = 4 and 下一步 = 4.1 in the note, native Outline and Write preview. Cancel the preview. Remove the H2 rule with one click; its card disappears and both H2 directives are removed. Preserve all other Properties and restore the fixture afterward.",
         "Open Current note on Controls; enter H1 first number 123 rapidly and H2 skip first 2, commit by blur, change virtual and conceal overrides, then reopen the panel.",
         "Enter an invalid H1 value and verify inline feedback without a save; correct it. Run Simulate concurrent H1 change on next note save, then commit H1 value 3. Retry, inspect saved 7 versus draft 3, and explicitly apply the draft or discard and reload."
       ],
       "expected": [
+        "The H2 rule card identifies its level and labels both numeric inputs. The body, native Outline and write preview skip the entire first H2 section and resume at 4 and 4.1. Removing the rule clears both H2 overrides together.",
         "The final numbers and both overrides persist, the active input remains usable, and the save status settles to Saved without lost input. Invalid numeric text does not save, and Retry alone never overwrites a divergent same-field edit."
       ]
     },

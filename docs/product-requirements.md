@@ -60,14 +60,15 @@ governed by their own source and settings.
 7. Exact exclusions cannot use fuzzy or regular-expression matching and cannot consume counters.
 8. Untouched notes must receive no plugin Properties. Note overrides use one `number-suite` text
    list with canonical `path=value` directives for disabled state, virtual display, stored-number
-   hiding, scheme, H1-H9 first displayed numbers, and H1-H9 skipped-heading counts. Returning to
+   hiding, scheme, H1-H9 starting numbers, and the number of initial sections to skip at each level. Returning to
    inheritance removes the directive. Legacy fields remain read-compatible; equivalent dual values
    are accepted, while conflicts, duplicates, unknown directives, invalid values, and unavailable
    schemes fail closed. An explicit Current note edit may migrate that note without touching
    unrelated Properties; cleanup scope is an operation-preview choice, not note metadata.
-9. First displayed number and skipped-heading count are independent per-level semantics. Skip-first
-   counts non-empty headings in whole-file source order at each level, including headings excluded
-   by the scheme; skipped headings do not consume counters and do not implicitly skip descendants.
+9. Set the starting number and the number of sections to skip independently for each level. In source order,
+   each non-empty heading at that level can start a skipped section, including a heading excluded by the scheme.
+   Skip its subheadings up to the next heading of the same or a higher level. Headings inside the skipped section
+   consume neither numbers nor any skip quota at deeper levels. The same rule applies to existing note settings.
 10. Only top-level `Figure:`, `Table:`, `Equation:`, and `Code:` paragraphs declare captions;
     `Listing:` is not compatible. Each type counts independently from 1 per Markdown file, with or
     without a block ID, and display must never write a stored caption number. A recognized caption

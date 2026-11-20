@@ -52,8 +52,10 @@ export function numberHeadings(
   const overflowed = Array.from({ length: HEADING_LEVEL_COUNT }, () => false);
   const output: NumberedHeading[] = [];
   let excludedSubtreeLevel: number | null = null;
+  let skippedSectionLevel: HeadingLevel | null = null;
 
   for (const heading of headings) {
+    if (skippedSectionLevel != null && heading.level <= skippedSectionLevel) skippedSectionLevel = null;
     if (heading.content.trim().length === 0) {
       output.push({
         heading,
@@ -65,8 +67,11 @@ export function numberHeadings(
       continue;
     }
     const index = heading.level - 1;
-    seenNonEmpty[index] = (seenNonEmpty[index] ?? 0) + 1;
-    const skippedByOrdinal = (seenNonEmpty[index] ?? 0) <= (skipFirst[index] ?? 0);
+    // A skipped section's descendants do not consume their own level's quota.
+    if (skippedSectionLevel == null) {
+      seenNonEmpty[index] = (seenNonEmpty[index] ?? 0) + 1;
+      if (seenNonEmpty[index] <= (skipFirst[index] ?? 0)) skippedSectionLevel = heading.level;
+    }
     if (excludedSubtreeLevel != null && heading.level > excludedSubtreeLevel) {
       output.push({
         heading,
@@ -99,7 +104,7 @@ export function numberHeadings(
       continue;
     }
 
-    if (skippedByOrdinal) {
+    if (skippedSectionLevel != null) {
       output.push({
         heading,
         label: null,

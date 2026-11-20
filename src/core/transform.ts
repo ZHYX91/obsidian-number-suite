@@ -22,6 +22,10 @@ export interface TransformOptions {
   normalizeManualOnRenumber: boolean;
 }
 
+export function planChangesSource(plan: Pick<TransformPlan, "source" | "result">): boolean {
+  return plan.result !== plan.source;
+}
+
 function replacementPrefix(label: string, writeMarkers: boolean): string {
   return `${writeMarkers ? wrapPluginNumber(label) : label} `;
 }

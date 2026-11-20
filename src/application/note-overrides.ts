@@ -20,6 +20,7 @@ export type NoteOverrideChange =
   | { readonly kind: "ignore"; readonly value: boolean }
   | { readonly kind: "first-number"; readonly level: HeadingLevel; readonly value: number | null }
   | { readonly kind: "skip-first"; readonly level: HeadingLevel; readonly value: number | null }
+  | { readonly kind: "remove-level-rule"; readonly level: HeadingLevel }
   | { readonly kind: "migrate" }
   | { readonly kind: "reset" };
 
@@ -105,6 +106,10 @@ export function applyNoteOverrideChange(
   };
   switch (change.kind) {
     case "migrate": break;
+    case "remove-level-rule":
+      delete next.starts[change.level];
+      delete next.skipFirst[change.level];
+      break;
     case "show-virtual": next.showVirtualNumbers = stateValue(change.value); break;
     case "conceal-stored": next.concealStoredNumbers = stateValue(change.value); break;
     case "scheme": next.schemeId = change.value; break;
@@ -160,7 +165,7 @@ function fieldValue(values: ReturnType<typeof parseNoteOverrides>, change: NoteO
     case "scheme": return values.schemeId;
     case "first-number": return values.starts[change.level] ?? null;
     case "skip-first": return values.skipFirst[change.level] ?? null;
-    case "migrate": case "reset": return null;
+    case "remove-level-rule": case "migrate": case "reset": return null;
   }
 }
 

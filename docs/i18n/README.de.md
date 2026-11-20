@@ -31,7 +31,7 @@ Aktuelle Notiz zeigt Dateiname, automatischen Status und drei Hauptoptionen komp
 <!-- section: captions -->
 ## Beschriftungen und Verweise
 
-Schreibe über einem Bild, einer Tabelle, einer eigenen Formel oder einem Codeblock eine Zeile mit `Figure:`, `Table:`, `Equation:` oder `Code:`. Diese Schlüsselwörter bleiben auf Englisch. Beschriftungen können Nummern anzeigen. Mit `@[[#Überschrift]]` erhältst du einen Verweis innerhalb derselben Notiz; normale `[[#...]]`-Links bleiben wie sie sind. Fußnoten `[^id]` und Endnoten `[^endnote:id]` werden getrennt gezählt.
+Schreibe über einem Bild, einer Tabelle, einer eigenen Formel oder einem Codeblock eine Zeile mit `Figure:`, `Table:`, `Equation:` oder `Code:`. Diese Schlüsselwörter bleiben auf Englisch. Beschriftungen können Nummern anzeigen. Mit `@[[#Überschrift]]` erhältst du einen Verweis innerhalb derselben Notiz. Gehört eine Block-ID zu einer Überschrift oder Beschriftung, kannst du mit `@[[#^block-id]]` darauf verweisen. Links zu normalen Absatzblöcken behandelt Obsidian wie gewohnt. Fußnoten `[^id]` und Endnoten `[^endnote:id]` werden getrennt gezählt.
 
 ```markdown
 Figure: Architecture
@@ -55,6 +55,8 @@ Stapelverarbeitung findest du unter **Schreiben und Bereinigen**, Links unter **
 Die Einstellungen haben sieben Tabs. Unter Allgemein ist die Erweiterung der nativen Gliederung standardmäßig aktiv. Ausschalten behält die Vorlieben und aktiviert niemals das Kernplugin. Das Anzeigemenü der Gliederung speichert vier gemeinsame Optionen: Nummern, Ebenen ohne Nummer, H7–H9 und Beschriftungen. Sie wirken nur auf die Gliederung. Eine gefüllte Markierung zeigt die berechnete Nummer, eine umrandete die sichtbare Nummer aus dem Text. Beide können zusammen erscheinen. Fehlt eine Nummer, lässt sich die Ebene (Hn) anzeigen. Aktuelle Notiz erbt oder überschreibt virtuelle Nummern, gespeicherte Nummernanzeige und Schema einzeln und zeigt den Status. Start- und Überspringregeln bleiben eingeklappt und werden nach Bedarf ergänzt. Deaktivieren behält die Auswahl; Schreiben und Bereinigen erfordern weiter eine Vorschau. Blätter der Mindmap zeigen keine 0. Layout und Tiefe liegen im Nebenmenü; Verschiebeschaltflächen und Einfügeziele erscheinen nur im Strukturmodus.
 
 Die native Gliederung und „Aktuelle Notiz“ öffnen die Mindmap für ihre eigene Datei. „Struktur anpassen“ erlaubt ganze Abschnitte nur unter demselben Elternknoten und auf derselben Ebene zu verschieben, per Ziehen oder Auf/Ab. Veralteter Quelltext wird abgelehnt; Rückgängig/Wiederholen bleibt verfügbar. Explizite Verweise springen mit einem Klick; F2 oder die mobile Quelltextaktion dient zum Bearbeiten. Nummern für gewöhnliche Wiki-Überschriftenlinks derselben Datei sind standardmäßig aus und optional in Live-Vorschau und Leseansicht verfügbar, auch mit Dateinamen; Aliase und native Aktionen bleiben erhalten.
+
+Bei einer Nummerierung ab H2 mit Startnummer 4 und einem zu überspringenden Abschnitt bleiben die erste nicht leere H2-Überschrift und alle ihre Unterüberschriften ohne Nummer. Die nächste H2 erhält `4`, ihre erste H3 `4.1`. Mit **Regel entfernen** löschen Sie beide Einstellungen dieser Ebene.
 
 <!-- section: limitations -->
 ## Umfang und Grenzen

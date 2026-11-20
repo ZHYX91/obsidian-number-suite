@@ -31,7 +31,7 @@ A nota atual mostra de forma compacta o nome, o estado automático e três opç�
 <!-- section: captions -->
 ## Legendas e referências
 
-Acima de uma imagem, tabela, equação isolada ou bloco de código, escreva uma linha com `Figure:`, `Table:`, `Equation:` ou `Code:`. Essas palavras-chave devem ficar em inglês. As legendas podem mostrar números. Para referências dentro da mesma nota, use `@[[#Título]]`; links comuns `[[#...]]` continuam iguais. Notas de rodapé `[^id]` e notas de fim `[^endnote:id]` têm contagens separadas.
+Acima de uma imagem, tabela, equação isolada ou bloco de código, escreva uma linha com `Figure:`, `Table:`, `Equation:` ou `Code:`. Essas palavras-chave devem ficar em inglês. As legendas podem mostrar números. Para referências dentro da mesma nota, use `@[[#Título]]`. Use `@[[#^block-id]]` quando o ID do bloco pertencer a um título ou a uma legenda. Links para blocos de parágrafos comuns mantêm o comportamento padrão do Obsidian. Notas de rodapé `[^id]` e notas de fim `[^endnote:id]` têm contagens separadas.
 
 ```markdown
 Figure: Architecture
@@ -53,6 +53,8 @@ Os ajustes de operações em lote ficam em **Gravar e limpar**, os de links em *
 
 
 As configurações têm sete abas. Geral ativa por padrão o aprimoramento da estrutura nativa. Desativar preserva preferências e nunca ativa o plugin principal. O menu de exibição da estrutura salva quatro opções compartilhadas: números, níveis sem número, H7–H9 e legendas; elas afetam somente a estrutura. O número calculado aparece com fundo preenchido e o número gravado visível, com contorno. Os dois podem aparecer juntos. Se não houver número, você pode mostrar o nível (Hn). Nota atual herda ou substitui separadamente números virtuais, visibilidade dos números gravados e estilo, com estado automático. Regras de início e salto ficam recolhidas e são adicionadas conforme necessário. Desativar mantém as escolhas; gravação e limpeza ainda exigem prévia. Folhas do mapa não exibem 0. Layout e profundidade ficam no menu secundário; botões de movimento e destinos só aparecem no modo de ajuste da estrutura.
+
+Em um esquema que começa em H2, defina o número inicial como 4 e a quantidade de seções a ignorar como 1. O primeiro H2 não vazio e todos os seus subtítulos ficam sem numeração. O H2 seguinte recebe `4` e seu primeiro H3 recebe `4.1`. **Remover regra** apaga as duas configurações desse nível.
 
 <!-- section: limitations -->
 ## Escopo e limitações

@@ -45,12 +45,12 @@ Expand a file to see which numbers will change and check its warnings. This exam
   rewriting Markdown; newly created captions are stored above their object.
 - Show a structured hover card on an image or its Figure caption, with the rendered caption as the
   title and meaningful image replacement text as the content.
-- Show explicit `@[[...]]` links to headings, captions, and block IDs in the same note as clickable reference labels, with numbers when available.
+- Show explicit `@[[...]]` links to headings and captions in the same note as clickable labels, with numbers when available. Use `@[[#^block-id]]` when the block ID belongs to the heading or caption. Links to ordinary paragraph blocks keep Obsidian’s native behavior.
 - Copy a stable cross-reference from a heading or caption context menu, reusing an existing block ID
   or previewing one new ID before it is created.
 - Show footnotes as `1`, `2`, `3` and endnotes as `E1`, `E2`, `E3` for `[^id]`,
   `[^footnote:id]`, and `[^endnote:id]`; repeated references reuse the first number.
-- Override display, concealment, scheme, starting counters, skipped-heading counts, or full opt-out per note.
+- Override display, concealment, scheme, starting counters, counts of initial sections to skip, or full opt-out per note.
 
 <!-- section: requirements-and-compatibility -->
 ## Requirements and compatibility
@@ -176,7 +176,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Starting and skip rules are collapsed and added by level as needed. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
+Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Under **Starts & skips**, add a rule for the heading level you want to change. **Remove rule** clears both fields for that level. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 
@@ -186,13 +186,12 @@ number-suite:
   - heading.virtual=true
   - heading.hide-stored=true
   - heading.scheme=hierarchical-h2
-  - heading.first-number.h2=3
-  - heading.skip-first.h2=2
+  - heading.first-number.h2=4
+  - heading.skip-first.h2=1
 ---
 ```
 
-`heading.first-number.h2=3` means the first participating H2 displays 3. It does not skip headings.
-`heading.skip-first.h2=2` skips the first two non-empty H2 headings without consuming their counter.
+With these settings, the first non-empty H2 and all its subheadings are skipped. The next H2 is numbered `4` and its first H3 is `4.1`. Headings inside the skipped section use neither numbers nor any skip quota set for a deeper level.
 Use `number-suite: [disabled=true]` to opt the note out of display and file operations. Cleanup
 scope is deliberately not note metadata; choose it in each cleanup or renumber preview.
 

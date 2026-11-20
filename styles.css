@@ -346,6 +346,35 @@
   flex-wrap: wrap;
 }
 
+.number-suite-level-rule {
+  min-inline-size: 0;
+  margin: var(--size-4-2) 0;
+  padding: var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+}
+.number-suite-level-rule legend {
+  padding-inline: var(--size-4-1);
+  color: var(--text-normal);
+  font-weight: var(--font-medium);
+}
+.number-suite-level-rule-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+  gap: var(--size-4-2);
+  margin-block-end: var(--size-4-2);
+}
+.number-suite-level-rule-fields label {
+  display: grid;
+  gap: var(--size-2-2);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+.number-suite-level-rule-fields input {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
 .number-suite-note-save-status button {
   white-space: normal;
   height: auto;
@@ -675,6 +704,33 @@
 
 .number-suite-preview-modal {
   width: min(920px, 92vw);
+}
+
+.number-suite-batch-modal { width: min(920px, 94vw); }
+.number-suite-batch-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+}
+.number-suite-batch-fields > * { display: grid; align-content: start; gap: 0.4rem; min-width: 0; }
+.number-suite-batch-choices { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.number-suite-batch-choices [aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--interactive-accent); }
+.number-suite-batch-fields button, .number-suite-batch-fields select { max-width: 100%; }
+.number-suite-batch-fields button { height: auto; min-height: var(--input-height); white-space: normal; overflow-wrap: anywhere; }
+.number-suite-batch-actions, .number-suite-batch-modal .number-suite-preview-actions .setting-item-control {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem;
+}
+.number-suite-batch-actions { margin-block-start: 1.25rem; }
+.number-suite-batch-modal .number-suite-preview-actions { padding-block-end: 0; }
+.number-suite-batch-modal .number-suite-preview-actions button { height: auto; min-height: var(--input-height); white-space: normal; }
+.number-suite-batch-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
+.number-suite-batch-scope span { color: var(--text-muted); }
+.number-suite-batch-scope bdi { overflow-wrap: anywhere; font-weight: var(--font-semibold); }
+.number-suite-batch-modal .number-suite-preview-documents:empty { display: none; }
+@media (min-height: 580px) {
+  .number-suite-batch-modal .number-suite-preview { display: flex; flex-direction: column; }
+  .number-suite-batch-modal .number-suite-preview > :not(.number-suite-preview-documents) { flex: none; }
+  .number-suite-batch-modal .number-suite-preview-documents { min-height: 3rem; overflow: auto; overscroll-behavior: contain; }
 }
 
 .number-suite-sidebar {

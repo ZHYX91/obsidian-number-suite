@@ -400,9 +400,7 @@ export class NoteControlPane {
       snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null || this.addedLevels.has(level)
     ));
     advanced.open = configured.length > 0;
-    advanced.createEl("summary", {
-      text: this.t("panel.numberingByLevel") + (configured.length === 0 ? "" : ` (${configured.length})`),
-    });
+    const summary = advanced.createEl("summary");
     advanced.createEl("p", { cls: "setting-item-description", text: this.t("panel.numberingByLevel.desc") });
     const rows = advanced.createDiv({ cls: "number-suite-note-level-rules" });
     const visibleLevels = new Set<ReturnType<typeof headingLevels>[number]>();
@@ -410,50 +408,43 @@ export class NoteControlPane {
     const addRow = (level: ReturnType<typeof headingLevels>[number]): void => {
       visibleLevels.add(level);
       const current = readNoteControlSnapshot(this.frontmatter ?? {}, this.getSettings());
-      const row = new Setting(rows).setName(`H${level}`);
-      row.addText((text) => {
-        text.inputEl.type = "number";
-        text.inputEl.min = "1";
-        text.inputEl.step = "1";
-        text.setPlaceholder(this.t("panel.state.inherit"));
-        text.setValue(current.firstNumbers[level]?.toString() ?? "");
-        text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
-        text.inputEl.addEventListener("blur", () => this.finishLevelNumber("first-number", text.inputEl));
-        text.inputEl.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") this.finishLevelNumber("first-number", text.inputEl);
+      const row = rows.createEl("fieldset", { cls: "number-suite-level-rule" });
+      row.createEl("legend", { text: this.t("panel.levelRule.title", { level }) });
+      const fields = row.createDiv({ cls: "number-suite-level-rule-fields" });
+      for (const kind of ["first-number", "skip-first"] as const) {
+        const first = kind === "first-number";
+        const field = fields.createEl("label");
+        field.createSpan({ text: this.t(first ? "panel.firstNumber.label" : "panel.skipFirst.label") });
+        const input = field.createEl("input", { attr: {
+          type: "number", min: first ? "1" : "0", step: "1",
+          placeholder: first ? this.t("panel.state.inherit") : "0",
+          "aria-label": this.t(first ? "panel.firstNumber.aria" : "panel.skipFirst.aria", { level }),
+        } });
+        input.value = (first ? current.firstNumbers[level] : current.skipFirst[level])?.toString() ?? "";
+        input.addEventListener("input", () => this.applyLevelNumber(kind, level, input.value, input));
+        input.addEventListener("blur", () => this.finishLevelNumber(kind, input));
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") this.finishLevelNumber(kind, input);
         });
-        text.onChange((raw) => this.applyLevelNumber("first-number", level, raw, text.inputEl));
-      });
-      row.addText((text) => {
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.step = "1";
-        text.setPlaceholder("0");
-        text.setValue(current.skipFirst[level]?.toString() ?? "");
-        text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
-        text.inputEl.addEventListener("blur", () => this.finishLevelNumber("skip-first", text.inputEl));
-        text.inputEl.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") this.finishLevelNumber("skip-first", text.inputEl);
-        });
-        text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw, text.inputEl));
-      });
-      row.addButton((button) => button.setButtonText(this.t("panel.state.inherit")).onClick(() => {
+      }
+      const remove = row.createEl("button", { text: this.t("panel.removeLevelRule"), attr: { type: "button" } });
+      remove.addEventListener("click", () => {
+        if (!this.applyChange({ kind: "remove-level-rule", level })) return;
         this.numberDrafts.forEach((draft, input) => {
           if (draft.change.level === level) this.numberDrafts.delete(input);
         });
-        this.applyChange({ kind: "first-number", level, value: null });
-        this.applyChange({ kind: "skip-first", level, value: null });
         this.addedLevels.delete(level);
         visibleLevels.delete(level);
-        row.settingEl.remove();
+        row.remove();
         refreshPicker();
-      }));
+        this.renderSaveStatus();
+        picker.querySelector("select")?.focus();
+      });
     };
-    const visible = headingLevels().filter((level) => snapshot.firstNumbers[level] != null
-      || snapshot.skipFirst[level] != null || this.addedLevels.has(level));
-    for (const level of visible) addRow(level);
+    for (const level of configured) addRow(level);
     const picker = advanced.createDiv();
     refreshPicker = (): void => {
+      summary.setText(this.t("panel.numberingByLevel") + (visibleLevels.size === 0 ? "" : ` (${visibleLevels.size})`));
       picker.empty();
       const available = headingLevels().filter((level) => !visibleLevels.has(level));
       if (available.length === 0) return;
@@ -514,7 +505,7 @@ export class NoteControlPane {
     input.title = valid ? "" : message;
     let error = input.parentElement?.querySelector<HTMLElement>(`[data-number-error="${kind}"]`);
     if (error == null && input.parentElement != null) {
-      error = input.parentElement.createDiv({ cls: "number-suite-field-error" });
+      error = input.parentElement.createSpan({ cls: "number-suite-field-error" });
       error.dataset.numberError = kind;
       error.id = `number-suite-${kind}-${level}-${Math.random().toString(36).slice(2)}`;
       error.setAttribute("role", "status");
@@ -689,17 +680,19 @@ export class NoteControlPane {
     this.request += 1;
   }
 
-  private applyChange(change: NoteOverrideChange): void {
-    if (this.busy || this.coordinator == null) return;
+  private applyChange(change: NoteOverrideChange): boolean {
+    if (this.busy || this.coordinator == null) return false;
     try {
       this.coordinator.update(change);
       this.fieldConflict = null;
       if (change.kind === "reset") this.addedLevels.clear();
       if (change.kind === "reset" || change.kind === "migrate" || change.kind === "ignore") this.render();
       this.flushDraft();
+      return true;
     } catch (error: unknown) {
       console.error("Number Suite: unsafe current note Properties change", error);
       new Notice(this.t("panel.saveFailed"));
+      return false;
     }
   }
 }

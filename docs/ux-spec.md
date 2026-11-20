@@ -82,7 +82,7 @@ search-revealed ancestor last only for that query and leave the saved collapse i
 Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
 panning, zoom buttons, and two-finger pinch zoom.
 
-The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Display & numbering starts selected and the sidebar remembers the selected tab for its open session. The header menu disables the note while retaining choices, or restores all Number Suite overrides to global settings. Starting and skip rules are collapsed, with existing rules visible and H1–H9 rules added on demand. Each choice can return to inheritance. Edit note text contains write, renumber and clean-up actions, with source marker and multi-file actions below. Global settings have a separate footer entry. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.
+The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Display & numbering starts selected and the sidebar remembers the selected tab for its open session. The header menu disables the note while retaining choices, or restores all Number Suite overrides to global settings. Under Starts & skips, add rules for H1–H9 as needed. Each card names its level and labels both fields, Starting number and Sections to skip. The help explains that skipping a section also skips its subheadings. Remove rule clears both overrides for that level and removes its card. Edit note text contains write, renumber and clean-up actions, with source marker and multi-file actions below. Global settings have a separate footer entry. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.
 
 Layout and expansion depth use secondary View options; range, search and zoom stay primary. Cards use light borders and backgrounds, distinct filled virtual and outlined stored number badges when both are present (otherwise one badge or a neutral H level), and consistent hover, selection and focus. Move buttons and insertion targets appear only in Adjust structure mode.
 
@@ -118,6 +118,12 @@ Discard and reload remains available even when external Properties are invalid.
 
 <!-- section: previews-and-warnings -->
 ## Previews and warnings
+
+Batch editing uses one dialog. Choose a folder or the entire vault and an operation, then open the preview.
+Both choices start empty. The confirmation shows the selected scope and operation, Markdown notes checked
+after folder exclusions, notes whose source will change, individual changes and warnings. Apply names the
+number of notes it will edit and is disabled at zero. Back keeps both choices and the next preview reads
+the current notes again. At narrow widths the scope and operation controls stack.
 
 Current-note and batch previews identify file, line, before/after text, and
 warnings. A stale preview cancels as a whole. Ambiguous or multiple prefixes, empty headings,

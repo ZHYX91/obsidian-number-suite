@@ -6,11 +6,12 @@ import type {
   LastBatchSnapshot,
 } from "../config/settings";
 import type { TransformOperation, TransformPlan } from "../core/types";
+import { planChangesSource } from "../core/transform";
 import { digestText } from "../core/text-digest";
 import { ContentConflictError } from "../application/conditional-replace";
 import { withBatchSettlement } from "../adapters/obsidian/batch-settlement";
-import { BatchOperationModal, FolderScopeModal, type BatchScope } from "../ui/batch-modals";
-import { ChangePreviewModal, type PreviewDocument } from "../ui/preview-modal";
+import { BatchModal, type BatchScope, type BatchPreview } from "../ui/batch-modals";
+import type { PreviewDocument } from "../ui/preview-modal";
 import { createSourcePlan } from "./transform-options";
 
 export interface BatchPersistence {
@@ -69,15 +70,12 @@ function isBatchConflict(error: unknown): boolean {
     || (error instanceof BatchWriteUncertainError && isBatchConflict(error.original));
 }
 
-export function planNeedsPreview(plan: Pick<TransformPlan, "changes" | "warnings">): boolean {
-  return plan.changes.length > 0 || plan.warnings.length > 0;
-}
-
-export function planChangesSource(plan: Pick<TransformPlan, "source" | "result">): boolean {
-  return plan.result !== plan.source;
+export function planNeedsPreview(plan: TransformPlan): boolean {
+  return planChangesSource(plan) || plan.changes.length > 0 || plan.warnings.length > 0;
 }
 
 export class BatchController {
+  private readonly modalLifetime = new AbortController();
   private operationActive = false;
   private disposed = false;
 
@@ -108,6 +106,7 @@ export class BatchController {
 
   dispose(): void {
     this.disposed = true;
+    this.modalLifetime.abort();
   }
 
   private assertActive(): void {
@@ -120,15 +119,8 @@ export class BatchController {
 
   open(translate: Translate): void {
     if (this.disposed) return;
-    new FolderScopeModal(this.app, translate, (scope) => {
-      const files = this.filesForScope(scope);
-      new BatchOperationModal(this.app, translate, files.length, (operation) => {
-        void this.preview(scope, operation, translate).catch((error: unknown) => {
-          console.error("Number Suite batch preview failed", error);
-          this.notify(translate("notice.batchFailed"));
-        });
-      }).open();
-    }).open();
+    new BatchModal(this.app, translate, this.modalLifetime.signal,
+      (scope, operation, signal) => this.preview(scope, operation, translate, signal)).open();
   }
 
   async undo(translate: Translate): Promise<void> {
@@ -424,8 +416,13 @@ export class BatchController {
     scope: BatchScope,
     operation: TransformOperation,
     translate: Translate,
-  ): Promise<void> {
-    if (this.disposed) return;
+    signal: AbortSignal,
+  ): Promise<BatchPreview | null> {
+    if (this.disposed || signal.aborted) return null;
+    if (scope.folder && (scope.folder.path !== scope.label || this.app.vault.getAbstractFileByPath(scope.label) !== scope.folder)) {
+      this.notify(translate("notice.batchChanged"));
+      return null;
+    }
     const documents: PreviewDocument[] = [];
     const candidates: Array<Readonly<{ file: TFile; path: string; source: string }>> = [];
     let invalidFrontmatter = 0;
@@ -433,13 +430,13 @@ export class BatchController {
     for (const { file, path } of selectedFiles) {
       if (!this.fileBindingIsCurrent(file, path)) {
         this.notify(translate("notice.batchChanged"));
-        return;
+        return null;
       }
       const source = await this.previewSource(file);
-      if (this.disposed) return;
+      if (this.disposed || signal.aborted) return null;
       if (source == null || !this.fileBindingIsCurrent(file, path)) {
         this.notify(translate("notice.batchChanged"));
-        return;
+        return null;
       }
       const result = createSourcePlan(source, operation, this.getSettings());
       if (result.status === "invalid-frontmatter" || result.status === "invalid-properties") {
@@ -454,20 +451,16 @@ export class BatchController {
     if (invalidFrontmatter > 0) {
       this.notify(translate("notice.batchSkippedInvalid", { count: invalidFrontmatter }));
     }
-    if (documents.length === 0 && (operation !== "remove" && operation !== "renumber" || candidates.length === 0)) {
-      this.notify(translate("notice.batchNone"));
-      return;
-    }
-    if (this.disposed) return;
     const bindings = new Map(candidates.map(({ path, file }) => [path, file] as const));
     const previewIsCurrent = (): boolean => {
-      if (this.disposed) return false;
+      if (this.disposed || signal.aborted) return false;
       if (candidates.every(({ file, path }) => this.fileBindingIsCurrent(file, path))) return true;
       this.notify(translate("notice.batchChanged"));
       return false;
     };
-    if (!previewIsCurrent()) return;
-    new ChangePreviewModal({
+    if (!previewIsCurrent()) return null;
+    return {
+      checkedCount: selectedFiles.length,
       app: this.app,
       operation,
       documents,
@@ -485,9 +478,10 @@ export class BatchController {
         },
       } : {}),
       onConfirm: async (selected = documents) => {
-        if (previewIsCurrent()) await this.apply(selected, operation, translate, bindings);
+        if (!previewIsCurrent()) return false;
+        await this.apply(selected, operation, translate, bindings);
       },
-    }).open();
+    };
   }
 
   private async apply(
