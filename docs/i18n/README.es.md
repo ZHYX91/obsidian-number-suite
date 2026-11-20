@@ -22,9 +22,11 @@ Requiere Obsidian 1.12.7 o posterior en escritorio o Android. El comportamiento 
 
 1. En **Ajustes → Number Suite → Numeración de títulos**, activa **« Mostrar números virtuales »**.
 2. Abre la vista previa en directo o la vista de lectura. Los números aparecen junto a los títulos, pero el archivo sigue igual.
-3. Para guardar los números en Markdown, abre la nota actual en la barra lateral de Number Suite. Elige escribir números o renumerar, revisa la vista previa y confirma.
+3. Para guardar los números en Markdown, abre **Nota actual → Editar el texto**. Elige escribir o volver a numerar, revisa la vista previa y confirma los cambios.
 
-La guía de la nota actual compara el texto de origen, el objetivo y la acción. Las opciones de cada nota se guardan en Properties; la visualización no reescribe los títulos. La vista previa agrupa cambios y avisos por archivo y muestra sus cantidades. Despliega un archivo y carga más resultados para revisarlos todos. Desactivar el complemento detiene nuevas escrituras de lotes o de Deshacer; una escritura ya iniciada puede terminar. Si no se puede revertir con seguridad, conserva `recovery.json` en la carpeta del complemento y revisa primero las notas.
+Las opciones de cada nota se guardan en Properties; la visualización no reescribe los títulos. La vista previa agrupa cambios y avisos por archivo y muestra sus cantidades. Despliega un archivo y carga más resultados para revisarlos todos. Desactivar el complemento detiene nuevas escrituras de lotes o de Deshacer; una escritura ya iniciada puede terminar. Si no se puede revertir con seguridad, conserva `recovery.json` en la carpeta del complemento y revisa primero las notas.
+
+La nota actual muestra de forma compacta el nombre, el estado automático y tres opciones principales; el guardado en curso y los errores siguen visibles. Las acciones sobre una sola nota pasan a una página de vista previa en la barra lateral, con destino fijo y Volver/Cancelar/Aplicar. Cambiar de nota no cambia el destino; si cambia el texto, hay que crear otra vista previa. Los lotes mantienen un diálogo ancho. El modo de estructura muestra su nombre, botones de movimiento, destino resaltado y líneas de inserción antes/después, con motivos breves para destinos inválidos o fuentes no disponibles.
 
 <!-- section: captions -->
 ## Leyendas y referencias
@@ -47,7 +49,10 @@ Hay estilos jerárquicos, ejemplos para documentos oficiales y jurídicos chinos
 <!-- section: settings -->
 ## Dónde ajustar las opciones
 
-Las siete pestañas de ajustes son: General, Numeración de títulos, Leyendas, Referencias cruzadas, Notas al pie y finales, Escritura y limpieza, Vista y lotes. El idioma y el estilo de numeración se eligen por separado. La sección de nota actual en la barra lateral derecha permite cambiar solo una nota. Volver a seguir los ajustes globales elimina esa excepción y conserva las demás Properties. El esquema del documento y el mapa mental de títulos, de solo lectura, permiten saltar al texto original.
+
+Los ajustes tienen siete pestañas. General activa por defecto la mejora del esquema nativo. Desactivarla conserva preferencias y nunca activa el complemento principal. El menú de visualización del esquema guarda cuatro opciones comunes: números, niveles sin número, H7–H9 y leyendas; solo afectan al esquema. Cada título tiene una única insignia numérica o Hn neutra. Nota actual hereda o sustituye por separado números virtuales, visibilidad de números guardados y estilo, con estado automático. Las reglas de inicio y omisión están plegadas y se añaden según necesidad. Desactivar conserva las opciones; escritura y limpieza siguen requiriendo vista previa. Las hojas del mapa no muestran 0. Diseño y profundidad están en un menú secundario; botones de movimiento y destinos solo aparecen al ajustar estructura.
+
+El esquema nativo y Nota actual abren el mapa para su propio archivo. «Ajustar estructura» mueve secciones completas del mismo padre y nivel mediante arrastre o botones arriba/abajo, rechaza texto modificado y admite Deshacer/Rehacer. Un clic navega por referencias explícitas; F2 o la acción móvil edita la fuente. La numeración de enlaces Wiki a títulos del mismo archivo está desactivada por defecto; funciona en vista previa y lectura, también con nombre de archivo, conservando alias y acciones nativas.
 
 <!-- section: limitations -->
 ## Alcance y límites
@@ -55,7 +60,6 @@ Las siete pestañas de ajustes son: General, Numeración de títulos, Leyendas, 
 - Cada archivo Markdown usa un solo estilo de numeración. Las leyendas y referencias también se resuelven dentro del mismo archivo.
 - Los títulos y leyendas dentro de listas, citas, ejemplos de código, bloques HTML y frontmatter no se numeran. Las notas y referencias del texto normal de una lista siguen funcionando.
 - En Structural Tables, la acción de leyenda requiere comprobar el archivo, el texto y el intervalo exacto. Un elemento desactivado explica los casos de versión antigua o tabla no compatible. En esos casos, añade o edita la leyenda en modo fuente.
-- H7–H9 son una extensión de Number Suite y DocWen. El esquema y los enlaces a títulos de Obsidian pueden no reconocerlos; puedes usar un ID de bloque como destino estable.
 
 <!-- section: privacy-and-support -->
 ## Privacidad y ayuda

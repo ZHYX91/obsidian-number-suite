@@ -45,7 +45,6 @@ import {
 import {
   NUMBER_SUITE_SIDEBAR_VIEW,
   NumberSuiteSidebarView,
-  type NumberSuiteSidebarTab,
 } from "../ui/sidebar-view";
 import { NumberSuiteSettingTab } from "./settings-tab";
 import type { SettingsImpact } from "./settings-impact";
@@ -55,6 +54,7 @@ import {
 } from "../integration/semantic-export";
 import { CaptionCarrierMenuBridge } from "../integration/structural-table-caption-menu";
 import { SemanticTooltipController } from "../ui/semantic-tooltip";
+import { NativeOutlineEnhancer } from "../integration/native-outline";
 import { clearNoteControlSessions } from "../ui/note-control-modal";
 import { registerReadingViewRefresh } from "../reading/refresh-reading-views";
 
@@ -67,6 +67,7 @@ export default class NumberSuitePlugin extends Plugin {
   private settingsPersistence: SettingsPersistenceSession | null = null;
   private readingProcessor: HeadingReadingProcessor | null = null;
   private tooltipController: SemanticTooltipController | null = null;
+  private nativeOutline: NativeOutlineEnhancer | null = null;
   private readonly localizedCommands: Array<Readonly<{
     command: Command;
     key: Parameters<Translate>[0];
@@ -88,7 +89,10 @@ export default class NumberSuitePlugin extends Plugin {
     this.settings = this.settingsPersistence.initialSettings();
     this.recoverySession = new RecoverySession(new RecoveryStore(this.app, this.manifest));
 
-    this.displayController = new HeadingDisplayController(() => this.settings);
+    this.displayController = new HeadingDisplayController(
+      () => this.settings,
+      (link, path) => this.app.metadataCache.getFirstLinkpathDest(link, path)?.path === path,
+    );
     this.registerEditorExtension(this.displayController.createExtension());
     this.readingProcessor = new HeadingReadingProcessor(this.app, () => this.settings);
     this.registerMarkdownPostProcessor((element, context) => this.readingProcessor?.process(element, context));
@@ -117,13 +121,21 @@ export default class NumberSuitePlugin extends Plugin {
       runCurrent: (operation, path) => this.runCurrent(operation, path),
       openBatch: () => this.batchController?.open(this.translate()),
       openGlobalSettings: () => this.openGlobalSettings(),
-      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf),
+      openHeadingMap: (path, sourceLeaf) => void this.openHeadingMap(path, sourceLeaf, true),
     }));
     this.registerView(NUMBER_SUITE_HEADING_MAP_VIEW, (leaf) => new NumberSuiteHeadingMapView(leaf, {
       getSettings: () => this.settings,
       getTranslate: () => this.translate(),
     }));
     this.addSettingTab(new NumberSuiteSettingTab(this.app, this));
+    this.nativeOutline = new NativeOutlineEnhancer(
+      this, () => this.settings,
+      (path) => void this.openHeadingMap(path, null, true),
+      () => this.translate()("command.headingMap.open"),
+      (key: string) => this.translate()(key as Parameters<Translate>[0]),
+      (settings) => this.saveSettings(settings, "display"),
+    );
+    this.nativeOutline.start();
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
       const contextOffset = this.displayController
         ?.consumeContextMenuOffset(editor, info.file?.path ?? null);
@@ -226,6 +238,7 @@ export default class NumberSuitePlugin extends Plugin {
     }
     this.ribbonEl?.setAttribute("aria-label", t("panel.ribbon"));
     this.ribbonEl?.setAttribute("title", t("panel.ribbon"));
+    this.nativeOutline?.refresh(); // Update the native Outline map entry label.
   }
 
   private registerCommands(): void {
@@ -286,13 +299,13 @@ export default class NumberSuitePlugin extends Plugin {
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
-        if (!checking && available) void this.openSidebar("note");
+        if (!checking && available) void this.openSidebar();
         return available;
       },
     });
     this.addLocalizedCommand("command.sidebar.outline", {
       id: "open-outline",
-      callback: () => void this.openSidebar("outline"),
+      callback: () => void this.openNativeOutline(),
     });
     this.addLocalizedCommand("command.headingMap.open", {
       id: "open-heading-mind-map",
@@ -311,22 +324,41 @@ export default class NumberSuitePlugin extends Plugin {
     });
   }
 
-  private async openSidebar(tab?: NumberSuiteSidebarTab): Promise<void> {
+  private async openSidebar(): Promise<void> {
     const leaf = await this.app.workspace.ensureSideLeaf(
       NUMBER_SUITE_SIDEBAR_VIEW,
       "right",
-      {
-        active: true,
-        reveal: true,
-        state: tab == null ? undefined : { tab },
-      },
+      { active: true, reveal: true },
     );
-    if (leaf.view instanceof NumberSuiteSidebarView && tab != null) leaf.view.selectTab(tab);
     await this.app.workspace.revealLeaf(leaf);
   }
 
-  private async openHeadingMap(path?: string, sourceLeaf: WorkspaceLeaf | null = null): Promise<void> {
-    const origin = sourceLeaf ?? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null;
+  private async openNativeOutline(): Promise<void> {
+    const core = (this.app as unknown as {
+      internalPlugins?: { getPluginById?(id: string): { enabled?: boolean } | null };
+    }).internalPlugins?.getPluginById?.("outline");
+    const existing = this.app.workspace.getLeavesOfType("outline")[0];
+    if (core?.enabled !== true && existing == null) {
+      new Notice(this.translate()("notice.nativeOutlineDisabled"));
+      return;
+    }
+    const leaf = existing ?? await this.app.workspace.ensureSideLeaf(
+      "outline", "right", { active: true, reveal: true },
+    );
+    await this.app.workspace.revealLeaf(leaf);
+  }
+  private async openHeadingMap(
+    path?: string,
+    sourceLeaf: WorkspaceLeaf | null = null,
+    pinToEntry = false,
+  ): Promise<void> {
+    const matchingLeaf = path == null ? null
+      : this.app.workspace.getLeavesOfType("markdown").find((leaf) => (
+        leaf.view instanceof MarkdownView && leaf.view.file?.path === path
+      )) ?? null;
+    const origin = sourceLeaf ?? matchingLeaf ?? (path == null
+      ? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null
+      : null);
     let file: TFile | null = null;
     if (path != null) {
       const candidate = this.app.vault.getAbstractFileByPath(path);
@@ -341,7 +373,7 @@ export default class NumberSuitePlugin extends Plugin {
       await leaf.setViewState({ type: NUMBER_SUITE_HEADING_MAP_VIEW, active: true });
     }
     await this.app.workspace.revealLeaf(leaf);
-    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin);
+    if (leaf.view instanceof NumberSuiteHeadingMapView) leaf.view.showFile(file, origin, pinToEntry);
   }
 
   private openGlobalSettings(): void {
@@ -353,6 +385,7 @@ export default class NumberSuitePlugin extends Plugin {
 
   private refreshDisplay(): void {
     this.tooltipController?.refresh();
+    this.nativeOutline?.refresh();
     this.readingProcessor?.invalidate();
     this.displayController?.refreshAll();
     this.rerenderReadingViews();
@@ -360,7 +393,15 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private runCurrent(operation: TransformOperation, path?: string): void {
-    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path, this.commandLifecycle.signal);
+    runCurrentNoteOperation(this.app, this.settings, operation, this.translate(), path, this.commandLifecycle.signal,
+      (options) => { void this.presentCurrentPreview(options); });
+  }
+
+  private async presentCurrentPreview(options: import("../ui/preview-modal").PreviewModalOptions): Promise<void> {
+    await this.openSidebar();
+    if (this.commandLifecycle.signal.aborted) return;
+    const view = this.app.workspace.getLeavesOfType(NUMBER_SUITE_SIDEBAR_VIEW)[0]?.view;
+    if (view instanceof NumberSuiteSidebarView) view.showPreview(options);
   }
 
   private async updateDisplayPreference(mode: DisplayPreferenceAction): Promise<void> {

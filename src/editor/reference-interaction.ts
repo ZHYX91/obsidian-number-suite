@@ -1,0 +1,169 @@
+/**
+ * A rendered cross-reference should own activation, without claiming ordinary
+ * text selection, composition, or editing of its underlying Markdown.
+ */
+export interface ReferenceActivationOptions {
+  /** Immutable source document identity for the current widget. */
+  sourceToken: () => unknown;
+  /** Refuse detached widgets and navigation during IME composition. */
+  available: () => boolean;
+  navigate: () => void;
+  /** Keyboard editing alternative to an ordinary click's navigation. */
+  editSource?: () => void;
+}
+
+interface Press {
+  pointerId: number | null;
+  touch: boolean;
+  source: unknown;
+  x: number;
+  y: number;
+  startedAt: number;
+  released: boolean;
+  cancelled: boolean;
+}
+
+function modified(event: Event): boolean {
+  const keys = event as Partial<MouseEvent>;
+  return keys.altKey === true || keys.ctrlKey === true
+    || keys.metaKey === true || keys.shiftKey === true;
+}
+
+function primary(event: MouseEvent): boolean {
+  return event.button === 0 && !modified(event);
+}
+
+/** Leave selection modifiers, context menus and editing keys to CodeMirror. */
+export function referenceIgnoresEditorEvent(event: Event): boolean {
+  if (event.type === "keydown") {
+    const key = event as KeyboardEvent;
+    return !key.isComposing && !modified(event)
+      && (key.key === "Enter" || key.key === " " || key.key === "F2");
+  }
+  if (event.type === "mousedown" || event.type === "mouseup" || event.type === "click") {
+    return primary(event as MouseEvent);
+  }
+  if (event.type.startsWith("pointer")) {
+    const pointer = event as PointerEvent;
+    return pointer.isPrimary && pointer.button === 0 && !modified(event);
+  }
+  if (event.type.startsWith("touch")) return !modified(event);
+  return false;
+}
+
+/**
+ * Keep a reference replacement mounted until click. A drag, long press,
+ * secondary pointer or stale document must never activate a reference.
+ */
+export function bindReferenceActivation(
+  element: HTMLElement,
+  options: ReferenceActivationOptions,
+): void {
+  let press: Press | null = null;
+  const cancel = (): void => {
+    if (press != null) press.cancelled = true;
+  };
+  const leave = (): void => {
+    // Touch pointers normally leave the element after pointerup, before the
+    // compatibility click. Preserve a completed tap; movement, long-press,
+    // cancellation and stale-source guards still reject their own gestures.
+    if (press?.touch === true && press.released) return;
+    cancel();
+  };
+  const begin = (event: MouseEvent, pointerId: number | null): void => {
+    press = {
+      pointerId,
+      touch: (event as PointerEvent).pointerType === "touch",
+      source: options.sourceToken(),
+      x: event.clientX,
+      y: event.clientY,
+      startedAt: event.timeStamp,
+      released: false,
+      cancelled: !primary(event) || !options.available(),
+    };
+  };
+  const moved = (event: MouseEvent): boolean => press != null
+    && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8;
+  const finish = (event: MouseEvent): void => {
+    if (press == null) return;
+    if (moved(event) || event.timeStamp - press.startedAt >= 600) cancel();
+    press.released = true;
+  };
+
+  element.addEventListener("pointerdown", (event) => {
+    if (!event.isPrimary) {
+      cancel();
+      return;
+    }
+    begin(event, event.pointerId);
+  });
+  element.addEventListener("pointermove", (event) => {
+    if (press?.pointerId === event.pointerId && moved(event)) cancel();
+  });
+  element.addEventListener("pointerup", (event) => {
+    if (press?.pointerId === event.pointerId) finish(event);
+  });
+  element.addEventListener("pointercancel", cancel);
+  element.addEventListener("pointerleave", leave);
+  element.addEventListener("contextmenu", (event) => {
+    cancel();
+    // Android exposes long-press through contextmenu; retain a source-edit path
+    // without a hardware F2 key. Never navigate as part of this gesture.
+    if (options.editSource == null || modified(event) || !options.available()
+      || (event.button === 2 && press?.touch !== true)
+      || (press != null && press.source !== options.sourceToken())) return;
+    event.preventDefault();
+    event.stopPropagation();
+    press = null;
+    options.editSource();
+  });
+  element.addEventListener("dragstart", cancel);
+  element.addEventListener("touchstart", (event) => {
+    if (event.touches.length > 1) cancel();
+  }, { passive: true });
+
+  element.addEventListener("mousedown", (event) => {
+    if (!primary(event)) {
+      cancel();
+      return;
+    }
+    // Compatibility mouse events may follow pointer events: retain their
+    // cancellation and source identity, and also support mouse-only hosts.
+    if (press == null || press.pointerId == null) begin(event, null);
+    event.preventDefault();
+  });
+  element.addEventListener("mousemove", (event) => {
+    if (press?.pointerId == null && moved(event)) cancel();
+  });
+  element.addEventListener("mouseup", (event) => {
+    if (press?.pointerId == null) finish(event);
+  });
+  element.addEventListener("mouseleave", leave);
+
+  element.addEventListener("click", (event) => {
+    const current = press;
+    press = null;
+    if (!primary(event) || event.defaultPrevented) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!options.available()) return;
+    // An assistive-technology click may have detail=0 and no preceding
+    // pointer press. If there *was* a press, its cancellation and identity
+    // guards must still apply even when the final click has detail=0.
+    if (current != null && (current.cancelled || current.source !== options.sourceToken())) return;
+    if (event.detail !== 0 && (current == null || !current.released)) return;
+    options.navigate();
+  });
+  element.addEventListener("keydown", (event) => {
+    const activate = event.key === "Enter" || event.key === " ";
+    const edit = event.key === "F2" && options.editSource != null;
+    if (event.isComposing || modified(event) || (!activate && !edit)) return;
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+    event.stopPropagation();
+    press = null;
+    if (event.repeat || !options.available()) return;
+    if (edit) options.editSource?.();
+    else options.navigate();
+  });
+}

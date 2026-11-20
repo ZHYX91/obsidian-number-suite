@@ -14,18 +14,9 @@ without changing the stored Markdown.
 
 ![Number Suite display-only heading, caption, reference, footnote, and endnote numbers](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-document-numbers-en.png)
 
-The sidebar and write-preview images below render the actual plugin components with a synthetic note in a browser fixture; they are not Obsidian host captures.
+### Preview a batch before writing to Markdown
 
-### Check settings for this note
-
-Use the Current note tab in the Number Suite sidebar to compare global defaults, per-note
-overrides, and effective values before changing the note.
-
-![Number Suite current-note effective settings and per-note overrides](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-current-note-controls-en.png)
-
-### Review changes before writing to Markdown
-
-Expand each file to review its changes and warnings before applying. Only changed numbering text is highlighted; Before and After labels remain visible.
+Expand a file to see which numbers will change and check its warnings. This example shows the batch preview with sample notes.
 
 ![Number Suite preview of heading number writes](https://raw.githubusercontent.com/ZHYX91/obsidian-number-suite/main/docs/assets/number-suite-write-preview-en.png)
 
@@ -40,9 +31,9 @@ Expand each file to review its changes and warnings before applying. Only change
 - Use built-in hierarchical, Chinese official-document, and legal-document schemes.
 - Create multiple custom schemes with validated H1-H9 templates and retained cleanup history.
 - Use exact seven-, eight-, or nine-hash source lines as DocWen-compatible H7-H9 extensions.
-- Open a Number Suite document outline for H1-H9 headings and Figure, Table, Equation, and Code
+- Enhance native Obsidian Outline with H1-H9 headings and Figure, Table, Equation, and Code
   captions; select an item to navigate to its source line.
-- Explore the current document in a read-only 2D heading mind map. Each heading is a card whose
+- Explore the current document in a 2D heading mind map with optional structure editing. Each heading is a card whose
   left handle shows its effective number when available and whose right handle shows and toggles
   the number of direct child headings.
 - Exclude an exact heading or its whole subtree without consuming a number.
@@ -85,7 +76,7 @@ Download the versioned ZIP from [GitHub Releases](https://github.com/ZHYX91/obsi
 <!-- section: usage -->
 ## Usage
 
-To see heading numbers without rewriting the headings, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** tab and review the preview before applying.
+To see heading numbers without rewriting the headings, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** panel and review the preview before applying.
 
 | Source state | Desired result | Action | Rewrites heading text |
 |---|---|---|---|
@@ -95,36 +86,33 @@ To see heading numbers without rewriting the headings, enable **Show virtual num
 | Stored number | Replace it with a calculated display number | Enable virtual numbers and concealment | No |
 | Stored number | Remove it from the file | Remove heading numbers | Yes |
 
-The Current note tab includes a **Display and file operations** guide with source, goal, action, and heading-text examples. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
+Current note keeps the filename, automatic status and three main choices compact, with secondary help in tooltips and advanced rules and file operations collapsed. Normal saved status takes no extra space; saving and errors remain visible. Per-note display choices save Properties in the note; the display itself does not rewrite headings.
 
-Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops new batch or Undo writes; an already dispatched write may finish and be compensated only while its output is unchanged. If compensation encounters edits, keep `recovery.json` in the plugin folder and review the affected notes before retrying Undo.
+Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops further batch changes. A note that was already saving may finish. If you edited it before Number Suite could undo that change, keep `recovery.json` in the plugin folder and check the note before trying Undo again.
 
 Concealment has one global recognition rule: either only numbers carrying Number Suite source
 markers, or numbers matching known built-in/current/retired scheme templates. A note can override
 hide/show/inherit, but cannot silently broaden that recognition rule.
 
-The ribbon icon opens a persistent right sidebar. Its **Document outline** tab shows Number Suite
-H1-H9 headings and captions; its **Current note** tab contains note-level display, scheme, and file
-actions. **Open current note controls** selects that tab directly. File-changing commands still
-open a separate preview before applying anything. Writing or removing a number changes the heading
+The ribbon directly opens **Current note** in the persistent sidebar, with **Display & numbering** and **Edit note text** tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. Single-note file-changing commands open a preview inside **Edit note text**, with a fixed target, counts and Back/Cancel/Apply. Switching notes or tabs keeps the original preview target; changed source requires a fresh preview. Back, Cancel and successful Apply return to the **Edit note text** action list. Batch previews remain wide dialogs and scheme editing stays in global settings. Writing or removing a number changes the heading
 text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin
 does not guess and rewrite those links.
 
-Use **Open heading mind map** from the command palette or the map button in Document outline to open
+Use **Open heading mind map** from the command palette or the source-bound map buttons in native Outline or Current note to open
 the current Markdown note as an ordered heading tree. A file card connects all top-level headings
 and remains visible even when the note has none. It shows the file name, a file icon and the number
 of top-level headings; it never replaces a same-name H1. The initial overview shows the first two levels of the heading tree at a readable size. Click the file name above the map to return from a subtree, or the
 zoom percentage to restore 100%. The left heading-card handle shows the virtual number that is
 actually displayed, or a reliably recognized visible stored number; otherwise it falls back to the
-heading level. The right handle always shows the count of direct child headings and toggles only that
-branch. Select a card and switch between the whole document and that heading's subtree, show 1, 2,
+heading level. The right arrow shows the direct-child count and toggles the branch; leaves show neither an arrow nor zero. Select a card and switch between the whole document and that heading's subtree, show 1, 2,
 3, or all structural depths, and switch between left-to-right and top-to-bottom layout. Search shows
 the current match count; Enter and Shift+Enter move forward and backward through matches without
 changing structural counts. Drag empty space or scroll to pan, hold Ctrl/Cmd while scrolling to zoom
 around the pointer, use two-finger pinch zoom on touch devices, and use +, -, 0 or the toolbar
 controls for zoom/Fit. Double-click a heading card or press Enter on its body to jump to its exact
-source line. The map is display-only: it does not reorder headings, edit Markdown, or count captions
-as child headings.
+source line. The map normally browses without writing and never counts captions as child headings. Explicit **Adjust structure** mode supports same-parent, same-level whole-section dragging and up/down buttons. The mode has a visible label and move controls; highlighted targets and before/after insertion lines show the drop position. Invalid destinations and unavailable or changed source show concise reasons. Moves require unchanged source and support native Undo/Redo.
+
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
 
 ### Extended H7–H9 headings
 
@@ -136,7 +124,7 @@ Write a standalone `Figure:`, `Table:`, `Equation:`, or `Code:` caption beside i
 
 ### Same-file cross references
 
-Use `@[[#Heading]]` or `@[[#Figure: Architecture]]` for a display-only reference within the current note. **Copy cross-reference** can reuse a stable block ID or offer one carefully previewed write before creating it. Ordinary `[[#...]]` links are left to Obsidian.
+Use `@[[#Heading]]` or `@[[#Figure: Architecture]]` for a display-only reference within the current note. **Copy cross-reference** can reuse a stable block ID or offer one carefully previewed write before creating it. Ordinary Wiki heading numbering is separately opt-in and off by default. When enabled, same-file `[[#Heading]]` and `[[Note#Heading]]` links gain inert number labels in Live Preview and Reading View while keeping aliases and native interactions. Cross-file, block, embed and ordinary Markdown links are excluded. Single-click explicit references to navigate; use F2 or the mobile source-edit action to edit their source.
 
 ### Footnotes and endnotes
 
@@ -192,7 +180,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-The sidebar's Current note tab exposes global, override, and effective values. Untouched notes receive no
+Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Starting and skip rules are collapsed and added by level as needed. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 
@@ -237,8 +225,8 @@ Failed input remains available for Retry, and outline navigation stays in the or
   numbering targets. Native Obsidian heading indexes remain limited to their own supported syntax.
 - Headings and captions inside lists or blockquotes do not enter document numbering. Ordinary
   footnote and cross-reference links in their text still work; fenced code examples stay unchanged.
-- Canvas, Obsidian's built-in Outline, Backlinks, Search Results, and PDF export integration are not
-  supported. Number Suite provides its own H1-H9-and-caption sidebar outline.
+- Canvas, Backlinks, Search Results, and PDF export integration are not
+  supported. Number Suite enhances native Outline for H1-H9 and captions.
 - Source Mode decorations are disabled by default so stored Markdown remains directly visible.
 - Reading View concealment changes visible text, not the heading DOM `id`; anchors still follow the
   stored heading.

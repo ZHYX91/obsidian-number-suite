@@ -1,20 +1,22 @@
 import type { SemanticSourceLine } from "./document-semantics";
 import { codeSpanEnd } from "./markdown-comments";
 
-function tableCells(text: string, structural = false): string[] | null {
+type TableSourceLine = Pick<SemanticSourceLine, "text" | "available" | "topLevel">;
+
+/** One cell boundary rule for table ownership and inline metadata protection. */
+export function splitTableRow(text: string, structural = false) {
   if (!text.includes("|")) return null;
-  const cells: string[] = [];
-  let current = "";
+  const cells: Array<{ from: number; to: number }> = [];
+  const delimiters: number[] = [];
+  let from = 0;
   let escaped = false;
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index] ?? "";
     if (escaped) {
-      current += character;
       escaped = false;
       continue;
     }
     if (character === "\\") {
-      current += character;
       escaped = true;
       continue;
     }
@@ -24,24 +26,28 @@ function tableCells(text: string, structural = false): string[] | null {
         end = index + 1;
         while (text[end] === "`") end += 1;
       }
-      current += text.slice(index, end);
       index = end - 1;
       continue;
     }
     if (character === "|") {
-      cells.push(current);
-      current = "";
-    } else {
-      current += character;
+      cells.push({ from, to: index });
+      delimiters.push(index);
+      from = index + 1;
     }
   }
-  cells.push(current);
-  if ((cells[0] ?? "").trim() === "") cells.shift();
-  if ((cells[cells.length - 1] ?? "").trim() === "") cells.pop();
-  return cells.length === 0 ? null : cells;
+  cells.push({ from, to: text.length });
+  if (text.slice(cells[0]!.from, cells[0]!.to).trim() === "") cells.shift();
+  const last = cells[cells.length - 1];
+  if (last != null && text.slice(last.from, last.to).trim() === "") cells.pop();
+  return { cells, delimiters };
 }
 
-function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captionSupported: boolean; structural: boolean } | null {
+function tableCells(text: string, structural = false): string[] | null {
+  const cells = splitTableRow(text, structural)?.cells.map(({ from, to }) => text.slice(from, to));
+  return cells == null || cells.length === 0 ? null : cells;
+}
+
+function tableDelimiter(line: TableSourceLine): { columnCount: number; captionSupported: boolean; structural: boolean } | null {
   if (!line.available || !line.topLevel) return null;
   const cells = tableCells(line.text);
   if (cells == null) return null;
@@ -62,7 +68,7 @@ function tableDelimiter(line: SemanticSourceLine): { columnCount: number; captio
   };
 }
 
-function tableRowColumnCount(line: SemanticSourceLine | undefined, structural = false): number | null {
+function tableRowColumnCount(line: TableSourceLine | undefined, structural = false): number | null {
   if (line == null || !line.available || !line.topLevel || line.text.trim().length === 0) return null;
   // A standalone heading ends a table even when its title contains pipes.
   // Use Number Suite's H1-H9 boundary for both body rows and multi-row headers.
@@ -71,8 +77,8 @@ function tableRowColumnCount(line: SemanticSourceLine | undefined, structural = 
 }
 
 
-export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
-  const blocks: Array<{ first: number; last: number; delimiter: number; captionSupported: boolean }> = [];
+export function scanTableBlocks(lines: readonly TableSourceLine[]) {
+  const blocks: Array<{ first: number; last: number; delimiter: number; captionSupported: boolean; structural: boolean }> = [];
   const consumed = new Set<number>();
   for (let delimiter = 1; delimiter < lines.length; delimiter += 1) {
     if (consumed.has(delimiter)) continue;
@@ -117,7 +123,7 @@ export function scanTableBlocks(lines: readonly SemanticSourceLine[]) {
       last += 1;
     }
     for (let index = first; index <= last; index += 1) consumed.add(index);
-    blocks.push({ first, last, delimiter, captionSupported: delimiterRow.captionSupported });
+    blocks.push({ first, last, delimiter, captionSupported: delimiterRow.captionSupported, structural });
   }
   return blocks;
 }

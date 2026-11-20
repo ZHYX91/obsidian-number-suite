@@ -50,6 +50,19 @@ export function createSettingDefinitions(
     },
     {
       type: "page",
+      name: t("settings.tab.outline"),
+      items: [
+        saveStatusDefinition(context),
+        toggleDefinition("outline.showNumbers", t("settings.outline.showNumbers"),
+          t("settings.outline.showNumbers.desc"), DEFAULT_SETTINGS.showOutlineNumbers),
+        toggleDefinition("outline.showExtendedHeadings", t("settings.outline.showExtended"),
+          t("settings.outline.showExtended.desc"), DEFAULT_SETTINGS.showOutlineExtendedHeadings),
+        toggleDefinition("outline.showCaptions", t("settings.outline.showCaptions"),
+          t("settings.outline.showCaptions.desc"), DEFAULT_SETTINGS.showOutlineCaptions),
+      ],
+    },
+    {
+      type: "page",
       name: t("settings.tab.captions"),
       items: [
         saveStatusDefinition(context),
@@ -98,6 +111,8 @@ export function createSettingDefinitions(
         saveStatusDefinition(context),
         toggleDefinition("references.showCrossReferences", t("settings.references.enable"),
           t("settings.references.enable.desc"), DEFAULT_SETTINGS.showCrossReferences),
+        toggleDefinition("references.enhanceNativeWikiHeadingLinks", t("settings.references.nativeWiki"),
+          t("settings.references.nativeWiki.desc"), DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks),
         customDefinition(
           t("settings.references.guide.title"),
           (container) => renderSameFileReferenceGuide(container, t),

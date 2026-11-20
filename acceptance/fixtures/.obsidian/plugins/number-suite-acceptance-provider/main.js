@@ -3,6 +3,17 @@ const { Plugin, Modal, Notice, MarkdownView } = require("obsidian");
 const OBSERVATION_DIRECTORY = ".obsidian/plugins/number-suite-acceptance-provider/observations";
 const MAX_SOURCE_BYTES = 1024 * 1024;
 const MAX_OBSERVATION_BYTES = 512 * 1024;
+const NOTE_FIXTURE = "Link metadata boundaries.md";
+const NOTE_FIXTURE_SHA256 = "7d35e228f047b6bbdc7f8324a20d8ce4a47f272536b6db3e4886d03cb92d9d83";
+const NOTE_RENDERING_STAGES = ["initial", "reloaded", "caret", "mode-reset"];
+const renderingIdentities = new WeakMap();
+let nextRenderingIdentity = 1;
+
+function renderingIdentity(value) {
+  if (value == null || typeof value !== "object") return null;
+  if (!renderingIdentities.has(value)) renderingIdentities.set(value, nextRenderingIdentity++);
+  return renderingIdentities.get(value);
+}
 
 function shortText(value, limit = 256) {
   return String(value ?? "").slice(0, limit);
@@ -128,8 +139,161 @@ async function recordRenderedObservation(app) {
   new Notice(`Recorded rendered diagnostics: ${file.basename}`);
 }
 
+function decorationObservation(set, from, to) {
+  if (typeof set?.between !== "function") return null;
+  const ranges = [];
+  let total = 0;
+  set.between(from, to, (start, end, value) => {
+    total++;
+    if (ranges.length >= 128) return;
+    const widget = value.spec?.widget ?? value.widget;
+    ranges.push({
+      from: start, to: end,
+      startSide: value.startSide, endSide: value.endSide,
+      point: value.point, block: value.spec?.block ?? value.block ?? false,
+      widget: widget == null ? null : {
+        constructor: shortText(widget.constructor?.name),
+        kind: typeof widget.kind === "string" ? shortText(widget.kind) : null,
+        label: typeof widget.label === "string" ? shortText(widget.label) : null,
+      },
+      class: shortText(value.spec?.class ?? value.spec?.attributes?.class),
+      tagName: shortText(value.spec?.tagName),
+      inclusive: value.spec?.inclusive ?? null,
+    });
+  });
+  return { total, truncated: total > ranges.length, ranges };
+}
+
+// Diagnostic-only access to the host's already-computed editor state. Never call
+// decoration providers, dispatch a transaction, refresh the product, or invoke toDOM.
+async function recordNoteRendering(app, stage) {
+  if (!NOTE_RENDERING_STAGES.includes(stage)) throw new Error("Unknown note rendering stage");
+  const adapter = app.vault.adapter;
+  const markerPath = ".obsidian-acceptance/marker.json";
+  if (!await adapter.exists(markerPath)) throw new Error("An isolated acceptance marker is required");
+  const marker = JSON.parse(await adapter.read(markerPath));
+  if (marker?.kind !== "obsidian-plugin-acceptance-vault" || marker.schemaVersion !== 3 || marker.pluginId !== "number-suite"
+    || !["host-open", "runtime-ready"].includes(marker.state)
+    || !marker.runtimeReadiness?.expectedPlugins?.some((plugin) => plugin.id === "number-suite")) {
+    throw new Error("An active Number Suite acceptance Vault is required");
+  }
+  const active = app.workspace.getActiveViewOfType(MarkdownView);
+  const file = active?.file;
+  if (file?.path !== NOTE_FIXTURE || active.getMode() !== "source") {
+    throw new Error("Open Link metadata boundaries in Live Preview or Source mode");
+  }
+  const { EditorView } = require("@codemirror/view");
+  const { editorLivePreviewField } = require("obsidian");
+  const editorElement = active.contentEl.querySelector(".cm-editor");
+  const cm = editorElement == null ? null : EditorView.findFromDOM(editorElement);
+  if (cm?.state == null) throw new Error("The current fixture has no CodeMirror view");
+  const win = cm.dom.ownerDocument.defaultView;
+  const before = await app.vault.readBinary(file);
+  if (before.byteLength > MAX_SOURCE_BYTES || await sha256(before, win) !== NOTE_FIXTURE_SHA256) {
+    throw new Error("The diagnostic fixture bytes differ from the checked-in synthetic input");
+  }
+  const source = cm.state.doc.toString();
+  if (await sha256(new TextEncoder().encode(source), win) !== NOTE_FIXTURE_SHA256) {
+    throw new Error("The editor differs from the checked-in synthetic input");
+  }
+  // Finish asynchronous identity checks before taking one synchronous snapshot.
+  // Palette dismissal and background parsing may legitimately replace EditorState.
+  const state = cm.state;
+  if (state.doc.toString() !== source) throw new Error("The editor changed before observation");
+  const sets = Array.isArray(cm.docView?.decorations) ? cm.docView.decorations : [];
+  const plugins = Array.isArray(cm.plugins) ? cm.plugins : [];
+  const noteFrom = source.indexOf("[^ghost]:");
+  const facets = state.facet(EditorView.decorations);
+  const nodes = [...cm.contentDOM.querySelectorAll(".number-suite-note-reference, .number-suite-note-definition")];
+  const lines = [...cm.contentDOM.querySelectorAll(".cm-line")];
+  const product = app.plugins?.getPlugin?.("number-suite");
+  const observation = {
+    schemaVersion: 1, kind: "number-suite/note-rendering-diagnostic-v1",
+    observedAt: new Date().toISOString(), stage, runId: marker.runId,
+    candidateIdentityHash: marker.candidateIdentityHash,
+    sourcePath: file.path, sourceSha256: NOTE_FIXTURE_SHA256,
+    sourceByteLength: before.byteLength, editorLength: source.length,
+    viewIdentity: renderingIdentity(cm), documentIdentity: renderingIdentity(state.doc),
+    mode: active.getMode(), livePreview: state.field(editorLivePreviewField, false) ?? null,
+    selection: state.selection.ranges.map(({ from, to }) => ({ from, to })),
+    composing: cm.composing, hasFocus: cm.hasFocus,
+    product: { loaded: product != null, version: product?.manifest?.version ?? null,
+      showNoteNumbers: product?.settings?.showNoteNumbers ?? null,
+      noteDisplayMode: product?.settings?.noteDisplayMode ?? null,
+      enableLivePreview: product?.settings?.enableLivePreview ?? null },
+    // Order is material: overlapping replacement sets can hide each other.
+    renderedSets: sets.slice(0, 128).map((set, index) => ({
+      index, dynamic: cm.docView?.dynamicDecorationMap?.[index] ?? null,
+      definitions: decorationObservation(set, noteFrom, source.length),
+    })),
+    facets: facets.slice(0, 128).map((facet, index) => ({
+      index, kind: typeof facet, name: typeof facet === "function" ? shortText(facet.name) : null,
+      renderedSetIndex: sets.indexOf(facet),
+      definitions: typeof facet === "function" ? null : decorationObservation(facet, noteFrom, source.length),
+    })),
+    plugins: plugins.slice(0, 128).map((plugin, index) => ({
+      index, id: plugin.spec?.plugin?.id ?? plugin.plugin?.id ?? null,
+      constructor: shortText(plugin.value?.constructor?.name),
+      pendingUpdate: plugin.mustUpdate != null,
+      renderedSetIndex: sets.indexOf(plugin.value?.decorations),
+      definitionSetIndex: sets.indexOf(plugin.value?.definitionDecorations),
+      definitions: decorationObservation(plugin.value?.definitionDecorations, noteFrom, source.length),
+      // Include references as well: a native superscript is not proof that the
+      // product's reference widget and definition widgets share the same plan.
+      decorations: decorationObservation(plugin.value?.decorations, 0, source.length),
+    })),
+    dom: {
+      noteWidgets: nodes.slice(0, 64).map((node) => ({
+        classes: shortText(node.className), text: shortText(node.textContent),
+        html: shortText(node.outerHTML, 2048), rectangle: rectangle(node),
+      })),
+      lines: lines.slice(0, 64).map((line) => {
+        let from = null;
+        try { from = cm.posAtDOM(line); } catch { /* Detached native line. */ }
+        return { from, text: shortText(line.textContent, 1024), html: shortText(line.outerHTML, 4096) };
+      }),
+    },
+    counts: { renderedSets: sets.length, facets: facets.length, plugins: plugins.length,
+      noteWidgets: nodes.length, lines: lines.length },
+    productAcceptance: false,
+  };
+  if (cm.state !== state) throw new Error("The editor state changed during synchronous collection");
+  const after = await app.vault.readBinary(file);
+  observation.sourceSha256After = await sha256(after, win);
+  const afterState = cm.state;
+  observation.stateChangedAfterCapture = afterState !== state;
+  observation.documentIdentityAfter = renderingIdentity(afterState.doc);
+  observation.selectionAfter = afterState.selection.ranges.map(({ from, to }) => ({ from, to }));
+  observation.livePreviewAfter = afterState.field(editorLivePreviewField, false) ?? null;
+  if (observation.sourceSha256After !== NOTE_FIXTURE_SHA256 || afterState.doc !== state.doc
+    || app.workspace.getActiveViewOfType(MarkdownView) !== active || active.file !== file) {
+    throw new Error("The fixture or editor document changed during the read-only observation");
+  }
+  const output = JSON.stringify(observation, null, 2) + "\n";
+  if (new TextEncoder().encode(output).byteLength > MAX_OBSERVATION_BYTES) {
+    throw new Error("Note rendering observation exceeds the output limit");
+  }
+  const outputPath = `number-suite-note-rendering-${stage}.json`;
+  if (await adapter.exists(outputPath)) throw new Error("An observation already exists for this stage");
+  await adapter.write(outputPath, output);
+  new Notice(`Recorded read-only diagnostics: ${outputPath}`);
+}
+
 module.exports = class extends Plugin {
   onload() {
+    for (const stage of NOTE_RENDERING_STAGES) {
+      this.addCommand({
+        id: `record-note-rendering-${stage}`,
+        name: `Record note rendering: ${stage}`,
+        callback: async () => {
+          try {
+            await recordNoteRendering(this.app, stage);
+          } catch (error) {
+            new Notice(`Note rendering diagnostics unavailable: ${shortText(error?.message ?? error)}`);
+          }
+        },
+      });
+    }
     // Explicit synthetic input preparation only; no product actions or verdicts.
     this.addCommand({
       id: "prepare-audit-roman-range-and-recovery",

@@ -46,7 +46,8 @@ interface ReadingReferenceCandidate {
   readonly from: number;
   readonly line: number;
   readonly target: string;
-  readonly originalLabel: string;
+  readonly originalLabels: readonly string[];
+  readonly href: string;
 }
 
 interface CachedReadingPlan {
@@ -491,8 +492,8 @@ function readingReferenceSource(source: string): Readonly<{
     parserOffset = parserEnd + 1;
     if (!line.available) continue;
     const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
-    for (const match of masked.matchAll(/\[\[#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu)) {
-      const target = match[1]?.trim();
+    for (const match of masked.matchAll(/\[\[([^#\]|\r\n]*)#(\^?[^\]|\r\n]+)(?:\|([^\]\r\n]+))?\]\]/gu)) {
+      const target = match[2]?.trim();
       if (target == null || target.length === 0) continue;
       if (line.text[match.index - 1] === "!" || isMarkdownSourceEscaped(line.text, match.index)) {
         unverifiedLines.add(line.number);
@@ -501,7 +502,9 @@ function readingReferenceSource(source: string): Readonly<{
         from: line.from + match.index,
         line: line.number,
         target,
-        originalLabel: match[2] ?? target,
+        originalLabels: match[3] != null ? [match[3]]
+          : match[1] ? [target, `${match[1]} > ${target}`, `${match[1]}#${target}`] : [target],
+        href: `${match[1] ?? ""}#${target}`,
       });
     }
   }
@@ -513,33 +516,33 @@ function bindRenderedReferences(
   candidates: readonly ReadingReferenceCandidate[],
   plan: readonly SemanticDisplayDecoration[],
 ): ReadonlyArray<Readonly<{ anchor: HTMLElement; item: SemanticDisplayDecoration }>> {
-  const planByFrom = new Map(plan.filter((item) => item.kind === "reference")
+  const planByFrom = new Map(plan.filter((item) => item.kind === "reference" || item.kind === "native-link-number")
     .map((item) => [item.from, item]));
   const candidatesByTarget = new Map<string, ReadingReferenceCandidate[]>();
   for (const candidate of candidates) {
-    const group = candidatesByTarget.get(candidate.target) ?? [];
+    const group = candidatesByTarget.get(candidate.href) ?? [];
     group.push(candidate);
-    candidatesByTarget.set(candidate.target, group);
+    candidatesByTarget.set(candidate.href, group);
   }
   const anchors = [...container.querySelectorAll<HTMLElement>("a.internal-link")]
     .filter((anchor) => anchor.closest("pre, code") == null);
   const bindings: Array<{ anchor: HTMLElement; item: SemanticDisplayDecoration }> = [];
   for (const [target, group] of candidatesByTarget) {
-    if (!group.some((candidate) => planByFrom.has(candidate.from - 1))) continue;
-    const expected = `#${target}`;
+    if (!group.some((candidate) => (planByFrom.has(candidate.from - 1) || planByFrom.has(candidate.from)))) continue;
+    const expected = target;
     const rendered = anchors.filter((anchor) => (
       (anchor.getAttribute("data-href") ?? anchor.getAttribute("href")) === expected
     ));
     // Validate the fixed source order; text can reject a pairing, never select another link.
     // Bind ordinary links as well, before moving caption DOM, so literal @ cannot steal a pill.
     if (rendered.length !== group.length || rendered.some((anchor, index) => (
-      anchor.textContent !== group[index]?.originalLabel
+      !group[index]?.originalLabels.includes(anchor.textContent ?? "")
     ))) continue;
     for (let index = 0; index < group.length; index += 1) {
       const candidate = group[index];
       const anchor = rendered[index];
-      const item = candidate == null ? null : planByFrom.get(candidate.from - 1);
-      if (anchor != null && item?.target === target) bindings.push({ anchor, item });
+      const item = candidate == null ? null : planByFrom.get(candidate.from - 1) ?? planByFrom.get(candidate.from);
+      if (anchor != null && item != null && item.target === candidate?.target) bindings.push({ anchor, item });
     }
   }
   return bindings;
@@ -801,7 +804,7 @@ export class HeadingReadingProcessor {
       cached = {
         source,
         fingerprint,
-        ...this.buildPlan(source, settings, effective),
+        ...this.buildPlan(source, settings, effective, file),
       };
       this.cache.set(file.path, cached);
     }
@@ -828,6 +831,7 @@ export class HeadingReadingProcessor {
       && !settings.showCaptionNumbers
       && captionCentering.length === 0
       && !settings.showCrossReferences
+      && !settings.enhanceNativeWikiHeadingLinks
       && !settings.showNoteNumbers
       && !settings.showImageCaptionTooltips
     ) {
@@ -979,7 +983,15 @@ export class HeadingReadingProcessor {
         item.targetLine != null
         && item.targetKind != null
       ) {
-        enhanceReference(anchor, item.label, item.targetLine, item.targetKind);
+        if (item.kind === "native-link-number") {
+          const number = anchor.ownerDocument.createElement("span");
+          number.className = "number-suite-native-wiki-number";
+          number.textContent = `${item.label} `;
+          number.setAttribute("aria-hidden", "true");
+          anchor.prepend(number);
+        } else {
+          enhanceReference(anchor, item.label, item.targetLine, item.targetKind);
+        }
       }
     }
     this.ensureReferenceNavigation(container, file);
@@ -1026,6 +1038,7 @@ export class HeadingReadingProcessor {
     source: string,
     settings: NumberSuiteSettings,
     effective: ReturnType<typeof resolveNoteSettings>,
+    file: TFile,
   ): CachedReadingPlan {
     const headings = parseAtxHeadings(source);
     const displayPlan = createDisplayPlan(headings, {
@@ -1058,6 +1071,8 @@ export class HeadingReadingProcessor {
         captionPlacements: captionPlacements(settings),
         showImageCaptionTooltips: settings.showImageCaptionTooltips,
         showCrossReferences: settings.showCrossReferences,
+        enhanceNativeWikiHeadingLinks: settings.enhanceNativeWikiHeadingLinks,
+        isSameFileWikiTarget: (filePart) => this.app.metadataCache.getFirstLinkpathDest(filePart, file.path) === file,
         showNoteNumbers: settings.showNoteNumbers,
         noteSelections: [],
         numbering,

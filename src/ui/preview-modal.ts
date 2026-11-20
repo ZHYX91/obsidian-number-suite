@@ -19,7 +19,7 @@ export interface PreviewModalOptions {
   translate: Translate;
   cleanupScope?: CleanupScope;
   onCleanupScopeChange?: (scope: CleanupScope) => readonly PreviewDocument[] | Promise<readonly PreviewDocument[]>;
-  onConfirm: (documents: readonly PreviewDocument[]) => Promise<void>;
+  onConfirm: (documents: readonly PreviewDocument[]) => Promise<void | boolean>;
 }
 
 function visibleMarkers(value: string): string {
@@ -29,8 +29,10 @@ function visibleMarkers(value: string): string {
 const CHANGE_PAGE_SIZE = 500;
 const WARNING_PAGE_SIZE = 200;
 
-export class ChangePreviewModal extends Modal {
+export class ChangePreviewPane {
   private applying = false;
+  private failure: string | null = null;
+  private stale = false;
   private closed = false;
   private readonly abort = (): void => { this.applying = false; this.close(); };
   private documents: readonly PreviewDocument[];
@@ -39,14 +41,19 @@ export class ChangePreviewModal extends Modal {
   private readonly visibleWarningLimits = new Map<string, number>();
   private readonly expandedPaths = new Set<string>();
 
-  constructor(private readonly options: PreviewModalOptions) {
-    super(options.app);
+  constructor(
+    private readonly options: PreviewModalOptions,
+    private readonly contentEl: HTMLElement,
+    private readonly titleEl: HTMLElement,
+    private readonly modalEl: HTMLElement,
+    private readonly onDismiss: () => void,
+  ) {
     this.documents = options.documents;
     this.cleanupScope = options.cleanupScope ?? null;
     if (this.documents[0] !== undefined) this.expandedPaths.add(this.documents[0].path);
   }
 
-  override onOpen(): void {
+  onOpen(): void {
     if (this.options.signal?.aborted) { this.close(); return; }
     this.options.signal?.addEventListener("abort", this.abort, { once: true });
     this.render();
@@ -57,9 +64,9 @@ export class ChangePreviewModal extends Modal {
     const { contentEl, titleEl } = this;
     const t = this.options.translate;
     contentEl.empty();
-    this.modalEl.addClass("number-suite-preview-modal");
     titleEl.setText(t(`preview.title.${this.options.operation}`));
     contentEl.addClass("number-suite-preview");
+    if (this.failure != null) contentEl.createDiv({ cls: "number-suite-note-control-error", text: this.failure, attr: { role: "alert" } });
     if (this.cleanupScope != null && this.options.onCleanupScopeChange != null) {
       new Setting(contentEl)
         .setName(t("preview.cleanupScope"))
@@ -82,17 +89,19 @@ export class ChangePreviewModal extends Modal {
       text: t("preview.warningLinks"),
     });
 
+    const documents = contentEl.createDiv({ cls: "number-suite-preview-documents" });
     for (const document of this.documents) {
-      this.renderDocument(contentEl, document);
+      this.renderDocument(documents, document);
     }
 
     const actions = new Setting(contentEl);
+    actions.settingEl.addClass("number-suite-preview-actions");
     actions.addButton((button) => button
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));
     actions.addButton((button) => {
       button.setButtonText(t("preview.confirm")).setCta();
-      button.setDisabled(changes === 0);
+      button.setDisabled(changes === 0 || this.stale);
       if (this.options.operation === "remove") {
         button.setWarning();
       }
@@ -104,9 +113,14 @@ export class ChangePreviewModal extends Modal {
         }
         button.setButtonText(t("preview.applying"));
         void this.options.onConfirm(this.documents)
-          .then(() => { this.applying = false; this.close(); })
+          .then((applied) => {
+            this.applying = false;
+            if (applied !== false) this.close();
+            else { this.stale = true; this.failure = t("notice.stalePreview"); this.render(); }
+          })
           .catch((error: unknown) => {
             this.applying = false;
+            this.failure = t("preview.applyFailed");
             this.render();
             console.error("Number Suite preview apply failed", error);
           });
@@ -183,15 +197,30 @@ export class ChangePreviewModal extends Modal {
     }
   }
 
-  override close(): void {
-    if (this.applying) return;
-    super.close();
+  close(): void {
+    if (this.applying || this.closed) return;
+    this.onClose();
+    this.onDismiss();
   }
 
-  override onClose(): void {
+  canClose(): boolean { return !this.applying; }
+
+  onClose(): void {
     this.closed = true;
     this.options.signal?.removeEventListener("abort", this.abort);
     this.modalEl.removeClass("number-suite-preview-modal");
     this.contentEl.empty();
   }
+}
+
+export class ChangePreviewModal extends Modal {
+  private pane: ChangePreviewPane | null = null;
+  constructor(private readonly options: PreviewModalOptions) { super(options.app); }
+  override onOpen(): void {
+    this.modalEl.addClass("number-suite-preview-modal");
+    this.pane = new ChangePreviewPane(this.options, this.contentEl, this.titleEl, this.modalEl, () => super.close());
+    this.pane.onOpen();
+  }
+  override onClose(): void { this.pane?.onClose(); this.pane = null; }
+  override close(): void { if (this.pane?.canClose() !== false) super.close(); }
 }

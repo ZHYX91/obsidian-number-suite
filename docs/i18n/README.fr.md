@@ -22,9 +22,11 @@ Obsidian 1.12.7 ou plus récent est requis, sur ordinateur ou Android. Le foncti
 
 1. Dans **Paramètres → Number Suite → Numérotation des titres**, activez **« Afficher les numéros virtuels »**.
 2. Ouvrez l’aperçu en direct ou le mode Lecture. Les numéros apparaissent près des titres, sans modifier le texte enregistré.
-3. Pour inscrire les numéros dans Markdown, ouvrez l’onglet de la note actuelle dans la barre latérale de Number Suite. Choisissez l’écriture ou la renumérotation, vérifiez l’aperçu, puis confirmez.
+3. Pour enregistrer les numéros dans Markdown, ouvrez **Note actuelle → Modifier le texte**. Choisissez l’écriture ou la renumérotation, vérifiez l’aperçu et confirmez.
 
-Le guide de la note actuelle compare le texte source, le résultat voulu et l’action. Les choix propres à une note sont enregistrés dans ses Properties ; l’affichage lui-même ne réécrit pas les titres. L’aperçu regroupe les changements et avertissements par fichier, avec leurs nombres. Dépliez un fichier et chargez la suite pour tout examiner. Désactiver le module arrête les nouvelles écritures de traitement par lot et d’annulation ; une écriture déjà lancée peut se terminer. Si le retour en arrière ne peut pas être effectué sans écraser une modification, conservez `recovery.json` dans le dossier du module et vérifiez les notes.
+Les choix propres à une note sont enregistrés dans ses Properties ; l’affichage lui-même ne réécrit pas les titres. L’aperçu regroupe les changements et avertissements par fichier, avec leurs nombres. Dépliez un fichier et chargez la suite pour tout examiner. Désactiver le module arrête les nouvelles écritures de traitement par lot et d’annulation ; une écriture déjà lancée peut se terminer. Si le retour en arrière ne peut pas être effectué sans écraser une modification, conservez `recovery.json` dans le dossier du module et vérifiez les notes.
+
+La note active affiche de façon compacte le nom, le statut automatique et trois choix principaux ; les enregistrements en cours et les erreurs restent visibles. Les opérations sur une seule note passent à une page d’aperçu dans la barre latérale, avec une cible fixe et Retour/Annuler/Appliquer. Changer de note ne change pas la cible ; une modification de la source impose un nouvel aperçu. Les lots conservent une boîte de dialogue large. Le mode de structure affiche son nom, les boutons de déplacement, la cible surlignée et les lignes d’insertion avant/après, avec une raison concise si la cible ou la source est indisponible.
 
 <!-- section: captions -->
 ## Légendes et renvois
@@ -47,7 +49,9 @@ Plusieurs styles sont proposés : hiérarchique, exemples administratifs et juri
 <!-- section: settings -->
 ## Où régler les options
 
-Les sept onglets des paramètres sont : Général, Numérotation des titres, Légendes, Renvois, Notes de bas de page et de fin, Écriture et nettoyage, Affichage et lot. La langue et le style de numérotation se choisissent séparément. Dans la barre latérale droite, « Note actuelle » permet de modifier une seule note. Revenir au réglage global supprime uniquement cette exception et conserve les autres Properties. Le plan du document et la carte mentale des titres, en lecture seule, permettent de rejoindre le texte source.
+Les réglages comportent sept onglets. Dans Général, l’amélioration du plan natif est activée par défaut. La désactiver conserve les préférences et n’active jamais le module principal. Le menu d’affichage du plan mémorise quatre choix communs : numéros, niveaux sans numéro, H7–H9 et légendes. Ils concernent uniquement le plan. Chaque titre affiche un seul badge numérique ou Hn neutre. Note actuelle hérite ou remplace séparément les numéros virtuels, l’affichage des numéros enregistrés et le style, avec un état automatique. Les règles de départ et d’exclusion sont repliées et ajoutées selon les besoins. Désactiver conserve les choix ; écriture et nettoyage exigent toujours un aperçu. Les feuilles de la carte n’affichent pas 0. Disposition et profondeur sont dans un menu secondaire ; les boutons de déplacement et cibles apparaissent seulement en mode structure.
+
+Le plan natif et Note actuelle ouvrent la carte pour leur propre fichier. « Ajuster la structure » déplace des sections entières de même parent et niveau par glisser-déposer ou boutons haut/bas, avec rejet du texte modifié et Annuler/Rétablir. Un clic sur un renvoi explicite navigue ; F2 ou l’action mobile permet de modifier sa source. La numérotation des liens Wiki vers un titre du même fichier reste désactivée par défaut ; elle fonctionne en aperçu et lecture, aussi avec un nom de fichier, sans modifier alias et actions natives.
 
 <!-- section: limitations -->
 ## Portée et limites
@@ -55,7 +59,6 @@ Les sept onglets des paramètres sont : Général, Numérotation des titres, Lé
 - Un fichier Markdown utilise un seul style de numérotation. Les légendes et les renvois restent également limités au même fichier.
 - Les titres et légendes placés dans les listes, citations, exemples de code, blocs HTML ou frontmatter ne sont pas numérotés. Les notes et renvois dans le texte ordinaire des listes restent utilisables.
 - Pour Structural Tables, l’action de légende exige de vérifier le fichier, le texte source et sa plage. Un élément désactivé explique les cas d’ancienne version ou de tableau non pris en charge. Ajoutez ou modifiez alors la légende en mode source.
-- H7–H9 sont une extension de Number Suite et DocWen. Le plan et les liens de titres natifs d’Obsidian peuvent ne pas les reconnaître ; un identifiant de bloc fournit une cible stable.
 
 <!-- section: privacy-and-support -->
 ## Confidentialité et aide

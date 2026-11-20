@@ -15,9 +15,7 @@ exactly 7, 8, or 9 leading `#` characters, followed by whitespace. Ten or more h
 ordinary text. The extension participates in numbering, starts, resets, exclusions, writes,
 Live Preview, Reading View, and the read-only `number-suite.interop.v2` consumer snapshot.
 
-H7-H9 are not native Obsidian/CommonMark heading levels, so Obsidian's built-in Outline, Backlinks,
-heading-path navigation, and other native heading indexes may not recognize them. Number Suite's
-own sidebar outline does include them and its navigation uses source lines. Use an authored stable
+H7-H9 are not native Obsidian/CommonMark levels. Number Suite enhances native Outline; other host heading indexes may not recognize them. Use an authored stable
 block ID such as `######## Deep topic ^deep-topic` for reliable interoperation and references. Put
 each extended heading in its own paragraph, with a blank line around it, when Reading View
 enhancement is required. The Markdown source remains canonical and unchanged by display-only use.
@@ -40,7 +38,12 @@ four default to above. Every bound caption is anchored to the carrier block with
 theme-independent gap; changing position never rewrites the file. When the cursor enters a caption
 in Live Preview, its pill disappears and the exact authored `Figure: ... ^id`-style source returns
 at its stored location. Source Mode always shows the authored Markdown. An individual
-cross-reference likewise reveals only its own `@[[...]]` source while it is being edited. Touch and
+cross-reference likewise reveals only its own `@[[...]]` source while it is being edited.
+Click a rendered cross-reference to jump directly; when that link has keyboard focus,
+press **F2** to place the text cursor inside its Markdown source. Moving the
+text cursor into a reference by ordinary keyboard navigation also exposes its
+source. Modifier-assisted selection remains an editing action rather than
+a forced jump. Touch and
 IME editing follow the same local rule: only the active heading, caption, or reference reveals its
 source, while unrelated virtual numbers and pills remain visible.
 
@@ -101,7 +104,15 @@ one target block the action. Otherwise it previews
 one bounded Markdown change and creates an ID only after confirmation. Caption IDs are appended to
 the caption line; heading IDs use the valid following block-ID line. It then copies a reference with
 a readable alias. This explicit command is the only caption/reference workflow that creates an ID.
-Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged.
+Ordinary `[[#...]]` links, cross-file links, and missing or ambiguous targets remain unchanged
+by default. The optional **Enhance ordinary same-note Wiki heading links** setting
+is off by default; when enabled, Live Preview and Reading View show an effective number on
+unique `[[#Heading]]` and file-qualified same-note `[[Note#Heading]]` links (aliases are retained) without writing to
+the source. The number is a separate, non-interactive visual prefix: Obsidian
+still renders and navigates the actual Wiki link, including its context menu,
+normal selection, and modified-click behavior. Cross-file links, links that include a file path, captions,
+block links, embeds, and unresolved or ambiguous targets remain native links.
+Reading View continues to use Obsidian's native rendering for ordinary Wiki links.
 
 ## Footnotes and endnotes
 
@@ -116,3 +127,13 @@ cursor to it to reveal and edit the stored marker. Reading View keeps numbered n
 Missing, duplicate, conflicting, or render-mismatched definitions remain native Obsidian content.
 Two-space multiline note bodies are protected from heading, caption, and semantic-reference
 scanning.
+
+## Native Outline and structure editing
+
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. Open headings in Obsidian’s Outline. Current note has two tabs, Display & numbering and Edit note text. Existing shortcuts and saved workspaces continue to open the corresponding view.
+
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
+
+H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level siblings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
+
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do nothing. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links.

@@ -3,7 +3,7 @@ import {
   NoteSaveCoordinator,
   type NoteSaveState,
 } from "../application/note-save-coordinator";
-import { App, Notice, Setting, type ButtonComponent, type TFile } from "obsidian";
+import { App, Menu, Notice, Setting, setIcon, type TFile } from "obsidian";
 
 import {
   headingLevels,
@@ -20,18 +20,15 @@ import { parseFrontmatterRecordFromSource } from "../config/frontmatter-source";
 import { noteSchemeOptions, schemeDisplayName } from "../config/scheme-labels";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
-import { renderNoteOverridesGuide } from "./settings/note-overrides-guide";
 import { renderNoteOperationGuide } from "./note-operation-guide";
+import { notePropertyIssueText } from "./note-property-diagnostics";
 
 export interface NoteControlActions {
   readonly refreshDisplay: () => void;
   readonly runCurrent: (operation: TransformOperation) => void;
   readonly openBatch: () => void;
   readonly openGlobalSettings: () => void;
-}
-
-function stateLabel(value: TriState, t: Translate): string {
-  return t(`panel.state.${value}`);
+  readonly openHeadingMap?: () => void;
 }
 
 function booleanLabel(value: boolean, t: Translate): string {
@@ -53,6 +50,10 @@ export function clearNoteControlSessions(app: App): void {
   NOTE_SESSIONS.delete(app);
 }
 
+const NOTE_TABS = ["display", "edit"] as const;
+type NoteTab = typeof NOTE_TABS[number];
+let nextPaneId = 0;
+
 export class NoteControlPane {
   private busy = false;
   private coordinator: NoteSaveCoordinator | null = null;
@@ -65,12 +66,21 @@ export class NoteControlPane {
     coordinator: NoteSaveCoordinator | null;
   }>();
   private summaryHost: HTMLElement | null = null;
-  private resetButton: ButtonComponent | null = null;
+  private readonly header: HTMLElement;
+  private readonly descriptions: HTMLElement;
+  private readonly tabList: HTMLElement;
+  private readonly tabs: Record<NoteTab, HTMLButtonElement>;
+  private readonly panels: Record<NoteTab, HTMLElement>;
+  private readonly editActions: HTMLElement;
+  private readonly settingsButton: HTMLButtonElement;
+  private activeTab: NoteTab = "display";
+  private preview: HTMLElement | null = null;
   private saveStatus: HTMLElement | null = null;
   private saveState: NoteSaveState = "saved";
   private frontmatter: Record<string, unknown> | null = null;
   private file: TFile | null = null;
   private request = 0;
+  private readonly addedLevels = new Set<ReturnType<typeof headingLevels>[number]>();
 
   constructor(
     private readonly app: App,
@@ -80,10 +90,78 @@ export class NoteControlPane {
     private readonly actions: NoteControlActions,
   ) {
     this.coordinators = sessionsFor(app);
+    this.header = contentEl.createDiv({ cls: "number-suite-note-control-header" });
+    this.descriptions = contentEl.createDiv();
+    this.tabList = contentEl.createDiv({
+      cls: "number-suite-sidebar-tabs", attr: { role: "tablist", "aria-orientation": "horizontal" },
+    });
+    const id = ++nextPaneId;
+    const makeTab = (tab: NoteTab): HTMLButtonElement => {
+      const button = this.tabList.createEl("button", {
+        attr: { type: "button", role: "tab", id: `number-suite-note-${id}-${tab}`,
+          "aria-controls": `number-suite-note-${id}-panel-${tab}` },
+      });
+      button.addEventListener("click", () => this.selectTab(tab));
+      button.addEventListener("keydown", (event) => {
+        const target = event.key === "Home" ? "display" : event.key === "End" ? "edit"
+          : event.key === "ArrowLeft" || event.key === "ArrowRight" ? (tab === "display" ? "edit" : "display") : null;
+        if (target == null) return;
+        event.preventDefault();
+        this.selectTab(target);
+        this.tabs[target].focus();
+      });
+      return button;
+    };
+    this.tabs = { display: makeTab("display"), edit: makeTab("edit") };
+    const makePanel = (tab: NoteTab): HTMLElement => contentEl.createDiv({
+      cls: `number-suite-sidebar-tabpanel is-${tab}`,
+      attr: { role: "tabpanel", id: `number-suite-note-${id}-panel-${tab}`,
+        "aria-labelledby": this.tabs[tab].id, tabindex: "0" },
+    });
+    this.panels = { display: makePanel("display"), edit: makePanel("edit") };
+    this.editActions = this.panels.edit.createDiv({ cls: "number-suite-sidebar-edit-actions" });
+    const footer = contentEl.createDiv({ cls: "number-suite-sidebar-footer" });
+    this.settingsButton = footer.createEl("button", { attr: { type: "button" } });
+    this.settingsButton.addEventListener("click", () => this.actions.openGlobalSettings());
+    this.updateLabels();
+    this.selectTab("display");
   }
 
   private get t(): Translate {
     return this.getTranslate();
+  }
+
+  private updateLabels(): void {
+    this.tabList.setAttribute("aria-label", this.t("panel.title"));
+    for (const tab of NOTE_TABS) this.tabs[tab].setText(this.t(`sidebar.tab.${tab}`));
+    this.settingsButton.setText(this.t("panel.openSettings"));
+  }
+
+  private selectTab(tab: NoteTab): void {
+    this.activeTab = tab;
+    for (const id of NOTE_TABS) {
+      const selected = id === tab;
+      this.tabs[id].setAttribute("aria-selected", String(selected));
+      this.tabs[id].tabIndex = selected ? 0 : -1;
+      this.panels[id].hidden = !selected;
+    }
+  }
+
+  mountPreview(): HTMLElement {
+    this.removePreview();
+    this.preview = this.panels.edit.createDiv({ cls: "number-suite-sidebar-preview" });
+    this.editActions.hidden = true;
+    this.contentEl.classList.add("has-preview");
+    this.selectTab("edit");
+    return this.preview;
+  }
+
+  removePreview(restoreFocus = false): void {
+    this.preview?.remove();
+    this.preview = null;
+    this.editActions.hidden = false;
+    this.contentEl.classList.remove("has-preview");
+    if (restoreFocus && this.activeTab === "edit") this.tabs.edit.focus();
   }
 
   setFile(file: TFile | null, reload = true): void {
@@ -105,6 +183,7 @@ export class NoteControlPane {
     this.detachCoordinator();
     this.numberDrafts.clear();
     this.fieldConflict = null;
+    this.addedLevels.clear();
     this.file = file;
     this.frontmatter = null;
     this.request += 1;
@@ -113,13 +192,14 @@ export class NoteControlPane {
   }
 
   refresh(): void {
+    this.updateLabels();
     void this.reload();
   }
 
   private async reload(): Promise<void> {
     if (
       this.coordinator != null
-      && (this.coordinator.pending || this.numberDrafts.size > 0 || this.contentEl.contains(this.contentEl.ownerDocument.activeElement))
+      && (this.coordinator.pending || this.numberDrafts.size > 0 || this.panels.display.contains(this.contentEl.ownerDocument.activeElement))
     ) return;
     const file = this.file;
     const request = this.request + 1;
@@ -151,13 +231,13 @@ export class NoteControlPane {
       this.frontmatter = null;
     }
     this.busy = false;
-    this.contentEl.removeClass("is-loading");
     this.render();
   }
 
   private renderLoading(): void {
-    this.contentEl.empty();
-    const status = this.contentEl.createDiv({
+    this.resetContent();
+    this.renderHeader();
+    const status = this.descriptions.createDiv({
       cls: "number-suite-note-control-loading",
     });
     status.setAttribute("role", "status");
@@ -171,31 +251,84 @@ export class NoteControlPane {
 
   private renderUnavailable(): void {
     this.busy = false;
-    this.contentEl.empty();
-    this.contentEl.createEl("p", {
+    this.resetContent();
+    this.descriptions.createEl("p", {
       cls: "number-suite-sidebar-empty",
       text: this.t("notice.noActiveNote"),
     });
   }
 
-  private render(): void {
-    this.resetButton = null;
-    this.numberDrafts.clear();
+  private resetContent(): void {
+    this.summaryHost = null;
+    this.saveStatus = null;
+    this.header.empty();
+    this.descriptions.empty();
+    this.panels.display.empty();
+    this.editActions.empty();
+  }
+
+  private renderHeader(): void {
     const file = this.file;
-    if (file == null) {
+    if (file == null) return;
+    const t = this.t;
+    const info = this.header.createDiv({ cls: "number-suite-note-control-identity" });
+    info.createDiv({ cls: "number-suite-note-current-label", text: t("panel.title") });
+    info.createEl("h3", { text: file.basename, attr: { title: file.path, dir: "auto" } });
+    this.summaryHost = info.createDiv();
+    const actions = this.header.createDiv({ cls: "number-suite-note-header-actions" });
+    if (this.actions.openHeadingMap != null) {
+      const label = t("command.headingMap.open");
+      const mapButton = actions.createEl("button", {
+        cls: "clickable-icon",
+        attr: { "aria-label": label, title: label, type: "button" },
+      });
+      setIcon(mapButton, "git-branch");
+      mapButton.addEventListener("click", () => this.actions.openHeadingMap?.());
+    }
+    const more = t("sidebar.more");
+    const menuButton = actions.createEl("button", {
+      cls: "clickable-icon",
+      attr: { "aria-label": more, title: more, type: "button", "aria-haspopup": "menu" },
+    });
+    setIcon(menuButton, "ellipsis");
+    menuButton.disabled = this.frontmatter == null;
+    menuButton.addEventListener("click", () => {
+      const current = this.frontmatter;
+      const coordinator = this.coordinator;
+      if (this.busy || current == null || this.file !== file) return;
+      const snapshot = readNoteControlSnapshot(current, this.getSettings());
+      const change = (operation: NoteOverrideChange): void => {
+        if (this.file !== file || this.coordinator !== coordinator) return;
+        this.applyChange(operation);
+        this.header.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')?.focus();
+      };
+      const menu = new Menu();
+      menu.addItem((item) => item
+        .setTitle(t(snapshot.ignore ? "sidebar.enableNote" : "sidebar.disableNote"))
+        .setIcon(snapshot.ignore ? "play" : "ban")
+        .setDisabled(!snapshot.valid)
+        .onClick(() => change({ kind: "ignore", value: !snapshot.ignore })));
+      menu.addItem((item) => item.setTitle(t("sidebar.restoreGlobal")).setIcon("rotate-ccw")
+        .setDisabled(!snapshot.hasAnyOverride).onClick(() => change({ kind: "reset" })));
+      const bounds = menuButton.getBoundingClientRect();
+      menu.showAtPosition({ x: bounds.left, y: bounds.bottom }, menuButton.ownerDocument);
+    });
+  }
+
+  private render(): void {
+    this.numberDrafts.clear();
+    this.resetContent();
+    if (this.file == null) {
       this.renderUnavailable();
       return;
     }
-    this.contentEl.empty();
-    const header = this.contentEl.createDiv({ cls: "number-suite-note-control-header" });
-    header.createEl("h3", { text: file.basename });
-    header.createEl("p", { text: file.path });
+    this.renderHeader();
 
     if (this.frontmatter == null) {
-      const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
+      const error = this.descriptions.createDiv({ cls: "number-suite-note-control-error" });
       error.setAttribute("role", "alert");
       error.setText(this.t("notice.invalidFrontmatter"));
-      new Setting(this.contentEl).addButton((button) => button
+      new Setting(this.descriptions).addButton((button) => button
         .setButtonText(this.t("panel.retry"))
         .onClick(() => void this.reload()));
       return;
@@ -204,114 +337,57 @@ export class NoteControlPane {
     const settings = this.getSettings();
     const snapshot = readNoteControlSnapshot(this.frontmatter, settings);
     if (!snapshot.valid) {
-      const error = this.contentEl.createDiv({ cls: "number-suite-note-control-error" });
+      const error = this.descriptions.createDiv({ cls: "number-suite-note-control-error" });
       error.setAttribute("role", "alert");
       error.createEl("strong", { text: this.t("panel.properties.invalid") });
       const list = error.createEl("ul");
-      for (const entry of snapshot.issues) list.createEl("li", { text: entry.message });
+      for (const entry of snapshot.issues) list.createEl("li", { text: notePropertyIssueText(entry, this.t) });
     } else if (snapshot.hasLegacy) {
-      this.contentEl.createEl("p", {
+      this.panels.display.createEl("p", {
         cls: "number-suite-note-control-migration",
         text: this.t("panel.properties.legacy"),
       });
     }
-    this.saveStatus = this.contentEl.createDiv({ cls: "number-suite-note-save-status" });
+    this.saveStatus = this.descriptions.createDiv({ cls: "number-suite-note-save-status" });
     this.saveStatus.setAttribute("role", "status");
     this.saveStatus.setAttribute("aria-live", "polite");
     this.renderSaveStatus();
-    this.summaryHost = this.contentEl.createDiv();
-    this.renderSummary(snapshot, settings, this.summaryHost);
-    renderNoteOperationGuide(this.contentEl, this.t);
+    if (this.summaryHost != null) this.renderSummary(snapshot, this.summaryHost);
     this.renderOverrides(snapshot, settings);
-    this.renderActions();
+    this.renderActions(snapshot);
   }
 
-  private renderSummary(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings, host: HTMLElement): void {
-    const section = host.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.summary") });
-    const grid = section.createDiv({ cls: "number-suite-note-control-summary" });
-    grid.setAttribute("role", "table");
-    const headingRow = grid.createDiv({ cls: "number-suite-note-control-summary-row is-heading" });
-    headingRow.setAttribute("role", "row");
-    for (const heading of [
-      this.t("panel.summary.setting"),
-      this.t("panel.summary.global"),
-      this.t("panel.summary.override"),
-      this.t("panel.summary.effective"),
-    ]) {
-      const cell = headingRow.createDiv({ cls: "number-suite-note-control-summary-heading" });
-      cell.setAttribute("role", "columnheader");
-      cell.setText(heading);
-    }
-    const ignored = this.t("panel.value.ignored");
-    this.addSummaryRow(grid, this.t("settings.showVirtual"), [
-      booleanLabel(settings.showVirtualNumbers, this.t),
-      stateLabel(snapshot.showVirtual, this.t),
-      snapshot.effectiveIgnore ? ignored : booleanLabel(snapshot.effectiveShowVirtual, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("settings.concealStored"), [
-      booleanLabel(settings.concealStoredNumbers, this.t),
-      stateLabel(snapshot.concealStored, this.t),
-      snapshot.effectiveIgnore ? ignored : booleanLabel(snapshot.effectiveConcealStored, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("settings.scheme"), [
-      schemeDisplayName(settings.selectedSchemeId, settings, this.t),
-      snapshot.schemeId == null
-        ? this.t("panel.state.inherit")
-        : schemeDisplayName(snapshot.schemeId, settings, this.t),
-      snapshot.effectiveIgnore
-        ? ignored
-        : schemeDisplayName(snapshot.effectiveSchemeId, settings, this.t),
-    ]);
-    this.addSummaryRow(grid, this.t("panel.ignore"), [
-      this.t("panel.value.off"),
-      snapshot.ignore ? this.t("panel.state.on") : this.t("panel.state.inherit"),
-      booleanLabel(snapshot.effectiveIgnore, this.t),
-    ]);
-  }
-
-  private addSummaryRow(container: HTMLElement, name: string, values: readonly string[]): void {
-    const row = container.createDiv({ cls: "number-suite-note-control-summary-row" });
-    row.setAttribute("role", "row");
-    const nameCell = row.createDiv({ cls: "number-suite-note-control-summary-name" });
-    nameCell.setAttribute("role", "rowheader");
-    nameCell.setText(name);
-    const labels = [
-      this.t("panel.summary.global"),
-      this.t("panel.summary.override"),
-      this.t("panel.summary.effective"),
-    ];
-    values.forEach((value, index) => {
-      const cell = row.createDiv({ cls: "number-suite-note-control-summary-value" });
-      cell.setAttribute("role", "cell");
-      cell.dataset.label = labels[index] ?? "";
-      cell.setText(value);
+  private renderSummary(snapshot: NoteControlSnapshot, host: HTMLElement): void {
+    const count = Number(snapshot.showVirtual !== "inherit") + Number(snapshot.concealStored !== "inherit")
+      + Number(snapshot.schemeId != null) + Object.keys(snapshot.firstNumbers).length + Object.keys(snapshot.skipFirst).length;
+    host.createDiv({
+      cls: "number-suite-note-control-state",
+      text: snapshot.effectiveIgnore ? this.t("panel.status.disabled")
+        : count > 0 ? this.t("panel.status.custom", { count }) : this.t("panel.status.inherit"),
     });
   }
 
   private renderOverrides(snapshot: NoteControlSnapshot, settings: NumberSuiteSettings): void {
-    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.overrides") });
-    renderNoteOverridesGuide(section, this.t, "panel");
+    const section = this.panels.display.createDiv({ cls: "number-suite-note-control-section" });
     this.addTriStateSetting(
       section,
       this.t("settings.showVirtual"),
-      this.t("panel.show.desc"),
+      settings.showVirtualNumbers,
       snapshot.showVirtual,
       (value) => ({ kind: "show-virtual", value }),
     );
     this.addTriStateSetting(
       section,
-      this.t("settings.concealStored"),
-      this.t("panel.conceal.desc"),
+      this.t("panel.storedNumbers"),
+      !settings.concealStoredNumbers,
       snapshot.concealStored,
       (value) => ({ kind: "conceal-stored", value }),
+      true,
     );
     new Setting(section)
       .setName(this.t("settings.scheme"))
-      .setDesc(this.t("panel.scheme.desc"))
       .addDropdown((dropdown) => {
-        dropdown.addOption("", this.t("panel.state.inherit"));
+        dropdown.addOption("", this.t("panel.inheritValue", { value: schemeDisplayName(settings.selectedSchemeId, settings, this.t) }));
         for (const [id, label] of noteSchemeOptions(settings, snapshot.schemeId, this.t)) {
           dropdown.addOption(id, label);
         }
@@ -319,27 +395,24 @@ export class NoteControlPane {
           void this.applyChange({ kind: "scheme", value: value.length === 0 ? null : value });
         });
       });
-    new Setting(section)
-      .setName(this.t("panel.ignore"))
-      .setDesc(this.t("panel.ignore.desc"))
-      .addToggle((toggle) => toggle.setValue(snapshot.ignore).onChange((value) => {
-        void this.applyChange({ kind: "ignore", value });
-      }));
-
     const advanced = section.createEl("details", { cls: "number-suite-note-control-levels" });
     advanced.open = headingLevels().some((level) => (
-      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null
+      snapshot.firstNumbers[level] != null || snapshot.skipFirst[level] != null || this.addedLevels.has(level)
     ));
     advanced.createEl("summary", { text: this.t("panel.numberingByLevel") });
-    advanced.createEl("p", { text: this.t("panel.numberingByLevel.desc") });
-    for (const level of headingLevels()) {
-      const row = new Setting(advanced).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
+    const rows = advanced.createDiv({ cls: "number-suite-note-level-rules" });
+    const visibleLevels = new Set<ReturnType<typeof headingLevels>[number]>();
+    let refreshPicker = (): void => undefined;
+    const addRow = (level: ReturnType<typeof headingLevels>[number]): void => {
+      visibleLevels.add(level);
+      const current = readNoteControlSnapshot(this.frontmatter ?? {}, this.getSettings());
+      const row = new Setting(rows).setName(`H${level}`).setDesc(this.t("panel.numberingByLevel.columns"));
       row.addText((text) => {
         text.inputEl.type = "number";
         text.inputEl.min = "1";
         text.inputEl.step = "1";
         text.setPlaceholder(this.t("panel.state.inherit"));
-        text.setValue(snapshot.firstNumbers[level]?.toString() ?? "");
+        text.setValue(current.firstNumbers[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.firstNumber.aria", { level }));
         text.inputEl.addEventListener("blur", () => this.finishLevelNumber("first-number", text.inputEl));
         text.inputEl.addEventListener("keydown", (event) => {
@@ -352,7 +425,7 @@ export class NoteControlPane {
         text.inputEl.min = "0";
         text.inputEl.step = "1";
         text.setPlaceholder("0");
-        text.setValue(snapshot.skipFirst[level]?.toString() ?? "");
+        text.setValue(current.skipFirst[level]?.toString() ?? "");
         text.inputEl.setAttribute("aria-label", this.t("panel.skipFirst.aria", { level }));
         text.inputEl.addEventListener("blur", () => this.finishLevelNumber("skip-first", text.inputEl));
         text.inputEl.addEventListener("keydown", (event) => {
@@ -360,18 +433,41 @@ export class NoteControlPane {
         });
         text.onChange((raw) => this.applyLevelNumber("skip-first", level, raw, text.inputEl));
       });
-    }
-    new Setting(section)
-      .setName(this.t("panel.reset"))
-      .setDesc(this.t("panel.reset.desc"))
-      .addButton((button) => {
-        this.resetButton = button;
-        button.setButtonText(this.t("panel.reset.button"))
-          .setDisabled(!snapshot.hasAnyOverride)
-          .onClick(() => void this.applyChange({ kind: "reset" }));
-      });
+      row.addButton((button) => button.setButtonText(this.t("panel.state.inherit")).onClick(() => {
+        this.numberDrafts.forEach((draft, input) => {
+          if (draft.change.level === level) this.numberDrafts.delete(input);
+        });
+        this.applyChange({ kind: "first-number", level, value: null });
+        this.applyChange({ kind: "skip-first", level, value: null });
+        this.addedLevels.delete(level);
+        visibleLevels.delete(level);
+        row.settingEl.remove();
+        refreshPicker();
+      }));
+    };
+    const visible = headingLevels().filter((level) => snapshot.firstNumbers[level] != null
+      || snapshot.skipFirst[level] != null || this.addedLevels.has(level));
+    for (const level of visible) addRow(level);
+    const picker = advanced.createDiv();
+    refreshPicker = (): void => {
+      picker.empty();
+      const available = headingLevels().filter((level) => !visibleLevels.has(level));
+      if (available.length === 0) return;
+      let selected = available[0]!;
+      new Setting(picker).setName(this.t("panel.addLevel"))
+        .addDropdown((dropdown) => {
+          for (const level of available) dropdown.addOption(String(level), `H${level}`);
+          dropdown.setValue(String(selected)).onChange((value) => { selected = Number(value) as typeof selected; });
+        })
+        .addButton((button) => button.setButtonText(this.t("panel.addLevel")).onClick(() => {
+          this.addedLevels.add(selected);
+          addRow(selected);
+          refreshPicker();
+        }));
+    };
+    refreshPicker();
     if (snapshot.hasLegacy) {
-      new Setting(section)
+      new Setting(advanced)
         .setName(this.t("panel.migrate"))
         .setDesc(this.t("panel.migrate.desc"))
         .addButton((button) => button
@@ -383,14 +479,19 @@ export class NoteControlPane {
   private addTriStateSetting(
     container: HTMLElement,
     name: string,
-    description: string,
+    globalDisplay: boolean,
     value: TriState,
     change: (value: TriState) => NoteOverrideChange,
+    inverted = false,
   ): void {
-    new Setting(container).setName(name).setDesc(description).addDropdown((dropdown) => dropdown
-      .addOption("inherit", this.t("panel.state.inherit"))
-      .addOption("on", this.t("panel.state.on"))
-      .addOption("off", this.t("panel.state.off"))
+    const showValue = inverted ? "off" : "on";
+    const hideValue = inverted ? "on" : "off";
+    new Setting(container).setName(name).addDropdown((dropdown) => dropdown
+      .addOption("inherit", this.t("panel.inheritValue", {
+        value: this.t(globalDisplay ? "panel.display.show" : "panel.display.hide"),
+      }))
+      .addOption(showValue, this.t("panel.display.show"))
+      .addOption(hideValue, this.t("panel.display.hide"))
       .setValue(value)
       .onChange((next) => void this.applyChange(change(next as TriState))));
   }
@@ -431,31 +532,24 @@ export class NoteControlPane {
     this.renderSaveStatus();
   }
 
-  private renderActions(): void {
-    const section = this.contentEl.createDiv({ cls: "number-suite-note-control-section" });
-    section.createEl("h4", { text: this.t("panel.actions") });
-    const actions = section.createDiv({ cls: "number-suite-note-control-actions" });
+  private renderActions(snapshot: NoteControlSnapshot): void {
+    const actions = this.editActions.createDiv({ cls: "number-suite-note-control-actions" });
     for (const [operation, key] of [
       ["write", "command.write.current"],
-      ["remove", "command.remove.current"],
       ["renumber", "command.renumber.current"],
-      ["strip-markers", "command.strip.current"],
+      ["remove", "command.remove.current"],
     ] as const) {
-      const button = actions.createEl("button", { text: this.t(key) });
-      button.addEventListener("click", () => {
-        this.actions.runCurrent(operation);
-      });
+      const button = actions.createEl("button", { text: this.t(key), attr: { type: "button" } });
+      button.disabled = snapshot.effectiveIgnore || !snapshot.valid;
+      button.addEventListener("click", () => this.actions.runCurrent(operation));
     }
-    const navigation = section.createDiv({ cls: "number-suite-note-control-navigation" });
-    const batch = navigation.createEl("button", { text: this.t("command.batch.folder") });
-    batch.addEventListener("click", () => {
-      this.actions.openBatch();
-    });
-    const settings = navigation.createEl("button", { text: this.t("panel.openSettings") });
-    settings.addClass("mod-cta");
-    settings.addEventListener("click", () => {
-      this.actions.openGlobalSettings();
-    });
+    const navigation = this.editActions.createDiv({ cls: "number-suite-note-control-navigation" });
+    const strip = navigation.createEl("button", { text: this.t("command.strip.current"), attr: { type: "button" } });
+    strip.disabled = snapshot.effectiveIgnore || !snapshot.valid;
+    strip.addEventListener("click", () => this.actions.runCurrent("strip-markers"));
+    const batch = navigation.createEl("button", { text: this.t("command.batch.folder"), attr: { type: "button" } });
+    batch.addEventListener("click", () => this.actions.openBatch());
+    renderNoteOperationGuide(this.editActions, this.t);
   }
 
   private createCoordinator(file: TFile): void {
@@ -503,10 +597,9 @@ export class NoteControlPane {
       this.renderSaveStatus();
       const settings = this.getSettings();
       const snapshot = readNoteControlSnapshot(this.frontmatter, settings);
-      this.resetButton?.setDisabled(!snapshot.hasAnyOverride);
       if (this.summaryHost != null) {
         this.summaryHost.empty();
-        this.renderSummary(snapshot, settings, this.summaryHost);
+        if (this.summaryHost != null) this.renderSummary(snapshot, this.summaryHost);
       }
     });
   }
@@ -521,6 +614,8 @@ export class NoteControlPane {
     const status = this.saveStatus;
     if (status == null) return;
     status.empty();
+    status.hidden = this.saveState === "saved" && this.numberDrafts.size === 0;
+    status.setAttribute("role", this.saveState === "error" ? "alert" : "status");
     status.createSpan({ text: this.t(`panel.save.${this.saveState === "saved" && this.numberDrafts.size > 0 ? "pending" : this.saveState}`) });
     if (this.saveState === "error") {
       if (this.fieldConflict != null) {
@@ -595,7 +690,8 @@ export class NoteControlPane {
     try {
       this.coordinator.update(change);
       this.fieldConflict = null;
-      if (change.kind === "reset" || change.kind === "migrate") this.render();
+      if (change.kind === "reset") this.addedLevels.clear();
+      if (change.kind === "reset" || change.kind === "migrate" || change.kind === "ignore") this.render();
       this.flushDraft();
     } catch (error: unknown) {
       console.error("Number Suite: unsafe current note Properties change", error);

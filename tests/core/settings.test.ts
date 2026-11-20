@@ -207,6 +207,7 @@ describe("settings", () => {
       code: "invalid-value",
       field: key.startsWith("heading.first-number.") ? "heading.first-number" : "heading.skip-first",
       message: `Invalid number-suite item: ${key}=2`,
+      details: { kind: "invalid-item", item: `${key}=2` },
     }]);
     expect(overrides.starts).toEqual({});
     expect(overrides.skipFirst).toEqual({});

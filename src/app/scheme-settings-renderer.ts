@@ -22,7 +22,34 @@ import {
 } from "../core/types";
 import type { SettingsImpact } from "./settings-impact";
 
-const PREVIEW_COUNTERS = [2, 3, 4, 5, 6, 7, 8, 9, 10] as Counters;
+// Every preview uses the first counter value for each heading level.
+// This is a format sample, never the document's actual numbering state.
+const PREVIEW_COUNTERS = [1, 1, 1, 1, 1, 1, 1, 1, 1] as Counters;
+
+/** Shared preview for built-in and editable H1–H9 templates. Never writes a note. */
+export function renderSchemeTemplatePreview(container: HTMLElement, template: string, t: Translate): void {
+  container.empty();
+  container.removeAttribute("title");
+  container.removeClass("number-suite-scheme-example");
+  if (template.length === 0) {
+    container.setText(t("settings.scheme.disabled"));
+    return;
+  }
+  const value = renderTemplate(template, PREVIEW_COUNTERS);
+  if (value.length === 0) {
+    // The validation message beside the editor explains an invalid template.
+    container.setText("—");
+    return;
+  }
+  const heading = t("settings.scheme.preview.heading");
+  container.addClass("number-suite-scheme-example");
+  container.setAttribute("title", t("settings.scheme.preview", { value: value + " " + heading }));
+  container.createSpan({
+    cls: "number-suite-heading-number number-suite-scheme-example-number",
+    text: value,
+  });
+  container.createSpan({ cls: "number-suite-scheme-example-heading", text: heading });
+}
 
 type EditableScheme = Omit<CustomNumberingScheme, "templates" | "exclusions"> & {
   templates: string[];
@@ -200,7 +227,10 @@ export class SchemeSettingsRenderer {
     const example = body.createDiv({ cls: "number-suite-settings-guide-example" });
     example.append(`${t("settings.scheme.placeholder.example")} `);
     example.createEl("code", { text: "{2.arabic}" });
-    example.append(` → 3 · ${t("settings.scheme.placeholder.explanation")}`);
+    example.createSpan({
+      cls: "number-suite-placeholder-explanation",
+      text: t("settings.scheme.placeholder.explanation"),
+    });
     body.createEl("p", { text: t("settings.scheme.placeholder.formats") });
     const list = body.createEl("ul", { cls: "number-suite-placeholder-formats" });
     for (const format of NUMBER_FORMATS) {
@@ -256,10 +286,8 @@ export class SchemeSettingsRenderer {
         body.createSpan({ cls: "number-suite-readonly-disabled", text: t("settings.scheme.disabled") });
       } else {
         body.createEl("code", { text: template });
-        body.createSpan({
-          cls: "number-suite-readonly-preview",
-          text: `→ ${renderTemplate(template, PREVIEW_COUNTERS)}`,
-        });
+        const preview = body.createSpan({ cls: "number-suite-readonly-preview" });
+        renderSchemeTemplatePreview(preview, template, t);
       }
     }
   }
@@ -310,9 +338,7 @@ export class SchemeSettingsRenderer {
         : invalidExclusions ? t("settings.scheme.exclusions.invalid") : "";
       draft.templates.forEach((template, index) => {
         const preview = previewElements[index];
-        if (preview != null) preview.textContent = template.length === 0
-          ? t("settings.scheme.disabled")
-          : t("settings.scheme.preview", { value: renderTemplate(template, PREVIEW_COUNTERS) });
+        if (preview != null) renderSchemeTemplatePreview(preview, template, t);
       });
       return !invalidTemplate && !invalidExclusions && draft.name.trim().length > 0;
     };

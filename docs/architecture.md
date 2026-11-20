@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: architecture.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-08
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Architecture
@@ -44,7 +44,7 @@ style, rule, and confidence for plugin, template, and manual prefixes; `prefix-a
 shared display/write entry point.
 
 `markdown-containers.ts` uses the bundled, pure Lezer Markdown parser to classify list and
-blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code and inline-math ranges; a second parses comment-projected blocks while retaining literal comments inside both. The inline-math extension also provides stable-ID insertion boundaries, so dollar delimiters have one rule. The projection is linear
+blockquote containers and root or nested code/HTML blocks from shared snapshot facts. One pass locates exact inline-code, inline-math and link URL/LinkTitle ranges; a second parses comment-projected blocks while retaining literal comments inside those ranges. Notes and explicit semantic markers in visible link text reuse the scanners' syntax as atomic inline nodes so unvalidated nested shortcut links cannot invalidate the outer link; these marker nodes are not masked. Only the complete Markdown parse owns link destinations and titles, without a separate line-based parenthesis guess. The same table row scanner bounds link metadata to one cell, including table paragraphs inside lists and blockquotes. Parser-recorded container-prefix offsets preserve physical positions; cross-cell or cross-row link-like text does not claim prose. The inline-math extension also provides stable-ID insertion boundaries, so dollar delimiters have one rule. The projection is linear
 and retains physical source offsets, including CRLF and CR. Number Suite H7-H9 remain block
 boundaries. Shared protection distinguishes top-level declarations from ordinary text: nested
 headings, captions, and objects are excluded, while ordinary note and semantic references inside
@@ -102,7 +102,7 @@ and unconstrained canvas translation separate.
 <!-- section: interop-api -->
 ## Consumer interoperability API
 
-The complete source snapshot shares physical lines, code/math protection, note containers and table boundaries. Inline math retains exact ranges within its Markdown inline block; escaped, unmatched and whitespace-delimited dollars do not claim prose. Block equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
+The complete source snapshot shares physical lines, code/math/link-metadata protection, note containers and table boundaries. Inline math retains exact ranges within its Markdown inline block; escaped, unmatched and whitespace-delimited dollars do not claim prose. Block equations become independent literal blocks before Markdown container/comment interpretation; minus signs, quote-like or comment-like text on the opening or body lines cannot change ownership after the closing delimiter. Equation interiors contribute no captions or references, while their external Equation carrier can bind captions of any semantic type. Legal table data rows with omitted boundary pipes belong to the table before caption interpretation. The shared table scan recognizes short native GFM delimiters and records caption-carrier eligibility separately; semantic protection uses every recognized table, while caption editing retains its existing minimum delimiter width. A snapshot-local title/typed-caption index retains unique and ambiguous targets; references and heading display results use indexed lookup, without mutable cross-file caches.
 
 Semantic parsing builds one line-to-unique-target-ID index for both reference creation and export; heading display results are also indexed by line. Consumers do not rescan the source or every block owner for each target. The index retains ambiguity from duplicate IDs and multiple IDs on one target, including a duplicate ID beside another unique ID. Existing standalone IDs follow the same zero-or-one-blank-line ownership rule in both consumers. Original case and reference source offsets remain unchanged.
 
@@ -130,25 +130,27 @@ Native GFM rows split on unescaped pipes before inline parsing, including pipes 
 <!-- section: display-adapters -->
 ## Display adapters
 
-`NumberSuiteSidebarView` is one persistent right-side `ItemView` with two internal tabs. The outline
-and Heading Map share a Markdown-source binding adapter: an existing originating same-file pane wins,
-then the active same-file pane, then a unique same-file pane, and ambiguous unbound panes fall back
-to a cached Vault read. The outline renders the pure projection and reconciles heading collapse
-state with source identities instead of raw line numbers. The current-note tab owns a reusable
-controls pane instead of a modal. Workspace file, leaf, editor, and Vault-modify events refresh only
-the relevant active tab; the selected tab is stored as view state. Navigation resolves an existing
-Markdown leaf when possible and otherwise opens the file at the projected source line.
+## Native Outline and structure editing
 
-`NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from the outline button
+The native Outline adapter watches only files shown in an enhanced Outline pane. The projection in `src/integration/native-outline-projection.ts` builds heading and caption rows from that file’s text. Closing the last pane bound to a note, deleting the file, or turning off enhancements releases its source.
+
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. Open headings in Obsidian’s Outline. Current note has two tabs, Display & numbering and Edit note text. Existing shortcuts and saved workspaces continue to open the corresponding view.
+
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
+
+H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
+
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do not write and show a concise local reason; canceled and unchanged moves stay quiet. Adjust structure has a visible mode label, always-visible move controls, highlighted targets and before/after insertion lines. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
+
+`NumberSuiteHeadingMapView` is a separate main-workspace `ItemView` opened from native Outline or Current note
 or command palette. It uses the same bound-pane source preference and exact source-line navigation,
 rendering SVG structure edges in left-to-right or top-to-bottom layout. Pure helpers own structural
 depth expansion and anchored viewport zoom math. A card's left handle shows its heading number or Hn
-fallback; its right handle always shows the total direct-child count and changes only session-local
+fallback; its right arrow shows the direct-child count when children exist; leaves show neither an arrow nor zero, and the control changes only session-local
 branch collapse. The view supports whole-document/selected-subtree scopes, 1/2/3/all depth presets,
 search traversal, empty-space panning, Ctrl/Cmd-wheel or two-finger pointer zoom, keyboard zoom/Fit,
 and toolbar Fit. Search may temporarily reveal ancestors of matches without changing structural
-counts. The view only consumes display plans: it never calls Editor/Vault write APIs and offers no
-drag reordering or heading-level edits.
+counts. The browse mode consumes display plans. Explicit structure editing uses the shared immutable move planner and a guarded Editor transaction, without parent or heading-level changes.
 
 Each CodeMirror `EditorView` owns one `ViewPlugin` that confirms scanner candidates against the
 syntax tree, distinguishes Live Preview from Source Mode, and uses `Decoration.widget` and
@@ -191,6 +193,9 @@ structured tooltip controller and is removed during cleanup.
 Footnotes and endnotes also enter only the display decoration plan. CodeMirror replaces visible
 reference and definition labels, but drops a replacement whenever the selection touches its source
 range so the stored marker becomes editable. Note widgets return pointer events to CodeMirror.
+Only definition replacements use a higher-priority decoration facet than native punctuation masks,
+so the complete label survives extension removal and re-registration. Reference, heading and caption
+decorations retain their existing precedence; mode and settings changes clear the definition set too.
 Reading View preserves Obsidian's native footnote links and list structure and stays unchanged unless
 source-plan and rendered-node counts match exactly. Cleanup restores original visible text, ARIA
 labels, and list values on reprocessing, view changes, and plugin disable.
@@ -234,6 +239,8 @@ explicit user action.
 The Reading View DOM ownership maps, caption origins, reversible offsets, and cleanup are isolated in `reading-dom-lifecycle.ts`. The postprocessor still validates source bindings and consumes the shared semantic plan; cleanup never writes Markdown.
 
 Batch settlement uses an App-owned queue keyed by `Symbol.for("number-suite.batch-settlement.v1")`, so a new plugin module cannot read or replace recovery until an earlier owner settles. Disposal checks precede forward file writes and run again inside `Vault.process`; dispatched writes finish, then exact compensation and recovery persistence settle under the same owner. Compensation bypasses the forward-lifecycle guard but retains identity and exact-content checks. A disposed owner emits no new notices.
+
+Single-note commands and sidebar actions share one immutable transform-plan path and the sidebar preview renderer. The internal preview page holds its original TFile, editor and source snapshot independently of active-note changes. Apply revalidates the exact binding and source; stale previews remain visible with an error and must be rebuilt. Cancel or success returns to Current note. Batch previews retain their wide modal and reuse the same itemized preview component.
 
 <!-- section: persistence -->
 ## Persistence

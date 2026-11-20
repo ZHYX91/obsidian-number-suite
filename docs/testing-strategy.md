@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: testing-strategy.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-08
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Testing strategy
@@ -27,6 +27,8 @@ editor transaction when relocation would skip authored content.
 Full-snapshot boundary regressions use independent Lezer inline-code/GFM structure and cover cross-line backticks, all three line endings, inline-math and block-equation interiors, short table delimiters, omitted boundary pipes and genuine zero-blank-line captions. Dollar controls include escaped, unmatched and currency text, literal comments inside math and prose after math. Assert actual editor pills, first-reference note order and v2 export offsets separately. Stable-reference command regressions reuse original-case IDs across one blank line without a transaction and refuse ambiguous ownership. Scale tests bound snapshot parse passes and title-normalization work while retaining Unicode and duplicate-title ambiguity. Listener tests remove and reinsert targets before plugin unload, covering window close, view unload and stopPropagation. Storage barriers prove that old-instance final saves/retries precede new loads and unknown schemas never write.
 
 Table row regressions assert caption text and numbering through the real snapshot, display plan and v2 export. Unmatched or escaped backticks are checked against native GFM parsing. Pipes and backslashes inside closed code spans and valid `||` extensions are positive controls; whitespace-only delimiter cells, edge dividers and repeated dividers are negative controls.
+
+Real CodeMirror note-definition regressions combine independent opening/closing punctuation masks and an ID mark with whole-label replacements. Both extension registration orders, repeated removal/re-registration, selection reveal, composition and disabled display modes must preserve inactive labels and source bytes. Native acceptance separately checks Reading View disable/re-enable followed by Live Preview, source-mode round trips and exact file hashes.
 
 <!-- section: evidence-levels -->
 ## Evidence levels
@@ -57,7 +59,7 @@ protection. Application tests cover virtual/conceal plans, fail-closed same-file
 resolution, independent caption alignment, selection-based note-source reveal, Properties parsing,
 note overrides, and conditional replacement. Adapter tests cover
 recovery data, Reading View DOM-count validation, semantic-marker cleanup, and settings contracts.
-The pure sidebar outline projection covers H1-H9 hierarchy, captions, display labels, protected
+The pure navigation projection covers H1-H9 hierarchy, captions, display labels, protected
 regions, and block-ID removal; targeted current-note tests cover sidebar focus and duplicate-view
 failure.
 Broader recognition requires false-positive fixtures first.
@@ -94,7 +96,7 @@ contract. `release:check` adds version, tag, and clean-worktree checks.
 ## Host acceptance
 
 For selected host scenarios, use an isolated acceptance vault and verify the affected parts of the ribbon-opened sidebar, both
-internal tabs, H1-H9-and-caption outline navigation, current-note controls, independent
+native Outline H1-H9-and-caption navigation, current-note controls, independent
 display/concealment, Live Preview, Reading View, previewed writes and undo, source accessibility,
 plugin-disable cleanup, same-length edits, Properties persistence, and link-risk messaging. Batch
 work also verifies stale previews, concurrent conflicts, mid-run failure, recovery, and exclusions.

@@ -29,11 +29,9 @@ scoped pass into a claim that every product scenario passed.
 
 ## Highest-value loop
 
-- [ ] Click the ribbon icon and confirm it opens the persistent right sidebar on Document outline
-  without changing the note or global settings; close and reopen it and verify the selected tab is
-  preserved.
-- [ ] Select Current note and confirm it names the active note and shows global, current-note
-  override, and effective values. The command Open current note controls must select this tab.
+- [ ] Click the ribbon icon and confirm it directly opens Current note with Display & numbering selected on first open and the note and global settings unchanged. Reopen saved legacy sidebar state and run old command shortcuts to verify migration.
+- [ ] In Current note, confirm it names the active note and shows global, current-note
+  override, and effective values. The command Open current note controls must open this panel.
 - [ ] Set virtual display and concealment independently through Follow global / On / Off; re-open the panel and verify persistence and effective display.
 - [ ] Choose a built-in and a custom scheme from the panel without typing an ID; Follow global must delete the scheme property.
 - [ ] Enable note ignore, then restore all to Follow global; verify all plugin Properties are removed and unrelated Properties remain byte-for-byte equivalent.
@@ -225,11 +223,9 @@ Source markers are disabled by default. Before enabling them for a release claim
 ## Android baseline
 
 - [ ] Use an isolated Android 15 / API 35 emulator Vault and hash-verify the installed candidate.
-- [ ] Open the sidebar from the ribbon, switch between Document outline and Current note, close and
-  reopen it, change an override, and confirm tab/effective-value persistence without changing
-  unrelated Properties.
-- [ ] In Document outline, navigate H1-H9 and all four caption types, collapse and expand sections,
-  and verify tab, row, and collapse controls have at least 44-pixel touch height with no clipping or
+- [ ] Open Current note from the ribbon, close and reopen it, change an override, and confirm effective-value persistence without changing unrelated Properties or exposing obsolete tabs.
+- [ ] In native Outline, navigate H1-H9 and all four caption types, collapse and expand sections,
+  and verify row and collapse controls have at least 44-pixel touch height with no clipping or
   horizontal drift at phone width.
 - [ ] In Live Preview, verify virtual numbers, stored-number concealment, cursor reveal, selection,
   copy, and Chinese IME composition. While editing, confirm only the active heading, caption, or
@@ -292,3 +288,14 @@ A caption pill alone does not establish binding, and a same-section pass does no
 cross-section placement. For inline math, record actual native rendering before classifying a
 preview or write; unsupported multiline math is an unverified boundary, not an assumed defect.
 Neither investigation is a completed acceptance result until the exact candidate runs in the host.
+
+## Native Outline migration and guarded structure edits
+
+- [ ] With core Outline disabled, verify helpful enablement guidance and no automatic enablement. With it enabled, verify the General master switch, four shared Display options and persisted explicit false values after reload.
+- [ ] Compare effective numbers with the body across built-in/custom schemes, exclusions and per-note settings. Confirm heading number pills, localized caption type icons/ordinals, secondary titles and non-expandable caption leaves in source order; filtering and collapse must not renumber entries.
+- [ ] Verify native filtering, collapse, current-location following, multiple Outline panes and pinned files. Confirm no Markdown or shared metadata cache changes from display alone.
+- [ ] On Windows and Android, drag an H7, H8 and H9 section before/after a same-parent, same-level peer. Verify visible insertion targets, complete prose/caption/descendant movement, Undo and Redo, and rejection after an intervening source edit. Capture actual touch-drag evidence on Android; up/down buttons alone do not accept dragging.
+- [ ] Reject cross-parent, different-level and independent caption moves. Verify native H1–H6 operations remain available with synthetic entries visible.
+- [ ] Open mind maps from two pinned Outline panes, Current note and commands, checking the correct source file and focus changes. In explicit structure mode verify dragging and up/down buttons share the same stale checks and undo path.
+- [ ] In Live Preview and Reading View, verify ordinary Wiki heading enhancement is off by default; enable it and check same-file bare and file-qualified targets, aliases and native click/context actions. Cross-file, block, embed and ordinary Markdown links must remain native.
+- [ ] Single-click explicit references to navigate; use F2 on desktop and the source-edit action on Android. Disable/unload/reload and upgrade legacy workspace/settings state, checking source access, removed obsolete UI and absence of duplicate decorations.

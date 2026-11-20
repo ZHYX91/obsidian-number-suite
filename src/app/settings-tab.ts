@@ -269,6 +269,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   }
 
   private renderGeneral(container: HTMLElement, t: Translate): void {
+    new Setting(container).setName(t("settings.outline.enabled"))
+      .setDesc(t("settings.outline.enabled.desc"))
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.enhanceNativeOutline)
+        .onChange((value) => this.updateControl("outline.enabled", value)));
     new Setting(container)
       .setName(t("settings.language"))
       .setDesc(t("settings.language.desc"))
@@ -378,6 +382,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.references.enable.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCrossReferences)
         .onChange((value) => this.updateControl("references.showCrossReferences", value)));
+    new Setting(container).setName(t("settings.references.nativeWiki"))
+      .setDesc(t("settings.references.nativeWiki.desc"))
+      .addToggle((toggle) => toggle.setValue(this.plugin.settings.enhanceNativeWikiHeadingLinks)
+        .onChange((value) => this.updateControl("references.enhanceNativeWikiHeadingLinks", value)));
     renderSameFileReferenceGuide(container, t);
   }
 

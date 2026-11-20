@@ -3,6 +3,8 @@ import { parser, type BlockContext, type BlockParser, type LeafBlockParser, type
 import { scanInlineComments, type CommentKind } from "./markdown-comments";
 import { blockHtmlStart, completeCustomHtmlTag, rawHtmlStart } from "./markdown-html-blocks";
 import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
+import { inlineSemanticMarkers } from "./markdown-inline-markers";
+import { scanTableBlocks, splitTableRow } from "./markdown-table-blocks";
 import type { PhysicalSourceLine } from "./source-lines";
 
 interface SourceRange {
@@ -16,17 +18,126 @@ interface LiteralRange extends SourceRange {
   readonly kind: LiteralKind;
 }
 
+interface InlineLiteralRange extends SourceRange {
+  readonly metadataOwner?: SourceRange;
+}
+
 export interface MarkdownContainerLine {
   readonly nested: boolean;
   readonly literal: boolean;
   readonly literalKind: LiteralKind | null;
-  /** Exact code/math offsets within this physical line, including cross-line spans. */
+  /** Exact code, math and link-metadata offsets, including cross-line spans. */
   readonly inlineLiterals: readonly SourceRange[];
   readonly equationLastLine?: number;
 }
 
 const CONTAINERS = new Set(["BulletList", "OrderedList", "Blockquote"]);
 const LITERALS = new Set<string>(["FencedCode", "CodeBlock", "HTMLBlock", "NumberSuiteEquation", "NumberSuiteUnclosedEquation"]);
+const INLINE_LITERALS = new Set(["InlineCode", INLINE_MATH_NODE, "URL", "LinkTitle"]);
+
+function markdownFacts(tree: ReturnType<typeof parser.parse>) {
+  const containers: SourceRange[] = [];
+  const literals: LiteralRange[] = [];
+  const inlineLiterals: InlineLiteralRange[] = [];
+  let depth = 0;
+  tree.iterate({
+    enter(node) {
+      if (CONTAINERS.has(node.name)) {
+        if (depth === 0) containers.push({ from: node.from, to: node.to });
+        depth += 1;
+      } else if (LITERALS.has(node.name)) {
+        literals.push({ from: node.from, to: node.to, kind: node.name as LiteralKind });
+        return false;
+      } else if (INLINE_LITERALS.has(node.name)) {
+        const parent = node.node.parent;
+        const metadataOwner = node.name === "URL" || node.name === "LinkTitle"
+          ? { from: parent?.from ?? node.from, to: parent?.to ?? node.to } : null;
+        inlineLiterals.push({ from: node.from, to: node.to, ...(metadataOwner == null ? {} : { metadataOwner }) });
+        return false;
+      }
+      return undefined;
+    },
+    leave(node) { if (CONTAINERS.has(node.name)) depth -= 1; },
+  });
+  return { containers, literals, inlineLiterals };
+}
+
+function firstRangeAfter<T extends SourceRange>(ranges: readonly T[], offset: number): T | undefined {
+  let low = 0, high = ranges.length;
+  while (low < high) { const mid = (low + high) >>> 1; if (ranges[mid]!.to <= offset) low = mid + 1; else high = mid; }
+  return ranges[low];
+}
+
+/** Observe the parser's own quote/list prefixes without adding Markdown syntax. */
+function recordLineBases(bases: Map<number, number>): BlockParser {
+  const record = (cx: BlockContext, line: Line): false => {
+    bases.set(cx.lineStart, Math.max(bases.get(cx.lineStart) ?? 0, line.basePos));
+    return false;
+  };
+  return { name: "NumberSuiteLineBases", before: "IndentedCode", parse: record, endLeaf: record };
+}
+
+/** A link cannot own metadata across the existing table scanner's cell boundaries. */
+function protectTableBoundaries(tree: ReturnType<typeof parser.parse>, lines: readonly PhysicalSourceLine[],
+  starts: readonly number[], bases: ReadonlyMap<number, number>, inline: readonly InlineLiteralRange[]): SourceRange[] {
+  const scopes: Array<{ first: number; last: number }> = [];
+  const paragraphs = new Array<object | undefined>(lines.length);
+  let lineIndex = 0;
+  tree.iterate({ enter(node) {
+    if (node.name !== "Paragraph") return;
+    while (starts[lineIndex + 1] != null && starts[lineIndex + 1]! <= node.from) lineIndex += 1;
+    const paragraph = { first: lineIndex, last: lineIndex };
+    for (let index = lineIndex; starts[index] != null && starts[index]! < node.to; index += 1) {
+      paragraphs[index] = paragraph;
+      paragraph.last = index;
+    }
+    scopes.push(paragraph);
+  } });
+  let comment: CommentKind | null = null;
+  let inlineIndex = 0;
+  const candidates = lines.map((line, index) => {
+    const base = bases.get(starts[index]!) ?? 0;
+    const text = line.text.slice(base);
+    const from = starts[index]! + base, to = from + text.length;
+    if (paragraphs[index] == null || line.frontmatter) {
+      if (comment != null && line.text.includes(comment === "html" ? "-->" : "%%")) comment = null;
+      return { text, available: false, topLevel: true };
+    }
+    while (inline[inlineIndex] != null && inline[inlineIndex]!.to <= from) inlineIndex += 1;
+    const ranges: SourceRange[] = [];
+    for (let cursor = inlineIndex; inline[cursor] != null && inline[cursor]!.from < to; cursor += 1) {
+      ranges.push({ from: Math.max(0, inline[cursor]!.from - from), to: Math.min(text.length, inline[cursor]!.to - from) });
+    }
+    const comments = scanInlineComments(text, comment, ranges);
+    comment = comments.state;
+    return { text, available: comments.masked.trim().length > 0, topLevel: true };
+  });
+  const blocks = scopes.flatMap((paragraph) => scanTableBlocks(candidates.slice(paragraph.first, paragraph.last + 1)).filter((block) => {
+    // GFM cannot restart a failed table leaf later in a paragraph whose first
+    // line already has a pipe. Explicit Structural Tables headers keep their
+    // existing scanner contract instead of inheriting native cell splitting.
+    return block.structural || block.delimiter === 1
+      || (splitTableRow(candidates[paragraph.first]!.text)?.delimiters.length ?? 0) === 0;
+  }).map((block) => ({ ...block, first: block.first + paragraph.first, last: block.last + paragraph.first })));
+  const tables = blocks.map((block) => {
+    const cells: SourceRange[] = [];
+    for (let index = block.first; index <= block.last; index += 1) {
+      const text = candidates[index]!.text, offset = starts[index]! + (bases.get(starts[index]!) ?? 0);
+      for (const cell of splitTableRow(text, block.structural)?.cells ?? [{ from: 0, to: text.length }]) {
+        cells.push({ from: offset + cell.from, to: offset + cell.to });
+      }
+    }
+    return { from: starts[block.first]!, to: starts[block.last]! + lines[block.last]!.text.length, cells };
+  });
+  return inline.filter((range) => {
+    const owner = range.metadataOwner;
+    if (owner == null) return true;
+    const table = firstRangeAfter(tables, owner.from);
+    if (table == null || table.from >= owner.to) return true;
+    const cell = firstRangeAfter(table.cells, owner.from);
+    return cell != null && cell.from <= owner.from && cell.to >= owner.to;
+  });
+}
 
 function inAcceptedInline(spans: readonly SourceRange[], accepted: ReadonlySet<number>, offset: number): boolean {
   let low = 0, high = spans.length;
@@ -193,38 +304,17 @@ export function scanMarkdownContainerLines(
     offset += text.length + 1;
     return text;
   }).join("\n");
-  const containers: SourceRange[] = [];
-  const literals: LiteralRange[] = [];
-  const inlineLiterals: SourceRange[] = [];
-  const rawInline: SourceRange[] = [];
-  const markdown = parser.configure(inlineMath());
-  markdown.parse(input).iterate({ enter(node) {
-    if (node.name === "InlineCode" || node.name === INLINE_MATH_NODE) {
-      rawInline.push({ from: node.from, to: node.to }); return false;
-    }
-    return undefined;
-  } });
-  let depth = 0;
+  const markdown = parser.configure([inlineMath(), inlineSemanticMarkers()]);
+  const rawBases = new Map<number, number>();
+  const rawTree = markdown.configure({ parseBlock: [recordLineBases(rawBases)] }).parse(input);
+  const rawInline = protectTableBoundaries(rawTree, lines, starts, rawBases, markdownFacts(rawTree).inlineLiterals);
   const acceptedInline = new Set<number>();
-  markdown.configure({ defineNodes: ["NumberSuiteEquation", "NumberSuiteUnclosedEquation"],
-    parseBlock: [commentProjection(input, rawInline, acceptedInline), equationBlock(rawInline, acceptedInline)] }).parse(input).iterate({
-    enter(node) {
-      if (CONTAINERS.has(node.name)) {
-        if (depth === 0) containers.push({ from: node.from, to: node.to });
-        depth += 1;
-      } else if (LITERALS.has(node.name)) {
-        literals.push({ from: node.from, to: node.to, kind: node.name as LiteralKind });
-        return false;
-      } else if (node.name === "InlineCode" || node.name === INLINE_MATH_NODE) {
-        inlineLiterals.push({ from: node.from, to: node.to });
-        return false;
-      }
-      return undefined;
-    },
-    leave(node) {
-      if (CONTAINERS.has(node.name)) depth -= 1;
-    },
-  });
+  const bases = new Map<number, number>();
+  const tree = markdown.configure({ defineNodes: ["NumberSuiteEquation", "NumberSuiteUnclosedEquation"],
+    parseBlock: [recordLineBases(bases), commentProjection(input, rawInline, acceptedInline), equationBlock(rawInline, acceptedInline)] }).parse(input);
+  const facts = markdownFacts(tree);
+  const { containers, literals } = facts;
+  const inlineLiterals = protectTableBoundaries(tree, lines, starts, bases, facts.inlineLiterals);
 
   let containerIndex = 0;
   let literalIndex = 0;

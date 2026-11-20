@@ -22,9 +22,11 @@ Requer Obsidian 1.12.7 ou mais recente no computador ou Android. O funcionamento
 
 1. Em **Configurações → Number Suite → Numeração de títulos**, ative **“Mostrar números virtuais”**.
 2. Abra a pré-visualização ao vivo ou o modo de leitura. Os números aparecem ao lado dos títulos, mas o arquivo não muda.
-3. Para salvar números no Markdown, abra a nota atual na barra lateral do Number Suite. Escolha escrever ou renumerar, confira a prévia e confirme.
+3. Para salvar os números no Markdown, abra **Nota atual → Editar o texto**. Escolha gravar ou renumerar, confira a prévia e confirme.
 
-O guia da nota atual compara o texto original, o objetivo e a ação. As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
+As opções de cada nota são salvas em Properties; a exibição em si não reescreve títulos. A prévia agrupa alterações e avisos por arquivo e mostra suas quantidades. Expanda um arquivo e carregue mais resultados para conferir tudo. Desativar o plugin interrompe novas gravações de lotes ou de Desfazer; uma gravação já iniciada ainda pode terminar. Se não for possível reverter com segurança, mantenha `recovery.json` na pasta do plugin e confira as notas primeiro.
+
+A nota atual mostra de forma compacta o nome, o estado automático e três opções principais; o salvamento em andamento e os erros continuam visíveis. Ações em uma única nota abrem uma página de prévia na barra lateral, com destino fixo e Voltar/Cancelar/Aplicar. Trocar de nota não muda o destino; mudanças no texto exigem uma nova prévia. Lotes mantêm uma janela ampla. O modo de estrutura mostra seu nome, botões de movimento, destino destacado e linhas de inserção antes/depois, com motivos breves para destinos inválidos ou fontes indisponíveis.
 
 <!-- section: captions -->
 ## Legendas e referências
@@ -47,7 +49,8 @@ Há estilos hierárquicos, exemplos para documentos oficiais e jurídicos chines
 <!-- section: settings -->
 ## Onde ajustar as opções
 
-As sete abas de configurações são: Geral, Numeração de títulos, Legendas, Referências cruzadas, Notas de rodapé e de fim, Gravar e limpar, Exibição e lote. Idioma e estilo de numeração são escolhidos separadamente. Na barra lateral direita, a nota atual permite alterar apenas uma nota. Voltar a seguir a configuração global remove somente essa exceção e mantém as outras Properties. O sumário do documento e o mapa mental de títulos, somente para leitura, levam ao texto original.
+
+As configurações têm sete abas. Geral ativa por padrão o aprimoramento da estrutura nativa. Desativar preserva preferências e nunca ativa o plugin principal. O menu de exibição da estrutura salva quatro opções compartilhadas: números, níveis sem número, H7–H9 e legendas; elas afetam somente a estrutura. Cada título tem um único indicador numérico ou Hn neutro. Nota atual herda ou substitui separadamente números virtuais, visibilidade dos números gravados e estilo, com estado automático. Regras de início e salto ficam recolhidas e são adicionadas conforme necessário. Desativar mantém as escolhas; gravação e limpeza ainda exigem prévia. Folhas do mapa não exibem 0. Layout e profundidade ficam no menu secundário; botões de movimento e destinos só aparecem no modo de ajuste da estrutura.
 
 <!-- section: limitations -->
 ## Escopo e limitações
@@ -55,7 +58,6 @@ As sete abas de configurações são: Geral, Numeração de títulos, Legendas, 
 - Cada arquivo Markdown usa um único estilo de numeração. Legendas e referências também são resolvidas no mesmo arquivo.
 - Títulos e legendas em listas, citações, exemplos de código, blocos HTML e frontmatter não entram na numeração. Notas e referências no texto comum de listas continuam disponíveis.
 - Em Structural Tables, a ação de legenda exige conferir o arquivo, o texto e o intervalo exato. Um item desativado explica quando a versão é antiga ou a tabela não é compatível. Nesses casos, adicione ou edite a legenda no modo fonte.
-- H7–H9 são uma extensão do Number Suite e do DocWen. O sumário e os links de títulos nativos do Obsidian podem não reconhecê-los; IDs de bloco oferecem destinos estáveis.
 
 <!-- section: privacy-and-support -->
 ## Privacidade e ajuda

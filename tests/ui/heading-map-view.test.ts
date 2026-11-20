@@ -39,6 +39,11 @@ type Subject = {
   sceneHost: HTMLElement;
   viewport: HTMLElement;
   needsInitialFit: boolean;
+  rearranging: boolean;
+  moveStatusEl: HTMLElement;
+  moveStatusError: boolean;
+  dragSource: unknown;
+  applyMove: (...args: unknown[]) => Promise<void>;
   onResize(): void;
   refreshMap(source?: string, path?: string): Promise<void>;
   scheduleRefresh(source?: string): void;
@@ -55,6 +60,8 @@ type Subject = {
   movePan(event: PointerEvent): void;
   endPan(event: PointerEvent): void;
   setFile(file: { path: string; extension: string }, refresh?: boolean): void;
+  showFile(file: TFile | null, leaf?: WorkspaceLeaf | null, pin?: boolean): void;
+  currentFile: { path: string; extension: string } | null;
 };
 
 function makeView(): Subject {
@@ -113,16 +120,157 @@ describe("heading map touch targets", () => {
   });
 });
 
+describe("heading map write identity", () => {
+  const source = "# Root\n## A\nbody\n## B\n";
+  function writeHarness() {
+    const view = makeView();
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Same.md", basename: "Same", extension: "md",
+    });
+    const replacement = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Other.md", basename: "Other", extension: "md",
+    });
+    const transaction = vi.fn();
+    const markdown = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
+      file, getMode: () => "source", editor: { getValue: () => source, offsetToPos: (ch: number) => ({ line: 0, ch }), transaction },
+    });
+    const leaf = { view: markdown } as unknown as WorkspaceLeaf;
+    let registered = file;
+    const app = {
+      workspace: { iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => visit(leaf), getActiveViewOfType: () => markdown },
+      vault: { getAbstractFileByPath: () => registered },
+    };
+    Object.assign(view, { app, currentFile: file, sourceLeaf: leaf, lastSource: source, rearranging: true });
+    const drag = { id: "a", line: 1, source, path: file.path, file };
+    return { view, markdown, file, replacement, drag, transaction, replace: () => { registered = Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path, extension: "md", basename: "Same" }); } };
+  }
+  it("reports missing source editor separately without writing", async () => {
+    const h = writeHarness();
+    h.view.moveStatusEl = document.createElement("div");
+    Object.assign(h.markdown, { getMode: () => "preview" });
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.view.moveStatusEl.textContent).toBe("headingMap.rearrange.noEditor");
+  });
+  it("keeps a changed source refusal visible and performs no transaction", async () => {
+    const h = writeHarness();
+    h.view.moveStatusEl = document.createElement("div");
+    Object.assign(h.markdown.editor, { getValue: () => source + "edit" });
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.view.moveStatusEl.textContent).toBe("headingMap.rearrange.stale");
+  });
+  it("retains one bounded transaction for a valid move", async () => {
+    const h = writeHarness();
+    vi.spyOn(h.view, "scheduleRefresh").mockImplementation(() => undefined);
+    await h.view.applyMove(h.drag, 3, "after");
+    expect(h.transaction).toHaveBeenCalledTimes(1);
+    expect(h.transaction.mock.calls[0]?.[0].changes).toHaveLength(1);
+  });
+  it("rejects a same-content editor that changed to another file during source resolution", async () => {
+    const h = writeHarness();
+    const pending = h.view.applyMove(h.drag, 3, "after");
+    h.markdown.file = h.replacement;
+    await pending;
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+  it("rejects a same-path replacement file while a move awaits its bound source", async () => {
+    const h = writeHarness();
+    const pending = h.view.applyMove(h.drag, 3, "after");
+    h.replace();
+    await pending;
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+});
+
 describe("heading map interactions", () => {
-  it("renders an empty file as a document card with a disabled zero handle", async () => {
+  it("shows insertion targets, explains invalid drops, and clears cancelled drag feedback", async () => {
+    const view = makeView();
+    view.moveStatusEl = document.createElement("div");
+    await view.refreshMap("# Root\n## A\n### Child\n## B\n## C");
+    view.collapsed.clear();
+    view.rearranging = true;
+    view.render();
+    const a = view.roots[0]!.children[0]!;
+    const b = view.roots[0]!.children[1]!;
+    const child = a.children[0]!;
+    const card = (id: string) => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${id}"]`)!;
+    card(a.id).dispatchEvent(new Event("dragstart"));
+    const over = new MouseEvent("dragover", { clientY: 30, cancelable: true });
+    card(b.id).dispatchEvent(over);
+    expect(over.defaultPrevented).toBe(true);
+    expect(card(b.id).classList.contains("is-drop-after")).toBe(true);
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.after");
+    card(child.id).dispatchEvent(new MouseEvent("dragover", { cancelable: true }));
+    expect(card(child.id).classList.contains("is-drop-invalid")).toBe(true);
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.invalid");
+    card(a.id).dispatchEvent(new Event("dragend"));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.hint");
+    expect(view.moveStatusError).toBe(false);
+    expect(view.sceneHost.querySelector(".is-drop-invalid")).toBeNull();
+    card(a.id).dispatchEvent(new Event("dragstart"));
+    const transfer = { dropEffect: "none" };
+    const invalid = new MouseEvent("dragover", { cancelable: true });
+    Object.defineProperty(invalid, "dataTransfer", { value: transfer });
+    card(child.id).dispatchEvent(invalid);
+    expect(transfer.dropEffect).toBe("move");
+    card(child.id).dispatchEvent(new MouseEvent("drop", { cancelable: true }));
+    card(a.id).dispatchEvent(new Event("dragend"));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.invalid");
+    expect(view.moveStatusError).toBe(true);
+  });
+
+  it("uses one level capsule with a level tooltip and no child control on heading leaves", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## Child");
+    const child = view.roots[0]!.children[0]!;
+    const card = view.sceneHost.querySelector(`[data-node-id="${child.id}"]`)!;
+    const capsule = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-number")!;
+    expect(capsule.title).toBe("H2");
+    expect(card.querySelectorAll(".number-suite-heading-map-number")).toHaveLength(1);
+    expect(card.querySelector(".number-suite-heading-map-children")).toBeNull();
+    expect(card.querySelector(".number-suite-heading-map-order-controls")).toBeNull();
+  });
+
+  it("offers keyboard and touch reorder buttons only in edit mode", async () => {
+    const view = makeView();
+    await view.refreshMap("# Root\n## A\n### A child\n## B\n## C");
+    expect(view.sceneHost.querySelector(".number-suite-heading-map-order-controls")).toBeNull();
+    view.rearranging = true;
+    const apply = vi.spyOn(view, "applyMove").mockResolvedValue(undefined);
+    view.render();
+    const a = view.roots[0]?.children[0];
+    const b = view.roots[0]?.children[1];
+    const c = view.roots[0]?.children[2];
+    expect(a && b && c).toBeTruthy();
+    if (a == null || b == null || c == null) return;
+    const aCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${a.id}"]`)!;
+    const bCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${b.id}"]`)!;
+    const cCard = view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${c.id}"]`)!;
+    const controls = (card: HTMLElement) =>
+      card.querySelectorAll<HTMLButtonElement>(".number-suite-heading-map-order-action");
+    expect(controls(aCard)[0]?.disabled).toBe(true);
+    expect(controls(aCard)[1]?.disabled).toBe(false);
+    expect(controls(bCard)[0]?.disabled).toBe(false);
+    expect(controls(bCard)[1]?.disabled).toBe(false);
+    expect(controls(cCard)[1]?.disabled).toBe(true);
+    controls(aCard)[1]?.click();
+    expect(apply).toHaveBeenCalledOnce();
+    const args = apply.mock.calls[0]!;
+    expect(args[0]).toMatchObject({ line: a.line, path: "Same.md" });
+    expect(args[1]).toBe(b.line);
+    expect(args[2]).toBe("after");
+  });
+
+
+  it("renders an empty file as a document card without an empty expand control", async () => {
     const view = makeView();
     await view.refreshMap("");
     const card = view.sceneHost.querySelector(".is-document")!;
     expect(card.querySelector(".number-suite-heading-map-body")?.textContent).toBe("Same");
     expect(card.querySelector(".number-suite-heading-map-number")?.getAttribute("aria-label")).toBe("Same.md");
     const handle = card.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
-    expect(handle.disabled).toBe(true);
-    expect(handle.textContent).toBe("0");
+    expect(handle).toBeNull();
     expect(view.lastLayout.edges).toHaveLength(0);
   });
 
@@ -277,6 +425,31 @@ describe("heading map interactions", () => {
     view.onActiveLeafChange({ view: markdown } as WorkspaceLeaf);
     vi.advanceTimersByTime(200);
     expect(refreshMap.mock.calls).toEqual([["# New pane", "Same.md"]]);
+  });
+
+  it("keeps a map opened from another pane bound to that pane's document", () => {
+    const view = makeView();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    Object.assign(view, { refreshMap: refresh });
+    const pinnedFile = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Same.md", basename: "Same", extension: "md",
+    });
+    const otherFile = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Other.md", basename: "Other", extension: "md",
+    });
+    const otherEditor = Object.assign(Object.create(MarkdownView.prototype), {
+      file: otherFile, editor: { getValue: () => "# Other" },
+    });
+    view.showFile(pinnedFile, null, true);
+    view.onActiveLeafChange({ view: otherEditor } as WorkspaceLeaf);
+    expect(view.currentFile?.path).toBe("Same.md");
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // Command-palette use retains the original follow-active behavior.
+    view.showFile(pinnedFile, null, false);
+    view.onActiveLeafChange({ view: otherEditor } as WorkspaceLeaf);
+    expect(view.currentFile?.path).toBe("Other.md");
+    expect(refresh).toHaveBeenCalledTimes(3);
   });
 
   it("applies structural range expansion without changing the heading tree", async () => {

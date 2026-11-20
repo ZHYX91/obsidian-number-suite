@@ -4,6 +4,7 @@ import {
   scanMarkdownProtectedLines,
   type MarkdownProtectedLine,
 } from "./markdown-protection";
+import { NOTE_REFERENCE } from "./markdown-inline-markers";
 
 export type NoteKind = "footnote" | "endnote";
 
@@ -55,7 +56,6 @@ interface NoteIdentity {
 }
 
 const DEFINITION = /^ {0,3}\[\^([^\]\r\n]+)\]:/u;
-const REFERENCE = /\[\^([^\]\r\n]+)\]/gu;
 
 function normalizeLabel(value: string): string {
   return value.normalize("NFC").trim().toLowerCase();
@@ -140,7 +140,7 @@ export function parseDocumentNotes(source: string, protectedLines = scanMarkdown
     }
     if (containerLines.has(line.number)) continue;
     const masked = maskInlineProtectedSyntax(line.text);
-    for (const match of masked.matchAll(REFERENCE)) {
+    for (const match of masked.matchAll(NOTE_REFERENCE)) {
       if (match.index == null || match[1] == null) continue;
       if (isMarkdownSourceEscaped(line.text, match.index)) continue;
       const identity = noteIdentity(match[1]);

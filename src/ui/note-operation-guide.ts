@@ -3,7 +3,7 @@ import type { Translate } from "../config/i18n";
 /** The same source/display/write distinction used in the README task table. */
 export function renderNoteOperationGuide(container: HTMLElement, t: Translate): void {
   const guide = container.createEl("details", { cls: "number-suite-note-operation-guide" });
-  guide.createEl("summary", { text: t("panel.modes.title") });
+  guide.createEl("summary", { text: t("sidebar.help") });
   guide.createEl("p", { text: t("panel.modes.properties") });
   const table = guide.createEl("table");
   const headings = table.createEl("thead").createEl("tr");

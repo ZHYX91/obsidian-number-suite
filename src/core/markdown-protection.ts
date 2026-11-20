@@ -28,8 +28,8 @@ function closesRawTag(text: string, tag: string): boolean {
 /**
  * Marks physical lines that are safe for Number Suite's top-level Markdown scanners.
  * The state machine covers frontmatter, fenced/indented code, CommonMark HTML block
- * families, and Obsidian block comments. Shared inline code/math ranges mask only
- * their exact spans, preserving ordinary prose on the same physical line.
+ * families, and Obsidian block comments. Shared inline code, math and link-metadata
+ * ranges mask only their exact spans, preserving prose and visible link text.
  */
 export function scanMarkdownProtectedLines(
   source: string,
@@ -219,41 +219,6 @@ function maskInlineHtml(text: string, characters: string[]): void {
   }
 }
 
-function maskLinkDestinations(text: string, characters: string[]): void {
-  let scan = workingText(characters);
-  for (let index = 0; index < text.length - 1; index += 1) {
-    if (scan[index] !== "]" || scan[index + 1] !== "(") continue;
-    let depth = 1;
-    let escaped = false;
-    let quote: "\"" | "'" | null = null;
-    for (let cursor = index + 2; cursor < text.length; cursor += 1) {
-      const character = scan[cursor] ?? "";
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-      } else if (character === "\"" || character === "'") {
-        if (quote === character) quote = null;
-        else if (quote === null) quote = character;
-      } else if (quote !== null) {
-        continue;
-      } else if (character === "(") {
-        depth += 1;
-      } else if (character === ")") {
-        depth -= 1;
-        if (depth === 0) {
-          blankRange(characters, index + 1, cursor + 1);
-          scan = workingText(characters);
-          index = cursor;
-          break;
-        }
-      }
-    }
-  }
-}
-
 /** A token is escaped only by an odd run of immediately preceding backslashes. */
 export function isMarkdownSourceEscaped(text: string, offset: number): boolean {
   let slashes = 0;
@@ -263,11 +228,10 @@ export function isMarkdownSourceEscaped(text: string, offset: number): boolean {
   return slashes % 2 === 1;
 }
 
-/** Mask remaining same-line syntax after shared snapshot code/math protection. */
+/** Mask remaining same-line syntax after shared snapshot literal protection. */
 export function maskInlineProtectedSyntax(text: string): string {
   const characters = scanInlineComments(text).masked.split("");
   maskCodeSpans(characters.join(""), characters);
   maskInlineHtml(text, characters);
-  maskLinkDestinations(text, characters);
   return characters.join("");
 }

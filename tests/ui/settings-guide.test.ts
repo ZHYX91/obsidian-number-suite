@@ -66,7 +66,7 @@ describe("settings guide", () => {
     expect(messages).toContain("[^endnote:later]: Endnote text.");
   });
 
-  it("explains optional current-note Properties at the settings and point-of-change surfaces", () => {
+  it("explains optional current-note Properties in settings while keeping the note panel compact", () => {
     const guide = readFileSync(
       resolve(process.cwd(), "src/ui/settings/note-overrides-guide.ts"),
       "utf8",
@@ -80,7 +80,7 @@ describe("settings guide", () => {
     expect(guide).toContain('setIcon(icon, "info")');
     expect(imperative).toContain('renderNoteOverridesGuide(container, t, "settings")');
     expect(declarative).toContain('renderNoteOverridesGuide(container, t, "settings")');
-    expect(panel).toContain('renderNoteOverridesGuide(section, this.t, "panel")');
+    expect(panel).not.toContain('renderNoteOverridesGuide(section, this.t, "panel")');
     expect(messages).toContain("Current-note Properties are optional");
     expect(messages).toContain("当前笔记属性（Properties）是可选的");
     expect(messages).toContain("unrelated Properties stay as they are.");

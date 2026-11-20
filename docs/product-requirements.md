@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: product-requirements.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-11-07
+last_synced: 2026-11-17
 ---
 
 # Number Suite — Product requirements
@@ -42,7 +42,7 @@ conceal stored numbers, or replace their visual presentation with calculated num
 The product handles top-level native ATX H1-H6 headings plus the exact Number Suite/DocWen H7-H9
 extension and supports Live Preview, Reading View, current-note writes, batch operations, built-in and custom schemes, exact-title exclusions,
 per-note Properties, display-only caption numbers, footnote/endnote numbers, same-file semantic
-cross references, a Number Suite H1-H9-and-caption sidebar outline, and the 12 supported interface languages. One Markdown file is the scope for heading schemes, each
+cross references, enhanced native Obsidian H1-H9-and-caption Outline, and the 12 supported interface languages. One Markdown file is the scope for heading schemes, each
 caption-type counter, footnote/endnote counters, and reference resolution; embedded files remain
 governed by their own source and settings.
 
@@ -86,7 +86,7 @@ governed by their own source and settings.
 11. Only explicit `@[[#target]]` and `@[[#^block-id]]` forms, with optional Obsidian aliases, request
     same-file enhancement. A target may be one unique heading name or one unique complete typed
     caption name such as `Figure: Architecture`. Heading and caption names share one ambiguity
-    space; zero or multiple matches fail closed. A number is included when visible but is not required.
+    space; zero or multiple matches fail closed. A number is included when visible but is not required. Ordinary same-file Wiki heading enhancement is independently off by default; when enabled it supports Live Preview, Reading View and file-qualified same-file targets while preserving aliases and native interaction. Cross-file, block, embed and ordinary Markdown links are excluded. Explicit references navigate on one click and expose F2 and a mobile-accessible source-edit action.
 12. Display and caption insertion must never create or rewrite IDs. The explicit **Copy
     cross-reference** context action may reuse an existing target block ID or, after exact preview
     and stale-source validation, create one block ID at the target's valid Markdown position in one
@@ -111,14 +111,10 @@ governed by their own source and settings.
 15. H7-H9 are recognized only on top-level lines with exactly 7, 8, or 9 leading hashes followed
     by whitespace; 10 or more hashes remain ordinary text. The extension uses the same nine-level
     parser, counter, template, Properties-start, transformation, and `number-suite.interop.v2`
-    semantics. Existing six-template custom schemes migrate with H7-H9 empty. Native Obsidian
-    Outline, Backlinks, heading-path navigation, and other host heading indexes are not claimed;
+    semantics. Existing six-template custom schemes migrate with H7-H9 empty. Native Outline is enhanced by the plugin; Backlinks, heading-path navigation, and other host heading indexes are not claimed;
     stable authored block IDs are the recommended interoperation target.
-16. The ribbon opens a persistent right sidebar with Document outline and Current note tabs. The
-    outline follows the active Markdown file, nests H1-H9 and fixed captions, uses effective
-    Number Suite display labels, supports collapse and source-line navigation, and never modifies
-    Markdown. Markdown-changing actions from Current note still require the normal preview and
-    stale-source checks.
+16. The ribbon directly opens Current note in the persistent sidebar, with Display & numbering and Edit note text tabs. Obsidian’s Outline handles document navigation. Legacy commands, shortcuts and workspace state remain compatible through migration. General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged. Never enable the core Outline plugin automatically; provide guidance when it is disabled. Preserve native collapse, filtering, current-location following, multiple panes and pinned files without changing Markdown or the shared metadata cache. Headings use a small number pill followed by text. Captions use a type icon, localized type and ordinal, and secondary text; the whole row is not a pill. Captions are non-expandable leaves ordered by source position within their section. Counts match effective body numbering, remain independent of filtering and collapse, and are not stored again. H7-H9 support same-parent, same-level dragging of complete sections including prose, captions and descendant headings, with explicit insertion targets, stale-source rejection and complete Undo/Redo. Do not change parent or level, independently drag captions, or globally disable native H1-H6 dragging. The mind map opens from native Outline, Current note and commands; pane actions bind their own source file. Explicit structure editing reuses bounded immutable plans and guarded writes for same-parent, same-level whole-section dragging and up/down buttons.
+
 17. The editor context menu offers caption insertion only on standalone image embeds, top-level
     Markdown tables, standalone display equations, and top-level fenced code blocks. Figure, Table,
     Equation, and Code captions are stored above their objects; an adjacent legacy Figure caption
@@ -134,7 +130,7 @@ governed by their own source and settings.
     enhanced references use keyboard-focusable interactive outline pills. Target and reference
     treatments differ by fill and border rather than color alone.
 
-Inline code, inline math and block-equation interiors declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
+Inline code, inline math, block-equation interiors and valid Markdown link destinations and titles declare no captions, semantic references or notes, including supported spans across physical lines. Protection follows exact source ranges and preserves prose outside those spans on the same line and markers in visible link text. Invalid or unclosed link-like text is not masked merely because it contains parentheses. Escaped, unmatched and whitespace-delimited dollar text remains ordinary prose. Legal GFM data rows belong to their table even when delimiter cells contain only one or two hyphens, boundary pipes are omitted or the first cell begins with a caption keyword; they must not be moved or converted into captions. This protection does not expand the supported caption-menu carriers. An equation carrier remains independent of its protected interior.
 
 <!-- section: safety-requirements -->
 ## Safety requirements
@@ -157,8 +153,7 @@ Inline code, inline math and block-equation interiors declare no captions, seman
   caption, footnote/endnote, and explicit semantic-reference declarations.
 - No automatic rewriting of heading links, embeds, or external anchors.
 - No cross-file semantic-reference resolution.
-- No commitment to Setext, Canvas, Obsidian's built-in Outline, Backlinks, Search Results, or PDF
-  export integration. The plugin-owned sidebar outline is in scope.
+- No commitment to Setext, Canvas, Backlinks, Search Results, or PDF export integration. Native Obsidian Outline enhancement is in scope.
 - No claim that automated tests, emulator records, or a successful build accept every host platform.
 
 <!-- section: acceptance -->

@@ -127,6 +127,31 @@ export function createHeadingMap(
   return roots;
 }
 
+/**
+ * The neighbor of a heading within its actual parent, not its visual
+ * search-filter/zoom layout. A differing heading level is not a valid move.
+ */
+export function adjacentHeadingMapSibling(
+  roots: readonly HeadingMapNode[],
+  id: string,
+  direction: "up" | "down",
+): HeadingMapNode | null {
+  const search = (nodes: readonly HeadingMapNode[]): HeadingMapNode | null => {
+    const index = nodes.findIndex((node) => node.id === id);
+    if (index >= 0) {
+      const current = nodes[index];
+      const sibling = nodes[index + (direction === "up" ? -1 : 1)];
+      return current != null && sibling?.level === current.level ? sibling : null;
+    }
+    for (const node of nodes) {
+      const match = search(node.children);
+      if (match != null) return match;
+    }
+    return null;
+  };
+  return search(roots);
+}
+
 export function findHeadingMapNode(
   roots: readonly HeadingMapNode[],
   id: string,

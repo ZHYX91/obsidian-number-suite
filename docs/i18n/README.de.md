@@ -22,9 +22,11 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 
 1. Aktiviere unter **Einstellungen → Number Suite → Überschriftennummerierung** die Option **„Virtuelle Nummern anzeigen“**.
 2. Öffne die Live-Vorschau oder Leseansicht. Die Nummern erscheinen neben den Überschriften, der gespeicherte Text bleibt unverändert.
-3. Sollen die Nummern in Markdown stehen, öffne rechts die aktuelle Notiz in Number Suite. Wähle Schreiben oder Neu nummerieren und prüfe die Vorschau vor dem Bestätigen.
+3. Um Nummern in Markdown zu speichern, öffne **Aktuelle Notiz → Notiztext bearbeiten**. Wähle Schreiben oder Neunummerieren, prüfe die Vorschau und bestätige die Änderungen.
 
-Die Anleitung in „Aktuelle Notiz“ vergleicht Quelltext, Ziel und passende Aktion. Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
+Notizbezogene Anzeigeoptionen werden in den Properties gespeichert; die Anzeige selbst schreibt keine Überschrift um. Die Vorschau gruppiert Änderungen und Warnungen pro Datei mit eigenen Zählern. Klappe eine Datei auf und lade bei Bedarf weitere Ergebnisse. Beim Deaktivieren enden neue Schreibvorgänge von Stapelaktionen und Rückgängig; bereits gestartete können noch abschließen. Ist ein sicheres Zurücksetzen nicht möglich, behalte `recovery.json` im Plugin-Ordner und prüfe zuerst die Notizen.
+
+Aktuelle Notiz zeigt Dateiname, automatischen Status und drei Hauptoptionen kompakt; nur laufendes Speichern und Fehler brauchen eine Statuszeile. Schreiben, Neu nummerieren sowie Nummern- und Markerentfernung einer Notiz wechseln zur Vorschauseite in der Seitenleiste mit festem Ziel und Zurück/Abbrechen/Anwenden. Ein Notizwechsel ändert das Ziel nicht; nach Quelltextänderungen ist eine neue Vorschau nötig. Stapel bleiben in breiten Dialogen. Der Strukturmodus zeigt seinen Namen, Verschiebeschaltflächen, hervorgehobene Ziele und Einfügelinien davor/danach sowie kurze Gründe für ungültige Ziele oder nicht verfügbare Quellen.
 
 <!-- section: captions -->
 ## Beschriftungen und Verweise
@@ -47,7 +49,10 @@ Es gibt hierarchische Stile sowie Beispiele für chinesische Amts- und Rechtstex
 <!-- section: settings -->
 ## Einstellungen finden
 
-Die sieben globalen Einstellungsbereiche heißen: Allgemein, Überschriftennummerierung, Beschriftungen, Querverweise, Fuß- und Endnoten, Schreiben und Bereinigen, Anzeige und Stapel. Sprache und Nummerierungsstil werden getrennt gewählt. In „Aktuelle Notiz“ in der rechten Seitenleiste kannst du einzelne Werte überschreiben. „Globaler Einstellung folgen“ entfernt nur diese Ausnahme und lässt andere Properties unverändert. Dokumentgliederung und schreibgeschützte Überschriften-Mindmap führen direkt zur ursprünglichen Zeile.
+
+Die Einstellungen haben sieben Tabs. Unter Allgemein ist die Erweiterung der nativen Gliederung standardmäßig aktiv. Ausschalten behält die Vorlieben und aktiviert niemals das Kernplugin. Das Anzeigemenü der Gliederung speichert vier gemeinsame Optionen: Nummern, Ebenen ohne Nummer, H7–H9 und Beschriftungen. Sie wirken nur auf die Gliederung. Jede Überschrift erhält genau eine Nummern- oder neutrale Hn-Markierung. Aktuelle Notiz erbt oder überschreibt virtuelle Nummern, gespeicherte Nummernanzeige und Schema einzeln und zeigt den Status. Start- und Überspringregeln bleiben eingeklappt und werden nach Bedarf ergänzt. Deaktivieren behält die Auswahl; Schreiben und Bereinigen erfordern weiter eine Vorschau. Blätter der Mindmap zeigen keine 0. Layout und Tiefe liegen im Nebenmenü; Verschiebeschaltflächen und Einfügeziele erscheinen nur im Strukturmodus.
+
+Die native Gliederung und „Aktuelle Notiz“ öffnen die Mindmap für ihre eigene Datei. „Struktur anpassen“ erlaubt ganze Abschnitte nur unter demselben Elternknoten und auf derselben Ebene zu verschieben, per Ziehen oder Auf/Ab. Veralteter Quelltext wird abgelehnt; Rückgängig/Wiederholen bleibt verfügbar. Explizite Verweise springen mit einem Klick; F2 oder die mobile Quelltextaktion dient zum Bearbeiten. Nummern für gewöhnliche Wiki-Überschriftenlinks derselben Datei sind standardmäßig aus und optional in Live-Vorschau und Leseansicht verfügbar, auch mit Dateinamen; Aliase und native Aktionen bleiben erhalten.
 
 <!-- section: limitations -->
 ## Umfang und Grenzen
@@ -55,7 +60,6 @@ Die sieben globalen Einstellungsbereiche heißen: Allgemein, Überschriftennumme
 - Pro Markdown-Datei gilt ein Nummerierungsstil. Auch Beschriftungen und Querverweise werden innerhalb einer Datei ausgewertet.
 - Überschriften und Beschriftungen in Listen, Zitaten, Codebeispielen, HTML-Blöcken und Frontmatter werden nicht mitgezählt. Fußnoten und Querverweise im normalen Listentext bleiben nutzbar.
 - Bei Structural Tables erscheint die Beschriftungsaktion nur, wenn Datei, Quelltext und Bereich eindeutig geprüft werden können. Bei älteren Versionen oder nicht unterstützten Tabellen erklärt ein deaktivierter Eintrag den Grund. Bearbeite die Beschriftung dann im Quellmodus.
-- H7–H9 sind eine Erweiterung von Number Suite und DocWen. Obsidian erkennt sie eventuell nicht in seiner eigenen Gliederung oder in Überschriftenlinks; Block-IDs bieten ein stabiles Verweisziel.
 
 <!-- section: privacy-and-support -->
 ## Datenschutz und Hilfe

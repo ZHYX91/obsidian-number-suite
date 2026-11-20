@@ -5,7 +5,7 @@ source_language: zh-CN
 translation_of: ux-spec.zh-CN.md
 translation_status: synced
 status: stable
-last_synced: 2026-10-24
+last_synced: 2026-11-17
 ---
 
 # Number Suite — UX specification
@@ -31,10 +31,7 @@ specification.
 <!-- section: entry-points -->
 ## Entry points
 
-The ribbon icon opens a persistent right sidebar and preserves its last selected tab. The dedicated
-outline command selects Document outline; Open current note controls selects Current note. The
-Open heading mind map command and the map button in the Document outline header open a separate
-workspace view for the current Markdown note. The command palette also offers source-appearance
+The ribbon icon directly opens the Current note sidebar. Legacy commands and workspace states migrate compatibly. Native Outline and Current note provide source-bound mind-map entries; the command follows the active note. The command palette also offers source-appearance
 restore, independent virtual/conceal toggles,
 current-note write/remove/renumber, source-marker removal, batch processing, and latest-batch undo.
 Current-note actions are unavailable without an active Markdown note and must show a clear notice.
@@ -42,14 +39,15 @@ Current-note actions are unavailable without an active Markdown note and must sh
 <!-- section: current-note-panel -->
 ## Number Suite sidebar
 
-The sidebar contains two internal tabs, Document outline and Current note. Document outline is the
-default for a newly created view. It follows the active Markdown note and shows nested native H1-H6,
-Number Suite/DocWen H7-H9 extension headings, and Figure/Table/Equation/Code captions. It uses the
-same effective per-note numbering and concealment plan as the editor, strips authored block IDs from
-labels, supports collapsing sections, and navigates by source line without rewriting Markdown.
-Captions are children of the deepest preceding heading, or roots before any heading.
-Outline rows grow with wrapped text. Badges, numbers and titles share the available line width,
-and indentation adapts to sidebar width so long labels and H7-H9 remain readable without overlap.
+## Native Outline and structure editing
+
+Enable Obsidian's core Outline plugin first; Number Suite never enables it automatically and provides guidance when unavailable. The ribbon opens Current note directly. The former Document outline has been removed; legacy commands, shortcuts and workspace states migrate to the current entries.
+
+General provides a default-on Enhance native Outline switch. Turning it off removes enhancements and the map entry while retaining preferences, without enabling core Outline. Its toolbar Display options menu has four shared persistent choices: heading numbers, heading levels when unnumbered, H7–H9, and captions. These affect Outline only; existing saved off values remain off. Each heading shows one number pill, or a neutral H1–H9 pill when no number is shown and level display is enabled. Hover identifies its level. Caption leaves keep their type icon, localized ordinal and secondary title, without pills or expand arrows. Native navigation and effective body numbering remain unchanged.
+
+H7–H9 dragging moves a complete section, including prose, captions and descendant headings, only among same-parent, same-level headings. An insertion marker identifies the destination. Changed source is rejected; one bounded editor transaction supports native Undo/Redo. Captions cannot move independently, and H1–H6 native operations stay available.
+
+The native Outline toolbar and Current note header open the heading map for their own source file, retaining that binding across focus changes. The command follows the active note. The map browses without writing until Adjust structure is explicitly enabled. That mode supports same-parent, same-level whole-section dragging and Move section up/down buttons. Invalid destinations do not write and retain a concise local reason after release; canceled and unchanged moves stay quiet. Adjust structure has a visible mode label, always-visible move controls, highlighted targets and before/after insertion lines. A matching Markdown editor and unchanged snapshot are required. Reordering never changes heading levels, rewrites numbers or retargets links. Desktop and Android touch dragging require real-host evidence independently of button access.
 
 The heading mind map connects H1-H9 headings to a virtual document root. The root displays the
 basename, a file icon instead of a heading number, and the direct top-level heading count. It remains
@@ -63,9 +61,7 @@ The map projects headings only: captions are neither shown nor counted as child
 headings. Its default layout runs left to right, connecting a parent's right side to each child's
 left side. A card's left handle first shows the virtual number that is actually visible; when there
 is no virtual number, it may show a reliably recognized visible stored number within the current
-recognition scope; otherwise it shows Hn. The right handle always shows the total number of direct
-child headings. When children exist it toggles only that branch without changing the count; zero is
-shown but is not expandable. A skipped-level heading attaches directly to the nearest preceding
+recognition scope; otherwise it shows Hn. The right arrow shows the direct-child count and toggles the branch; leaves show neither an arrow nor zero. A skipped-level heading attaches directly to the nearest preceding
 shallower heading without creating synthetic nodes.
 
 The mind map supports whole-document and Selected subtree scopes, 1/2/3/all structural-depth
@@ -77,8 +73,7 @@ in document order while a compact status reports the current and total match cou
 match becomes hidden, its nearest visible ancestor takes its selection and screen position. Click
 selects a card; double-click or Enter on its body navigates to the exact source line. Edits to the
 current note may refresh the map without resetting selection, branch collapse, or the viewport for
-that same document. The view is strictly read-only and exposes no drag reorder, heading-level change,
-or Markdown write path.
+that same document. The view normally browses without writing. Explicit Adjust structure mode permits only guarded same-parent, same-level whole-section moves with native Undo/Redo.
 
 Ordinary wheel input pans; Shift-wheel pans horizontally. The map surface accepts + and - for zoom
 and 0 for Fit. Canvas translation is independent of
@@ -88,31 +83,14 @@ search-revealed ancestor last only for that query and leave the saved collapse i
 Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
 panning, zoom buttons, and two-finger pinch zoom.
 
-The two sidebar tabs have equal width and span the sidebar. Inactive tabs use muted text; the active
-tab combines semibold text with a bottom accent line. Hover uses a quiet background, while keyboard
-focus uses a visible inset ring that preserves the active line. Tabs use `tablist`, `tab`, `tabpanel`,
-`aria-controls`, `aria-labelledby`, and roving tabindex. Left/Right, Home, and End work, RTL follows
-visual direction, and switching keeps the active tab visible and focused.
+The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Stored-number visibility maps inversely to concealment. Display & numbering starts selected and the sidebar remembers the selected tab for its open session. The header menu disables the note while retaining choices, or restores all Number Suite overrides to global settings. Starting and skip rules are collapsed, with existing rules visible and H1–H9 rules added on demand. Each choice can return to inheritance. Edit note text contains write, renumber and clean-up actions, with source marker and multi-file actions below. Global settings have a separate footer entry. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.
 
-The Current note tab first shows note name and path, then a Setting / Global / Current-note override /
-Effective summary for virtual display, concealment, scheme, and full ignore. Display and concealment
-use Follow global / On / Off tri-state controls. Scheme selection shows available names and never
-requires internal IDs. Selecting the sidebar must not make the targeted editor ambiguous: a
-heading-transform action resolves the one open editor for that note and fails closed if zero or multiple
-matching editors exist.
-
-A collapsed Display and file operations guide follows the effective summary. Its table compares source, goal, action, and heading text changes, and explains that per-note display choices persist Properties.
-
-Current-note content uses quiet grouped surfaces for each effective-value set, with subdued section
-labels, whitespace, and effective-value emphasis instead of stacked full-width dividers. Its helper
-note is compact and has no accent border in the sidebar. Loading uses a separate text-labelled status
-indicator and stops rotating when reduced motion is preferred.
+Layout and expansion depth use secondary View options; range, search and zoom stay primary. Cards use light borders and backgrounds, a single number-or-level pill and consistent hover, selection and focus. Move buttons and insertion targets appear only in Adjust structure mode.
 
 Follow global deletes the relevant Property. Restore all deletes every plugin override while
 preserving unrelated Properties. After a successful Property write, the tab exits its busy state,
 rereads Properties, and immediately refreshes Live Preview, Reading View, and the outline. Read
-failure blocks blind writes and offers retry. Markdown-changing actions continue to open the
-separate itemized preview modal; batch selection and global settings remain separate destinations.
+failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, open an itemized preview within Edit note text. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The target and action area stay visible while differences scroll independently. Switching the active note or the sidebar tab retains the preview and its original target; a stale refusal disables Apply until a fresh preview is built. Back, Cancel and successful Apply restore the Edit note text action list. Batch selection and previews remain wide modals; scheme editing stays in global settings.
 
 <!-- section: settings-experience -->
 ## Global settings experience
@@ -121,7 +99,11 @@ Settings use seven consistent tabs: General, Heading numbering, Captions, Cross 
 Footnotes & endnotes, Write and cleanup, and Display and batch. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded
 and copied to custom schemes. A custom scheme provides name, base level, live H1-H9 template
-previews, and exact exclusions. Empty templates display “This level is not numbered.” Invalid
+previews, and exact exclusions. Built-in and custom-template previews share a heading-number
+pill followed by a localized “Heading” label, with **all example counters set to 1**
+(`1`, `一`, `A`, `a`, `1.1` as their templates dictate); these samples never change
+real note counters or starting values. Placeholder help explains `{2.arabic}` without
+an unexplained “→ 3” marker. Empty templates display “This level is not numbered.” Invalid
 non-empty semantics block save with a comprehensible constraint message.
 
 Frequent changes may be coalesced, but the UI exposes saving, failure reason, and retry. It cannot
@@ -220,7 +202,7 @@ labels and list values.
 Virtual heading numerals and generated caption numerals are hidden from assistive semantics while
 stored caption content remains accessible. Reference pills expose link semantics, visible text,
 keyboard focus, and a non-color-only outline treatment. Formatted note labels expose their note type
-and number. Sidebar tabs, outline rows, collapse controls, heading-map card bodies and interactive
+and number. Outline rows, collapse controls, heading-map card bodies and interactive
 handles, and action buttons expose visible keyboard focus; interactive controls have at least
 44-pixel touch height on coarse-pointer devices. Heading-map selection and search matches cannot be
 communicated by color alone, and a zero-child handle must not pretend to be actionable. Summaries

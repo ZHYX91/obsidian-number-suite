@@ -13,6 +13,7 @@ describe("Number Suite frontmatter source checks", () => {
       code: "source-ambiguous",
       field: "all",
       message: "Duplicate Number Suite property key requires manual review: number-suite",
+      details: { kind: "source-duplicate-key", key: "number-suite" },
     }]);
   });
 

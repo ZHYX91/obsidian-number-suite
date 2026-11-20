@@ -18,6 +18,12 @@ export type SettingsControlKey =
   | "captions.codePlacement"
   | "captions.showImageCaptionTooltips"
   | "references.showCrossReferences"
+  | "references.enhanceNativeWikiHeadingLinks"
+  | "outline.enabled"
+  | "outline.showLevels"
+  | "outline.showNumbers"
+  | "outline.showExtendedHeadings"
+  | "outline.showCaptions"
   | "notes.showNoteNumbers"
   | "notes.displayMode"
   | "general.missingLevelStrategy"
@@ -57,6 +63,12 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "captions.codePlacement",
   "captions.showImageCaptionTooltips",
   "references.showCrossReferences",
+  "references.enhanceNativeWikiHeadingLinks",
+  "outline.enabled",
+  "outline.showLevels",
+  "outline.showNumbers",
+  "outline.showExtendedHeadings",
+  "outline.showCaptions",
   "notes.showNoteNumbers",
   "notes.displayMode",
   "general.missingLevelStrategy",
@@ -98,6 +110,12 @@ export function getSettingsControlValue(
     case "captions.codePlacement": return settings.codeCaptionPlacement;
     case "captions.showImageCaptionTooltips": return settings.showImageCaptionTooltips;
     case "references.showCrossReferences": return settings.showCrossReferences;
+    case "references.enhanceNativeWikiHeadingLinks": return settings.enhanceNativeWikiHeadingLinks;
+    case "outline.enabled": return settings.enhanceNativeOutline;
+    case "outline.showLevels": return settings.showOutlineLevels;
+    case "outline.showNumbers": return settings.showOutlineNumbers;
+    case "outline.showExtendedHeadings": return settings.showOutlineExtendedHeadings;
+    case "outline.showCaptions": return settings.showOutlineCaptions;
     case "notes.showNoteNumbers": return settings.showNoteNumbers;
     case "notes.displayMode": return settings.noteDisplayMode;
     case "general.missingLevelStrategy": return settings.missingLevelStrategy;
@@ -191,6 +209,30 @@ export function applySettingsControlValue(
       break;
     case "references.showCrossReferences":
       next.showCrossReferences = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "references.enhanceNativeWikiHeadingLinks":
+      next.enhanceNativeWikiHeadingLinks = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "outline.enabled":
+      next.enhanceNativeOutline = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "outline.showLevels":
+      next.showOutlineLevels = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "outline.showNumbers":
+      next.showOutlineNumbers = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "outline.showExtendedHeadings":
+      next.showOutlineExtendedHeadings = controlBoolean(key, value);
+      impact = "display";
+      break;
+    case "outline.showCaptions":
+      next.showOutlineCaptions = controlBoolean(key, value);
       impact = "display";
       break;
     case "notes.showNoteNumbers":

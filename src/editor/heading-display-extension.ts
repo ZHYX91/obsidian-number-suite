@@ -1,5 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
+import { bindReferenceActivation, referenceIgnoresEditorEvent } from "./reference-interaction";
 import {
+  Prec,
   StateEffect,
   StateField,
   type EditorState,
@@ -86,6 +88,30 @@ export function transitionHeadingTouchEditing(
   };
 }
 
+/** Non-interactive prefix: Obsidian continues to own the native Wiki link. */
+class NativeWikiNumberWidget extends WidgetType {
+  constructor(private readonly label: string) {
+    super();
+  }
+
+  override eq(other: NativeWikiNumberWidget): boolean {
+    return this.label === other.label;
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const element = view.dom.ownerDocument.createElement("span");
+    element.className = "number-suite-native-wiki-number";
+    element.textContent = this.label + " ";
+    element.setAttribute("aria-hidden", "true");
+    element.setAttribute("contenteditable", "false");
+    return element;
+  }
+
+  override ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 export class NumeralWidget extends WidgetType {
   constructor(
     private readonly label: string,
@@ -94,6 +120,7 @@ export class NumeralWidget extends WidgetType {
     private readonly accessibleLabel = "",
     private readonly editHint = "",
     private readonly targetLine: number | null = null,
+    private readonly sourceOffset: number | null = null,
   ) {
     super();
   }
@@ -104,27 +131,31 @@ export class NumeralWidget extends WidgetType {
       && this.noteKind === other.noteKind
       && this.accessibleLabel === other.accessibleLabel
       && this.editHint === other.editHint
-      && this.targetLine === other.targetLine;
+      && this.targetLine === other.targetLine
+      && this.sourceOffset === other.sourceOffset;
   }
 
   override toDOM(view: EditorView): HTMLElement {
     if (this.kind === "heading") return createVirtualNumeralElement(view.dom.ownerDocument, this.label);
     if (this.kind === "reference") {
       const element = createReferencePillElement(view.dom.ownerDocument, this.label);
+      if (this.editHint) element.setAttribute("title", this.editHint);
       const navigate = (): void => {
         if (this.targetLine == null || this.targetLine < 0 || this.targetLine >= view.state.doc.lines) return;
         const anchor = view.state.doc.line(this.targetLine + 1).from;
         view.dispatch({ selection: { anchor }, scrollIntoView: true });
         view.focus();
       };
-      element.addEventListener("click", (event) => {
-        event.preventDefault();
-        navigate();
-      });
-      element.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        navigate();
+      bindReferenceActivation(element, {
+        sourceToken: () => view.state.doc,
+        available: () => element.isConnected && view.dom.contains(element) && !view.composing,
+        navigate,
+        editSource: () => {
+          const from = this.sourceOffset;
+          if (from == null || from < 0 || view.state.doc.sliceString(from, from + 3) !== "@[[") return;
+          view.dispatch({ selection: { anchor: from + 3 }, scrollIntoView: true });
+          view.focus();
+        },
       });
       return element;
     }
@@ -141,10 +172,9 @@ export class NumeralWidget extends WidgetType {
     );
   }
 
-  override ignoreEvent(): boolean {
-    return this.kind !== "reference"
-      && this.kind !== "note-reference"
-      && this.kind !== "note-definition";
+  override ignoreEvent(event: Event): boolean {
+    if (this.kind === "reference") return referenceIgnoresEditorEvent(event);
+    return this.kind !== "note-reference" && this.kind !== "note-definition";
   }
 }
 
@@ -582,11 +612,15 @@ export class HeadingDisplayController {
     token: object;
   }>>();
 
-  constructor(private readonly getSettings: () => NumberSuiteSettings) {}
+  constructor(
+    private readonly getSettings: () => NumberSuiteSettings,
+    private readonly resolveWikiTarget?: (filePart: string, sourcePath: string) => boolean,
+  ) {}
 
   createExtension(): Extension {
     const views = this.views;
     const settingsProvider = this.getSettings;
+    const resolveWikiTarget = this.resolveWikiTarget;
     const recordContextMenuOffset = (
       editor: Editor,
       offset: number | null,
@@ -613,6 +647,7 @@ export class HeadingDisplayController {
     });
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
+      definitionDecorations: DecorationSet = Decoration.none;
       private overrides: NoteOverrides;
       private eventCompositionActive = false;
       private touchEditingActive = false;
@@ -718,6 +753,7 @@ export class HeadingDisplayController {
       }
 
       private buildDecorations(): DecorationSet {
+        this.definitionDecorations = Decoration.none;
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
         if ((livePreview && !settings.enableLivePreview) || (!livePreview && !settings.enableSourceMode)) {
@@ -762,6 +798,11 @@ export class HeadingDisplayController {
           captionPlacements: captionPlacements(settings),
           showImageCaptionTooltips: settings.showImageCaptionTooltips,
           showCrossReferences: settings.showCrossReferences,
+          enhanceNativeWikiHeadingLinks: settings.enhanceNativeWikiHeadingLinks && livePreview,
+          isSameFileWikiTarget: (filePart) => {
+            const path = this.view.state.field(editorInfoField, false)?.file?.path;
+            return path != null && resolveWikiTarget?.(filePart, path) === true;
+          },
           showNoteNumbers: shouldShowNoteWidgets(settings, livePreview),
           noteSelections: selections,
           numbering,
@@ -770,6 +811,7 @@ export class HeadingDisplayController {
           composing,
         }, snapshot);
         const ranges: Range<Decoration>[] = [];
+        const definitionRanges: Range<Decoration>[] = [];
         const t = createTranslator(settings.language);
         const decorations = [
           ...plan.map((item) => ({ ...item, semanticKind: null })),
@@ -806,6 +848,13 @@ export class HeadingDisplayController {
                 inclusive: false,
               }).range(item.pillFrom, item.pillTo));
             }
+          } else if (item.semanticKind === "native-link-number") {
+            // Keep the original [[#Heading]] link in CodeMirror's native
+            // renderer. A replacement widget would hijack link interactions.
+            ranges.push(Decoration.widget({
+              widget: new NativeWikiNumberWidget(item.label),
+              side: -1,
+            }).range(item.from));
           } else if (item.semanticKind === "reference") {
             ranges.push(Decoration.replace({
               widget: new NumeralWidget(
@@ -813,8 +862,9 @@ export class HeadingDisplayController {
                 "reference",
                 "footnote",
                 "",
-                "",
+                t("display.reference.editHint"),
                 item.targetLine ?? null,
+                item.from,
               ),
               inclusive: false,
             }).range(item.from, item.to));
@@ -833,7 +883,7 @@ export class HeadingDisplayController {
             const accessibleLabel = item.noteKind === "endnote"
               ? t("display.note.endnote", { number: item.label })
               : t("display.note.footnote", { number: item.label });
-            ranges.push(Decoration.replace({
+            const replacement = Decoration.replace({
               widget: new NumeralWidget(
                 item.label,
                 item.semanticKind,
@@ -842,7 +892,8 @@ export class HeadingDisplayController {
                 t("display.note.editHint"),
               ),
               inclusive: false,
-            }).range(item.from, item.to));
+            }).range(item.from, item.to);
+            (item.semanticKind === "note-definition" ? definitionRanges : ranges).push(replacement);
           } else if (item.kind === "virtual") {
             ranges.push(Decoration.widget({
               widget: new NumeralWidget(item.label),
@@ -869,10 +920,17 @@ export class HeadingDisplayController {
             }
           }
         }
+        this.definitionDecorations = Decoration.set(definitionRanges, true);
         return Decoration.set(ranges, true);
       }
     }, {
       decorations: (instance) => instance.decorations,
+      // Native Live Preview hides "[^" and "]:" in separate overlapping
+      // replacements. Give only our complete definition label precedence so
+      // initial rendering and extension reload cannot clip its widget differently.
+      provide: (plugin) => Prec.high(EditorView.decorations.of((view) => (
+        view.plugin(plugin)?.definitionDecorations ?? Decoration.none
+      ))),
     });
 
     const compositionHandlers = EditorView.domEventHandlers({

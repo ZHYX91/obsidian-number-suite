@@ -10,10 +10,12 @@ import { navigateToLine } from "../adapters/navigate-to-line";
 import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import { createDisplayPlan } from "../application/display-plan";
 import { HeadingMapIdentity } from "../application/heading-map-identity";
+import { planSameParentHeadingMove } from "../application/heading-map-reorder";
 import { headingMapCollapsedForRange, type HeadingMapExpandRange } from "../application/heading-map-state";
 import { zoomHeadingMapViewport } from "../application/heading-map-viewport";
 import {
   findHeadingMapNode,
+  adjacentHeadingMapSibling,
   createHeadingMap,
   createHeadingMapDocument,
   headingMapOverview,
@@ -65,6 +67,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 export class NumberSuiteHeadingMapView extends ItemView {
   private currentFile: TFile | null = null;
+  private pinnedToEntry = false;
   private sourceLeaf: WorkspaceLeaf | null = null;
   private roots: readonly HeadingMapNode[] = [];
   private identities = new HeadingMapIdentity();
@@ -85,6 +88,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private overviewInitialized = false;
   private pan: PanState | null = null;
   private readonly touchPointers = new Map<number, TouchPoint>();
+  private lastSource: string | null = null;
+  private rearranging = false;
+  private moving = false;
+  private dragSource: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }> | null = null;
+  private rearrangeButton: HTMLButtonElement | null = null;
+  private moveStatusEl: HTMLElement | null = null;
+  private moveStatusError = false;
   private viewport: HTMLElement | null = null;
   private sceneHost: HTMLElement | null = null;
   private canvas: HTMLElement | null = null;
@@ -96,6 +106,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private subtreeButton: HTMLButtonElement | null = null;
   private scaleLabel: HTMLElement | null = null;
   private rangeSelect: HTMLSelectElement | null = null;
+  private viewOptionsSummary: HTMLElement | null = null;
   private zoomOutButton: HTMLButtonElement | null = null;
   private zoomInButton: HTMLButtonElement | null = null;
   private fitButton: HTMLButtonElement | null = null;
@@ -146,7 +157,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.viewport.addEventListener("pointercancel", (event) => this.endPan(event));
     this.viewport.addEventListener("lostpointercapture", (event) => this.endPan(event));
 
-    this.registerEvent(this.app.workspace.on("file-open", (file) => this.setFile(file)));
+    this.registerEvent(this.app.workspace.on("file-open", (file) => {
+      if (!this.pinnedToEntry) this.setFile(file);
+    }));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
     this.registerEvent(this.app.workspace.on("editor-change", (_editor, info) => {
       if (info.file?.path === this.currentFile?.path) {
@@ -167,6 +180,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
   override async onClose(): Promise<void> {
     this.request += 1;
     this.clearRefreshTimer();
+    this.dragSource = null;
+    this.lastSource = null;
     this.contentEl.empty();
     this.contentEl.removeAttribute("dir");
     this.viewport = null;
@@ -181,16 +196,26 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.subtreeButton = null;
     this.scaleLabel = null;
     this.rangeSelect = null;
+    this.viewOptionsSummary = null;
     this.zoomOutButton = null;
     this.zoomInButton = null;
     this.fitButton = null;
+    this.rearrangeButton = null;
+    this.moveStatusEl = null;
   }
 
   override onResize(): void {
     if (this.needsInitialFit) this.requestFrame(() => this.fitInitialView());
   }
 
-  showFile(file: TFile | null, sourceLeaf: WorkspaceLeaf | null = null): void {
+  showFile(
+    file: TFile | null,
+    sourceLeaf: WorkspaceLeaf | null = null,
+    pinToEntry = false,
+  ): void {
+    // A map opened from a pinned Outline/Current note must not silently
+    // switch to another file merely because an unrelated editor gets focus.
+    this.pinnedToEntry = pinToEntry;
     this.clearRefreshTimer();
     this.setFile(file, false);
     if (sourceLeaf?.view instanceof MarkdownView && sourceLeaf.view.file === file) {
@@ -216,6 +241,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.searchInput.setAttribute("aria-label", t("headingMap.search"));
     }
     this.viewport?.setAttribute("aria-label", t("headingMap.canvas"));
+    this.viewOptionsSummary?.setText(t("headingMap.viewOptions"));
     this.documentButton?.setText(t("headingMap.scope.document"));
     if (this.rangeSelect != null) {
       this.rangeSelect.setAttribute("aria-label", t("headingMap.expandRange"));
@@ -226,6 +252,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
           option.textContent = t(`headingMap.expandRange.${value}`);
         }
       }
+    }
+    this.contentEl.classList.toggle("is-adjusting-structure", this.rearranging);
+    if (!this.rearranging || (this.moveStatusEl != null && !this.moveStatusError && this.dragSource == null)) this.setMoveStatus();
+    if (this.rearrangeButton != null) {
+      this.rearrangeButton.setText(t(this.rearranging
+        ? "headingMap.rearrange.active" : "headingMap.rearrange.enable"));
+      this.rearrangeButton.title = t("headingMap.rearrange.description");
+      this.rearrangeButton.setAttribute("aria-pressed", String(this.rearranging));
     }
     for (const [button, key] of [
       [this.zoomOutButton, "headingMap.zoomOut"],
@@ -274,7 +308,19 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.searchStatusEl = primary.createSpan({ cls: "number-suite-heading-map-search-status" });
 
     const secondary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-secondary" });
-    const scope = secondary.createDiv({ cls: "number-suite-heading-map-scope" });
+    this.rearrangeButton = secondary.createEl("button", { cls: "number-suite-heading-map-rearrange" });
+    this.rearrangeButton.type = "button";
+    this.rearrangeButton.addEventListener("click", () => {
+      if (this.moving) return;
+      this.rearranging = !this.rearranging;
+      this.dragSource = null;
+      this.setMoveStatus();
+      this.updateToolbarLabels();
+      this.render();
+    });
+    this.moveStatusEl = toolbar.createDiv({ cls: "number-suite-heading-map-move-status", attr: { role: "status", "aria-live": "polite" } });
+    this.setMoveStatus();
+    const scope = primary.createDiv({ cls: "number-suite-heading-map-scope" });
     this.documentButton = scope.createEl("button");
     this.documentButton.type = "button";
     this.documentButton.addEventListener("click", () => {
@@ -289,7 +335,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.render();
     });
 
-    const range = secondary.createEl("select", { cls: "number-suite-heading-map-range" });
+    const options = secondary.createEl("details", { cls: "number-suite-heading-map-options" });
+    this.viewOptionsSummary = options.createEl("summary");
+    const optionsBody = options.createDiv({ cls: "number-suite-heading-map-options-body" });
+    const range = optionsBody.createEl("select", { cls: "number-suite-heading-map-range" });
     this.rangeSelect = range;
     const rangePrompt = range.createEl("option");
     rangePrompt.value = "";
@@ -305,14 +354,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
       else if (value === "all") this.setExpandRange("all");
     });
 
-    this.directionButton = secondary.createEl("button", { cls: "number-suite-heading-map-direction" });
+    this.directionButton = optionsBody.createEl("button", { cls: "number-suite-heading-map-direction" });
     this.directionButton.type = "button";
     this.directionButton.addEventListener("click", () => {
       this.layoutDirection = this.layoutDirection === "left-to-right" ? "top-to-bottom" : "left-to-right";
       this.render();
     });
 
-    const zoom = secondary.createDiv({ cls: "number-suite-heading-map-zoom" });
+    primary.insertBefore(scope, search);
+    const zoom = primary.createDiv({ cls: "number-suite-heading-map-zoom" });
     const zoomOut = zoom.createEl("button");
     zoomOut.type = "button";
     setIcon(zoomOut, "minus");
@@ -386,6 +436,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.clearRefreshTimer();
     this.request += 1;
     this.currentFile = markdown;
+    this.rearranging = false;
+    this.dragSource = null;
+    this.updateToolbarLabels();
     this.identities = new HeadingMapIdentity();
     this.roots = [];
     this.lastLayout = null;
@@ -396,6 +449,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.searchQuery = "";
     this.searchMatches = [];
     this.searchIndex = 0;
+    this.lastSource = null;
+    this.dragSource = null;
     if (this.searchInput != null) this.searchInput.value = "";
     this.scale = 1;
     this.offsetX = 0;
@@ -407,7 +462,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private onActiveLeafChange(leaf: WorkspaceLeaf | null): void {
-    if (!(leaf?.view instanceof MarkdownView)) return;
+    if (this.pinnedToEntry || !(leaf?.view instanceof MarkdownView)) return;
     this.clearRefreshTimer();
     this.request += 1;
     this.sourceLeaf = leaf;
@@ -463,6 +518,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     try {
       const source = sourceOverride ?? await this.sourceForFile(file);
       if (request !== this.request || expectedPath !== this.currentFile?.path) return;
+      this.lastSource = source;
       const overrides = parseNoteOverridesFromSource(source);
       if (overrides == null) {
         this.renderStatus(this.actions.getTranslate()("notice.invalidFrontmatter"));
@@ -647,12 +703,64 @@ export class NumberSuiteHeadingMapView extends ItemView {
       card.classList.toggle("is-match", matches.has(node.id));
       const documentRoot = node.id === HEADING_MAP_DOCUMENT_ID;
       card.classList.toggle("is-document", documentRoot);
+      if (this.rearranging && !documentRoot) {
+        card.draggable = true;
+        card.classList.add("is-rearrangeable");
+        card.addEventListener("dragstart", (event) => {
+          if (this.moving || this.lastSource == null || this.currentFile == null) {
+            event.preventDefault();
+            return;
+          }
+          this.moveStatusError = false;
+          this.setMoveStatus();
+          this.dragSource = { id: node.id, line: node.line, source: this.lastSource,
+            path: this.currentFile.path, file: this.currentFile };
+          event.dataTransfer?.setData("text/plain", "number-suite-heading");
+          if (event.dataTransfer != null) event.dataTransfer.effectAllowed = "move";
+        });
+        card.addEventListener("dragover", (event) => this.previewMove(event, node, card));
+        card.addEventListener("dragleave", (event) => {
+          const related = event.relatedTarget as Node | null;
+          if (related != null && card.contains(related)) return;
+          this.clearDropIndicators();
+        });
+        card.addEventListener("drop", (event) => {
+          const drag = this.dragSource;
+          const placement = this.dropPlacement(event, card);
+          this.clearDropIndicators();
+          if (drag == null) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const valid = this.validateDrop(drag, node, placement);
+          this.dragSource = null;
+          if (!valid) return;
+          void this.applyMove(drag, node.line, placement);
+        });
+        card.addEventListener("dragend", () => {
+          const cancelled = this.dragSource != null;
+          this.dragSource = null;
+          this.clearDropIndicators();
+          if (cancelled || !this.moveStatusError) this.setMoveStatus();
+        });
+      }
 
+      if (this.rearranging && documentRoot) {
+        card.addEventListener("dragover", (event) => this.previewMove(event, node, card));
+        card.addEventListener("drop", (event) => {
+          if (this.dragSource == null) return;
+          event.preventDefault();
+          event.stopPropagation();
+          this.dragSource = null;
+          this.clearDropIndicators();
+          this.setMoveStatus("headingMap.rearrange.invalid", true);
+        });
+      }
       const number = card.createEl("button", { cls: "number-suite-heading-map-number" });
       number.type = "button";
       if (documentRoot) setIcon(number, "file-text");
       else number.setText(node.numberLabel ?? `H${node.level}`);
-      number.title = documentRoot ? this.currentFile.path : node.numberLabel ?? `H${node.level}`;
+      number.classList.toggle("is-level", !documentRoot && node.numberLabel == null);
+      number.title = documentRoot ? this.currentFile.path : `H${node.level}`;
       number.setAttribute("aria-label", number.title);
       number.addEventListener("click", () => this.setSelection(node.id));
       number.addEventListener("focus", () => this.revealNode(node.id));
@@ -670,7 +778,37 @@ export class NumberSuiteHeadingMapView extends ItemView {
         void this.navigate(node);
       });
 
+      if (this.rearranging && !documentRoot) {
+        const controls = card.createDiv({ cls: "number-suite-heading-map-order-controls" });
+        for (const direction of ["up", "down"] as const) {
+          const neighbor = adjacentHeadingMapSibling(this.roots, node.id, direction);
+          const label = this.actions.getTranslate()(direction === "up"
+            ? "headingMap.rearrange.up" : "headingMap.rearrange.down");
+          const button = controls.createEl("button", {
+            cls: "number-suite-heading-map-order-action",
+            attr: { type: "button", "aria-label": label, title: label },
+          });
+          setIcon(button, direction === "up" ? "chevron-up" : "chevron-down");
+          button.disabled = neighbor == null || this.lastSource == null || this.moving;
+          button.addEventListener("focus", () => this.revealNode(node.id));
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const source = this.lastSource;
+            const file = this.currentFile;
+            const path = file?.path;
+            const sibling = adjacentHeadingMapSibling(this.roots, node.id, direction);
+            if (!this.rearranging || this.moving || source == null || file == null || path == null || sibling == null
+              || planSameParentHeadingMove(source, node.line, sibling.line,
+                direction === "up" ? "before" : "after") == null) return;
+            this.setSelection(node.id);
+            void this.applyMove({ id: node.id, line: node.line, source, path, file }, sibling.line,
+              direction === "up" ? "before" : "after");
+          });
+        }
+      }
+
       const childCount = node.children.length;
+      if (childCount === 0) continue;
       const handle = card.createEl("button", {
         cls: "number-suite-heading-map-children",
         text: String(childCount),
@@ -681,7 +819,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       handle.disabled = childCount === 0;
       if (childCount > 0) {
         const collapsed = effectiveCollapsed.has(node.id);
-        setIcon(handle.createSpan({ cls: "number-suite-heading-map-expand-icon" }), collapsed ? "plus" : "minus");
+        setIcon(handle.createSpan({ cls: "number-suite-heading-map-expand-icon" }), collapsed ? "chevron-right" : "chevron-down");
         handle.classList.toggle("is-collapsed", collapsed);
         handle.setAttribute("aria-expanded", String(!collapsed));
         handle.setAttribute("aria-label", this.actions.getTranslate()(
@@ -698,10 +836,6 @@ export class NumberSuiteHeadingMapView extends ItemView {
           this.render();
           this.focusControl(node.id);
         });
-      } else {
-        const label = this.actions.getTranslate()("headingMap.childCount", { count: 0 });
-        handle.setAttribute("aria-label", label);
-        handle.title = label;
       }
     }
 
@@ -709,6 +843,131 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.updateToolbarState();
     if (this.needsInitialFit) {
       this.requestFrame(() => this.fitInitialView());
+    }
+  }
+
+  private dropPlacement(event: DragEvent, card: HTMLElement): "before" | "after" {
+    const bounds = card.getBoundingClientRect();
+    return this.layoutDirection === "top-to-bottom"
+      ? event.clientX < bounds.left + bounds.width / 2 ? "before" : "after"
+      : event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+  }
+
+  private setMoveStatus(key?: Parameters<Translate>[0], error = false, values?: Readonly<Record<string, string | number>>): void {
+    this.moveStatusError = error;
+    const text = !this.rearranging ? "" : this.actions.getTranslate()(key ?? "headingMap.rearrange.hint", values);
+    if (this.moveStatusEl?.textContent !== text) this.moveStatusEl?.setText(text);
+    this.moveStatusEl?.classList.toggle("is-error", error);
+    if (this.moveStatusEl != null) this.moveStatusEl.hidden = !this.rearranging;
+  }
+
+  private clearDropIndicators(): void {
+    this.canvas?.querySelectorAll(".is-drop-before, .is-drop-after, .is-drop-invalid").forEach((element) => {
+      element.classList.remove("is-drop-before", "is-drop-after", "is-drop-invalid");
+    });
+  }
+
+  private validateDrop(
+    drag: NonNullable<NumberSuiteHeadingMapView["dragSource"]>,
+    target: HeadingMapTreeNode,
+    placement: "before" | "after",
+  ): boolean {
+    if (this.lastSource !== drag.source || this.currentFile !== drag.file || this.currentFile.path !== drag.path) {
+      this.setMoveStatus("headingMap.rearrange.stale", true);
+      return false;
+    }
+    const source = findHeadingMapNode(this.roots, drag.id);
+    const parentOf = (id: string, nodes: readonly HeadingMapNode[], parent = ""): string | null => {
+      for (const node of nodes) {
+        if (node.id === id) return parent;
+        const found = parentOf(id, node.children, node.id);
+        if (found != null) return found;
+      }
+      return null;
+    };
+    if (source == null || target.id === source.id || source.level !== target.level
+      || parentOf(source.id, this.roots) !== parentOf(target.id, this.roots)) {
+      this.setMoveStatus("headingMap.rearrange.invalid", true);
+      return false;
+    }
+    if (planSameParentHeadingMove(drag.source, drag.line, target.line, placement) == null) {
+      this.setMoveStatus(); // Adjacent no-op is a valid location, not a failure.
+      return false;
+    }
+    return true;
+  }
+
+  private previewMove(event: DragEvent, target: HeadingMapTreeNode, card: HTMLElement): void {
+    const drag = this.dragSource;
+    this.clearDropIndicators();
+    if (drag == null || this.moving) return;
+    event.preventDefault(); // Receive invalid drops too, to explain the refusal locally.
+    const placement = this.dropPlacement(event, card);
+    if (!this.validateDrop(drag, target, placement)) {
+      // Receive the drop so its local refusal survives dragend. The immutable
+      // plan validation still rejects the move; Escape remains a cancellation.
+      if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
+      if (this.moveStatusError) card.classList.add("is-drop-invalid");
+      return;
+    }
+    if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
+    card.classList.add(placement === "before" ? "is-drop-before" : "is-drop-after");
+    card.dataset.dropAxis = this.layoutDirection === "top-to-bottom" ? "horizontal" : "vertical";
+    this.setMoveStatus(`headingMap.rearrange.${placement}`, false, { title: target.title });
+  }
+
+  private async applyMove(
+    drag: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }>,
+    targetLine: number,
+    placement: "before" | "after",
+  ): Promise<void> {
+    if (this.moving || !this.rearranging) return;
+    if (this.lastSource !== drag.source
+      || this.currentFile !== drag.file || this.currentFile.path !== drag.path
+      || this.app.vault.getAbstractFileByPath(drag.path) !== drag.file) {
+      this.setMoveStatus("headingMap.rearrange.stale", true);
+      return;
+    }
+    this.moving = true;
+    try {
+      const file = this.currentFile;
+      if (file == null) return;
+      const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
+      if (!(bound.leaf?.view instanceof MarkdownView) || bound.leaf.view.getMode() !== "source") {
+        this.setMoveStatus("headingMap.rearrange.noEditor", true);
+        return;
+      }
+      if (this.currentFile !== file || file !== drag.file || file.path !== drag.path
+        || this.app.vault.getAbstractFileByPath(drag.path) !== file
+        || this.lastSource !== drag.source || bound.source !== drag.source
+        || !(bound.leaf?.view instanceof MarkdownView) || bound.leaf.view.file !== file) {
+        this.setMoveStatus("headingMap.rearrange.stale", true);
+        return;
+      }
+      const editor = bound.leaf.view.editor;
+      const current = editor.getValue();
+      if (current !== drag.source || bound.leaf.view.file !== file
+        || this.currentFile !== file || this.app.vault.getAbstractFileByPath(drag.path) !== file) {
+        this.setMoveStatus("headingMap.rearrange.stale", true);
+        return;
+      }
+      const plan = planSameParentHeadingMove(current, drag.line, targetLine, placement);
+      if (plan == null || plan.expectedSource !== current
+        || current.slice(plan.from, plan.to) !== plan.original) return;
+      // Single bounded Obsidian editor transaction = one native undo step.
+      editor.transaction({ changes: [{
+        from: editor.offsetToPos(plan.from),
+        to: editor.offsetToPos(plan.to),
+        text: plan.replacement,
+      }] });
+      this.setMoveStatus();
+      this.sourceLeaf = bound.leaf;
+      this.scheduleRefresh();
+    } catch (error: unknown) {
+      console.error("Number Suite: could not move mind-map section", error);
+      this.setMoveStatus("headingMap.rearrange.stale", true);
+    } finally {
+      this.moving = false;
     }
   }
 

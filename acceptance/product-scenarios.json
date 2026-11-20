@@ -13,6 +13,192 @@
   },
   "scenarios": [
     {
+      "id": "sidebar-preview-and-map-feedback",
+      "title": "Compact current-note controls, bound sidebar preview and map drop feedback",
+      "surfaces": [
+        "desktop"
+      ],
+      "requiredCapabilities": {
+        "desktop": []
+      },
+      "steps": [
+        "Open Native outline.md in source mode. Open Current note at about 280 px width. Inspect compact file/status header, inherited and overridden virtual/stored/scheme controls, hidden successful-save status, collapsed advanced and write tools, and absence of horizontal overflow. Toggle stored visibility and restore inheritance; verify concealment inversion and preserve source except the explicit Properties changes.",
+        "From Current note invoke Write, Renumber, Remove and Strip markers in turn. Verify each switches the sidebar to an internal preview with fixed filename, counts, complete differences/warnings and Back/Cancel/Apply, rather than appending below controls or opening a Modal. Cancel each without writes. Invoke a current-note command and verify the same sidebar page. Batch still opens its wide Modal.",
+        "Create a write preview for Native outline.md; switch to Reference navigation.md while keeping the original editor open. Verify target filename stays Native outline.md and an applied plan changes only that original file with one native Undo restoring source. Create another preview, edit the target source, then Apply: verify a local stale error, no overwrite, preview retained and Back allows rebuilding. Restore deliberate fixture edits.",
+        "Open the map for Native outline.md, enable the visible Adjust structure mode and inspect its active status and exposed move buttons. Begin a same-parent/same-level drag; capture an actual screenshot while holding above and below a valid peer, including target highlight and before/after insertion marker. Complete one drag and native Undo; compare the complete original source.",
+        "Attempt a cross-parent or cross-level target and inspect the concise local rejection reason without Notice flooding or writes. Cancel a drag and perform an adjacent no-op; neither reports an error. Where feasible test no matching source editor and changed-source rejection; missing observations remain unverified. Leave source restored and record the actual limited observations separately from historical scenarios."
+      ],
+      "expected": [
+        "Compact controls stay readable within a narrow sidebar; inheritance/effective values and inverse stored-visibility mapping are correct; pending/error/conflict saves remain visible.",
+        "All single-note actions use one shared sidebar preview and immutable bounded original-file plans; note switches cannot retarget and stale sources are rejected. Back/Cancel and successful Apply return to Current note. Batch remains separate.",
+        "Adjust structure exposes accessible movement controls and clear before/after insertion feedback. Only same-parent/same-level whole sections move in one native Undo transaction; rejected targets explain locally and cancel/no-op do not misreport errors."
+      ]
+    },
+    {
+      "id": "native-outline-enhancement",
+      "title": "Native Outline projection, entry migration and reload preserve source and pane ownership",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "In a fresh isolated Vault open Native outline.md and record exact source/hash. Before enabling the core Outline plugin, run the legacy Open Number Suite outline command and the ribbon entry. Verify Current note opens directly without obsolete Document outline/tabs; inspect the helpful core-Outline enablement guidance and confirm the core plugin remains disabled until explicitly enabled by the operator.",
+        "Enable core Outline through Obsidian settings. Verify the three independent Number Suite switches for heading numbers, H7-H9 and captions initially default on. Turn each off independently, reload Number Suite through Community plugins and verify each saved explicit false survives; restore all three on. Compare heading numbers with body labels using Hierarchical and one custom scheme, then restore the initial scheme. Confirm source/hash remains unchanged.",
+        "Inspect H1-H9 and all four caption types in native Outline. Headings have small number pills plus text; caption rows have localized type icons/ordinals and secondary titles, no whole-row pill and no expand arrow. Alpha figure/Table/Equation/Code appear within their containing sections in source order and match body effective counters. Collapse/expand and filter the tree; counts must not restart or change.",
+        "Navigate from every extension level and caption to the correct source line, move the source caret and verify native current-location following. Open Reference navigation.md as a second note and, where the host exposes it, a second Outline pane; pin Native outline.md in its pane, change active editors and verify each pane retains its own source and filtering/collapse behavior. A host lacking a required pin/multiple-pane operation must be recorded as unverified rather than inferred from one pane.",
+        "Open the mind map from each native Outline toolbar action and the Current note header after switching to an unrelated editor. Verify the map is bound to the triggering pane file. Run the map command separately and verify its follow-active-note behavior. Confirm no command opens the removed Document outline.",
+        "In this disposable Vault only, exercise upgrade migration from an old workspace sidebar state with its outline/current-note tab values and an existing legacy command shortcut. Restore/reopen the workspace, invoke that shortcut and inspect the direct Current note result. Disable/re-enable and unload/reload Number Suite; native Outline must remain usable without duplicate entries, decorations or toolbar actions. If an old-state input was not exercised, report migration unverified. Compare both fixture sources/hashes with baseline and keep desktop/Android observations separate."
+      ],
+      "expected": [
+        "Core Outline is never automatically enabled. Ribbon, legacy entries and migrated sidebar state expose Current note without the removed UI; three independent controls preserve explicit false values across reload.",
+        "Native Outline shows effective H1-H9 and leaf captions in source order, preserves native filtering/collapse/following/pinning/multiple-pane behavior and binds each map action correctly without changing Markdown or the shared metadata cache.",
+        "Display, migration and lifecycle checks leave both Markdown fixtures byte-identical. Missing native behavior or migration evidence is unverified, not a pass."
+      ]
+    },
+    {
+      "id": "native-outline-section-reorder",
+      "title": "Complete extended sections reorder safely in native Outline and explicit map mode",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": [
+          "touch.drag"
+        ]
+      },
+      "steps": [
+        "Open Native outline.md in a matching Markdown editor with native Outline enhancements on. Record the entire baseline source/hash and identify Seven Alpha/Beta, Eight Alpha/Beta and Nine Alpha/Beta peers, their body sentinels, captions and descendant headings. Leave source numbers virtual so movement cannot be confused with stored-number rewriting.",
+        "In native Outline drag Seven Alpha after Seven Beta and before it again, Eight Alpha after Eight Beta, and Nine Alpha after Nine Beta. For every operation observe the before/after insertion marker, confirm the complete moved section retains its prose, caption objects and descendants, then use native Undo followed by Redo and a final Undo to restore the exact pre-operation bytes. On Android perform actual touch/long-press drags and record the gesture and resulting source; button actions cannot substitute for touch drag evidence.",
+        "Attempt to move Seven Alpha under Other parent, to a different-level Eight row, onto a caption, and to an invalid empty-space target. Try dragging a caption independently. Each unsupported move must leave the complete source unchanged and must not change heading parent or level. Verify ordinary H1-H6 native dragging/operations remain available while extension/caption rows are visible; restore the source using native Undo.",
+        "Exercise stale-source rejection: begin dragging an extended section, change its source snapshot from another matching editor before release, then drop on a formerly valid peer. The drag must not overwrite the intervening edit. Preserve the modified source as evidence before removing only the deliberate test edit. If the host cannot stage a real intervening edit during a drag, record this check unverified; ordinary cancel/release is not stale-source evidence.",
+        "Open the map using the source-bound Outline action. Verify ordinary browse dragging does not edit sections. Enable Adjust structure; drag complete same-parent/same-level sections with visible insertion targets, then use Move section up and Move section down on the same peers. Verify both paths include descendants/captions, reject unsupported targets, preserve source-file pinning across focus changes and use native Undo/Redo. Android requires a real touch drag in map edit mode in addition to successful buttons.",
+        "Switch to a different note and confirm edit mode does not carry an armed drag across files. Disable/re-enable and unload/reload the plugin, reopen native Outline and map, and check no stuck drag or duplicate controls. Undo all accepted fixture moves and deliberate source edits, compare the entire Native outline.md source/hash to baseline, and record Windows and Android separately."
+      ],
+      "expected": [
+        "H7-H9 native Outline dragging and explicit map structure editing move only complete same-parent/same-level sections, show clear insertion targets and preserve prose, objects, captions and descendants.",
+        "Every accepted move is one bounded editor undo transaction with functioning Undo/Redo. Wrong-parent, wrong-level, caption, stale-source and invalid-target attempts do not overwrite source; native H1-H6 operations remain available.",
+        "Actual Android touch dragging is observed separately from up/down access. Missing gesture, concurrency or pinning evidence remains unverified; final fixture bytes exactly match baseline."
+      ]
+    },
+    {
+      "id": "reference-source-and-wiki",
+      "title": "Explicit reference navigation and source editing coexist with opt-in native same-file Wiki labels",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Reference navigation.md in Live Preview with virtual numbers and explicit references enabled; record full source/hash. Verify ordinary Wiki heading enhancement is initially off: ordinary bare, aliased and file-qualified links retain native labels/actions. Inactive explicit title, alias, caption and block references show their expected labels.",
+        "Single-click each explicit title/alias/caption/block reference and verify navigation to the correct authored target on the first click, without requiring a first click to reveal source. Focus an explicit reference and use F2 on desktop; on Android use the visible mobile-accessible source-edit action. Verify the exact authored marker/alias becomes editable, dismiss without edits, and confirm an unrelated inactive reference remains rendered. Record source-edit access independently from navigation.",
+        "Enable Enhance ordinary same-note Wiki heading links. In Live Preview and Reading View verify the unique local, aliased, file-qualified basename and .md forms receive exactly one inert effective number; aliases remain authored text and native navigation, modifier/context actions remain owned by Obsidian. Move the caret across links and switch views to check source access and absence of duplicated labels.",
+        "Inspect cross-file, block, embed, ordinary Markdown, missing and ambiguous control links. None receives the ordinary-heading enhancement or a plugin-owned replacement interaction. The explicit @ block reference remains independently supported. Confirm Link metadata boundaries.md still excludes protected metadata; do not infer a native table source-to-DOM mapping from this simpler fixture.",
+        "Turn the ordinary Wiki option off, reload Number Suite and confirm the saved false remains false and ordinary links return to native labels/actions. Turn it on and repeat reload, Reading View, Source mode and Live Preview. Disable/unload the plugin and verify decorations/source-edit controls are removed without breaking native links, then re-enable and verify only one copy returns.",
+        "In the disposable Vault exercise old settings without the ordinary Wiki field and confirm the option migrates to off. Observe English and Simplified Chinese source-edit labels and Outline caption type labels without changing authored text. Return to the initial settings and view, compare full source/hash with baseline and record desktop and Android separately. Do not mark F2-only desktop evidence as mobile source-edit acceptance."
+      ],
+      "expected": [
+        "Explicit references navigate on the first click and provide working F2 plus Android-accessible source editing without modifying authored markers or unrelated references.",
+        "The ordinary Wiki option defaults/migrates to off, preserves explicit false and, when enabled, adds only inert effective numbers to unique same-file heading links in Live Preview and Reading View, including file-qualified forms and aliases.",
+        "Native interactions and excluded link classes remain intact through source/view/lifecycle changes. Full fixture bytes remain identical; each platform and missing interaction is reported independently."
+      ]
+    },
+    {
+      "id": "note-definition-reload",
+      "title": "Note-definition labels survive plugin reload and remain editable",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "In a fresh isolated Vault open Link metadata boundaries.md in Live Preview with formatted note numbers enabled. Record the complete source/hash and place the caret on the final blank line. Verify the real and next definition labels are [1] and [2]; record their native DOM separately from the ordinary Body reference.",
+        "Switch to Reading View, disable Number Suite through Community plugins and close Settings. Verify native content returns. Re-enable Number Suite, close Settings and return to Live Preview. Both definition labels must return once without a Source-mode reset. Repeat this lifecycle once, then move the caret into ordinary Body text and check both definitions again.",
+        "Select inside the real definition marker. Its exact authored marker must become editable while the inactive next definition retains [2]. Leave the marker and verify [1] returns. On Android open and dismiss the keyboard without entering text; record whether the active marker stays accessible and the inactive label remains intact.",
+        "Switch to Source mode and back to Live Preview. Check exact markers in Source mode and restored single labels in Live Preview, then compare the full source/hash to the baseline. Record Windows and Android outcomes separately. Diagnostic observation commands may collect supplementary evidence but cannot substitute for these visible behavior checks."
+      ],
+      "expected": [
+        "Each reload restores both definition labels without duplicates or a mode-reset workaround; selecting a marker exposes exact source and leaving restores its label.",
+        "Reading View cleanup, Source mode and inactive labels remain correct. The complete Markdown source is byte-identical after all display-only interactions."
+      ]
+    },
+    {
+      "id": "note-rendering-lifecycle-diagnostics",
+      "title": "Read-only native note rendering evidence across plugin reload",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "In a fresh isolated Vault open the unchanged Link metadata boundaries.md fixture in Live Preview, enable formatted note numbers and cross-references, and place the caret on the final blank line. Record the full source/hash and visible note labels. Run Number Suite acceptance provider: Record note rendering: initial through the command palette to collect the initial observation.",
+        "Switch to Reading View, disable Number Suite through Community plugins and close Settings; observe native reference restoration. Re-enable Number Suite, close Settings, then return to Live Preview. Without editing the fixture, inspect both definition labels and run Record note rendering: reloaded. Record visible absence, presence or duplication without assuming an outcome.",
+        "Click ordinary Body text outside its reference marker and record whether definition labels change. Run Record note rendering: caret. Switch to Source mode and back to Live Preview, inspect labels and run Record note rendering: mode-reset. Compare the full source/hash with the baseline.",
+        "Retain number-suite-note-rendering-initial.json, number-suite-note-rendering-reloaded.json, number-suite-note-rendering-caret.json and number-suite-note-rendering-mode-reset.json with their corresponding screenshots through the native owner. Each JSON reports actual DOM, already-computed decoration ranges and editor state; the observer never refreshes the product, dispatches a transaction or issues a product pass. Missing internal fields are diagnostic limitations, not proof that decorations are absent. Record desktop and Android separately."
+      ],
+      "expected": [
+        "Four bounded, immutable observations distinguish the initial state, reload state, ordinary-caret control and mode-reset state while preserving the exact fixture bytes.",
+        "The record identifies actual host behavior and any missing evidence. Diagnostic collection alone does not establish that plugin lifecycle behavior passed."
+      ]
+    },
+    {
+      "id": "link-metadata-boundaries",
+      "title": "Multiline link titles and native table-cell boundaries",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Link metadata boundaries.md in an isolated Vault. Record its complete source and hash. Enable virtual heading numbers, cross-references and formatted note numbers in Live Preview and Reading View; keep the cursor in ordinary text when observing inactive decorations.",
+        "Inspect the multiline link and the valid link inside one table cell. Their title metadata must not contribute a ghost note number or a hidden cross-reference pill. The ordinary Body reference must be footnote 1 and its body cross-reference must still target Target.",
+        "Inspect the final table, where the apparent title crosses an unescaped cell boundary and a row boundary. Its visible cell marker remains a real footnote after real, and its visible semantic reference remains eligible for enhancement. Record actual native table rendering and any source-to-DOM refusal separately; do not count an unavailable native correspondence as a displayed pass.",
+        "Switch between Live Preview and Reading View, then disable and re-enable the plugin. Check restoration without duplicate decorations, inspect Source mode and compare the complete original source/hash. Record desktop and Android outcomes separately."
+      ],
+      "expected": [
+        "Valid link metadata contributes no notes or semantic references; visible prose and invalid cross-cell title lookalikes retain their semantics. Native rendering and plugin decoration are recorded independently.",
+        "View changes and lifecycle transitions do not write Markdown. Disabling restores native content, and re-enabling does not duplicate decorations."
+      ]
+    },
+    {
+      "id": "properties-diagnostic-locales",
+      "title": "Localized Properties details preserve authored keys and values",
+      "surfaces": [
+        "desktop",
+        "android-emulator"
+      ],
+      "requiredCapabilities": {
+        "desktop": [],
+        "android-emulator": []
+      },
+      "steps": [
+        "Open Diagnostic locales.md and record its complete source/hash. Open Current note. In Number Suite General settings select English, Simplified Chinese and Japanese in turn, returning to Current note after each change.",
+        "For each language inspect both diagnostic details, not only the section heading. The invalid item explanation and unknown directive explanation must use the selected language while retaining heading.virtual=maybe and heading.unrecognized exactly as authored.",
+        "Return to the original language, reopen Current note and verify no stale language or duplicate diagnostics remain. Compare the source/hash and acceptance-keep property with the baseline. Record desktop and Android outcomes independently; the other supported languages remain covered by source tests."
+      ],
+      "expected": [
+        "Both diagnostic details follow the selected language while exact directive keys and raw input values remain unchanged and readable as plain text.",
+        "Inspecting diagnostics or changing the UI language does not write the note or remove invalid Properties."
+      ]
+    },
+    {
       "id": "batch-preview-identity-and-overflow",
       "title": "Batch preview file ownership and safe-integer counter limits",
       "surfaces": [
@@ -454,7 +640,8 @@
         "android-emulator": []
       },
       "steps": [
-        "Open Heading map.md, select Research, collapse it and enter its subtree. Rename that heading in the editor, then insert a new Repeated heading before the existing sections; return to the map after each edit."
+        "Open Heading map.md, select Research, collapse it and enter its subtree. Rename that heading in the editor, then insert a new Repeated heading before the existing sections; return to the map after each edit.",
+        "Keep Adjust structure off during the rename/insertion identity checks. Explicit same-parent section edits are covered separately by native-outline-section-reorder; do not interpret non-writing refresh as a read-only restriction on explicit structure mode. Restore deliberate editor edits and verify the baseline source before closeout."
       ],
       "expected": [
         "Unambiguously matched selection, subtree scope and collapse state stay with the original section after renaming and insertion. Numbers and direct-child counts refresh from the edited source; map refresh adds no source writes."
