@@ -207,7 +207,7 @@ export function planHeadingTransform(
       continue;
     }
 
-    const removeSkippedNumber = operation === "renumber" && item.skippedBySectionRule === true && first?.provenance === "plugin";
+    const removeSkippedNumber = item.skippedBySectionRule === true && first?.provenance === "plugin";
     if (item.exclusion != null || removeSkippedNumber) {
       if (first == null) {
         if (analysis.suspicious) {
