@@ -136,11 +136,7 @@ function headingTargets(
 ): NumberSuiteHeadingTargetV2[] {
   const overrides = parseNoteOverrides(frontmatter);
   const effective = resolveNoteSettings(settings, overrides);
-  const numbering = toNumberingOptions(settings, {
-    schemeId: effective.schemeId,
-    starts: effective.starts,
-    skipFirst: effective.skipFirst,
-  });
+  const numbering = toNumberingOptions(settings, effective);
   const numbered = numberHeadings(headings, numbering);
   const decorations = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,

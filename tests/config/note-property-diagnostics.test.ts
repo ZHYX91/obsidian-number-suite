@@ -56,6 +56,8 @@ const examples: DiagnosticExample[] = [
     "disabled=maybe", "heading.virtual=maybe", "heading.hide-stored=maybe", "heading.scheme=UPPER CASE",
     "heading.first-number.h0=1", "heading.skip-first.h0=1", "heading.first-number.h1=0",
     "heading.skip-first.h1=-1", "heading.first-number.h9=9007199254740992", "heading.skip-first.h9=9007199254740992",
+    "heading.skip-per-parent.h1=0", "heading.skip-per-parent.h10=1", "heading.skip-per-parent.h2=-1",
+    "heading.skip-per-parent.h9=9007199254740992",
   ].map((item): DiagnosticExample => ({
     name: `invalid value: ${item}`,
     read: () => parseNoteOverrides({ "number-suite": [item] }).issues,
@@ -179,5 +181,14 @@ describe("structured Properties diagnostics", () => {
     const before = structuredClone(raw);
     expect(resolveNoteSettings(DEFAULT_SETTINGS, parseNoteOverrides(raw)).issues).toEqual([]);
     expect(raw).toEqual(before);
+  });
+
+  it.each([2, 3, 4, 5, 6, 7, 8, 9])("resolves both skip scopes at H%s without writing Properties", (level) => {
+    const property = Object.freeze([`heading.skip-per-parent.h${level}=0`, `heading.skip-first.h${level}=3`]);
+    const raw = Object.freeze({ "number-suite": property });
+    expect(resolveNoteSettings(DEFAULT_SETTINGS, parseNoteOverrides(raw))).toMatchObject({
+      valid: true, skipFirst: { [level]: 3 }, skipPerParent: { [level]: 0 },
+    });
+    expect(raw["number-suite"]).toBe(property);
   });
 });

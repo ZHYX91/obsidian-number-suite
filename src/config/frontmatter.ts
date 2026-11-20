@@ -23,7 +23,8 @@ export type NotePropertyField =
   | "heading.hide-stored"
   | "heading.scheme"
   | "heading.first-number"
-  | "heading.skip-first";
+  | "heading.skip-first"
+  | "heading.skip-per-parent";
 
 export type NotePropertyIssueDetails =
   | { readonly kind: "canonical-type" }
@@ -60,6 +61,7 @@ export interface NoteOverrides {
   readonly schemeId: string | null;
   readonly starts: Partial<Record<HeadingLevel, number>>;
   readonly skipFirst: Partial<Record<HeadingLevel, number>>;
+  readonly skipPerParent: Partial<Record<HeadingLevel, number>>;
   readonly issues: readonly NotePropertyIssue[];
   readonly canonicalEntries: readonly string[];
   readonly canonicalPresent: boolean;
@@ -78,6 +80,7 @@ export interface EffectiveNoteSettings {
   readonly cleanupScope: CleanupScope;
   readonly starts: Partial<Record<HeadingLevel, number>>;
   readonly skipFirst: Partial<Record<HeadingLevel, number>>;
+  readonly skipPerParent: Partial<Record<HeadingLevel, number>>;
 }
 
 interface ParsedValues {
@@ -87,6 +90,7 @@ interface ParsedValues {
   schemeId?: string;
   starts: Partial<Record<HeadingLevel, number>>;
   skipFirst: Partial<Record<HeadingLevel, number>>;
+  skipPerParent: Partial<Record<HeadingLevel, number>>;
 }
 
 const SCHEME_ID = /^[a-z0-9][a-z0-9-]{0,63}$/u;
@@ -142,6 +146,7 @@ function fieldForDirective(key: string): NotePropertyField {
   if (key === "heading.scheme") return "heading.scheme";
   if (key.startsWith("heading.first-number.")) return "heading.first-number";
   if (key.startsWith("heading.skip-first.")) return "heading.skip-first";
+  if (key.startsWith("heading.skip-per-parent.")) return "heading.skip-per-parent";
   return "all";
 }
 
@@ -150,7 +155,7 @@ function parseCanonical(
   present: boolean,
   issues: NotePropertyIssue[],
 ): { values: ParsedValues; entries: string[]; unknown: string[] } {
-  const values: ParsedValues = { starts: {}, skipFirst: {} };
+  const values: ParsedValues = { starts: {}, skipFirst: {}, skipPerParent: {} };
   const entries: string[] = [];
   const unknown: string[] = [];
   if (!present) return { values, entries, unknown };
@@ -203,8 +208,8 @@ function parseCanonical(
       else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
-    const levelMatch = /^heading\.(first-number|skip-first)\.h([1-9])$/u.exec(key);
-    if (levelMatch == null) {
+    const levelMatch = /^heading\.(first-number|skip-first|skip-per-parent)\.h([1-9])$/u.exec(key);
+    if (levelMatch == null || (field === "heading.skip-per-parent" && levelMatch[2] === "1")) {
       issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
@@ -216,6 +221,8 @@ function parseCanonical(
       issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
     } else if (levelMatch[1] === "first-number") {
       values.starts[level] = parsed;
+    } else if (field === "heading.skip-per-parent") {
+      values.skipPerParent[level] = parsed;
     } else {
       values.skipFirst[level] = parsed;
     }
@@ -227,7 +234,7 @@ function parseLegacy(
   data: Readonly<Record<string, unknown>>,
   issues: NotePropertyIssue[],
 ): { values: ParsedValues; present: string[] } {
-  const values: ParsedValues = { starts: {}, skipFirst: {} };
+  const values: ParsedValues = { starts: {}, skipFirst: {}, skipPerParent: {} };
   const present = LEGACY_NOTE_OVERRIDE_KEYS.filter((key) => hasOwn(data, key));
   const readBoolean = (key: typeof LEGACY_NOTE_OVERRIDE_KEYS[number], field: NotePropertyField): boolean | undefined => {
     if (!hasOwn(data, key)) return undefined;
@@ -299,6 +306,7 @@ export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
     schemeId: canonical.values.schemeId ?? legacy.values.schemeId ?? null,
     starts: { ...legacy.values.starts, ...canonical.values.starts },
     skipFirst: { ...canonical.values.skipFirst },
+    skipPerParent: { ...canonical.values.skipPerParent },
     issues,
     canonicalEntries: canonical.entries,
     canonicalPresent,
@@ -315,6 +323,7 @@ export function canonicalNoteOverrideEntries(values: Readonly<{
   schemeId: string | null;
   starts: Readonly<Partial<Record<HeadingLevel, number>>>;
   skipFirst: Readonly<Partial<Record<HeadingLevel, number>>>;
+  skipPerParent: Readonly<Partial<Record<HeadingLevel, number>>>;
 }>): string[] {
   const entries: string[] = [];
   if (values.disabled) entries.push("disabled=true");
@@ -328,6 +337,8 @@ export function canonicalNoteOverrideEntries(values: Readonly<{
   for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
     const value = values.skipFirst[level as HeadingLevel];
     if (value != null && value > 0) entries.push(`heading.skip-first.h${level}=${value}`);
+    const perParent = values.skipPerParent[level as HeadingLevel];
+    if (perParent != null && perParent > 0 && level > 1) entries.push(`heading.skip-per-parent.h${level}=${perParent}`);
   }
   return entries;
 }
@@ -353,5 +364,6 @@ export function resolveNoteSettings(
     cleanupScope: settings.cleanupScope,
     starts: { ...overrides.starts },
     skipFirst: { ...overrides.skipFirst },
+    skipPerParent: { ...overrides.skipPerParent },
   };
 }

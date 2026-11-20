@@ -49,6 +49,18 @@ describe("note override conflict rebasing", () => {
     expect(parsed.schemeId).toBe("legal");
   });
 
+  it("merges edits to different skip scopes of the same level and detects competing edits to one scope", () => {
+    const base = { "number-suite": ["heading.skip-first.h2=1", "heading.skip-per-parent.h2=1"] };
+    const draft = { "number-suite": ["heading.skip-first.h2=1", "heading.skip-per-parent.h2=2"] };
+    const otherScope = { "number-suite": ["heading.skip-first.h2=4", "heading.skip-per-parent.h2=1"] };
+    expect(rebaseNoteOverrideDraft(otherScope, base, draft)).toEqual({
+      "number-suite": ["heading.skip-first.h2=4", "heading.skip-per-parent.h2=2"],
+    });
+    const sameScope = { "number-suite": ["heading.skip-per-parent.h2=4"] };
+    expect(() => rebaseNoteOverrideDraft(sameScope, base, draft)).toThrow(NoteOverrideFieldConflictError);
+    expect(rebaseNoteOverrideDraft(sameScope, base, draft, true)).toEqual({ "number-suite": ["heading.skip-per-parent.h2=2"] });
+  });
+
   it("accepts convergent edits and preserves an unrelated concurrent counter", () => {
     const current = { "number-suite": ["heading.first-number.h1=3", "heading.skip-first.h2=4"] };
     const base = { "number-suite": ["heading.first-number.h1=2"] };

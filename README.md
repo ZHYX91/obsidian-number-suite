@@ -176,7 +176,7 @@ heading links. A dedicated command removes markers while retaining visible numbe
 
 ### Per-note Properties
 
-Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Under **Starts & skips**, add a rule for the heading level you want to change. **Remove rule** clears both fields for that level. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
+Current note offers independent inheritance for virtual numbers, stored-number visibility and scheme, with an automatic status. Under **Starts & skips**, add a rule for the heading level you want to change. **Remove rule** clears every field for that level. The header menu can disable the note while retaining overrides. **Edit note text** contains write and cleanup actions with previews. Untouched notes receive no
 plugin Properties. Returning a control to **Follow global** deletes that property; **Restore all**
 removes every Number Suite override and preserves unrelated Properties.
 
@@ -188,10 +188,13 @@ number-suite:
   - heading.scheme=hierarchical-h2
   - heading.first-number.h2=4
   - heading.skip-first.h2=1
+  - heading.skip-per-parent.h2=1
 ---
 ```
 
-With these settings, the first non-empty H2 and all its subheadings are skipped. The next H2 is numbered `4` and its first H3 is `4.1`. Headings inside the skipped section use neither numbers nor any skip quota set for a deeper level.
+In this example, `heading.skip-first.h2=1` picks the first non-empty H2 in the note. `heading.skip-per-parent.h2=1` picks the first non-empty H2 under each H1. When they pick the same section, it is skipped once with all its subheadings. The next H2 under the first H1 is `4` and its first H3 is `4.1`.
+
+H1 has only the note-wide count. For H2–H9, the nearest preceding heading of a higher level is the parent, or the note itself if none exists. Each parent starts its own count. Both rules count headings in source order, including headings inside sections already skipped. Skipped headings receive no number and do not advance numbering.
 Use `number-suite: [disabled=true]` to opt the note out of display and file operations. Cleanup
 scope is deliberately not note metadata; choose it in each cleanup or renumber preview.
 

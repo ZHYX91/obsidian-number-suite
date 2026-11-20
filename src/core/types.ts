@@ -133,11 +133,13 @@ export interface NumberingOptions {
   missingLevelStrategy: MissingLevelStrategy;
   starts: Readonly<Partial<Record<HeadingLevel, number>>>;
   skipFirst?: Readonly<Partial<Record<HeadingLevel, number>>>;
+  skipPerParent?: Readonly<Partial<Record<HeadingLevel, number>>>;
 }
 
 export interface NumberedHeading {
   heading: ParsedHeading;
   label: string | null;
+  skippedBySectionRule?: true;
   counters: Counters;
   warning: "missing-parent" | "counter-overflow" | "roman-range" | null;
   exclusion: HeadingExclusionScope | null;

@@ -64,10 +64,6 @@ export class NoteSaveCoordinator {
   }
 
   update(change: NoteOverrideChange): void {
-    if ((change.kind === "first-number" || change.kind === "skip-first") && change.value != null
-      && (!Number.isSafeInteger(change.value) || change.value < (change.kind === "first-number" ? 1 : 0))) {
-      throw new RangeError("Invalid heading override number");
-    }
     const next = this.snapshot;
     if (!applyNoteOverrideChange(next, change)) return;
     this.desired = next;

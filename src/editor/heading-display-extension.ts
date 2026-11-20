@@ -564,11 +564,7 @@ function buildAnchoredCaptionDecorations(
     showCrossReferences: false,
     showNoteNumbers: false,
     noteSelections: selections,
-    numbering: toNumberingOptions(settings, {
-      schemeId: effective.schemeId,
-      starts: effective.starts,
-      skipFirst: effective.skipFirst,
-    }),
+    numbering: toNumberingOptions(settings, effective),
     templateSources: cleanupTemplateSources(settings),
     headingDisplayPlan: [],
     composing: false,
@@ -799,11 +795,7 @@ export class HeadingDisplayController {
         }));
         const templateSources = cleanupTemplateSources(settings);
         const composing = this.displayComposing;
-        const numbering = toNumberingOptions(settings, {
-          schemeId: effective.schemeId,
-          starts: effective.starts,
-          skipFirst: effective.skipFirst,
-        });
+        const numbering = toNumberingOptions(settings, effective);
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
           concealStoredNumbers: effective.concealStoredNumbers,

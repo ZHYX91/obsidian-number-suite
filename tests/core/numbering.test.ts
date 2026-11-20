@@ -168,24 +168,50 @@ describe("numberHeadings", () => {
     expect(result.map((item) => item.label)).toEqual([null, null, null, "1"]);
   });
 
-  it("keeps deeper quotas for participating sections and resumes through H9", () => {
+  it.each([1, 2])("restarts skipped sections under every parent with starting number %s", (start) => {
+    const source = "# 第一章\n## 导言\n### 开场问题\n## 研究背景\n# 第二章\n## 导言\n### 阅读提示\n## 实验设计";
+    const result = numberHeadings(parseAtxHeadings(source), options({
+      starts: start === 1 ? {} : { 2: start }, skipPerParent: { 2: 1 },
+    }));
+    expect(result.map((item) => item.label)).toEqual(["1", null, null, `1.${start}`, "2", null, null, `2.${start}`]);
+  });
+
+  it("starts fresh after a short chapter, a missing parent and a jump in heading levels", () => {
+    const source = "### Opening\n### Intro\n### Front matter\n# A\n### Only\n# B\n### Lead\n### Preface\n### Topic\n## Nested parent\n### Lead\n### Preface\n### Next";
+    const result = numberHeadings(parseAtxHeadings(source), options({ skipPerParent: { 3: 2 } }));
+    expect(result.map((item) => item.label)).toEqual([
+      null, null, "1.1.1", "2", null, "3", null, null, "3.1.1", "3.2", null, null, "3.2.1",
+    ]);
+  });
+
+  it("counts descendants of a skipped section toward document quotas through H9", () => {
     const source = "## Skip\n####### Hidden child\n######### Hidden leaf\n## First\n####### Skip deep\n######### Hidden\n####### Included\n######### Leaf\n## Next";
     const result = numberHeadings(parseAtxHeadings(source), options({
       scheme: BUILT_IN_SCHEMES["hierarchical-h2"],
       starts: { 2: 4 }, skipFirst: { 2: 1, 7: 1 },
     }));
     expect(result.map((item) => item.label)).toEqual([
-      null, null, null, "4", null, null, "4.1.1.1.1.1", "4.1.1.1.1.1.1.1", "5",
+      null, null, null, "4", "4.1.1.1.1.1", "4.1.1.1.1.1.1.1", "4.1.1.1.1.2", "4.1.1.1.1.2.1.1", "5",
     ]);
   });
 
   it("resumes at a shallower heading and preserves title exclusions within an ordinal skip", () => {
-    const result = numberHeadings(parseAtxHeadings("## Skip\n### Ignored\n#### Nested\n# Resume\n## First"), options({
-      skipFirst: { 2: 1 },
+    const result = numberHeadings(parseAtxHeadings("## Skip\n### Ignored\n#### Nested\n# Resume\n## Lead\n## First"), options({
+      skipPerParent: { 2: 1 },
       scheme: { ...BUILT_IN_SCHEMES.hierarchical, exclusions: [{ title: "Ignored", scope: "subtree" }] },
     }));
-    expect(result.map((item) => item.label)).toEqual([null, null, null, "1", "1.1"]);
-    expect(result.map((item) => item.exclusion)).toEqual([null, "subtree", "subtree", null, null]);
+    expect(result.map((item) => item.label)).toEqual([null, null, null, "1", null, "1.1"]);
+    expect(result.map((item) => item.exclusion)).toEqual([null, "subtree", "subtree", null, null, null]);
+  });
+
+  it("uses independent original positions for document and parent quotas", () => {
+    const source = "# A\n## First\n### One\n#### Deep\n### Two\n## Second\n### Three\n### Four\n### Five\n# B\n### Six\n### Seven\n### Eight";
+    const result = numberHeadings(parseAtxHeadings(source), options({
+      skipFirst: { 2: 1, 3: 3 }, skipPerParent: { 3: 2 },
+    }));
+    expect(result.map((item) => item.label)).toEqual([
+      "1", null, null, null, null, "1.1", null, null, "1.1.1", "2", null, null, "2.1.1",
+    ]);
   });
 
   it("lets excluded headings occupy their source-order skip position while retaining exclusion behavior", () => {

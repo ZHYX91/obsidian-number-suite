@@ -56,7 +56,9 @@ Die Einstellungen haben sieben Tabs. Unter Allgemein ist die Erweiterung der nat
 
 Die native Gliederung und „Aktuelle Notiz“ öffnen die Mindmap für ihre eigene Datei. „Struktur anpassen“ erlaubt ganze Abschnitte nur unter demselben Elternknoten und auf derselben Ebene zu verschieben, per Ziehen oder Auf/Ab. Veralteter Quelltext wird abgelehnt; Rückgängig/Wiederholen bleibt verfügbar. Explizite Verweise springen mit einem Klick; F2 oder die mobile Quelltextaktion dient zum Bearbeiten. Nummern für gewöhnliche Wiki-Überschriftenlinks derselben Datei sind standardmäßig aus und optional in Live-Vorschau und Leseansicht verfügbar, auch mit Dateinamen; Aliase und native Aktionen bleiben erhalten.
 
-Bei einer Nummerierung ab H2 mit Startnummer 4 und einem zu überspringenden Abschnitt bleiben die erste nicht leere H2-Überschrift und alle ihre Unterüberschriften ohne Nummer. Die nächste H2 erhält `4`, ihre erste H3 `4.1`. Mit **Regel entfernen** löschen Sie beide Einstellungen dieser Ebene.
+Bei einer Nummerierung ab H2 mit Startnummer 4 überspringt `heading.skip-first.h2=1` den ersten nicht leeren H2-Abschnitt der Notiz. `heading.skip-per-parent.h2=1` überspringt den ersten H2-Abschnitt unter jeder H1-Überschrift. Treffen beide Regeln zu, wird der Abschnitt mit seinen Unterüberschriften einmal übersprungen. Der nächste H2-Abschnitt unter der ersten H1 erhält `4`, seine erste H3 `4.1`. Für H1 gilt nur die notizweite Regel. **Regel entfernen** löscht alle Einstellungen dieser Ebene.
+
+Beide Regeln zählen in der ursprünglichen Reihenfolge, auch innerhalb übersprungener Abschnitte. Fehlt die unmittelbare Elternebene, zählt die nächsthöhere vorhandene Überschrift als übergeordnet. Ohne sie beginnt die Gruppe auf der obersten Ebene der Notiz.
 
 <!-- section: limitations -->
 ## Umfang und Grenzen

@@ -83,9 +83,7 @@ export function createNativeOutlineProjection(
       usedLines.add(caption.line);
     }
   }
-  const numbering = toNumberingOptions(settings, {
-    schemeId: effective.schemeId, starts: effective.starts, skipFirst: effective.skipFirst,
-  });
+  const numbering = toNumberingOptions(settings, effective);
   const templateSources = cleanupTemplateSources(settings);
   const plan = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,

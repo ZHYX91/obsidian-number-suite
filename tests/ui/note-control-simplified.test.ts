@@ -109,7 +109,7 @@ describe("simplified current-note controls", () => {
     for (let i = 0; i < 2; i++) {
       [...host.querySelectorAll("button")].find((button) => button.textContent === "Add heading-level rule")!.click();
     }
-    expect(host.querySelectorAll('input[type="number"]')).toHaveLength(4);
+    expect([...host.querySelectorAll("fieldset")].map((card) => card.querySelectorAll('input[type="number"]').length)).toEqual([2, 3]);
   });
   it("shows existing H9 overrides immediately and keeps disabled-note preferences", () => {
     const { host } = render({ "number-suite": ["disabled=true", "heading.virtual=true", "heading.first-number.h9=4"] });
@@ -119,8 +119,25 @@ describe("simplified current-note controls", () => {
     expect(host.querySelector("select")?.value).toBe("on");
     expect(host.querySelector<HTMLButtonElement>(".number-suite-note-control-actions button")?.disabled).toBe(true);
   });
-  it("labels both H2 fields and removes only that rule in one save", async () => {
-    const initial = { "number-suite": ["heading.first-number.h2=4", "heading.skip-first.h2=1", "heading.first-number.h3=2"], keep: "untouched" };
+  it("describes the scope of each level's skip rule when the card is opened or added", () => {
+    const { host } = render({ "number-suite": ["heading.skip-first.h2=1", "heading.skip-per-parent.h9=2"] });
+    const cards = () => [...host.querySelectorAll("fieldset")];
+    const description = (card: HTMLFieldSetElement): string | null => {
+      const id = card.getAttribute("aria-describedby");
+      expect(id).toBeTruthy();
+      return card.querySelector(`[id="${id}"]`)?.textContent ?? null;
+    };
+    expect(cards().map(description)).toEqual([
+      translate("panel.skipPerParent.desc", { level: 2, parent: 1 }),
+      translate("panel.skipPerParent.desc", { level: 9, parent: 8 }),
+    ]);
+    const add = [...host.querySelectorAll("button")].find((button) => button.textContent === translate("panel.addLevel"))!;
+    add.click();
+    const root = cards().find((card) => card.querySelector("legend")?.textContent === "H1 rule")!;
+    expect(description(root)).toBe(translate("panel.skipPerParent.rootDesc"));
+  });
+  it("labels all H2 fields and removes only that rule in one save", async () => {
+    const initial = { "number-suite": ["heading.first-number.h2=4", "heading.skip-first.h2=1", "heading.skip-per-parent.h2=2", "heading.first-number.h3=2"], keep: "untouched" };
     const stored = structuredClone(initial);
     const write = vi.fn(async (_file: TFile, update: (values: typeof stored) => void) => update(stored));
     const app = { vault: { getAbstractFileByPath: () => file }, fileManager: { processFrontMatter: write } } as unknown as App;
@@ -128,10 +145,13 @@ describe("simplified current-note controls", () => {
     const file = internal.file;
     const row = host.querySelector("fieldset")!;
     expect(row.querySelector("legend")?.textContent).toBe("H2 rule");
-    expect([...row.querySelectorAll("label")].map((label) => label.textContent)).toEqual(["Starting number", "Sections to skip"]);
+    expect([...row.querySelectorAll("label")].map((label) => label.textContent)).toEqual([
+      translate("panel.firstNumber.label"), translate("panel.skipFirst.label"), translate("panel.skipPerParent.label"),
+    ]);
     const inputs = [...row.querySelectorAll("input")];
     expect(inputs.map((input) => [input.value, input.getAttribute("aria-label")])).toEqual([
       ["4", translate("panel.firstNumber.aria", { level: 2 })], ["1", translate("panel.skipFirst.aria", { level: 2 })],
+      ["2", translate("panel.skipPerParent.aria", { level: 2 })],
     ]);
     expect(row.querySelector("button")?.textContent).toBe("Remove rule");
     row.querySelector("button")!.click();
@@ -139,6 +159,30 @@ describe("simplified current-note controls", () => {
     expect(host.querySelector(".number-suite-note-control-levels summary")?.textContent).toContain("(1)");
     await vi.waitFor(() => expect(write).toHaveBeenCalledOnce());
     expect(stored).toEqual({ "number-suite": ["heading.first-number.h3=2"], keep: "untouched" });
+  });
+  it("edits and clears the two skip fields independently", async () => {
+    const initial = { "number-suite": ["heading.first-number.h2=4", "heading.skip-per-parent.h2=2"] };
+    const stored = structuredClone(initial);
+    const write = vi.fn(async (_file: TFile, update: (values: typeof stored) => void) => update(stored));
+    const app = { vault: { getAbstractFileByPath: () => file }, fileManager: { processFrontMatter: write } } as unknown as App;
+    const { host, internal } = render(initial, app);
+    const file = internal.file;
+    const fields = host.querySelectorAll<HTMLInputElement>("fieldset input");
+    const edit = (input: HTMLInputElement, value: string): void => {
+      input.value = value;
+      input.dispatchEvent(new Event("input"));
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    };
+    expect([...fields].map((input) => input.value)).toEqual(["4", "", "2"]);
+    edit(fields[1]!, "1");
+    await vi.waitFor(() => expect(stored["number-suite"]).toContain("heading.skip-first.h2=1"));
+    expect(stored["number-suite"]).toContain("heading.skip-per-parent.h2=2");
+    edit(fields[2]!, "");
+    await vi.waitFor(() => expect(stored["number-suite"]).toEqual(["heading.first-number.h2=4", "heading.skip-first.h2=1"]));
+    edit(fields[2]!, "3");
+    await vi.waitFor(() => expect(stored["number-suite"]).toContain("heading.skip-per-parent.h2=3"));
+    edit(fields[1]!, "0");
+    await vi.waitFor(() => expect(stored["number-suite"]).toEqual(["heading.first-number.h2=4", "heading.skip-per-parent.h2=3"]));
   });
 });
 

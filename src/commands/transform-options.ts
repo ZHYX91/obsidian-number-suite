@@ -33,11 +33,7 @@ export function createSourcePlan(
   return {
     status: "ready",
     plan: planHeadingTransform(source, operation, {
-      numbering: toNumberingOptions(settings, {
-        schemeId: effective.schemeId,
-        starts: effective.starts,
-        skipFirst: effective.skipFirst,
-      }),
+      numbering: toNumberingOptions(settings, effective),
       writeMarkers: settings.writeMarkers,
       cleanupScope,
       templateSources: cleanupTemplateSources(settings),
