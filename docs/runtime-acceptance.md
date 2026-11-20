@@ -168,7 +168,7 @@ const value = 1;
 - [ ] Unload the plugin from a synchronous listener during a stable-reference editor transaction. The accepted transaction remains applied, but no new clipboard write starts. Separately unload after a clipboard write has started; it may settle without a late notice.
 - [ ] Edit a heading to another heading of the same character length; decorations must update.
 - [ ] Toggle `heading.virtual` and `heading.hide-stored` through Current note; verify the single `number-suite` text list updates and both independent states refresh immediately.
-- [ ] Set H1-H9 first-number and skip-first values; verify `heading.first-number.hN` and `heading.skip-first.hN` remain distinct and skipped headings do not consume counters.
+- [ ] With the H2-root scheme, set Starting number to 4 and Sections to skip to 1 for H2. In the note, Outline and write preview, verify the first non-empty H2 and all its subheadings have no number, the next H2 is `4`, and its first H3 is `4.1`. Select Remove rule and confirm the H2 card disappears and both H2 directives are cleared while other levels keep their overrides.
 - [ ] Open an old-field note, make one explicit Current note change, and verify only legacy Number Suite fields migrate while unrelated Properties remain byte-semantically unchanged.
 - [ ] Change recognition scope inside cleanup and renumber previews; verify the preview is rebuilt and no cleanup scope is written to note Properties.
 - [ ] Scroll a note with at least 2,000 headings and record editing latency.
@@ -202,6 +202,9 @@ Source markers are disabled by default. Before enabling them for a release claim
 - [ ] Verify inline formatting, similar-but-not-exact titles, code fences, YAML, comments, and duplicate rules fail safely.
 
 ## Batch recovery
+
+- [ ] In a disposable folder create three Markdown notes containing `# Alpha`, `#` and plain text respectively. Choose the Hierarchical scheme. Open the batch tool, verify no scope or operation is preselected, select the folder and Write, then preview. Expect its path, the write operation, 3 notes checked, 1 note to edit, 1 change and 1 warning. Inspect the empty-heading warning.
+- [ ] Go Back and verify both selections persist. Select Remove markers and preview the same folder. Verify zero notes to edit, disabled Apply and working Back. Return to Write and apply. Undo the batch and compare all three notes with the originals. At narrow width check the path wraps, the controls fit and keyboard users can select, preview and return.
 
 - [ ] Run `batch-preview-identity-and-overflow` with its checked-in fixtures. Replace a previewed file with identical text at the same path, including after cleanup-scope replanning; the entire stale batch must write nothing. Verify a fresh preview and restore still work, and overflowing heading counters produce no repeated labels or writable write/renumber plan.
 - [ ] Use a temporary folder with at least ten notes and preview write, remove, and renumber.

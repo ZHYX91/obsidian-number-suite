@@ -119,6 +119,27 @@ describe("simplified current-note controls", () => {
     expect(host.querySelector("select")?.value).toBe("on");
     expect(host.querySelector<HTMLButtonElement>(".number-suite-note-control-actions button")?.disabled).toBe(true);
   });
+  it("labels both H2 fields and removes only that rule in one save", async () => {
+    const initial = { "number-suite": ["heading.first-number.h2=4", "heading.skip-first.h2=1", "heading.first-number.h3=2"], keep: "untouched" };
+    const stored = structuredClone(initial);
+    const write = vi.fn(async (_file: TFile, update: (values: typeof stored) => void) => update(stored));
+    const app = { vault: { getAbstractFileByPath: () => file }, fileManager: { processFrontMatter: write } } as unknown as App;
+    const { host, internal } = render(initial, app);
+    const file = internal.file;
+    const row = host.querySelector("fieldset")!;
+    expect(row.querySelector("legend")?.textContent).toBe("H2 rule");
+    expect([...row.querySelectorAll("label")].map((label) => label.textContent)).toEqual(["Starting number", "Sections to skip"]);
+    const inputs = [...row.querySelectorAll("input")];
+    expect(inputs.map((input) => [input.value, input.getAttribute("aria-label")])).toEqual([
+      ["4", translate("panel.firstNumber.aria", { level: 2 })], ["1", translate("panel.skipFirst.aria", { level: 2 })],
+    ]);
+    expect(row.querySelector("button")?.textContent).toBe("Remove rule");
+    row.querySelector("button")!.click();
+    expect([...host.querySelectorAll("legend")].map((el) => el.textContent)).toEqual(["H3 rule"]);
+    expect(host.querySelector(".number-suite-note-control-levels summary")?.textContent).toContain("(1)");
+    await vi.waitFor(() => expect(write).toHaveBeenCalledOnce());
+    expect(stored).toEqual({ "number-suite": ["heading.first-number.h3=2"], keep: "untouched" });
+  });
 });
 
 describe("current-note overflow menu", () => {

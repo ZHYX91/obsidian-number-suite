@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 
+import { readFileSync } from "node:fs";
+import { defineLanguageFacet, Language } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { parser } from "@lezer/markdown";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { editorLivePreviewField, TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
 
@@ -20,6 +23,7 @@ import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { createSourcePlan } from "../../src/commands/transform-options";
 import { HeadingDisplayController } from "../../src/editor/heading-display-extension";
 import { HeadingReadingProcessor } from "../../src/reading/heading-postprocessor";
+import { createNativeOutlineProjection } from "../../src/integration/native-outline-projection";
 
 const configured = { ...DEFAULT_SETTINGS, showVirtualNumbers: true, selectedSchemeId: "hierarchical" };
 const views: EditorView[] = [];
@@ -50,6 +54,50 @@ const cases = [
 ];
 
 describe("source Properties validation at display entry points", () => {
+  it("uses the same section skips in both note views, native Outline and the write preview", async () => {
+    const source = readFileSync("acceptance/fixtures/Section skip rules.md", "utf8");
+    host.parsed = { "number-suite": ["heading.virtual=true", "heading.scheme=hierarchical-h2", "heading.first-number.h2=4", "heading.skip-first.h2=1"] };
+    const parent = document.body.appendChild(document.createElement("div"));
+    const controller = new HeadingDisplayController(() => configured);
+    const view = new EditorView({ parent, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+    }) });
+    views.push(view);
+    const lines = source.split("\n");
+    const summaryLine = lines.indexOf("## 试用总结");
+    const nextLine = lines.indexOf("### 下一步");
+    const expected = [[summaryLine, "4"], [nextLine, "4.1"]];
+    expect([...createNativeOutlineProjection(source, [], configured).numberLabels]).toEqual(expected);
+    const preview = createSourcePlan(source, "write", configured).plan;
+    expect(preview?.changes.map(({ line, after }) => [line, after])).toEqual([
+      [summaryLine, "4 试用总结"], [nextLine, "4.1 下一步"],
+    ]);
+    expect([...parent.querySelectorAll(".number-suite-heading-number")].map((element) => [
+      view.state.doc.lineAt(view.posAtDOM(element)).number - 1, element.textContent?.trim(),
+    ])).toEqual(expected);
+    expect(view.state.doc.toString()).toBe(source);
+    const file = new (TFile as unknown as new (path: string) => TFile)("Section skip rules.md");
+    const app = { vault: { getAbstractFileByPath: () => file, cachedRead: async () => source } } as unknown as App;
+    const processor = new HeadingReadingProcessor(app, () => configured);
+    const reading = document.body.appendChild(document.createElement("div"));
+    for (const [index, line] of lines.entries()) {
+      const heading = /^(#{1,6}) (.+)$/u.exec(line);
+      if (!heading) continue;
+      const element = reading.appendChild(document.createElement(`h${heading[1]!.length}`));
+      element.textContent = heading[2]!;
+      element.dataset.line = String(index);
+    }
+    await processor.process(reading, {
+      sourcePath: file.path, frontmatter: host.parsed,
+      getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: lines.length - 1 }),
+    } as unknown as MarkdownPostProcessorContext);
+    expect([...reading.querySelectorAll(".number-suite-heading-number")].map((element) => [
+      Number(element.parentElement?.dataset.line), element.textContent?.trim(),
+    ])).toEqual(expected);
+    processor.dispose();
+  });
+
   it.each(cases)("keeps command, Live Preview and Reading View consistent for $name", async ({ yaml, parsed, valid }) => {
     host.parsed = parsed;
     const source = `---\n${yaml}\n---\n# Heading\n\n####### Extended\n\nBody`;

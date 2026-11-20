@@ -7,6 +7,7 @@ number-suite:
 # Reference acceptance
 
 ## Unique target
+^reference-heading
 
 Target body sentinel. ^reference-target
 
@@ -22,7 +23,9 @@ Explicit alias: @[[#Unique target|explicit alias]]
 
 Explicit caption: @[[#Figure: Reference figure]]
 
-Explicit block: @[[#^reference-target|block alias]]
+Explicit heading block: @[[#^reference-heading|block alias]]
+
+Explicit paragraph control: @[[#^reference-target|paragraph alias]]
 
 Ordinary local: [[#Unique target]]
 

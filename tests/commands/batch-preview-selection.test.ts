@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { planChangesSource, planNeedsPreview } from "../../src/commands/batch";
+import { planNeedsPreview } from "../../src/commands/batch";
+import { planChangesSource } from "../../src/core/transform";
 import type { TransformPlan } from "../../src/core/types";
 
 function plan(overrides: Partial<TransformPlan>): TransformPlan {

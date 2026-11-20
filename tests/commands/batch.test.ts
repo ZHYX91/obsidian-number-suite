@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MarkdownView, Notice, TFile, type App } from "obsidian";
+import { MarkdownView, Notice, TFile, TFolder, type App } from "obsidian";
 
 import { BatchController, type BatchPersistence } from "../../src/commands/batch";
 import { DEFAULT_SETTINGS, type LastBatchSnapshot } from "../../src/config/settings";
 import { createTranslator, type Translate } from "../../src/config/i18n";
 import { digestText } from "../../src/core/text-digest";
 import type { PreviewDocument, PreviewModalOptions } from "../../src/ui/preview-modal";
+import type { BatchModal, BatchPreview, BatchScope } from "../../src/ui/batch-modals";
 
-const modal = vi.hoisted(() => ({ options: null as PreviewModalOptions | null }));
+type PreparePreview = ConstructorParameters<typeof BatchModal>[3];
+const modal = vi.hoisted(() => ({ prepare: null as PreparePreview | null, options: null as BatchPreview | null }));
 
-vi.mock("../../src/ui/preview-modal", () => ({
-  ChangePreviewModal: class {
-    constructor(options: PreviewModalOptions) { modal.options = options; }
+vi.mock("../../src/ui/batch-modals", () => ({
+  BatchModal: class {
+    constructor(_app: App, _translate: Translate, _owner: AbortSignal, prepare: PreparePreview) { modal.prepare = prepare; }
     open(): void {}
   },
 }));
@@ -33,10 +35,12 @@ async function snapshot(contents: Readonly<Record<string, string>>): Promise<Las
 function harness(
   initial: Readonly<Record<string, string>>,
   initialSnapshot: LastBatchSnapshot | null = null,
+  excludedFolders: string[] = [],
 ) {
   const contents = new Map(Object.entries(initial));
   const FileConstructor = TFile as unknown as new (path: string) => TFile;
   const files = new Map([...contents.keys()].map((path) => [path, new FileConstructor(path)]));
+  const folders = new Map<string, TFolder>();
   let stored: LastBatchSnapshot | null = initialSnapshot;
   let processHook: ((path: string, call: number) => void | Promise<void>) | null = null;
   let processBeforeCommitHook: ((path: string, call: number) => void | Promise<void>) | null = null;
@@ -48,7 +52,7 @@ function harness(
   const persistedSnapshots: Array<LastBatchSnapshot | null> = [];
   const leaves: Array<{ view: MarkdownView }> = [];
   const vault = {
-    getAbstractFileByPath: (path: string) => files.get(path) ?? null,
+    getAbstractFileByPath: (path: string) => files.get(path) ?? folders.get(path) ?? null,
     getMarkdownFiles: () => [...files.values()],
     cachedRead: async (file: TFile) => {
       const source = contents.get(file.path) ?? "";
@@ -85,7 +89,12 @@ function harness(
   };
   return {
     contents,
-    controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical" }), persistence),
+    controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, excludedFolders, selectedSchemeId: "hierarchical" }), persistence),
+    addFolder: (path: string) => {
+      const folder = Object.assign(Object.create(TFolder.prototype) as TFolder, { path });
+      folders.set(path, folder);
+      return { folder, label: path };
+    },
     reloadController: (ensureLoaded = persistence.ensureLoaded) => new BatchController(app, () => DEFAULT_SETTINGS,
       { ...persistence, ensureLoaded }),
     addView: (path: string, initialValue: string) => {
@@ -208,24 +217,61 @@ async function applyPreviews(
 }
 
 beforeEach(() => {
+  modal.prepare = null;
   modal.options = null;
   (Notice as unknown as { readonly messages: string[] }).messages.length = 0;
 });
 
 describe("BatchController preview", () => {
-  async function preview(controller: BatchController, operation: "write" | "remove" = "write"): Promise<void> {
-    const run = Reflect.get(controller, "preview") as (
-      scope: { folder: null; label: string },
-      operation: "write" | "remove",
-      translate: (key: string, values?: Record<string, unknown>) => string,
-    ) => Promise<void>;
-    await run.call(controller, { folder: null, label: "vault" }, operation, (key) => key);
+  async function preview(controller: BatchController, operation: "write" | "remove" = "write",
+    signal = new AbortController().signal, scope: BatchScope = { folder: null, label: "vault" }): Promise<void> {
+    controller.open((key) => key);
+    if (!modal.prepare) throw new Error("Expected a batch setup");
+    modal.options = await modal.prepare(scope, operation, signal);
   }
 
   function currentPreview(): PreviewModalOptions {
     if (modal.options == null) throw new Error("Expected a batch preview");
     return modal.options;
   }
+
+  it("counts every inspected source and keeps warning-only files outside recovery", async () => {
+    const test = harness({ "a.md": "# Alpha", "b.md": "#", "c.md": "Plain text" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    expect(modal.options?.checkedCount).toBe(3);
+    expect(shown.documents.map(({ path }) => path)).toEqual(["a.md", "b.md"]);
+    await shown.onConfirm(shown.documents);
+    expect(test.getStored()?.files.map(({ path }) => path)).toEqual(["a.md"]);
+  });
+
+  it("returns an empty review and stops scanning a cancelled request", async () => {
+    const test = harness({ "a.md": "Plain text", "b.md": "More text" });
+    await preview(test.controller);
+    expect(modal.options).toMatchObject({ checkedCount: 2, documents: [] });
+    const abort = new AbortController();
+    const read = vi.fn(() => abort.abort());
+    test.setReadHook(read);
+    await preview(test.controller, "write", abort.signal);
+    expect(modal.options).toBeNull();
+    expect(read).toHaveBeenCalledOnce();
+    expect(test.processCalls()).toBe(0);
+  });
+
+  it("counts only Markdown sources inside the selected folder after exclusions", async () => {
+    const test = harness({ "work/a.md": "# A", "work/nested/b.md": "Plain text",
+      "work/private/c.md": "# Private", "workspace/d.md": "# Different folder" }, null, ["work/private"]);
+    const selected = test.addFolder("work");
+    const read = vi.fn<(file: TFile) => void>();
+    test.setReadHook(read);
+    await preview(test.controller, "write", new AbortController().signal, selected);
+    expect(modal.options?.checkedCount).toBe(2);
+    expect(read.mock.calls.map(([file]) => file.path)).toEqual(["work/a.md", "work/nested/b.md"]);
+    test.addFolder("work");
+    await preview(test.controller, "write", new AbortController().signal, selected);
+    expect(modal.options).toBeNull();
+    expect(read).toHaveBeenCalledTimes(2);
+  });
 
   it("applies the production plan to the original file after preview", async () => {
     const test = harness({ "a.md": "# Alpha" });

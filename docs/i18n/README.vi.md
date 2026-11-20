@@ -31,7 +31,7 @@ Ghi chú hiện tại hiển thị gọn tên tệp, trạng thái tự động 
 <!-- section: captions -->
 ## Chú thích và tham chiếu
 
-Trên hình ảnh, bảng, công thức riêng hoặc khối mã, thêm dòng bắt đầu bằng `Figure:`, `Table:`, `Equation:` hoặc `Code:`. Giữ nguyên các từ khóa tiếng Anh này. Chú thích có thể hiển thị số. Dùng `@[[#Tiêu đề]]` để tham chiếu trong cùng ghi chú; liên kết thường `[[#...]]` không đổi. Chú thích chân trang `[^id]` và cuối tài liệu `[^endnote:id]` được đánh số riêng.
+Trên hình ảnh, bảng, công thức riêng hoặc khối mã, thêm dòng bắt đầu bằng `Figure:`, `Table:`, `Equation:` hoặc `Code:`. Giữ nguyên các từ khóa tiếng Anh này. Chú thích có thể hiển thị số. Dùng `@[[#Tiêu đề]]` để tham chiếu trong cùng ghi chú. Dùng `@[[#^block-id]]` khi ID khối thuộc về tiêu đề hoặc chú thích. Liên kết tới khối đoạn văn thông thường vẫn hoạt động theo mặc định của Obsidian. Chú thích chân trang `[^id]` và cuối tài liệu `[^endnote:id]` được đánh số riêng.
 
 ```markdown
 Figure: Architecture
@@ -55,6 +55,8 @@ Tùy chọn xử lý hàng loạt nằm trong **Ghi số và dọn dẹp**, liê
 Cài đặt có bảy thẻ. Chung mặc định bật cải tiến dàn ý gốc. Tắt vẫn giữ tùy chọn và không tự bật tiện ích lõi. Menu hiển thị dàn ý lưu bốn lựa chọn dùng chung: số, cấp khi không có số, H7–H9 và chú thích; chỉ ảnh hưởng dàn ý. Số do tiện ích tính có nền màu, còn số đã ghi trong tiêu đề có viền khi được hiển thị. Có thể thấy cả hai cùng lúc. Khi không có số, bạn có thể hiện cấp tiêu đề (Hn). Ghi chú hiện tại kế thừa hoặc ghi đè riêng số ảo, hiển thị số đã ghi và kiểu, kèm trạng thái tự động. Quy tắc bắt đầu và bỏ qua được thu gọn, thêm theo nhu cầu. Tắt vẫn giữ lựa chọn; ghi và dọn dẹp vẫn cần xem trước. Nút lá của sơ đồ không hiện 0. Bố cục và độ sâu ở menu phụ; nút di chuyển và điểm thả chỉ hiện trong chế độ chỉnh cấu trúc.
 
 Dàn ý gốc và Ghi chú hiện tại mở sơ đồ cho tệp của chính khung đó. Chỉnh cấu trúc chỉ di chuyển toàn bộ phần cùng cấp và cùng cha bằng kéo hoặc nút lên/xuống, từ chối nguồn đã đổi và hỗ trợ Hoàn tác/Làm lại. Nhấp một lần để đi theo tham chiếu tường minh; F2 hoặc thao tác sửa nguồn trên di động để chỉnh. Đánh số liên kết Wiki tiêu đề trong cùng tệp mặc định tắt; có thể bật trong xem trước và chế độ đọc, kể cả liên kết kèm tên tệp, giữ bí danh và thao tác gốc.
+
+Với kiểu đánh số bắt đầu từ H2, đặt số bắt đầu là 4 và số mục cần bỏ qua là 1. H2 đầu tiên không trống cùng mọi tiêu đề con của nó sẽ không được đánh số. H2 kế tiếp mang số `4` và H3 đầu tiên bên dưới mang số `4.1`. **Xóa quy tắc** sẽ xóa cả hai thiết lập của cấp đó.
 
 <!-- section: limitations -->
 ## Phạm vi và giới hạn
