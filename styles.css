@@ -1012,16 +1012,10 @@
   margin-block: 0.25rem 0.75rem;
 }
 
-.number-suite-note-operation-guide {
+.number-suite-note-operation-guide > .number-suite-settings-guide-body {
   overflow-x: auto;
 }
 
-.number-suite-note-operation-guide summary {
-  cursor: pointer;
-  width: fit-content;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
 .number-suite-note-operation-guide p { color: var(--text-muted); font-size: var(--font-ui-small); }
 .number-suite-note-operation-guide table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-smaller); }
 .number-suite-note-operation-guide th,
