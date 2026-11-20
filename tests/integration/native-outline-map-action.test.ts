@@ -128,7 +128,7 @@ describe("native Outline mind-map entry", () => {
     enhancer.stop(); error.mockRestore();
   });
 
-  it("identifies both plugin actions on hover and for screen readers after a language change", () => {
+  it("keeps only the Obsidian tooltip on both toolbar actions when the language changes", () => {
     const view = new (ItemView as unknown as new () => ItemView)();
     const actions = (view as unknown as { actions: HTMLElement }).actions;
     document.body.append(view.containerEl);
@@ -142,15 +142,19 @@ describe("native Outline mind-map entry", () => {
     enhancer.refresh();
     const map = actions.querySelector<HTMLButtonElement>(".number-suite-outline-map-action");
     const options = actions.querySelector<HTMLButtonElement>(".number-suite-outline-options-action");
-    expect(map?.title).toBe("Number Suite · Open heading mind map");
-    expect(options?.title).toBe("Number Suite · Display options");
+    expect(map?.getAttribute("aria-label")).toBe("Number Suite · Open heading mind map");
+    expect(options?.getAttribute("aria-label")).toBe("Number Suite · Display options");
+    expect(map?.hasAttribute("title")).toBe(false);
+    expect(options?.hasAttribute("title")).toBe(false);
+    map?.setAttribute("title", "Previous map tooltip");
+    options?.setAttribute("title", "Previous options tooltip");
     translate = createTranslator("zh");
     enhancer.refresh();
     expect(actions.querySelectorAll("button")).toHaveLength(2);
-    expect(map?.title).toBe("Number Suite · 打开标题思维导图");
-    expect(map?.getAttribute("aria-label")).toBe(map?.title);
-    expect(options?.title).toBe("Number Suite · 显示选项");
-    expect(options?.getAttribute("aria-label")).toBe(options?.title);
+    expect(map?.getAttribute("aria-label")).toBe("Number Suite · 打开标题思维导图");
+    expect(options?.getAttribute("aria-label")).toBe("Number Suite · 显示选项");
+    expect(map?.hasAttribute("title")).toBe(false);
+    expect(options?.hasAttribute("title")).toBe(false);
     enhancer.stop();
   });
 });

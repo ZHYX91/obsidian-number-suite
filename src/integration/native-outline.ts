@@ -10,9 +10,9 @@ const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
 
 function setOutlineActionLabel(button: HTMLElement, action: string): void {
-  const label = `Number Suite · ${action}`;
-  button.setAttribute("aria-label", label);
-  button.title = label;
+  button.setAttribute("aria-label", `Number Suite · ${action}`);
+  // Obsidian already shows this label on hover. A title adds a second Chromium tooltip.
+  button.removeAttribute("title");
 }
 
 interface OutlineInternal extends View {
