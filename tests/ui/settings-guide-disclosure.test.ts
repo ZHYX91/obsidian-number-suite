@@ -37,19 +37,20 @@ describe("settings tutorial disclosure", () => {
     details.dispatchEvent(new Event("toggle"));
     expect(expanded.size).toBe(0);
   });
-  it("draws the reading line only on the open tutorial body", () => {
+  it("draws the accent reading line only on the open tutorial body", () => {
     const panel = build();
     const css = document.createElement("style");
     css.textContent = readFileSync("styles.css", "utf8");
     panel.appendChild(css);
     panel.style.setProperty("--background-modifier-border", "#bbb");
+    panel.style.setProperty("--interactive-accent", "teal");
     collapseSettingsGuides(panel, new Set());
     const details = panel.querySelector("details")!;
     const body = details.querySelector(".number-suite-settings-guide-body")!;
     const hasLine = (element: Element) => getComputedStyle(element).borderInlineStart.startsWith("2px solid");
     expect(hasLine(body)).toBe(false);
     details.open = true;
-    expect(hasLine(body)).toBe(true);
+    expect(getComputedStyle(body).borderInlineStart).toBe("2px solid teal");
     expect(hasLine(details.querySelector("summary")!)).toBe(false);
     expect(hasLine(panel.querySelector(".number-suite-settings-guide-exterior")!)).toBe(false);
     details.open = false;

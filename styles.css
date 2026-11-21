@@ -1866,8 +1866,10 @@
 
 /* Settings tutorial disclosure: no persistent settings writes, retain session state only. */
 .number-suite-settings-guide.is-collapsible {
-  background: transparent;
-  border: 0;
+  background: var(--background-primary);
+  background: color-mix(in srgb, var(--interactive-accent) 5%, var(--background-primary));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
   box-shadow: none;
   color: var(--text-muted);
   container: number-suite-help / inline-size;
@@ -1881,7 +1883,8 @@
   align-content: center;
   box-sizing: border-box;
   column-gap: 6px;
-  color: var(--text-muted);
+  border-radius: inherit;
+  color: var(--text-normal);
   cursor: pointer;
   display: grid;
   font-size: inherit;
@@ -1890,7 +1893,7 @@
   list-style: none;
   min-block-size: 32px;
   overflow-wrap: anywhere;
-  padding: 0;
+  padding: 4px 8px;
   text-align: start;
 }
 
@@ -1903,12 +1906,14 @@
   border-block-start: 1.5px solid currentColor;
   border-inline-end: 1.5px solid currentColor;
   box-sizing: border-box;
+  color: var(--interactive-accent);
   content: "";
-  height: 8.5px;
+  height: 8px;
   justify-self: center;
-  margin-block-start: calc(0.75em - 4.25px);
+  margin-block-start: calc(0.75em - 4px);
   transform: rotate(45deg);
-  width: 8.5px;
+  width: 8px;
+  transition: transform 120ms ease;
 }
 
 .number-suite-settings-guide.is-collapsible > summary:dir(rtl)::before {
@@ -1945,23 +1950,24 @@
 }
 
 details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
-  border-inline-start: 2px solid var(--background-modifier-border);
+  border-inline-start: 2px solid var(--interactive-accent);
   box-sizing: border-box;
-  margin-block: 6px 0;
-  margin-inline: 6px 0;
+  margin-block: 4px 8px;
+  margin-inline: 8px;
   max-inline-size: 68ch;
   min-inline-size: 0;
   padding-inline-start: 10px;
 }
 
-@supports (color: color-mix(in srgb, red, blue)) {
-  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body {
-    border-inline-start-color: color-mix(in srgb, var(--interactive-accent) 30%, var(--background-modifier-border));
+@media (prefers-reduced-motion: reduce) {
+  .number-suite-settings-guide.is-collapsible > summary::before {
+    animation: none;
+    transition: none;
   }
 }
 
 @container number-suite-help (max-width: 24rem) {
-  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body { margin-inline-start: 0; }
+  details.number-suite-settings-guide.is-collapsible[open] > .number-suite-settings-guide-body { padding-inline-start: 6px; }
 }
 
 .number-suite-settings-guide.is-collapsible pre {

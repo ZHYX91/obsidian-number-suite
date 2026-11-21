@@ -225,7 +225,7 @@ or host-rendering differences fail closed and cannot be hidden behind a success 
 
 Long syntax tutorials and examples use lightweight native details, while concise context and operation risks stay visible. Their expansion state lives only for the current settings-window session: switching tabs preserves it, closing clears it, and toggling never saves plugin settings. Keep seven tabs with Links & references and Display & appearance; move batch-only controls into Write and cleanup and put Reset at the end of General. Current note's Starts & skips section defaults closed with no overrides and automatically shows the configured rule count otherwise.
 
-Settings help has a plain, full-width summary with a small directional chevron. Long titles wrap. Keyboard focus stays visible, and touch targets are at least 44 CSS pixels high. Expanded tutorials have a thin, muted theme accent line beside the text, on the left in LTR languages and the right in RTL languages. Settings controls and operation warnings remain outside the disclosure.
+Settings and current-note help use a lightly accent-tinted card with a neutral border. A small accent-colored chevron marks the full-width summary. Long titles wrap. Keyboard focus stays visible, and touch targets are at least 44 CSS pixels high. Expanded tutorials have a thin line in the same accent color beside the text, on the left in LTR languages and the right in RTL languages. Settings controls and operation warnings remain outside the disclosure.
 
 
 ### Source numbers and native Wiki headings — presentation rules
