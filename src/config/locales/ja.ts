@@ -451,6 +451,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "見出しを同じ親に属する兄弟見出しへドラッグすると、節全体を前後に移動します。同一階層の並べ替えのみ可能で、Markdown が変更されます。元に戻せます。対象ノートをエディターで開いてください。",
   "headingMap.rearrange.hint": "構造調整中：同階層へドラッグ、または ↑ / ↓。元に戻せます。",
   "headingMap.rearrange.invalid": "同じ親・同じレベルの別の見出しを選んでください。",
+  "headingMap.rearrange.boundary": "この移動は Markdown のセクション境界をまたぐか、その境界を変えてしまいます。",
   "headingMap.rearrange.noEditor": "このノートをソースエディターで開いてください。",
   "headingMap.rearrange.before": "「{title}」の前に挿入",
   "headingMap.rearrange.after": "「{title}」の後に挿入",

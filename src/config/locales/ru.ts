@@ -451,6 +451,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "Перетащите заголовок к другому заголовку того же уровня с общим родителем, чтобы переместить весь раздел до или после него. Доступна только перестановка соседних ветвей; Markdown изменяется, действие можно отменить. Требуется открытая заметка в редакторе.",
   "headingMap.rearrange.hint": "Изменение структуры: перетаскивайте среди соседей или используйте ↑ / ↓. Можно отменить.",
   "headingMap.rearrange.invalid": "Выберите другой заголовок того же уровня с общим родителем.",
+  "headingMap.rearrange.boundary": "При перемещении будет пересечена или изменена граница раздела Markdown.",
   "headingMap.rearrange.noEditor": "Откройте эту заметку в редакторе исходного текста.",
   "headingMap.rearrange.before": "Вставить перед «{title}»",
   "headingMap.rearrange.after": "Вставить после «{title}»",

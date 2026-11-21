@@ -11,6 +11,7 @@ export function createSettingsTabs(
   ariaLabel: string,
   onSelect: (id: SettingsTabId) => void,
 ): { panel: HTMLElement; cleanup: () => void } {
+  const panelId = `number-suite-settings-panel-${activeId}`;
   const document = container.ownerDocument;
   const list = container.createDiv({ cls: "number-suite-settings-tabs" });
   list.setAttribute("role", "tablist");
@@ -26,7 +27,7 @@ export function createSettingsTabs(
     button.id = `number-suite-settings-tab-${definition.id}`;
     button.setAttribute("role", "tab");
     button.setAttribute("aria-selected", String(active));
-    button.setAttribute("aria-controls", `number-suite-settings-panel-${definition.id}`);
+    button.setAttribute("aria-controls", panelId);
     button.tabIndex = active ? 0 : -1;
     const click = (): void => onSelect(definition.id);
     const keydown = (event: KeyboardEvent): void => {
@@ -52,7 +53,7 @@ export function createSettingsTabs(
     return button;
   });
   const panel = container.createDiv({ cls: "number-suite-settings-panel" });
-  panel.id = `number-suite-settings-panel-${activeId}`;
+  panel.id = panelId;
   panel.setAttribute("role", "tabpanel");
   panel.setAttribute("aria-labelledby", `number-suite-settings-tab-${activeId}`);
   panel.tabIndex = 0;

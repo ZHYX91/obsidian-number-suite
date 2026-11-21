@@ -451,6 +451,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "拖曳標題到同一父章節的其他標題，可把整個章節移到其前或後。僅支援同層排序，會修改 Markdown，可復原。必須在編輯器中開啟筆記。",
   "headingMap.rearrange.hint": "正在調整結構：拖到同層標題前後，或使用 ↑ / ↓；可復原。",
   "headingMap.rearrange.invalid": "請選擇同一父章節、同一層級的其他標題。",
+  "headingMap.rearrange.boundary": "這次移動會跨越或改變 Markdown 章節邊界。",
   "headingMap.rearrange.noEditor": "請先在原始碼編輯器中開啟這篇筆記。",
   "headingMap.rearrange.before": "插入到「{title}」之前",
   "headingMap.rearrange.after": "插入到「{title}」之後",

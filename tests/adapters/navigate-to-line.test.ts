@@ -11,6 +11,53 @@ function pane(file: TFile): WorkspaceLeaf {
 }
 
 describe("source pane navigation", () => {
+  it("leaves the cursor at the latest destination when two reveal requests resolve in reverse", async () => {
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
+    const leaf = pane(file);
+    const setCursor = vi.fn();
+    const focus = vi.fn();
+    Object.assign(leaf.view, { getMode: () => "source", editor: { setCursor, scrollIntoView: vi.fn(), focus } });
+    let release!: () => void;
+    const revealLeaf = vi.fn().mockImplementationOnce(() => new Promise<void>((resolve) => { release = resolve; }));
+    const app = { workspace: {
+      iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => visit(leaf), revealLeaf,
+    } } as unknown as App;
+    const first = navigateToLine(app, file, 1, leaf);
+    await navigateToLine(app, file, 12, leaf);
+    release();
+    await first;
+    expect(setCursor.mock.calls).toEqual([[{ line: 12, ch: 0 }]]);
+    expect(focus).toHaveBeenCalledOnce();
+  });
+
+  it("does not refocus a pane detached while it is being revealed", async () => {
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
+    const leaf = pane(file);
+    const setCursor = vi.fn();
+    const containerEl = { isConnected: true };
+    Object.assign(leaf.view, { getMode: () => "source", containerEl, editor: { setCursor, scrollIntoView: vi.fn(), focus: vi.fn() } });
+    const app = { workspace: {
+      iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => visit(leaf),
+      revealLeaf: () => { containerEl.isConnected = false; },
+    } } as unknown as App;
+    await navigateToLine(app, file, 4, leaf);
+    expect(setCursor).not.toHaveBeenCalled();
+  });
+
+  it("navigates to the replacement file instead of a retired pane at the same path", async () => {
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
+    const retired = pane(Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path }));
+    const current = pane(file);
+    const revealLeaf = vi.fn();
+    const app = { workspace: {
+      iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => [retired, current].forEach(visit),
+      getActiveViewOfType: () => retired.view, revealLeaf,
+    } } as unknown as App;
+    await navigateToLine(app, file, 3, retired);
+    expect(revealLeaf).toHaveBeenCalledWith(current);
+    expect(retired.setEphemeralState).not.toHaveBeenCalled();
+  });
+
   it("prefers the source pane over enumeration order and falls back after it closes", async () => {
     const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
     const left = pane(file);

@@ -3,6 +3,22 @@ import { describe, expect, it } from "vitest";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 
 describe("parseAtxHeadings", () => {
+  it("trims padding across hidden fragments and maps visible UTF-16 ranges back to the note", () => {
+    const source = "## <!--one--> \t<!--two--> 甲<!--mid-->😀\u00a0 \t%%a%%\t %%b%%\n# <!--empty--> \t %%end%%";
+    const [title, empty] = parseAtxHeadings(source);
+    const first = source.indexOf("甲");
+    const second = source.indexOf("😀");
+    expect(title).toMatchObject({
+      content: "甲😀\u00a0", contentFrom: first, contentTo: second + 3,
+      contentSpans: [
+        { visibleFrom: 0, visibleTo: 1, sourceFrom: first, sourceTo: first + 1 },
+        { visibleFrom: 1, visibleTo: 4, sourceFrom: second, sourceTo: second + 3 },
+      ],
+    });
+    const anchor = source.indexOf("<!--empty-->");
+    expect(empty).toMatchObject({ content: "", contentFrom: anchor, contentTo: anchor, contentSpans: [] });
+  });
+
   it("does not promote headings inside multiline note definitions", () => {
     const source = [
       "# Document",

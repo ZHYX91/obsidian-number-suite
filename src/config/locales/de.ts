@@ -451,6 +451,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "Eine Überschrift auf eine gleichrangige Überschrift unter demselben Elternabschnitt ziehen, um den gesamten Abschnitt davor oder danach zu verschieben. Bearbeitet Markdown, ist rückgängig zu machen und erfordert einen offenen Editor.",
   "headingMap.rearrange.hint": "Struktur anpassen: unter Geschwistern ziehen oder ↑ / ↓ nutzen. Rückgängig möglich.",
   "headingMap.rearrange.invalid": "Andere Überschrift gleicher Ebene mit demselben Elternabschnitt wählen.",
+  "headingMap.rearrange.boundary": "Das Verschieben würde eine Markdown-Abschnittsgrenze überschreiten oder verändern.",
   "headingMap.rearrange.noEditor": "Diese Notiz im Quelleditor öffnen.",
   "headingMap.rearrange.before": "Vor „{title}“ einfügen",
   "headingMap.rearrange.after": "Nach „{title}“ einfügen",

@@ -451,6 +451,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "Kéo tiêu đề tới một tiêu đề cùng cấp, cùng cha để di chuyển cả mục lên trước hoặc ra sau. Chỉ hỗ trợ sắp xếp các mục ngang cấp; thao tác sửa Markdown, có thể hoàn tác và yêu cầu mở ghi chú trong trình soạn thảo.",
   "headingMap.rearrange.hint": "Đang chỉnh cấu trúc: kéo giữa các mục ngang cấp hoặc dùng ↑ / ↓. Có thể hoàn tác.",
   "headingMap.rearrange.invalid": "Chọn tiêu đề khác có cùng cha và cấp.",
+  "headingMap.rearrange.boundary": "Di chuyển mục này sẽ vượt qua hoặc thay đổi ranh giới của một mục Markdown.",
   "headingMap.rearrange.noEditor": "Mở ghi chú này trong trình sửa mã nguồn.",
   "headingMap.rearrange.before": "Chèn trước “{title}”",
   "headingMap.rearrange.after": "Chèn sau “{title}”",

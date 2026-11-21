@@ -15,10 +15,18 @@ export function leadingMarkup(text: string): string | null {
   return match?.[1] ?? (text.trim().length === 0 ? "" : null);
 }
 
-export function rawHtmlStart(markup: string): string | null {
-  const match = /^<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|\/?>)/u.exec(markup);
-  const tag = match?.[1]?.toLowerCase() ?? null;
-  return tag != null && RAW_HTML_TAGS.has(tag) ? tag : null;
+export function startsRawHtmlBlock(markup: string): boolean {
+  const tag = /^<([A-Za-z]+)(?=\s|>|$)/u.exec(markup)?.[1];
+  return tag !== undefined && RAW_HTML_TAGS.has(tag.toLowerCase());
+}
+
+// CommonMark type 1 ends at the first exact closing tag from this set,
+// including when the closing tag differs from the opener.
+export function endsRawHtmlBlock(text: string): boolean {
+  for (const match of text.matchAll(/<\/([A-Za-z]+)>/gu)) {
+    if (RAW_HTML_TAGS.has(match[1]!.toLowerCase())) return true;
+  }
+  return false;
 }
 
 export function blockHtmlStart(markup: string): boolean {

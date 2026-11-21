@@ -1,4 +1,4 @@
-import type { HeadingContentSpan, HeadingLevel, ParsedHeading } from "./types";
+import type { HeadingLevel, ParsedHeading } from "./types";
 import { noteContainerLines } from "./note-semantics";
 import {
   analyzeInlineHtmlComments,
@@ -10,52 +10,31 @@ function projectVisibleContent(
   sourceFrom: number,
 ): Pick<ParsedHeading, "content" | "contentFrom" | "contentTo" | "contentSpans"> {
   const hidden = analyzeInlineHtmlComments(source).ranges;
-  const characters: Array<{ value: string; source: number }> = [];
-  let rangeIndex = 0;
-  for (let index = 0; index < source.length;) {
-    const range = hidden[rangeIndex];
-    if (range != null && index >= range.from && index < range.to) {
-      index = range.to;
-      rangeIndex += 1;
-      continue;
+  const visible: { from: number; to: number }[] = [];
+  const padding = (offset: number): boolean => source[offset] === " " || source[offset] === "\t";
+  for (let index = 0; index <= hidden.length; index += 1) {
+    let from = hidden[index - 1]?.to ?? 0;
+    const to = hidden[index]?.from ?? source.length;
+    if (visible.length === 0) {
+      while (from < to && padding(from)) from += 1;
     }
-    characters.push({ value: source[index] ?? "", source: sourceFrom + index });
-    index += 1;
+    if (from < to) visible.push({ from, to });
   }
-
-  let visibleFrom = 0;
-  let visibleTo = characters.length;
-  while (visibleFrom < visibleTo && /^[ \t]$/u.test(characters[visibleFrom]?.value ?? "")) {
-    visibleFrom += 1;
+  // Trailing padding can span multiple fragments separated by comments.
+  while (visible.length > 0) {
+    const last = visible[visible.length - 1]!;
+    while (last.to > last.from && padding(last.to - 1)) last.to -= 1;
+    if (last.to > last.from) break;
+    visible.pop();
   }
-  while (visibleTo > visibleFrom && /^[ \t]$/u.test(characters[visibleTo - 1]?.value ?? "")) {
-    visibleTo -= 1;
-  }
-
-  const visible = characters.slice(visibleFrom, visibleTo);
-  const spans: HeadingContentSpan[] = [];
-  for (let index = 0; index < visible.length; index += 1) {
-    const character = visible[index];
-    if (character == null) continue;
-    const previous = spans[spans.length - 1];
-    if (previous != null && previous.sourceTo === character.source) {
-      spans[spans.length - 1] = {
-        ...previous,
-        visibleTo: index + 1,
-        sourceTo: character.source + 1,
-      };
-    } else {
-      spans.push({
-        visibleFrom: index,
-        visibleTo: index + 1,
-        sourceFrom: character.source,
-        sourceTo: character.source + 1,
-      });
-    }
-  }
-
+  let content = "";
+  const spans = visible.map(({ from, to }) => {
+    const visibleFrom = content.length;
+    content += source.slice(from, to);
+    return { visibleFrom, visibleTo: content.length, sourceFrom: sourceFrom + from, sourceTo: sourceFrom + to };
+  });
   return {
-    content: visible.map((character) => character.value).join(""),
+    content,
     contentFrom: spans[0]?.sourceFrom ?? sourceFrom,
     contentTo: spans[spans.length - 1]?.sourceTo ?? sourceFrom,
     contentSpans: spans,

@@ -13,7 +13,7 @@ export async function readBoundMarkdownSource(
 ): Promise<BoundMarkdownSource> {
   const matching: WorkspaceLeaf[] = [];
   app.workspace.iterateAllLeaves((leaf) => {
-    if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) matching.push(leaf);
+    if (leaf.view instanceof MarkdownView && leaf.view.file === file) matching.push(leaf);
   });
 
   const preferred = preferredLeaf != null && matching.includes(preferredLeaf)
@@ -25,7 +25,7 @@ export async function readBoundMarkdownSource(
   }
 
   const active = app.workspace.getActiveViewOfType(MarkdownView);
-  if (active?.file?.path === file.path && matching.includes(active.leaf)) {
+  if (active?.file === file && matching.includes(active.leaf)) {
     return { leaf: active.leaf, source: active.editor.getValue() };
   }
 

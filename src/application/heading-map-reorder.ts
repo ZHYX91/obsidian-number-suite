@@ -21,7 +21,18 @@ export function planSameParentHeadingMove(
   targetLine: number,
   placement: "before" | "after",
 ): SameParentHeadingMove | null {
-  if (movingLine === targetLine) return null;
+  const move = assessSameParentHeadingMove(source, movingLine, targetLine, placement);
+  return move === "unchanged" ? null : move;
+}
+
+/** A refused structural change needs feedback; an unchanged drop can stay quiet. */
+export function assessSameParentHeadingMove(
+  source: string,
+  movingLine: number,
+  targetLine: number,
+  placement: "before" | "after",
+): SameParentHeadingMove | "unchanged" | null {
+  if (movingLine === targetLine) return "unchanged";
   const lines = scanMarkdownProtectedLines(source);
   const atx = parseAtxHeadings(source, lines);
   if (!atx.some((heading) => heading.line === movingLine) || !atx.some((heading) => heading.line === targetLine)) return null;
@@ -63,7 +74,7 @@ export function planSameParentHeadingMove(
     ? headings[targetIndex]!.lineFrom
     : sectionEnd(targetIndex);
   // Adjacent no-ops and destinations inside the moved subtree are not writes.
-  if (targetAt >= movingFrom && targetAt <= movingTo) return null;
+  if (targetAt >= movingFrom && targetAt <= movingTo) return "unchanged";
 
   const from = Math.min(movingFrom, targetAt);
   const to = Math.max(movingTo, targetAt);
@@ -73,26 +84,39 @@ export function planSameParentHeadingMove(
   const after = source.slice(pivot, to);
   if (!before || !after) return null;
   let replacement = after + before;
+  let transferredEolLength = 0;
   // At EOF, the final section may lack an EOL. Move its predecessor's
   // line-ending to the new boundary, so headings never concatenate and the
   // document retains its original final-newline state (also for CRLF).
   if (!/[\r\n]$/u.test(after)) {
     const terminal = /(\r\n|\r|\n)$/u.exec(before)?.[0];
     if (terminal == null) return null;
+    transferredEolLength = terminal.length;
     replacement = after + terminal + before.slice(0, -terminal.length);
   }
   const original = source.slice(from, to);
-  if (replacement === original) return null;
-  // A section ending in prose can absorb a following Setext title if its former
-  // neighbor ended in a block. Refuse a rotation that would destroy that heading.
-  if (setext.length > 0) {
-    const result = source.slice(0, from) + replacement + source.slice(to);
-    const titles = (parsed: typeof lines): string[] => parsed.flatMap((line) => (
-      line.setextLevel == null ? [] : [line.setextLevel + ":" + line.text]
-    )).sort();
-    const beforeTitles = titles(lines);
-    const afterTitles = titles(scanMarkdownProtectedLines(result));
-    if (beforeTitles.length !== afterTitles.length || beforeTitles.some((title, index) => title !== afterTitles[index])) return null;
+  if (replacement === original) return "unchanged";
+  // Reparse both joins. A fence, HTML block, comment or paragraph may now
+  // consume a heading, or expose a previously protected heading with the same title.
+  const result = source.slice(0, from) + replacement + source.slice(to);
+  const resultLines = scanMarkdownProtectedLines(result);
+  const resultAtx = new Map(parseAtxHeadings(result, resultLines).map((heading) => [heading.lineFrom, heading]));
+  const resultSetext = new Map(resultLines.flatMap((line) =>
+    line.setextLevel == null ? [] : [[line.from, line.setextLevel] as const]));
+  if (resultAtx.size !== atx.length || resultSetext.size !== setext.length) return null;
+
+  const relocatedOffset = (offset: number): number => {
+    if (offset < from || offset >= to) return offset;
+    if (offset >= pivot) return offset - before.length;
+    return offset + after.length + transferredEolLength;
+  };
+  for (const heading of atx) {
+    const current = resultAtx.get(relocatedOffset(heading.lineFrom));
+    if (current?.level !== heading.level || current.content !== heading.content) return null;
+  }
+  for (const heading of setext) {
+    // lineFrom may include a preceding blank line; verify the actual title.
+    if (resultSetext.get(relocatedOffset(lines[heading.line]!.from)) !== heading.level) return null;
   }
   return Object.freeze({ expectedSource: source, from, to, original, replacement });
 }
