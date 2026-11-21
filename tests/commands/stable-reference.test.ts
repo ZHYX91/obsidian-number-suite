@@ -97,6 +97,20 @@ beforeEach(() => {
 });
 
 describe("stable cross-reference context menu", () => {
+  it.each([false, true])("copies with the invoking window's clipboard when the target has an ID=%s", async (hasId) => {
+    const writeText = vi.fn(async () => {});
+    const owner = { navigator: { clipboard: { writeText } } } as unknown as Window;
+    const menu = createMenu();
+    const editor = createEditor(hasId ? "Figure: Miao ^figure-id" : "Figure: Miao", 8);
+    addStableReferenceContextMenuItem({} as App, menu.menu, editor.editor, fileInfo(), translate);
+    const click = menu.click as unknown as (event: MouseEvent) => void;
+    click({ view: owner } as MouseEvent);
+    if (!hasId) await modal.options?.onConfirm(owner);
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledOnce();
+    expect(clipboard).not.toHaveBeenCalled();
+  });
+
   it.each([
     [false, "closed"], [false, "detached"], [false, "reading"], [false, "editor-replaced"],
     [true, "closed"], [true, "detached"], [true, "reading"], [true, "editor-replaced"],

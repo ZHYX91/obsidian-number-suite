@@ -23,17 +23,18 @@ function applyChange(editor: Editor, plan: StableReferencePlan): void {
   editor.transaction({ changes: [change] }, "number-suite-stable-reference");
 }
 
-async function writeClipboard(text: string): Promise<void> {
-  if (typeof navigator === "undefined" || navigator.clipboard?.writeText == null) {
+async function writeClipboard(text: string, owner: Window | null): Promise<void> {
+  const clipboard = (owner?.navigator ?? (typeof navigator === "undefined" ? undefined : navigator))?.clipboard;
+  if (clipboard?.writeText == null) {
     throw new Error("Clipboard API is unavailable.");
   }
-  await navigator.clipboard.writeText(text);
+  await clipboard.writeText(text);
 }
 
-async function copyWithNotice(plan: StableReferencePlan, t: Translate, created: boolean, signal?: AbortSignal): Promise<void> {
+async function copyWithNotice(plan: StableReferencePlan, t: Translate, created: boolean, owner: Window | null, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return;
   try {
-    await writeClipboard(plan.link);
+    await writeClipboard(plan.link, owner);
     if (signal?.aborted) return;
     new Notice(t(created ? "reference.notice.createdCopied" : "reference.notice.copied"));
   } catch (error: unknown) {
@@ -63,7 +64,7 @@ export function addStableReferenceContextMenuItem(
   menu.addItem((item) => item
     .setTitle(translate("reference.menu.copy"))
     .setIcon("copy")
-    .onClick(() => {
+    .onClick((event) => {
       if (signal?.aborted) return;
       if (!binding.isCurrent()) { new Notice(translate("notice.stalePreview")); return; }
       if (plan.change == null) {
@@ -82,7 +83,7 @@ export function addStableReferenceContextMenuItem(
           new Notice(translate("notice.stalePreview"));
           return;
         }
-        void copyWithNotice(refreshed, translate, false, signal);
+        void copyWithNotice(refreshed, translate, false, event?.view ?? binding.view?.containerEl.ownerDocument?.defaultView ?? null, signal);
         return;
       }
       new StableReferenceModal({
@@ -90,7 +91,7 @@ export function addStableReferenceContextMenuItem(
         plan,
         translate,
         ...(signal === undefined ? {} : { signal }),
-        onConfirm: async () => {
+        onConfirm: async (owner) => {
           if (signal?.aborted) return;
           const current = editor.getValue();
           const refreshed = createStableReferencePlan(current, cursorOffset);
@@ -106,7 +107,7 @@ export function addStableReferenceContextMenuItem(
             return;
           }
           applyChange(editor, plan);
-          await copyWithNotice(plan, translate, true, signal);
+          await copyWithNotice(plan, translate, true, owner ?? event?.view ?? null, signal);
         },
       }).open();
     }));

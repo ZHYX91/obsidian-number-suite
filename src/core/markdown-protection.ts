@@ -40,7 +40,7 @@ export function scanMarkdownProtectedLines(
 
   for (const line of lines) {
     const container = containers[line.number];
-    const trimmed = line.text.trim();
+    const blank = /^[ \t]*$/u.test(line.text);
     let available = true;
     let commentMaskedText = line.text;
     let headingAvailable = true;
@@ -61,7 +61,7 @@ export function scanMarkdownProtectedLines(
       available = false;
       if (endsRawHtmlBlock(line.text)) state = null;
     } else if (state?.kind === "blank-html") {
-      if (trimmed.length === 0) {
+      if (blank) {
         state = null;
         available = true;
       } else {
@@ -147,7 +147,7 @@ export function scanMarkdownProtectedLines(
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
     // heading, fence, thematic break or other block without a blank line.
-    inParagraph = available && trimmed.length > 0
+    inParagraph = available && !blank
       && !/^ {0,3}(?:#{1,9}(?:[ \t]|$)|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|(?:-[ \t]*){3,}$|[=-]+[ \t]*$|>|[-+*][ \t]|\d+[.)][ \t])/u.test(line.text);
   }
 

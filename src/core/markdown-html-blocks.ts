@@ -1,3 +1,4 @@
+const RAW_HTML_TAGS = new Set(["pre", "script", "style", "textarea"]);
 const BLOCK_HTML_TAGS = new Set([
   "address", "article", "aside", "base", "basefont", "blockquote", "body",
   "caption", "center", "col", "colgroup", "dd", "details", "dialog", "dir",
@@ -15,13 +16,17 @@ export function leadingMarkup(text: string): string | null {
 }
 
 export function startsRawHtmlBlock(markup: string): boolean {
-  return /^<(?:pre|script|style|textarea)(?=\s|>|$)/iu.test(markup);
+  const tag = /^<([A-Za-z]+)(?=\s|>|$)/u.exec(markup)?.[1];
+  return tag !== undefined && RAW_HTML_TAGS.has(tag.toLowerCase());
 }
 
 // CommonMark type 1 ends at the first exact closing tag from this set,
 // including when the closing tag differs from the opener.
 export function endsRawHtmlBlock(text: string): boolean {
-  return /<\/(?:pre|script|style|textarea)>/iu.test(text);
+  for (const match of text.matchAll(/<\/([A-Za-z]+)>/gu)) {
+    if (RAW_HTML_TAGS.has(match[1]!.toLowerCase())) return true;
+  }
+  return false;
 }
 
 export function blockHtmlStart(markup: string): boolean {

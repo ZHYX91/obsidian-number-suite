@@ -34,6 +34,21 @@ describe("shared Markdown protection", () => {
     expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
   });
 
+  it.each([
+    ["<script>", "</ſcript>", "# literal", "</STYLE>", "# Real"],
+    ["<div>", "\u00a0", "# literal", "", "# Real"],
+    ["<widget>", "\u2003", "# literal", "\t", "# Real"],
+    ["<ſtyle>", "# Real"],
+  ])("keeps actual HTML boundaries for Unicode text after %s", (...lines) => {
+    const source = lines.join("\n");
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+  });
+
   it("keeps similar tag-name prefixes from starting raw HTML blocks", () => {
     expect(parseAtxHeadings("<preview\n# Real").map((heading) => heading.content)).toEqual(["Real"]);
   });
