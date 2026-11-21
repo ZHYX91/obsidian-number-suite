@@ -4,7 +4,7 @@ import type { Translate } from "../config/i18n";
 import type { NumberSuiteSettings } from "../config/settings";
 import { withoutTrailingBlockId } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
-import { createNativeOutlineProjection, type ExtraOutlineHeading } from "./native-outline-projection";
+import { createNativeOutlineProjection, sameOutlineTitle, type ExtraOutlineHeading } from "./native-outline-projection";
 
 const NUMBER_CLASS = "number-suite-native-outline-number";
 const EXTRA_CLASS = "number-suite-native-outline-extra";
@@ -540,7 +540,7 @@ export class NativeOutlineEnhancer {
           continue;
         }
         const heading = byLine.get(line);
-        if (heading == null || heading.level !== item.level || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim()) continue;
+        if (heading == null || heading.level !== item.level || !sameOutlineTitle(heading.content, item.heading)) continue;
         const title = entry.titles.get(line) ?? withoutTrailingBlockId(item.heading);
         const label = entry.labels.get(line);
         const badge = label ?? (this.settings().showOutlineLevels ? "H" + item.level : null);

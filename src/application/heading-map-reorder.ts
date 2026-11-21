@@ -1,4 +1,5 @@
 import { parseAtxHeadings } from "../core/heading-parser";
+import { scanMarkdownProtectedLines } from "../core/markdown-protection";
 
 /** A single bounded editor change; the caller must compare expectedSource again before committing. */
 export interface SameParentHeadingMove {
@@ -21,7 +22,18 @@ export function planSameParentHeadingMove(
   placement: "before" | "after",
 ): SameParentHeadingMove | null {
   if (movingLine === targetLine) return null;
-  const headings = parseAtxHeadings(source);
+  const lines = scanMarkdownProtectedLines(source);
+  const atx = parseAtxHeadings(source, lines);
+  if (!atx.some((heading) => heading.line === movingLine) || !atx.some((heading) => heading.line === targetLine)) return null;
+  // Setext headings are not movable cards. They still define parents and the
+  // end of the preceding section, including the blank line that starts the title.
+  const setext = lines.flatMap((line) => {
+    if (line.setextLevel == null) return [];
+    let boundary = line.number;
+    while (boundary > 0 && lines[boundary - 1]!.text.trim() === "") boundary -= 1;
+    return [{ level: line.setextLevel, line: line.number, lineFrom: lines[boundary]!.from }];
+  });
+  const headings = [...atx, ...setext].sort((a, b) => a.line - b.line);
   const parents: number[] = [];
   const stack: number[] = [];
   for (let index = 0; index < headings.length; index += 1) {
@@ -71,5 +83,16 @@ export function planSameParentHeadingMove(
   }
   const original = source.slice(from, to);
   if (replacement === original) return null;
+  // A section ending in prose can absorb a following Setext title if its former
+  // neighbor ended in a block. Refuse a rotation that would destroy that heading.
+  if (setext.length > 0) {
+    const result = source.slice(0, from) + replacement + source.slice(to);
+    const titles = (parsed: typeof lines): string[] => parsed.flatMap((line) => (
+      line.setextLevel == null ? [] : [line.setextLevel + ":" + line.text]
+    )).sort();
+    const beforeTitles = titles(lines);
+    const afterTitles = titles(scanMarkdownProtectedLines(result));
+    if (beforeTitles.length !== afterTitles.length || beforeTitles.some((title, index) => title !== afterTitles[index])) return null;
+  }
   return Object.freeze({ expectedSource: source, from, to, original, replacement });
 }

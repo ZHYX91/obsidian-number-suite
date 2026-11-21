@@ -29,6 +29,7 @@ export interface MarkdownContainerLine {
   /** Exact code, math and link-metadata offsets, including cross-line spans. */
   readonly inlineLiterals: readonly SourceRange[];
   readonly equationLastLine?: number;
+  readonly setextLevel?: 1 | 2;
 }
 
 const CONTAINERS = new Set(["BulletList", "OrderedList", "Blockquote"]);
@@ -39,9 +40,13 @@ function markdownFacts(tree: ReturnType<typeof parser.parse>) {
   const containers: SourceRange[] = [];
   const literals: LiteralRange[] = [];
   const inlineLiterals: InlineLiteralRange[] = [];
+  const setext = new Map<number, 1 | 2>();
   let depth = 0;
   tree.iterate({
     enter(node) {
+      if (depth === 0 && (node.name === "SetextHeading1" || node.name === "SetextHeading2")) {
+        setext.set(node.from, node.name === "SetextHeading1" ? 1 : 2);
+      }
       if (CONTAINERS.has(node.name)) {
         if (depth === 0) containers.push({ from: node.from, to: node.to });
         depth += 1;
@@ -59,7 +64,7 @@ function markdownFacts(tree: ReturnType<typeof parser.parse>) {
     },
     leave(node) { if (CONTAINERS.has(node.name)) depth -= 1; },
   });
-  return { containers, literals, inlineLiterals };
+  return { containers, literals, inlineLiterals, setext };
 }
 
 function firstRangeAfter<T extends SourceRange>(ranges: readonly T[], offset: number): T | undefined {
@@ -335,7 +340,12 @@ export function scanMarkdownContainerLines(
       equationLastLine = index;
       while (starts[equationLastLine + 1] != null && starts[equationLastLine + 1]! < literal.to) equationLastLine += 1;
     }
+    // Obsidian recognizes a one-line title followed immediately by its underline.
+    const nextLine = lines[index + 1]?.text;
+    const setextLevel = nextLine != null && /^ {0,3}(?:=+|-+)[ \t]*$/u.test(nextLine)
+      ? facts.setext.get(from + lines[index]!.text.length - lines[index]!.text.trimStart().length) : undefined;
     return {
+      ...(setextLevel == null ? {} : { setextLevel }),
       ...(equationLastLine == null ? {} : { equationLastLine }),
       nested: (containers[containerIndex]?.from ?? Infinity) <= to,
       literal: literal != null,

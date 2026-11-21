@@ -11,6 +11,7 @@ import {
 } from "../config/settings";
 import { numberCaptions, parseDocumentSemantics, withoutTrailingBlockId } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
+import { analyzeInlineHtmlComments, scanMarkdownProtectedLines } from "../core/markdown-protection";
 
 export interface ExtraOutlineHeading extends HeadingCache {
   __numberSuiteExtra?: "extended" | "caption";
@@ -22,6 +23,22 @@ export interface NativeOutlineProjection {
   readonly titleLabels?: ReadonlyMap<number, string>;
   readonly numberKinds?: ReadonlyMap<number, "virtual" | "stored">;
   readonly secondaryStoredNumbers?: ReadonlyMap<number, string>;
+}
+
+/** Compare the visible titles when Obsidian retains authored inline comments in its cache. */
+export function sameOutlineTitle(sourceTitle: string, cachedTitle: string): boolean {
+  if (sourceTitle === cachedTitle) return true;
+  const visible = (text: string): string => {
+    const { ranges } = analyzeInlineHtmlComments(text);
+    let title = "";
+    let from = 0;
+    for (const range of ranges) {
+      title += text.slice(from, range.from);
+      from = range.to;
+    }
+    return withoutTrailingBlockId(title + text.slice(from)).trim();
+  };
+  return visible(sourceTitle) === visible(cachedTitle);
 }
 
 export function createNativeOutlineProjection(
@@ -37,14 +54,16 @@ export function createNativeOutlineProjection(
     settings, parseNoteOverridesFromSource(source) ?? invalidNoteOverrides(),
   );
   if (effective.disabled || !effective.valid) return { headings: original, numberLabels };
-  const headings = parseAtxHeadings(source);
+  const lines = scanMarkdownProtectedLines(source);
+  const headings = parseAtxHeadings(source, lines);
   const parsedByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
   // A stale core cache must never be combined with a newer editor heading
   // at the same position. Until the cache catches up, retain native Outline.
   if (original.some((item) => {
     const heading = parsedByLine.get(item.position.start.line);
-    return heading == null || heading.level !== item.level
-      || withoutTrailingBlockId(heading.content).trim() !== withoutTrailingBlockId(item.heading).trim();
+    if (heading != null) return heading.level !== item.level || !sameOutlineTitle(heading.content, item.heading);
+    const line = lines[item.position.start.line];
+    return line?.setextLevel !== item.level || !sameOutlineTitle(line.text, item.heading);
   })) return { headings: original, numberLabels };
   const usedLines = new Set(original.map((item) => item.position.start.line));
   const extras: ExtraOutlineHeading[] = [];
