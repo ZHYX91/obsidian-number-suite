@@ -82,6 +82,19 @@ describe("heading mind-map same-parent section rearrangement", () => {
     expect(moved(note, 1, 3, "after")).toBeNull();
   });
 
+  it.each(["<div>text</div>", "```", "<pre", "%% open comment"])(
+    "refuses to move an unterminated block across a sibling: %s", (block) => {
+      const note = ["# Apples", "First section", "# Pears", block].join("\n");
+      expect(moved(note, 2, 0, "before")).toBeNull();
+      expect(moved(note, 0, 2, "after")).toBeNull();
+    },
+  );
+
+  it("keeps duplicate heading titles distinct when moving a closed code block", () => {
+    const note = "# Same\r\nfirst\r\n# Same\r\n```\r\n# Same\r\n```";
+    expect(moved(note, 2, 0, "before")).toBe("# Same\r\n```\r\n# Same\r\n```\r\n# Same\r\nfirst");
+  });
+
   it("accepts sibling extended headings but ignores code and malformed headings", () => {
     const source = "######## Deep A\nA\n```\n######## Not heading\n```\n######## Deep B\nB\n";
     expect(moved(source, 5, 0, "before")).toBe(

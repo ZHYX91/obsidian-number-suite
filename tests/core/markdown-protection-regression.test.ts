@@ -7,6 +7,22 @@ import { planHeadingTransform } from "../../src/core/transform";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
 describe("shared Markdown protection", () => {
+  it.each(["pre", "script", "style", "textarea"])(
+    "protects a raw %s tag whose attributes start on the following line", (tag) => {
+      const source = [`<${tag.toUpperCase()}`, 'class="example">', "", "# literal", `</${tag}>`, "# Real"].join("\n");
+      const plan = planHeadingTransform(source, "write", {
+        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+        writeMarkers: false, cleanupScope: "templates", templateSources: [],
+        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+      });
+      expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+    },
+  );
+
+  it("keeps similar tag-name prefixes from starting raw HTML blocks", () => {
+    expect(parseAtxHeadings("<preview\n# Real").map((heading) => heading.content)).toEqual(["Real"]);
+  });
+
   it("preserves caption code and link source while masking comments and literal references", () => {
     const source = "Figure: Using `foo()` and [docs](https://example.com) <!-- private --> ^fig\n\nCode: `print(x)`\n\nSee `@[[#Hidden]]` and @[[#^fig]]";
     const parsed = parseDocumentSemantics(source);
