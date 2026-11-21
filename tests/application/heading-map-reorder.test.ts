@@ -67,6 +67,21 @@ describe("heading mind-map same-parent section rearrangement", () => {
     expect(moved(source, 1, 1, "after")).toBeNull();
   });
 
+  it.each(["\n", "\r\n"])("honors Setext parents and section ends with %j", (eol) => {
+    const note = ["# Parent A", "## Apples", "one", "## Plums", "two", "",
+      "Parent B", "========", "## Pears", "three"].join(eol);
+    expect(moved(note, 1, 8, "after")).toBeNull();
+    expect(moved(note, 8, 3, "before")).toBeNull();
+    expect(moved(note, 1, 3, "after")).toBe(
+      ["# Parent A", "## Plums", "two", "## Apples", "one", "", "Parent B", "========", "## Pears", "three"].join(eol),
+    );
+  });
+
+  it("refuses to absorb an unrelated Setext title into a moved paragraph", () => {
+    const note = "# Parent\n## Apples\none\n## Plums\nNext chapter\n========\n## Pears";
+    expect(moved(note, 1, 3, "after")).toBeNull();
+  });
+
   it("accepts sibling extended headings but ignores code and malformed headings", () => {
     const source = "######## Deep A\nA\n```\n######## Not heading\n```\n######## Deep B\nB\n";
     expect(moved(source, 5, 0, "before")).toBe(

@@ -13,6 +13,7 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   readonly inlineMaskedText: string;
   /** Closed top-level equation carrier; its interior is never semantic prose. */
   readonly equationLastLine?: number;
+  readonly setextLevel?: 1 | 2;
 }
 
 type ProtectedBlockState =
@@ -146,6 +147,7 @@ export function scanMarkdownProtectedLines(
     const inline = commentMaskedText.split("");
     for (const range of container?.inlineLiterals ?? []) blankRange(inline, range.from, range.to);
     output.push({ ...line, available, commentMaskedText, inlineMaskedText: inline.join(""), topLevel,
+      ...(available && headingAvailable && topLevel && container?.setextLevel != null ? { setextLevel: container.setextLevel } : {}),
       ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });
     // Type-7 HTML cannot interrupt a paragraph, but may follow a completed

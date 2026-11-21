@@ -56,6 +56,21 @@ describe("native Outline projection", () => {
     expect(result.headings[0]).toBe(headings[0]);
   });
 
+  it("keeps native Setext rows and authored comments without suppressing unrelated enhancements", () => {
+    const note = "Document\n========\n## Chapter %%draft%%\n####### Deep\n\nFigure: Chart";
+    const title = native(0, "Document", 1, 0);
+    const chapter = native(2, "Chapter %%draft%%", 2, note.indexOf("## Chapter"));
+    const settings = { ...DEFAULT_SETTINGS, showVirtualNumbers: true };
+    const result = createNativeOutlineProjection(note, [title, chapter], settings);
+    expect(result.headings[0]).toBe(title);
+    expect(result.headings[1]).toBe(chapter);
+    expect(result.headings.slice(2).map((item) => item.heading)).toEqual(["Deep", "Figure 1: Chart"]);
+    expect(result.numberLabels.get(2)).toBe("1");
+    for (const stale of [native(0, "Old title", 1, 0), native(0, "Document", 2, 0)]) {
+      expect(createNativeOutlineProjection(note, [stale, chapter], settings).numberLabels.size).toBe(0);
+    }
+  });
+
   it("keeps all switches independent, including explicit false", () => {
     const off = createNativeOutlineProjection(source, headings, {
       ...DEFAULT_SETTINGS,
