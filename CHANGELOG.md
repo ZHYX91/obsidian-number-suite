@@ -2,6 +2,12 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.7.1
+
+- Display calculated virtual heading numbers even when a written prefix remains visible. Add an optional setting to hide common handwritten prefixes.
+- Respect Setext section boundaries when moving headings. Keep native Outline enhancements active in notes with Setext headings or inline comments.
+- Use theme-accented help cards in Settings and Current note.
+
 ## 0.7.0
 
 - Enhance the native Outline with independent default-on heading-number, H7–H9 and caption controls. Caption leaves use localized labels and type icons; headings share effective document numbering.
