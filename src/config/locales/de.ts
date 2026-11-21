@@ -184,6 +184,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "Wähle, welche vorhandenen Überschriftennummern ausgeblendet werden dürfen. Entfernen und Neu nummerieren haben eine eigene Auswahl in der Vorschau.",
   "conceal.plugin": "Nur Nummern mit Number-Suite-Markierung",
   "conceal.templates": "Nummern nach bekannten Schemata",
+  "conceal.common": "Auch gängige manuelle Nummern ausblenden",
   "settings.headings.guide.title": "So werden Überschriftennummern angezeigt",
   "settings.headings.guide.intro": "Virtuelle Nummern und das Ausblenden gespeicherter Nummern verändern nur die Ansicht in Obsidian.",
   "settings.headings.guide.example.title": "Beispiel für virtuelle Überschriften",

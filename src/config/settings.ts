@@ -3,7 +3,6 @@ import {
   CONFIDENCES,
   HEADING_LEVEL_COUNT,
   type CleanupScope,
-  type ConcealScope,
   type CleanupTemplateHistory,
   type CleanupTemplateSource,
   type CustomNumberingScheme,
@@ -24,7 +23,7 @@ export interface NumberSuiteSettings {
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
   styleStoredHeadingNumbers: boolean;
-  concealScope: ConcealScope;
+  concealScope: CleanupScope;
   showCaptionNumbers: boolean;
   centerFigureCaptions: boolean;
   centerTableCaptions: boolean;
@@ -283,7 +282,7 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     styleStoredHeadingNumbers: booleanOr(raw.styleStoredHeadingNumbers, DEFAULT_SETTINGS.styleStoredHeadingNumbers),
     concealScope: oneOf(
       raw.concealScope,
-      ["plugin", "templates"] as const,
+      ["plugin", "templates", "common"] as const,
       DEFAULT_SETTINGS.concealScope,
     ),
     showCaptionNumbers: booleanOr(raw.showCaptionNumbers, DEFAULT_SETTINGS.showCaptionNumbers),

@@ -184,6 +184,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "選擇哪些已寫入的標題編號可以隱藏。移除或重新編號時，可以在預覽中另外選擇辨識範圍。",
   "conceal.plugin": "僅隱藏帶 Number Suite 隱形標記的序號",
   "conceal.templates": "隱藏匹配已知方案的序號",
+  "conceal.common": "也隱藏常見手寫編號",
   "settings.headings.guide.title": "標題編號如何顯示",
   "settings.headings.guide.intro": "虛擬顯示和隱藏只改變你在 Obsidian 中看到的效果。",
   "settings.headings.guide.example.title": "虛擬標題示例",

@@ -19,7 +19,6 @@ export type SchemeId = string;
 export const CONFIDENCES = ["low", "medium", "high", "certain"] as const;
 export type Confidence = (typeof CONFIDENCES)[number];
 export type CleanupScope = "plugin" | "templates" | "common";
-export type ConcealScope = Exclude<CleanupScope, "common">;
 export type MissingLevelStrategy = "fill-one" | "current-only" | "skip";
 export type NumberStyle =
   | "hierarchical"

@@ -59,7 +59,8 @@ export function createDisplayPlan(
   const decorations: DisplayDecorationPlan[] = [];
   for (const item of numbered) {
     const { heading } = item;
-    if (options.composing && selectionTouchesHeading(heading, options.selections)) {
+    const active = selectionTouchesHeading(heading, options.selections);
+    if (options.composing && active) {
       continue;
     }
     if (heading.content.trim().length === 0) {
@@ -71,16 +72,9 @@ export function createDisplayPlan(
     const reliablyStored = first != null && first.from === 0
       && (first.confidence === "high" || first.confidence === "certain")
       && !analysis.suspicious;
-    const revealStored = options.concealStoredNumbers
-      && options.revealOnActiveLine
-      && selectionTouchesHeading(heading, options.selections);
-    if (
-      revealStored
-    ) {
-      continue;
-    }
+    const concealStored = options.concealStoredNumbers && !(options.revealOnActiveLine && active);
     if (options.styleStoredNumbers && !options.concealStoredNumbers && reliablyStored
-      && !selectionTouchesHeading(heading, options.selections) && first != null) {
+      && !active && first != null) {
       // Keep punctuation such as "一、", "1." or "（一）" inside the
       // outlined badge, but leave the separating whitespace with the title.
       const authored = first.fullPrefix.replace(/[ \t\u00a0\u3000]+$/u, "");
@@ -92,8 +86,7 @@ export function createDisplayPlan(
       }
     }
     if (item.exclusion != null) {
-      if (options.concealStoredNumbers) {
-        const first = matches[0];
+      if (concealStored) {
         if (first != null && first.from === 0 && meetsCleanupScope(first, options.cleanupScope)) {
           decorations.push({
             kind: "conceal",
@@ -109,7 +102,7 @@ export function createDisplayPlan(
     }
     if (item.label == null) continue;
     let concealTo = 0;
-    if (options.concealStoredNumbers) {
+    if (concealStored) {
       for (const match of matches) {
         if (
           match.from !== concealTo
@@ -130,10 +123,7 @@ export function createDisplayPlan(
         sourceText: heading.content.slice(0, concealTo),
       });
     }
-    if (
-      options.showVirtualNumbers
-      && (concealTo > 0 || reliablyStored || (matches.length === 0 && !analysis.suspicious))
-    ) {
+    if (options.showVirtualNumbers) {
       const virtualFrom = sourceOffsetForHeadingContent(heading, concealTo);
       decorations.push({
         kind: "virtual",

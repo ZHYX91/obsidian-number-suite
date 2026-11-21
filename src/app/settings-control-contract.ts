@@ -165,7 +165,7 @@ export function applySettingsControlValue(
       impact = "display";
       break;
     case "general.concealScope":
-      if (value !== "plugin" && value !== "templates") throw invalidControlValue(key);
+      if (value !== "plugin" && value !== "templates" && value !== "common") throw invalidControlValue(key);
       next.concealScope = value;
       impact = "display";
       break;

@@ -327,6 +327,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addDropdown((dropdown) => dropdown
         .addOption("plugin", t("conceal.plugin"))
         .addOption("templates", t("conceal.templates"))
+        .addOption("common", t("conceal.common"))
         .setValue(this.plugin.settings.concealScope)
         .onChange((value) => this.updateControl("general.concealScope", value)));
     renderHeadingDisplayGuide(container, t);

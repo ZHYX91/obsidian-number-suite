@@ -184,6 +184,7 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "Elige qué números de título existentes se pueden ocultar. Para quitar o renumerar, se elige un ámbito aparte en la vista previa.",
   "conceal.plugin": "Solo números con marcas de Number Suite",
   "conceal.templates": "Números que coinciden con estilos conocidos",
+  "conceal.common": "Ocultar también la numeración manual habitual",
   "settings.headings.guide.title": "Cómo se muestran los números de los encabezados",
   "settings.headings.guide.intro": "Los números virtuales y la ocultación de números escritos solo afectan a lo que ves en Obsidian.",
   "settings.headings.guide.example.title": "Ejemplo de títulos con números virtuales",

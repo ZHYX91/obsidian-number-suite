@@ -184,6 +184,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "Выберите, какие уже записанные номера заголовков можно скрывать. Для удаления и перенумерации область распознавания задаётся отдельно при просмотре.",
   "conceal.plugin": "Только номера с метками Number Suite",
   "conceal.templates": "Номера, соответствующие известным схемам",
+  "conceal.common": "Скрывать также распространённые ручные номера",
   "settings.headings.guide.title": "Как отображаются номера заголовков",
   "settings.headings.guide.intro": "Виртуальные номера и скрытие записанных изменяют только отображение в Obsidian.",
   "settings.headings.guide.example.title": "Пример виртуальных заголовков",

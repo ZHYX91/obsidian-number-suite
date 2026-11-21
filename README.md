@@ -90,9 +90,9 @@ Current note keeps the filename, automatic status and three main choices compact
 
 Previews group changes and warnings by file, with counts beside each filename. Expand a file and use its load-more button to inspect all results. Disabling the plugin stops further batch changes. A note that was already saving may finish. If you edited it before Number Suite could undo that change, keep `recovery.json` in the plugin folder and check the note before trying Undo again.
 
-Concealment has one global recognition rule: either only numbers carrying Number Suite source
-markers, or numbers matching known built-in/current/retired scheme templates. A note can override
-hide/show/inherit, but cannot silently broaden that recognition rule.
+The global stored-number recognition setting controls which heading prefixes can be hidden.
+It offers three options: Number Suite markers only, numbers matching known schemes (the default),
+or also common handwritten numbers. Each note can override whether to hide stored numbers.
 
 The ribbon directly opens **Current note** in the persistent sidebar, with **Display & numbering** and **Edit note text** tabs. Native **Outline** shows enhanced H1-H9 headings and captions. Enable the core Outline plugin yourself; Number Suite provides guidance when disabled. Legacy commands and workspace states migrate compatibly. Single-note file-changing commands open a preview inside **Edit note text**, with a fixed target, counts and Back/Cancel/Apply. Switching notes or tabs keeps the original preview target; changed source requires a fresh preview. Back, Cancel and successful Apply return to the **Edit note text** action list. Batch previews remain wide dialogs and scheme editing stays in global settings. Writing or removing a number changes the heading
 text and can invalidate `[[Note#Heading]]` links, heading embeds, or external anchors; the plugin

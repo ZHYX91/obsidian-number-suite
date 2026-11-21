@@ -184,6 +184,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "اختر قاعدة عامة لتحديد البادئات التي يجوز إخفاؤها في العرض فقط. تستخدم عمليات التنظيف نطاقًا مستقلًا يظهر في المعاينة.",
   "conceal.plugin": "الأرقام التي تحمل علامات Number Suite فقط",
   "conceal.templates": "الأرقام المطابقة لأنماط معروفة",
+  "conceal.common": "إخفاء الأرقام اليدوية الشائعة أيضًا",
   "settings.headings.guide.title": "كيف تظهر أرقام العناوين",
   "settings.headings.guide.intro": "يؤثر إظهار الأرقام الافتراضية وإخفاء المكتوبة في شكل النص داخل Obsidian فقط.",
   "settings.headings.guide.example.title": "مثال على ترقيم العناوين افتراضيًا",

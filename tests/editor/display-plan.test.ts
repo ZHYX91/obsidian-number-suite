@@ -43,12 +43,13 @@ describe("display plan", () => {
     ]);
   });
 
-  it("shows virtual numbers alongside recognized source numbers and skips ambiguous decimals", () => {
+  it("shows virtual numbers alongside both recognized source numbers and ambiguous decimals", () => {
     const source = "# Plain\n## 1.1 Stored\n## 3.14 Pi\n## Next";
     const plan = createDisplayPlan(parseAtxHeadings(source), options({}));
     expect(plan.map((item) => ({ line: item.line, label: item.label }))).toEqual([
       { line: 0, label: "1" },
       { line: 1, label: "1.1" },
+      { line: 2, label: "1.2" },
       { line: 3, label: "1.3" },
     ]);
   });
@@ -100,7 +101,7 @@ describe("display plan", () => {
     ]);
   });
 
-  it("reveals only the active heading while composing", () => {
+  it("reveals the active heading's stored prefix while keeping its virtual badge outside composition", () => {
     const source = "# 1.1 Stored\n# Next";
     const headings = parseAtxHeadings(source);
     const heading = headings[0];
@@ -108,7 +109,7 @@ describe("display plan", () => {
       showVirtualNumbers: true,
       concealStoredNumbers: true,
       selections: [{ from: heading!.lineFrom, to: heading!.lineFrom }],
-    }))).toEqual([]);
+    }))).toMatchObject([{ kind: "virtual", line: 0, label: "1" }]);
     expect(createDisplayPlan(headings, options({
       showVirtualNumbers: true,
       concealStoredNumbers: true,
@@ -135,12 +136,40 @@ describe("display plan", () => {
     ]);
   });
 
-  it("fails closed for suspicious prefixes when both display features are enabled", () => {
-    const source = "# 3.14 Pi";
-    expect(createDisplayPlan(parseAtxHeadings(source), options({
-      showVirtualNumbers: true,
+  it.each(["3.14 Sample", "2025. Example", "2.12 Release", "v2.1 Snapshot"])(
+    "shows a virtual number and preserves the original text of %s with common concealment",
+    (title) => {
+      const source = `# ${title}`;
+      expect(createDisplayPlan(parseAtxHeadings(source), options({
+        showVirtualNumbers: true,
+        concealStoredNumbers: true,
+        cleanupScope: "common",
+      }))).toMatchObject([{ kind: "virtual", line: 0, label: "1" }]);
+    },
+  );
+
+  it.each(["plugin", "templates", "common"] as const)(
+    "shows a virtual number with %s recognition and only hides a manual prefix in common scope",
+    (cleanupScope) => {
+      const source = "## 1. 示例章节";
+      const plan = createDisplayPlan(parseAtxHeadings(source), options({
+        concealStoredNumbers: true,
+        cleanupScope,
+      }));
+      expect(plan.filter((item) => item.kind === "virtual").map((item) => item.label)).toEqual(["1.1"]);
+      expect(plan.filter((item) => item.kind === "conceal").map((item) => source.slice(item.from, item.to)))
+        .toEqual(cleanupScope === "common" ? ["1. "] : []);
+    },
+  );
+
+  it("conceals a common manual prefix with virtual numbers off", () => {
+    const source = "## 2. Sample topic";
+    const plan = createDisplayPlan(parseAtxHeadings(source), options({
+      showVirtualNumbers: false,
       concealStoredNumbers: true,
-    }))).toEqual([]);
+      cleanupScope: "common",
+    }));
+    expect(plan).toMatchObject([{ kind: "conceal", sourceText: "2. " }]);
   });
 
   it("does not render excluded titles and can conceal a confirmed stored prefix", () => {

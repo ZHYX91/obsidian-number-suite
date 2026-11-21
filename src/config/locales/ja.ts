@@ -184,6 +184,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "隠すことができる既存の見出し番号を選びます。削除や振り直しの際は、プレビュー内で別の認識範囲を指定できます。",
   "conceal.plugin": "Number Suite のマーカー付き番号だけ",
   "conceal.templates": "既知の方式に一致する番号",
+  "conceal.common": "一般的な手入力の番号も非表示にする",
   "settings.headings.guide.title": "見出し番号の表示について",
   "settings.headings.guide.intro": "仮想番号の表示と書き込み済み番号の非表示は、Obsidian での見え方だけを変えます。",
   "settings.headings.guide.example.title": "仮想見出しの例",

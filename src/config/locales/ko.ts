@@ -184,6 +184,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "숨길 수 있는 기존 제목 번호의 범위를 선택하세요. 삭제 또는 다시 매기기는 미리 보기에서 별도로 인식 범위를 선택합니다.",
   "conceal.plugin": "Number Suite 표시가 있는 번호만",
   "conceal.templates": "알려진 형식과 일치하는 번호",
+  "conceal.common": "흔히 쓰는 수동 번호도 숨기기",
   "settings.headings.guide.title": "제목 번호가 표시되는 방식",
   "settings.headings.guide.intro": "가상 번호 표시와 저장된 번호 숨기기는 Obsidian의 화면에 보이는 모습만 바꿉니다.",
   "settings.headings.guide.example.title": "가상 제목 예시",

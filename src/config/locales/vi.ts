@@ -184,6 +184,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.concealScope.desc": "Chọn những số tiêu đề đã có được phép ẩn. Khi xóa hoặc đánh số lại, bạn chọn phạm vi nhận diện riêng trong bản xem trước.",
   "conceal.plugin": "Chỉ số có dấu Number Suite",
   "conceal.templates": "Số khớp với kiểu đã biết",
+  "conceal.common": "Ẩn cả số thứ tự nhập tay phổ biến",
   "settings.headings.guide.title": "Cách hiển thị số thứ tự của tiêu đề",
   "settings.headings.guide.intro": "Số ảo và việc ẩn số đã ghi chỉ thay đổi cách hiển thị trong Obsidian.",
   "settings.headings.guide.example.title": "Ví dụ tiêu đề có số ảo",

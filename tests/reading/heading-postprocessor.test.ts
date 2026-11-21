@@ -554,6 +554,30 @@ describe("HeadingReadingProcessor", () => {
     expect(heading.getAttribute("data-number-suite-mode")).toBe("show-conceal");
   });
 
+  it.each(["templates", "common"] as const)(
+    "shows a computed H2 badge independently of manual concealment in %s scope",
+    async (concealScope) => {
+      const { processor, context, container } = harness(
+        "## 1. Sample heading",
+        settings({
+          showVirtualNumbers: true,
+          concealStoredNumbers: true,
+          concealScope,
+          selectedSchemeId: "hierarchical",
+        }),
+      );
+      const heading = document.createElement("h2");
+      heading.textContent = "1. Sample heading";
+      container.appendChild(heading);
+
+      await processor.process(container, context);
+
+      expect(heading.querySelector(".number-suite-virtual")?.textContent).toBe("1.1 ");
+      const concealed = heading.querySelector(".number-suite-concealed");
+      expect(concealed?.textContent).toBe(concealScope === "common" ? "1. " : undefined);
+    },
+  );
+
   it("uses the selected custom scheme exclusions in Reading View", async () => {
     const configured = settings({
       showVirtualNumbers: true,

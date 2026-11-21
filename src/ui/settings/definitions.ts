@@ -244,6 +244,7 @@ function headingDefinitions(
       {
         plugin: t("conceal.plugin"),
         templates: t("conceal.templates"),
+        common: t("conceal.common"),
       },
       DEFAULT_SETTINGS.concealScope,
     ),
