@@ -23,6 +23,18 @@ describe("shared Markdown protection", () => {
     expect(parseAtxHeadings("<preview\n# Real").map((heading) => heading.content)).toEqual(["Real"]);
   });
 
+  it.each(["pre", "script", "style", "textarea"])(
+    "resumes numbering after a standalone self-closing <%s/> block", (tag) => {
+      const source = [`<${tag}/>`, "# Inside HTML", "", "# First", "## Second"].join("\n");
+      const plan = planHeadingTransform(source, "write", {
+        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+        writeMarkers: false, cleanupScope: "templates", templateSources: [],
+        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+      });
+      expect(plan.result).toBe(source.replace("# First", "# 1 First").replace("## Second", "## 1.1 Second"));
+    },
+  );
+
   it("preserves caption code and link source while masking comments and literal references", () => {
     const source = "Figure: Using `foo()` and [docs](https://example.com) <!-- private --> ^fig\n\nCode: `print(x)`\n\nSee `@[[#Hidden]]` and @[[#^fig]]";
     const parsed = parseDocumentSemantics(source);

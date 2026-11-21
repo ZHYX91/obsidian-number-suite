@@ -16,7 +16,7 @@ export function leadingMarkup(text: string): string | null {
 }
 
 export function rawHtmlStart(markup: string): string | null {
-  const match = /^<([A-Za-z][A-Za-z0-9-]*)(?:\s|\/?>|$)/u.exec(markup);
+  const match = /^<([A-Za-z][A-Za-z0-9-]*)(?:\s|>|$)/u.exec(markup);
   const tag = match?.[1]?.toLowerCase() ?? null;
   return tag != null && RAW_HTML_TAGS.has(tag) ? tag : null;
 }
