@@ -1,7 +1,7 @@
 import { parser, type BlockContext, type BlockParser, type LeafBlockParser, type Line } from "@lezer/markdown";
 
 import { scanInlineComments, type CommentKind } from "./markdown-comments";
-import { blockHtmlStart, completeCustomHtmlTag, rawHtmlStart } from "./markdown-html-blocks";
+import { blockHtmlStart, completeCustomHtmlTag, startsRawHtmlBlock } from "./markdown-html-blocks";
 import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
 import { inlineSemanticMarkers } from "./markdown-inline-markers";
 import { scanTableBlocks, splitTableRow } from "./markdown-table-blocks";
@@ -187,7 +187,7 @@ function commentProjection(input: string, inlineSpans: readonly SourceRange[], a
           && !inAcceptedInline(inlineSpans, acceptedInline, cx.lineStart + line.pos)) return;
         if (line.indent < line.baseIndent + 4 && (
           text.startsWith("<!--") || text.startsWith("<?") || text.startsWith("<![CDATA[")
-          || /^<![A-Z]/u.test(text) || rawHtmlStart(text) != null || blockHtmlStart(text)
+          || /^<![A-Z]/u.test(text) || startsRawHtmlBlock(text) || blockHtmlStart(text)
           || (!continuation && completeCustomHtmlTag(text))
         )) return;
       }

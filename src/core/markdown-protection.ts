@@ -1,4 +1,4 @@
-import { blockHtmlStart, completeCustomHtmlTag, leadingMarkup, rawHtmlStart } from "./markdown-html-blocks";
+import { blockHtmlStart, completeCustomHtmlTag, endsRawHtmlBlock, leadingMarkup, startsRawHtmlBlock } from "./markdown-html-blocks";
 import { blankRange, codeSpanEnd, scanInlineComments, type CommentKind } from "./markdown-comments";
 import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 import { scanMarkdownContainerLines } from "./markdown-containers";
@@ -19,12 +19,8 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
 type ProtectedBlockState =
   | Readonly<{ kind: "fence"; character: "`" | "~"; length: number }>
   | Readonly<{ kind: "until"; ending: string }>
-  | Readonly<{ kind: "raw-html"; tag: string }>
+  | Readonly<{ kind: "raw-html" }>
   | Readonly<{ kind: "blank-html" }>;
-
-function closesRawTag(text: string, tag: string): boolean {
-  return new RegExp(`</${tag}[ \\t]*>`, "iu").test(text);
-}
 
 /**
  * Marks physical lines that are safe for Number Suite's top-level Markdown scanners.
@@ -63,7 +59,7 @@ export function scanMarkdownProtectedLines(
       if (line.text.includes(state.ending)) state = null;
     } else if (state?.kind === "raw-html") {
       available = false;
-      if (closesRawTag(line.text, state.tag)) state = null;
+      if (endsRawHtmlBlock(line.text)) state = null;
     } else if (state?.kind === "blank-html") {
       if (trimmed.length === 0) {
         state = null;
@@ -122,10 +118,9 @@ export function scanMarkdownProtectedLines(
           available = false;
           if (!markup.includes(">", 2)) state = { kind: "until", ending: ">" };
         } else if (markup != null) {
-          const rawTag = rawHtmlStart(markup);
-          if (rawTag != null) {
+          if (startsRawHtmlBlock(markup)) {
             available = false;
-            if (!closesRawTag(markup, rawTag)) state = { kind: "raw-html", tag: rawTag };
+            if (!endsRawHtmlBlock(markup)) state = { kind: "raw-html" };
           } else if (blockHtmlStart(markup)) {
             available = false;
             state = { kind: "blank-html" };

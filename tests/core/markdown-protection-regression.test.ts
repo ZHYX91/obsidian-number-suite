@@ -19,6 +19,21 @@ describe("shared Markdown protection", () => {
     },
   );
 
+  it.each([
+    ["<pre>", "</PRE >", "# literal", "</pre>", "", "# Real"],
+    ["<textarea>", "</textarea\t>", "# literal", "</STYLE>", "", "# Real"],
+    ["<script>", "# literal", "const sample = '</TeXtArEa>';", "", "# Real"],
+    ["<style> body::after { content: '</PRE>' }", "", "# Real"],
+  ])("honors CommonMark raw HTML end conditions after %s", (...lines) => {
+    const source = lines.join("\n");
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+  });
+
   it("keeps similar tag-name prefixes from starting raw HTML blocks", () => {
     expect(parseAtxHeadings("<preview\n# Real").map((heading) => heading.content)).toEqual(["Real"]);
   });
