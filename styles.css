@@ -17,6 +17,7 @@
   font-size: 0.65em;
   line-height: 1.35;
   padding: 0.08em 0.48em;
+  pointer-events: auto;
   /* Optically center the smaller badge against the heading's first text line. */
   vertical-align: 0.22em;
 }
@@ -1989,7 +1990,7 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
 }
 
 
-/* Two distinct heading-number sources: computed (filled) vs authored (outlined).
+/* Heading numbers use a filled, solid-outline, or dashed-outline pill.
    Markup remains the original editable Markdown in both Live Preview and Reading. */
 .number-suite-stored-heading-number {
   background: transparent;
@@ -2030,11 +2031,19 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   color: var(--text-accent);
 }
 .number-suite-native-outline-number.is-stored,
+.number-suite-native-outline-number.is-manual,
 .number-suite-heading-map-number.is-stored,
+.number-suite-heading-map-number.is-manual,
 .number-suite-heading-map-stored-number {
   background: transparent;
   border: 1px solid var(--background-modifier-border);
   color: var(--text-muted);
+}
+.number-suite-stored-heading-number.is-manual,
+.number-suite-native-outline-number.is-manual,
+.number-suite-heading-map-number.is-manual,
+.number-suite-heading-map-stored-number.is-manual {
+  border-style: dashed;
 }
 .number-suite-heading-map-stored-number {
   align-items: center;

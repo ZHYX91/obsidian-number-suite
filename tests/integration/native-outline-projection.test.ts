@@ -120,6 +120,30 @@ describe("native Outline projection", () => {
     expect(concealed.numberLabels.get(0)).toBe("1");
   });
 
+  it("keeps visible manual pills beside virtual numbers during template concealment", () => {
+    const note = "# 7 Lantern archive\n## 3. Paper patterns\n## 2025 inventory";
+    const cache = [
+      native(0, "7 Lantern archive", 1, 0),
+      native(1, "3. Paper patterns", 2, note.indexOf("## 3.")),
+      native(2, "2025 inventory", 2, note.indexOf("## 2025")),
+    ];
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      selectedSchemeId: "hierarchical",
+      showVirtualNumbers: true,
+      concealStoredNumbers: true,
+      storedHeadingNumberStyleScope: "common" as const,
+    };
+    const result = createNativeOutlineProjection(note, cache, settings);
+    expect([...result.numberLabels]).toEqual([[0, "1"], [1, "1.1"], [2, "1.2"]]);
+    expect([...result.secondaryStoredNumbers ?? []]).toEqual([[1, { label: "3.", kind: "manual" }]]);
+    expect([...result.titleLabels ?? []]).toEqual([[0, "Lantern archive"], [1, "Paper patterns"], [2, "2025 inventory"]]);
+    expect(result.headings).toEqual(cache);
+    const noPills = createNativeOutlineProjection(note, cache, { ...settings, showOutlineNumbers: false });
+    expect(noPills.numberLabels.size).toBe(0);
+    expect(noPills.titleLabels?.get(1)).toBe("3. Paper patterns");
+  });
+
   it("makes captions leaves so a following skipped-level heading stays under its heading parent", () => {
     const text = "# Parent\nFigure: One\n####### Deep\nTable: Two\n######### Child\nFigure: Three";
     const result = createNativeOutlineProjection(text, [native(0, "Parent", 1, 0)], DEFAULT_SETTINGS);

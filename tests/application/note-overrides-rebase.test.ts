@@ -61,6 +61,18 @@ describe("note override conflict rebasing", () => {
     expect(rebaseNoteOverrideDraft(sameScope, base, draft, true)).toEqual({ "number-suite": ["heading.skip-per-parent.h2=2"] });
   });
 
+  it("rebases concealment scope separately from note visibility", () => {
+    const base = { "number-suite": ["heading.hide-stored=true"] };
+    const draft = { "number-suite": ["heading.hide-stored=true", "heading.hide-stored-scope=common"] };
+    const changedVisibility = { "number-suite": ["heading.hide-stored=false"] };
+    expect(rebaseNoteOverrideDraft(changedVisibility, base, draft)).toEqual({
+      "number-suite": ["heading.hide-stored=false", "heading.hide-stored-scope=common"],
+    });
+    const changedScope = { "number-suite": ["heading.hide-stored=true", "heading.hide-stored-scope=templates"] };
+    expect(() => rebaseNoteOverrideDraft(changedScope, base, draft))
+      .toThrow(NoteOverrideFieldConflictError);
+  });
+
   it("accepts convergent edits and preserves an unrelated concurrent counter", () => {
     const current = { "number-suite": ["heading.first-number.h1=3", "heading.skip-first.h2=4"] };
     const base = { "number-suite": ["heading.first-number.h1=2"] };

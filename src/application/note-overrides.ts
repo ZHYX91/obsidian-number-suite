@@ -7,7 +7,7 @@ import {
   type NotePropertyIssue,
 } from "../config/frontmatter";
 import type { NumberSuiteSettings } from "../config/settings";
-import { HEADING_LEVEL_COUNT, type HeadingLevel } from "../core/types";
+import { HEADING_LEVEL_COUNT, type CleanupScope, type HeadingLevel } from "../core/types";
 
 export const NOTE_OVERRIDE_KEYS = [NUMBER_SUITE_PROPERTY, ...LEGACY_NOTE_OVERRIDE_KEYS] as const;
 
@@ -16,6 +16,7 @@ export type TriState = "inherit" | "on" | "off";
 export type NoteOverrideChange =
   | { readonly kind: "show-virtual"; readonly value: TriState }
   | { readonly kind: "conceal-stored"; readonly value: TriState }
+  | { readonly kind: "conceal-scope"; readonly value: CleanupScope | null }
   | { readonly kind: "scheme"; readonly value: string | null }
   | { readonly kind: "ignore"; readonly value: boolean }
   | { readonly kind: "first-number"; readonly level: HeadingLevel; readonly value: number | null }
@@ -28,6 +29,7 @@ export type NoteOverrideChange =
 export interface NoteControlSnapshot {
   readonly showVirtual: TriState;
   readonly concealStored: TriState;
+  readonly concealScope: CleanupScope | null;
   readonly schemeId: string | null;
   readonly ignore: boolean;
   readonly firstNumbers: Readonly<Partial<Record<HeadingLevel, number>>>;
@@ -60,6 +62,7 @@ export function readNoteControlSnapshot(
   return {
     showVirtual: triState(overrides.showVirtualNumbers),
     concealStored: triState(overrides.concealStoredNumbers),
+    concealScope: overrides.concealScope,
     schemeId: overrides.schemeId,
     ignore: overrides.disabled,
     firstNumbers: { ...overrides.starts },
@@ -110,6 +113,7 @@ export function applyNoteOverrideChange(
     disabled: current.disabled,
     showVirtualNumbers: current.showVirtualNumbers,
     concealStoredNumbers: current.concealStoredNumbers,
+    concealScope: current.concealScope,
     schemeId: current.schemeId,
     starts: { ...current.starts },
     skipFirst: { ...current.skipFirst },
@@ -124,6 +128,7 @@ export function applyNoteOverrideChange(
       break;
     case "show-virtual": next.showVirtualNumbers = stateValue(change.value); break;
     case "conceal-stored": next.concealStoredNumbers = stateValue(change.value); break;
+    case "conceal-scope": next.concealScope = change.value; break;
     case "scheme": next.schemeId = change.value; break;
     case "ignore": next.disabled = change.value; break;
     case "first-number":
@@ -177,6 +182,7 @@ function fieldValue(values: ReturnType<typeof parseNoteOverrides>, change: NoteO
     case "ignore": return values.disabled;
     case "show-virtual": return values.showVirtualNumbers;
     case "conceal-stored": return values.concealStoredNumbers;
+    case "conceal-scope": return values.concealScope;
     case "scheme": return values.schemeId;
     case "first-number": return values.starts[change.level] ?? null;
     case "skip-first": return values.skipFirst[change.level] ?? null;
@@ -214,6 +220,9 @@ export function rebaseNoteOverrideDraft(
   }
   if (acknowledged.concealStoredNumbers !== desired.concealStoredNumbers) {
     changes.push({ kind: "conceal-stored", value: triState(desired.concealStoredNumbers) });
+  }
+  if (acknowledged.concealScope !== desired.concealScope) {
+    changes.push({ kind: "conceal-scope", value: desired.concealScope });
   }
   if (acknowledged.schemeId !== desired.schemeId) {
     changes.push({ kind: "scheme", value: desired.schemeId });

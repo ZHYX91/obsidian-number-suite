@@ -164,6 +164,30 @@ describe("HeadingReadingProcessor", () => {
     expect(toggle).toHaveBeenCalledTimes(2);
   });
 
+  it("styles visible manual and marked prefixes with readable types and preserves authored text", async () => {
+    const titles = ["7 Lantern archive", "3. Paper patterns", "\u2060Box 3\u2060 Forest lights"];
+    const { processor, context, container } = harness(
+      titles.map((title, index) => `${index === 1 ? "##" : "#"} ${title}`).join("\n"),
+      settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical", storedHeadingNumberStyleScope: "common" }),
+    );
+    titles.forEach((title, index) => {
+      const el = document.createElement(index === 1 ? "h2" : "h1");
+      el.textContent = title;
+      container.append(el);
+    });
+    for (let render = 0; render < 2; render++) {
+      await processor.process(container, context);
+      const pills = [...container.querySelectorAll(".number-suite-stored-heading-number")];
+      expect(pills.map((pill) => pill.classList.contains("is-manual"))).toEqual([false, true, false]);
+      expect(pills[1]?.getAttribute("aria-label")).toBe("3. — Common handwritten heading number");
+      expect(pills[2]?.getAttribute("aria-label")).toBe("Box 3 — Stored heading number matching a scheme or plugin marker");
+      expect(container.querySelector(".number-suite-heading-number")?.getAttribute("aria-label"))
+        .toBe("1 — Virtual heading number");
+    }
+    cleanupNumberSuiteReadingDom(container);
+    expect([...container.children].map((heading) => heading.textContent)).toEqual(titles);
+  });
+
   it("adds virtual numbers using the full document counter plan", async () => {
     const { processor, context, container } = harness(
       "# First\n## Second",

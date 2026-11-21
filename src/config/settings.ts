@@ -16,13 +16,15 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
 import type { CaptionKind } from "../core/document-semantics";
 
+export type StoredHeadingNumberStyleScope = "off" | "templates" | "common";
+
 export type CaptionPlacement = "above" | "below";
 
 export interface NumberSuiteSettings {
   language: UiLanguage;
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
-  styleStoredHeadingNumbers: boolean;
+  storedHeadingNumberStyleScope: StoredHeadingNumberStyleScope;
   concealScope: CleanupScope;
   showCaptionNumbers: boolean;
   centerFigureCaptions: boolean;
@@ -110,7 +112,7 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   language: "auto",
   showVirtualNumbers: false,
   concealStoredNumbers: false,
-  styleStoredHeadingNumbers: true,
+  storedHeadingNumberStyleScope: "templates",
   concealScope: "templates",
   showCaptionNumbers: true,
   centerFigureCaptions: true,
@@ -279,7 +281,11 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     language: isUiLanguage(raw.language) ? raw.language : DEFAULT_SETTINGS.language,
     showVirtualNumbers: booleanOr(raw.showVirtualNumbers, DEFAULT_SETTINGS.showVirtualNumbers),
     concealStoredNumbers: booleanOr(raw.concealStoredNumbers, DEFAULT_SETTINGS.concealStoredNumbers),
-    styleStoredHeadingNumbers: booleanOr(raw.styleStoredHeadingNumbers, DEFAULT_SETTINGS.styleStoredHeadingNumbers),
+    storedHeadingNumberStyleScope: oneOf(
+      raw.storedHeadingNumberStyleScope,
+      ["off", "templates", "common"] as const,
+      raw.styleStoredHeadingNumbers === false ? "off" : DEFAULT_SETTINGS.storedHeadingNumberStyleScope,
+    ),
     concealScope: oneOf(
       raw.concealScope,
       ["plugin", "templates", "common"] as const,

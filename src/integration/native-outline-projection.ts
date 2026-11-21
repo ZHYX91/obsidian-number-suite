@@ -1,7 +1,7 @@
 import type { HeadingCache } from "obsidian";
-import { createHeadingMap } from "../application/heading-map";
+import { createHeadingMap, type StoredHeadingNumberPill } from "../application/heading-map";
 import type { CaptionKind } from "../core/document-semantics";
-import { createDisplayPlan } from "../application/display-plan";
+import { createDisplayPlan, type HeadingNumberPillKind } from "../application/display-plan";
 import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import {
@@ -21,8 +21,8 @@ export interface NativeOutlineProjection {
   readonly headings: ExtraOutlineHeading[];
   readonly numberLabels: ReadonlyMap<number, string>;
   readonly titleLabels?: ReadonlyMap<number, string>;
-  readonly numberKinds?: ReadonlyMap<number, "virtual" | "stored">;
-  readonly secondaryStoredNumbers?: ReadonlyMap<number, string>;
+  readonly numberKinds?: ReadonlyMap<number, HeadingNumberPillKind>;
+  readonly secondaryStoredNumbers?: ReadonlyMap<number, StoredHeadingNumberPill>;
 }
 
 /** Compare the visible titles when Obsidian retains authored inline comments in its cache. */
@@ -107,29 +107,25 @@ export function createNativeOutlineProjection(
   const plan = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,
     concealStoredNumbers: effective.concealStoredNumbers, numbering,
-    cleanupScope: settings.concealScope, templateSources,
+    storedHeadingNumberStyleScope: settings.showOutlineNumbers ? settings.storedHeadingNumberStyleScope : "off",
+    cleanupScope: effective.concealScope, templateSources,
     revealOnActiveLine: false, selections: [], composing: false,
   });
   const titleLabels = new Map<number, string>();
-  const numberKinds = new Map<number, "virtual" | "stored">();
-  const secondaryStoredNumbers = new Map<number, string>();
+  const numberKinds = new Map<number, HeadingNumberPillKind>();
+  const secondaryStoredNumbers = new Map<number, StoredHeadingNumberPill>();
   const collect = (nodes: ReturnType<typeof createHeadingMap>): void => {
     for (const node of nodes) {
       titleLabels.set(node.line, node.title);
       if (settings.showOutlineNumbers && node.numberLabel != null) {
         numberLabels.set(node.line, node.numberLabel);
         if (node.numberKind != null) numberKinds.set(node.line, node.numberKind);
-        if (node.storedNumberLabel) secondaryStoredNumbers.set(node.line, node.storedNumberLabel);
+        if (node.storedNumber != null) secondaryStoredNumbers.set(node.line, node.storedNumber);
       }
       collect(node.children);
     }
   };
-  collect(createHeadingMap(source, {
-    headingDisplayPlan: plan, numbering, cleanupScope: settings.concealScope,
-    templateSources, concealStoredNumbers: effective.concealStoredNumbers,
-    recognizeStoredNumbers: !effective.disabled,
-    styleStoredNumbers: settings.styleStoredHeadingNumbers && settings.showOutlineNumbers,
-  }));
+  collect(createHeadingMap(source, { headingDisplayPlan: plan }));
   return {
     headings: [...original, ...extras].sort(
       (a, b) => a.position.start.offset - b.position.start.offset,

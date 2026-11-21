@@ -21,6 +21,7 @@ export type NotePropertyField =
   | "disabled"
   | "heading.virtual"
   | "heading.hide-stored"
+  | "heading.hide-stored-scope"
   | "heading.scheme"
   | "heading.first-number"
   | "heading.skip-first"
@@ -58,6 +59,7 @@ export interface NoteOverrides {
   readonly disabled: boolean;
   readonly showVirtualNumbers: boolean | null;
   readonly concealStoredNumbers: boolean | null;
+  readonly concealScope: CleanupScope | null;
   readonly schemeId: string | null;
   readonly starts: Partial<Record<HeadingLevel, number>>;
   readonly skipFirst: Partial<Record<HeadingLevel, number>>;
@@ -76,6 +78,7 @@ export interface EffectiveNoteSettings {
   readonly disabled: boolean;
   readonly showVirtualNumbers: boolean;
   readonly concealStoredNumbers: boolean;
+  readonly concealScope: CleanupScope;
   readonly schemeId: string;
   readonly cleanupScope: CleanupScope;
   readonly starts: Partial<Record<HeadingLevel, number>>;
@@ -87,6 +90,7 @@ interface ParsedValues {
   disabled?: boolean;
   showVirtualNumbers?: boolean;
   concealStoredNumbers?: boolean;
+  concealScope?: CleanupScope;
   schemeId?: string;
   starts: Partial<Record<HeadingLevel, number>>;
   skipFirst: Partial<Record<HeadingLevel, number>>;
@@ -142,7 +146,7 @@ export function invalidNoteOverrides(message = "Invalid Properties YAML"): NoteO
 function fieldForDirective(key: string): NotePropertyField {
   if (key === "disabled") return "disabled";
   if (key === "heading.virtual") return "heading.virtual";
-  if (key === "heading.hide-stored") return "heading.hide-stored";
+  if (key === "heading.hide-stored" || key === "heading.hide-stored-scope") return key;
   if (key === "heading.scheme") return "heading.scheme";
   if (key.startsWith("heading.first-number.")) return "heading.first-number";
   if (key.startsWith("heading.skip-first.")) return "heading.skip-first";
@@ -200,6 +204,11 @@ function parseCanonical(
     }
     if (key === "heading.hide-stored") {
       if (rawValue === "true" || rawValue === "false") values.concealStoredNumbers = rawValue === "true";
+      else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
+      continue;
+    }
+    if (key === "heading.hide-stored-scope") {
+      if (rawValue === "plugin" || rawValue === "templates" || rawValue === "common") values.concealScope = rawValue;
       else issue(issues, "invalid-value", field, `Invalid ${NUMBER_SUITE_PROPERTY} item: ${item}`, { kind: "invalid-item", item });
       continue;
     }
@@ -303,6 +312,7 @@ export function parseNoteOverrides(frontmatter: unknown): NoteOverrides {
     disabled: canonical.values.disabled ?? legacy.values.disabled ?? false,
     showVirtualNumbers: canonical.values.showVirtualNumbers ?? legacy.values.showVirtualNumbers ?? null,
     concealStoredNumbers: canonical.values.concealStoredNumbers ?? legacy.values.concealStoredNumbers ?? null,
+    concealScope: canonical.values.concealScope ?? null,
     schemeId: canonical.values.schemeId ?? legacy.values.schemeId ?? null,
     starts: { ...legacy.values.starts, ...canonical.values.starts },
     skipFirst: { ...canonical.values.skipFirst },
@@ -320,6 +330,7 @@ export function canonicalNoteOverrideEntries(values: Readonly<{
   disabled: boolean;
   showVirtualNumbers: boolean | null;
   concealStoredNumbers: boolean | null;
+  concealScope: CleanupScope | null;
   schemeId: string | null;
   starts: Readonly<Partial<Record<HeadingLevel, number>>>;
   skipFirst: Readonly<Partial<Record<HeadingLevel, number>>>;
@@ -329,6 +340,7 @@ export function canonicalNoteOverrideEntries(values: Readonly<{
   if (values.disabled) entries.push("disabled=true");
   if (values.showVirtualNumbers != null) entries.push(`heading.virtual=${String(values.showVirtualNumbers)}`);
   if (values.concealStoredNumbers != null) entries.push(`heading.hide-stored=${String(values.concealStoredNumbers)}`);
+  if (values.concealScope != null) entries.push(`heading.hide-stored-scope=${values.concealScope}`);
   if (values.schemeId != null) entries.push(`heading.scheme=${values.schemeId}`);
   for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
     const value = values.starts[level as HeadingLevel];
@@ -360,6 +372,9 @@ export function resolveNoteSettings(
     disabled: overrides.disabled,
     showVirtualNumbers: overrides.showVirtualNumbers ?? settings.showVirtualNumbers,
     concealStoredNumbers: overrides.concealStoredNumbers ?? settings.concealStoredNumbers,
+    concealScope: overrides.concealStoredNumbers === true
+      ? overrides.concealScope ?? settings.concealScope
+      : settings.concealScope,
     schemeId: schemeExists && requestedScheme != null ? requestedScheme : settings.selectedSchemeId,
     cleanupScope: settings.cleanupScope,
     starts: { ...overrides.starts },

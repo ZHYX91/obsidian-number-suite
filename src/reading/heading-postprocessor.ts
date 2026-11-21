@@ -34,10 +34,12 @@ import {
   createSemanticDisplayPlan,
   type SemanticDisplayDecoration,
 } from "../application/semantic-display-plan";
-import type { DisplayDecorationPlan } from "../application/display-plan";
+import type { DisplayDecorationPlan, StoredHeadingNumberPillKind } from "../application/display-plan";
 import type { ParsedHeading } from "../core/types";
 import {
   createVirtualNumeralElement,
+  headingNumberHint,
+  identifyHeadingNumberPill,
   createVirtualSemanticElement,
 } from "../ui/virtual-numeral";
 import { applySemanticTooltip } from "../ui/semantic-tooltip";
@@ -662,8 +664,7 @@ function enhanceNoteDefinitions(
 }
 
 function prependVirtualNumber(element: HTMLElement, label: string, hint: string): void {
-  const number = createVirtualNumeralElement(element.ownerDocument, label);
-  number.title = hint;
+  const number = createVirtualNumeralElement(element.ownerDocument, label, hint);
   // The native control uses its static inline position even when absolutely
   // positioned. Keep it before the numeral so its gutter stays at the heading start.
   const collapseIndicator = element.querySelector(":scope > .heading-collapse-indicator");
@@ -692,11 +693,19 @@ function leadingTextNodes(element: HTMLElement): Text[] {
 }
 
 /** Wrap only a verified source number in-place; original text remains available to cleanup. */
-function markStoredNumber(element: HTMLElement, core: string, hint: string): boolean {
+function markStoredNumber(
+  element: HTMLElement,
+  core: string,
+  authored: string,
+  kind: StoredHeadingNumberPillKind,
+  hint: string,
+): boolean {
   if (!core) return false;
   const nodes = leadingTextNodes(element);
-  if (!nodes.map((node) => node.data).join("").startsWith(core)) return false;
-  let remaining = core.length;
+  const text = nodes.map((node) => node.data).join("");
+  const prefix = authored.trimEnd();
+  let remaining = text.startsWith(prefix) ? prefix.length : text.startsWith(core) ? core.length : 0;
+  if (remaining === 0) return false;
   for (const node of nodes) {
     if (remaining <= 0) break;
     if (!node.data) continue;
@@ -704,8 +713,8 @@ function markStoredNumber(element: HTMLElement, core: string, hint: string): boo
     if (take < node.data.length) node.splitText(take);
     const parent = node.parentElement;
     if (parent == null) return false;
-    const span = parent.createSpan({ cls: "number-suite-stored-heading-number" });
-    span.title = hint;
+    const span = parent.createSpan({ cls: `number-suite-stored-heading-number is-${kind}` });
+    identifyHeadingNumberPill(span, node.data.replace(/\u2060/gu, ""), hint);
     parent.insertBefore(span, node);
     span.appendChild(node);
     remaining -= take;
@@ -852,7 +861,7 @@ export class HeadingReadingProcessor {
       && !hasSectionCaption
       && !effective.showVirtualNumbers
       && !effective.concealStoredNumbers
-      && !settings.styleStoredHeadingNumbers
+      && settings.storedHeadingNumberStyleScope === "off"
       && !settings.showCaptionNumbers
       && captionCentering.length === 0
       && !settings.showCrossReferences
@@ -880,6 +889,7 @@ export class HeadingReadingProcessor {
       items.push(item);
       planByLine.set(item.line, items);
     }
+    const t = createTranslator(settings.language);
     for (let index = 0; index < rendered.length; index += 1) {
       const renderedHeading = rendered[index];
       const sourceHeading = sectionHeadings[index];
@@ -906,11 +916,11 @@ export class HeadingReadingProcessor {
           concealed = true;
         }
       }
-      if (stored != null && !concealed) {
-        markStoredNumber(element, stored.label, createTranslator(settings.language)("display.heading.storedHint"));
+      if (stored != null) {
+        markStoredNumber(element, stored.label, stored.sourceText, stored.pillKind, headingNumberHint(stored.pillKind, t));
       }
-      if (virtual != null && (conceal == null || concealed)) {
-        prependVirtualNumber(element, virtual.label, createTranslator(settings.language)("display.heading.virtualHint"));
+      if (virtual != null) {
+        prependVirtualNumber(element, virtual.label, headingNumberHint("virtual", t));
       }
       if (virtual != null && concealed) {
         element.setAttribute("data-number-suite-mode", "show-conceal");
@@ -1078,9 +1088,9 @@ export class HeadingReadingProcessor {
     const displayPlan = createDisplayPlan(headings, {
       showVirtualNumbers: effective.showVirtualNumbers,
       concealStoredNumbers: effective.concealStoredNumbers,
-      styleStoredNumbers: settings.styleStoredHeadingNumbers,
+      storedHeadingNumberStyleScope: settings.storedHeadingNumberStyleScope,
       numbering: toNumberingOptions(settings, effective),
-      cleanupScope: settings.concealScope,
+      cleanupScope: effective.concealScope,
       templateSources: cleanupTemplateSources(settings),
       revealOnActiveLine: false,
       selections: [],

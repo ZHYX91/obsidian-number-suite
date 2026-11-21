@@ -1,3 +1,4 @@
+import { headingNumberAccessibleLabel, headingNumberHint, identifyHeadingNumberPill } from "./virtual-numeral";
 import {
   ItemView,
   MarkdownView,
@@ -538,9 +539,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
         showVirtualNumbers: effective.showVirtualNumbers,
         concealStoredNumbers: effective.concealStoredNumbers,
-        styleStoredNumbers: settings.styleStoredHeadingNumbers,
+        storedHeadingNumberStyleScope: settings.storedHeadingNumberStyleScope,
         numbering,
-        cleanupScope: settings.concealScope,
+        cleanupScope: effective.concealScope,
         templateSources,
         revealOnActiveLine: false,
         selections: [],
@@ -549,12 +550,6 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.roots = createHeadingMap(source, {
         nodeIds: this.identities.update(source, headings),
         headingDisplayPlan: displayPlan,
-        numbering,
-        cleanupScope: settings.concealScope,
-        templateSources,
-        concealStoredNumbers: !effective.disabled && effective.concealStoredNumbers,
-        recognizeStoredNumbers: !effective.disabled,
-        styleStoredNumbers: settings.styleStoredHeadingNumbers,
       });
       if (!this.overviewInitialized) {
         for (const id of headingMapOverview(this.roots)) this.collapsed.add(id);
@@ -760,22 +755,25 @@ export class NumberSuiteHeadingMapView extends ItemView {
       if (documentRoot) setIcon(number, "file-text");
       else number.setText(node.numberLabel ?? `H${node.level}`);
       number.classList.toggle("is-level", !documentRoot && node.numberLabel == null);
-      number.classList.toggle("is-stored", !documentRoot && node.numberKind === "stored");
-      number.classList.toggle("is-virtual", !documentRoot && node.numberKind === "virtual");
-      number.title = documentRoot ? this.currentFile.path
-        : node.numberKind === "stored" ? this.actions.getTranslate()("display.heading.storedHint")
-        : node.numberKind === "virtual" ? this.actions.getTranslate()("display.heading.virtualHint")
-        : `H${node.level}`;
-      number.setAttribute("aria-label", number.title);
+      const t = this.actions.getTranslate();
+      if (node.numberKind != null && node.numberLabel != null) {
+        number.classList.add(`is-${node.numberKind}`);
+        const hint = headingNumberHint(node.numberKind, t);
+        number.title = hint;
+        number.setAttribute("aria-label", headingNumberAccessibleLabel(node.numberLabel, hint));
+      } else {
+        number.title = documentRoot ? this.currentFile.path : `H${node.level}`;
+        number.setAttribute("aria-label", number.title);
+      }
       number.addEventListener("click", () => this.setSelection(node.id));
       number.addEventListener("focus", () => this.revealNode(node.id));
-      if (!documentRoot && node.storedNumberLabel) {
+      if (node.storedNumber != null) {
+        const { label, kind } = node.storedNumber;
         const saved = card.createSpan({
-          cls: "number-suite-heading-map-stored-number",
-          text: node.storedNumberLabel,
+          cls: `number-suite-heading-map-stored-number is-${kind}`,
+          text: label,
         });
-        saved.title = this.actions.getTranslate()("display.heading.storedHint");
-        saved.setAttribute("aria-label", saved.title);
+        identifyHeadingNumberPill(saved, label, headingNumberHint(kind, t));
       }
 
       const body = card.createEl("button", { cls: "number-suite-heading-map-body" });

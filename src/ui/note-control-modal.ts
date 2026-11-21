@@ -3,7 +3,7 @@ import {
   NoteSaveCoordinator,
   type NoteSaveState,
 } from "../application/note-save-coordinator";
-import { App, Menu, Notice, Setting, setIcon, type TFile } from "obsidian";
+import { App, Menu, Notice, Setting, setIcon, type DropdownComponent, type TFile } from "obsidian";
 
 import {
   headingLevels,
@@ -72,6 +72,7 @@ export class NoteControlPane {
     coordinator: NoteSaveCoordinator | null;
   }>();
   private summaryHost: HTMLElement | null = null;
+  private refreshConcealScope: ((snapshot: NoteControlSnapshot) => void) | null = null;
   private readonly header: HTMLElement;
   private readonly descriptions: HTMLElement;
   private readonly tabList: HTMLElement;
@@ -266,6 +267,7 @@ export class NoteControlPane {
 
   private resetContent(): void {
     this.summaryHost = null;
+    this.refreshConcealScope = null;
     this.saveStatus = null;
     this.header.empty();
     this.descriptions.empty();
@@ -365,6 +367,7 @@ export class NoteControlPane {
 
   private renderSummary(snapshot: NoteControlSnapshot, host: HTMLElement): void {
     const count = Number(snapshot.showVirtual !== "inherit") + Number(snapshot.concealStored !== "inherit")
+      + Number(snapshot.concealStored === "on" && snapshot.concealScope != null)
       + Number(snapshot.schemeId != null) + Object.keys(snapshot.firstNumbers).length
       + Object.keys(snapshot.skipFirst).length + Object.keys(snapshot.skipPerParent).length;
     host.createDiv({
@@ -391,6 +394,33 @@ export class NoteControlPane {
       (value) => ({ kind: "conceal-stored", value }),
       true,
     );
+    const scopeHost = section.createDiv();
+    let scopeSelect: DropdownComponent | null = null;
+    this.refreshConcealScope = (current) => {
+      if (current.concealStored !== "on") {
+        scopeHost.empty();
+        scopeSelect = null;
+      } else if (scopeSelect != null) {
+        scopeSelect.setValue(current.concealScope ?? "");
+      } else {
+        const label = this.t("panel.concealScope");
+        const row = new Setting(scopeHost).setName(label).addDropdown((dropdown) => {
+          scopeSelect = dropdown;
+          dropdown.addOption("", this.t("panel.concealScope.inherit"))
+            .addOption("plugin", this.t("conceal.plugin"))
+            .addOption("templates", this.t("conceal.templates"))
+            .addOption("common", this.t("conceal.common"))
+            .setValue(current.concealScope ?? "")
+            .onChange((next) => {
+              if (next === "" || next === "plugin" || next === "templates" || next === "common") {
+                this.applyChange({ kind: "conceal-scope", value: next === "" ? null : next });
+              }
+            });
+        });
+        row.settingEl.querySelector("select")?.setAttribute("aria-label", label);
+      }
+    };
+    this.refreshConcealScope(snapshot);
     new Setting(section)
       .setName(this.t("settings.scheme"))
       .addDropdown((dropdown) => {
@@ -610,6 +640,7 @@ export class NoteControlPane {
       this.renderSaveStatus();
       const settings = this.getSettings();
       const snapshot = readNoteControlSnapshot(this.frontmatter, settings);
+      this.refreshConcealScope?.(snapshot);
       if (this.summaryHost != null) {
         this.summaryHost.empty();
         if (this.summaryHost != null) this.renderSummary(snapshot, this.summaryHost);
@@ -639,10 +670,13 @@ export class NoteControlPane {
           const name = change.kind === "first-number" || change.kind === "skip-first" || change.kind === "skip-per-parent"
             ? this.t(LEVEL_NUMBER_FIELDS[change.kind].aria, { level: change.level })
             : this.t(change.kind === "scheme" ? "settings.scheme" : change.kind === "ignore" ? "panel.ignore"
-              : change.kind === "show-virtual" ? "settings.showVirtual" : "settings.concealStored");
+              : change.kind === "show-virtual" ? "settings.showVirtual"
+              : change.kind === "conceal-scope" ? "panel.concealScope" : "settings.concealStored");
           const label = (value: string | number | boolean | null): string => value == null ? this.t("panel.state.inherit")
             : typeof value === "boolean" ? booleanLabel(value, this.t)
-              : change.kind === "scheme" ? schemeDisplayName(String(value), this.getSettings(), this.t) : String(value);
+              : change.kind === "scheme" ? schemeDisplayName(String(value), this.getSettings(), this.t)
+                : change.kind === "conceal-scope" && (value === "plugin" || value === "templates" || value === "common")
+                  ? this.t(`conceal.${value}`) : String(value);
           list.createEl("li", { text: this.t("panel.conflict.value", { name, current: label(entry.current), desired: label(entry.desired) }) });
         }
         const apply = status.createEl("button", { text: this.t("panel.conflict.apply") });

@@ -1,15 +1,15 @@
-import type { DisplayDecorationPlan } from "./display-plan";
-import { parseAtxHeadings } from "../core/heading-parser";
-import { meetsCleanupScope } from "../core/number-parser";
-import { numberHeadings } from "../core/numbering-engine";
-import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import type {
-  CleanupScope,
-  CleanupTemplateSource,
-  HeadingLevel,
-  HeadingNumberMatch,
-  NumberingOptions,
-} from "../core/types";
+  DisplayDecorationPlan,
+  HeadingNumberPillKind,
+  StoredHeadingNumberPillKind,
+} from "./display-plan";
+import { parseAtxHeadings } from "../core/heading-parser";
+import type { HeadingLevel } from "../core/types";
+
+export interface StoredHeadingNumberPill {
+  readonly label: string;
+  readonly kind: StoredHeadingNumberPillKind;
+}
 
 export interface HeadingMapNode {
   readonly id: string;
@@ -17,8 +17,8 @@ export interface HeadingMapNode {
   readonly level: HeadingLevel;
   readonly title: string;
   readonly numberLabel: string | null;
-  readonly numberKind?: "virtual" | "stored" | null;
-  readonly storedNumberLabel?: string | null;
+  readonly numberKind?: HeadingNumberPillKind | null;
+  readonly storedNumber?: StoredHeadingNumberPill | null;
   readonly children: HeadingMapNode[];
 }
 
@@ -31,7 +31,7 @@ export interface HeadingMapDocumentNode {
   readonly title: string;
   readonly numberLabel: null;
   readonly numberKind?: null;
-  readonly storedNumberLabel?: null;
+  readonly storedNumber?: null;
   readonly children: HeadingMapNode[];
 }
 
@@ -56,34 +56,12 @@ export function headingMapOverview(roots: readonly HeadingMapNode[]): Set<string
 export interface HeadingMapOptions {
   readonly nodeIds?: ReadonlyMap<number, string>;
   readonly headingDisplayPlan: readonly DisplayDecorationPlan[];
-  readonly numbering: NumberingOptions;
-  readonly cleanupScope: CleanupScope;
-  readonly templateSources: readonly CleanupTemplateSource[];
-  readonly concealStoredNumbers: boolean;
-  readonly recognizeStoredNumbers: boolean;
-  readonly styleStoredNumbers?: boolean;
 }
 
 const TRAILING_BLOCK_ID = /(?:^|[ \t])\^[A-Za-z0-9-]{1,128}[ \t]*$/u;
 
 function withoutBlockId(value: string): string {
   return value.replace(TRAILING_BLOCK_ID, "").trim();
-}
-
-function visibleStoredPrefix(
-  content: string,
-  level: HeadingLevel,
-  expectedLabel: string | null,
-  options: HeadingMapOptions,
-): HeadingNumberMatch | null {
-  if (!options.recognizeStoredNumbers || options.concealStoredNumbers || options.styleStoredNumbers === false) return null;
-  const analysis = analyzeHeadingPrefix({ content, level }, expectedLabel, options.templateSources);
-  const first = analysis.first;
-  if (first == null || first.from !== 0
-    || (first.confidence !== "high" && first.confidence !== "certain")
-    || analysis.suspicious
-    || (options.styleStoredNumbers !== true && !meetsCleanupScope(first, options.cleanupScope))) return null;
-  return first;
 }
 
 /** Build the heading-only structure used by the read-only heading mind map. */
@@ -99,16 +77,12 @@ export function createHeadingMap(
   }
 
   const headings = parseAtxHeadings(source);
-  const numbered = numberHeadings(headings, options.numbering);
   const nodes = headings.map((heading, index): HeadingMapNode => {
     const linePlan = planByLine.get(heading.line) ?? [];
     const conceal = linePlan.find((item) => item.kind === "conceal");
     const virtual = linePlan.find((item) => item.kind === "virtual");
-    const expectedLabel = numbered[index]?.label ?? null;
-    const stored = visibleStoredPrefix(heading.content, heading.level, expectedLabel, options);
-    const storedBadge = stored?.fullPrefix
-      .replace(/[ \t\u00a0\u3000]+$/u, "").replace(/\u2060/gu, "") ?? null;
-    const prefix = conceal?.sourceText ?? stored?.fullPrefix ?? "";
+    const stored = linePlan.find((item) => item.kind === "stored");
+    const prefix = conceal?.sourceText ?? stored?.sourceText ?? "";
     const visible = prefix.length > 0 && heading.content.startsWith(prefix)
       ? heading.content.slice(prefix.length).trimStart()
       : heading.content;
@@ -118,9 +92,9 @@ export function createHeadingMap(
       line: heading.line,
       level: heading.level,
       title,
-      numberLabel: virtual?.label ?? storedBadge,
-      numberKind: virtual != null ? "virtual" : stored != null ? "stored" : null,
-      storedNumberLabel: virtual != null ? storedBadge : null,
+      numberLabel: virtual?.label ?? stored?.label ?? null,
+      numberKind: virtual != null ? "virtual" : stored?.pillKind ?? null,
+      storedNumber: virtual != null && stored != null ? { label: stored.label, kind: stored.pillKind } : null,
       children: [],
     };
   });

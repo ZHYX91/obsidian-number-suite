@@ -1,3 +1,4 @@
+import type { StoredHeadingNumberStyleScope } from "../config/settings";
 import { meetsCleanupScope } from "../core/number-parser";
 import { sourceOffsetForHeadingContent } from "../core/heading-parser";
 import { numberHeadings } from "../core/numbering-engine";
@@ -14,20 +15,27 @@ export interface SelectionSpan {
   to: number;
 }
 
-export interface DisplayDecorationPlan {
-  kind: "virtual" | "conceal" | "stored";
+export type HeadingNumberPillKind = "virtual" | "stored" | "manual";
+export type StoredHeadingNumberPillKind = Exclude<HeadingNumberPillKind, "virtual">;
+
+interface DisplayDecorationBase {
   from: number;
   to: number;
   label: string;
   line: number;
-  sourceText?: string;
 }
+
+export type DisplayDecorationPlan = DisplayDecorationBase & (
+  | { kind: "virtual" }
+  | { kind: "conceal"; sourceText?: string }
+  | { kind: "stored"; pillKind: StoredHeadingNumberPillKind; sourceText: string }
+);
 
 export interface DisplayPlanOptions {
   showVirtualNumbers: boolean;
   concealStoredNumbers: boolean;
   /** Cosmetic source-prefix highlight, never a Markdown write. */
-  styleStoredNumbers?: boolean;
+  storedHeadingNumberStyleScope?: StoredHeadingNumberStyleScope;
   numbering: NumberingOptions;
   cleanupScope: CleanupScope;
   templateSources: readonly CleanupTemplateSource[];
@@ -52,7 +60,8 @@ export function createDisplayPlan(
   headings: readonly ParsedHeading[],
   options: DisplayPlanOptions,
 ): DisplayDecorationPlan[] {
-  if (!options.showVirtualNumbers && !options.concealStoredNumbers && !options.styleStoredNumbers) {
+  const styleScope = options.storedHeadingNumberStyleScope ?? "off";
+  if (!options.showVirtualNumbers && !options.concealStoredNumbers && styleScope === "off") {
     return [];
   }
   const numbered = numberHeadings(headings, options.numbering);
@@ -69,40 +78,13 @@ export function createDisplayPlan(
     const analysis = analyzeHeadingPrefix(heading, item.label, options.templateSources);
     const { matches } = analysis;
     const first = matches[0];
-    const reliablyStored = first != null && first.from === 0
-      && (first.confidence === "high" || first.confidence === "certain")
-      && !analysis.suspicious;
     const concealStored = options.concealStoredNumbers && !(options.revealOnActiveLine && active);
-    if (options.styleStoredNumbers && !options.concealStoredNumbers && reliablyStored
-      && !active && first != null) {
-      // Keep punctuation such as "一、", "1." or "（一）" inside the
-      // outlined badge, but leave the separating whitespace with the title.
-      const authored = first.fullPrefix.replace(/[ \t\u00a0\u3000]+$/u, "");
-      const label = authored.replace(/\u2060/gu, "");
-      if (label.length > 0) {
-        const from = sourceOffsetForHeadingContent(heading, first.from);
-        const to = sourceOffsetForHeadingContent(heading, first.from + authored.length);
-        if (to > from) decorations.push({ kind: "stored", from, to, label, line: heading.line });
-      }
-    }
-    if (item.exclusion != null) {
-      if (concealStored) {
-        if (first != null && first.from === 0 && meetsCleanupScope(first, options.cleanupScope)) {
-          decorations.push({
-            kind: "conceal",
-            from: heading.contentFrom,
-            to: sourceOffsetForHeadingContent(heading, first.to),
-            label: "",
-            line: heading.line,
-            sourceText: heading.content.slice(0, first.to),
-          });
-        }
-      }
-      continue;
-    }
-    if (item.label == null) continue;
     let concealTo = 0;
-    if (concealStored) {
+    if (concealStored && item.exclusion != null) {
+      if (first != null && first.from === 0 && meetsCleanupScope(first, options.cleanupScope)) {
+        concealTo = first.to;
+      }
+    } else if (concealStored && item.label != null) {
       for (const match of matches) {
         if (
           match.from !== concealTo
@@ -123,7 +105,26 @@ export function createDisplayPlan(
         sourceText: heading.content.slice(0, concealTo),
       });
     }
-    if (options.showVirtualNumbers) {
+    if (concealTo === 0 && !active && styleScope !== "off" && first != null
+      && first.from === 0 && !analysis.suspicious && meetsCleanupScope(first, styleScope)) {
+      // Leave separating whitespace outside the outlined pill.
+      const prefix = first.fullPrefix.trimEnd();
+      const label = prefix.replace(/\u2060/gu, "");
+      const from = sourceOffsetForHeadingContent(heading, first.from);
+      const to = sourceOffsetForHeadingContent(heading, first.from + prefix.length);
+      if (label.length > 0 && to > from) {
+        decorations.push({
+          kind: "stored",
+          pillKind: first.provenance === "manual" ? "manual" : "stored",
+          from,
+          to,
+          label,
+          line: heading.line,
+          sourceText: first.fullPrefix,
+        });
+      }
+    }
+    if (options.showVirtualNumbers && item.exclusion == null && item.label != null) {
       const virtualFrom = sourceOffsetForHeadingContent(heading, concealTo);
       decorations.push({
         kind: "virtual",

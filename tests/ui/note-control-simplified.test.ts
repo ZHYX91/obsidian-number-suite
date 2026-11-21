@@ -111,6 +111,41 @@ describe("simplified current-note controls", () => {
     }
     expect([...host.querySelectorAll("fieldset")].map((card) => card.querySelectorAll('input[type="number"]').length)).toEqual([2, 3]);
   });
+  it("reveals the hide scope only for explicit Hide and remembers the note preference", async () => {
+    const stored: Record<string, unknown> = {};
+    const write = vi.fn(async (_file: TFile, update: (values: typeof stored) => void) => update(stored));
+    const app = { vault: { getAbstractFileByPath: () => file }, fileManager: { processFrontMatter: write } } as unknown as App;
+    const { host, internal, pane } = render({}, app);
+    const file = internal.file;
+    const change = (select: HTMLSelectElement, value: string) => {
+      select.value = value;
+      select.dispatchEvent(new Event("change"));
+    };
+    const visibility = host.querySelectorAll("select")[1]!;
+    const scope = () => host.querySelector<HTMLSelectElement>('select[aria-label="Hide scope"]');
+    const summary = () => host.querySelector(".number-suite-note-control-state")?.textContent;
+    expect(scope()).toBeNull();
+    change(visibility, "on");
+    expect(scope()?.value).toBe("");
+    expect([...scope()!.options].map((option) => option.value)).toEqual(["", "plugin", "templates", "common"]);
+    expect(summary()).toContain("1");
+    change(scope()!, "common");
+    expect(summary()).toContain("2");
+    await vi.waitFor(() => expect(stored["number-suite"]).toEqual([
+      "heading.hide-stored=true", "heading.hide-stored-scope=common",
+    ]));
+    change(visibility, "off");
+    expect(scope()).toBeNull();
+    expect(summary()).toContain("1");
+    change(visibility, "inherit");
+    expect(summary()).toBe("Following global settings");
+    change(visibility, "on");
+    expect(scope()?.value).toBe("common");
+    change(scope()!, "");
+    await vi.waitFor(() => expect(stored["number-suite"]).toEqual(["heading.hide-stored=true"]));
+    pane.destroy();
+  });
+
   it("shows existing H9 overrides immediately and keeps disabled-note preferences", () => {
     const { host } = render({ "number-suite": ["disabled=true", "heading.virtual=true", "heading.first-number.h9=4"] });
     expect(host.querySelector(".number-suite-note-control-state")?.textContent).toBe("Disabled for this note");

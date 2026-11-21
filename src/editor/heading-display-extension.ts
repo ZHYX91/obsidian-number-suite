@@ -45,6 +45,8 @@ import {
 import {
   createVirtualNoteElement,
   createVirtualNumeralElement,
+  headingNumberAccessibleLabel,
+  headingNumberHint,
   createCaptionPillElement,
   createReferencePillElement,
   createVirtualSemanticElement,
@@ -128,9 +130,7 @@ export class NumeralWidget extends WidgetType {
 
   override toDOM(view: EditorView): HTMLElement {
     if (this.kind === "heading") {
-      const element = createVirtualNumeralElement(view.dom.ownerDocument, this.label);
-      if (this.accessibleLabel) element.title = this.accessibleLabel;
-      return element;
+      return createVirtualNumeralElement(view.dom.ownerDocument, this.label, this.accessibleLabel);
     }
     if (this.kind === "reference") {
       const element = createReferencePillElement(view.dom.ownerDocument, this.label);
@@ -169,7 +169,7 @@ export class NumeralWidget extends WidgetType {
 
   override ignoreEvent(event: Event): boolean {
     if (this.kind === "reference") return referenceIgnoresEditorEvent(event);
-    return this.kind !== "note-reference" && this.kind !== "note-definition";
+    return this.kind === "caption";
   }
 }
 
@@ -799,9 +799,9 @@ export class HeadingDisplayController {
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
           concealStoredNumbers: effective.concealStoredNumbers,
-          styleStoredNumbers: settings.styleStoredHeadingNumbers && livePreview,
+          storedHeadingNumberStyleScope: livePreview ? settings.storedHeadingNumberStyleScope : "off",
           numbering,
-          cleanupScope: settings.concealScope,
+          cleanupScope: effective.concealScope,
           templateSources,
           revealOnActiveLine: settings.revealOnActiveLine,
           selections,
@@ -921,10 +921,11 @@ export class HeadingDisplayController {
                 t("display.heading.virtualHint")),
               side: -1,
             }).range(item.from));
-          } else if (item.kind === "stored") {
-            if (livePreview) ranges.push(Decoration.mark({
-              class: "number-suite-stored-heading-number",
-              attributes: { title: t("display.heading.storedHint") },
+          } else if (item.semanticKind == null && item.kind === "stored") {
+            const hint = headingNumberHint(item.pillKind, t);
+            ranges.push(Decoration.mark({
+              class: `number-suite-stored-heading-number is-${item.pillKind}`,
+              attributes: { title: hint, role: "img", "aria-label": headingNumberAccessibleLabel(item.label, hint) },
             }).range(item.from, item.to));
           } else {
             ranges.push(Decoration.replace({ inclusive: false }).range(item.from, item.to));

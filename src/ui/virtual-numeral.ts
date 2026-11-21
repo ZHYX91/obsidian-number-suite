@@ -1,3 +1,6 @@
+import type { HeadingNumberPillKind } from "../application/display-plan";
+import type { Translate } from "../config/i18n";
+
 export const VIRTUAL_NUMERAL_CLASS = "number-suite-virtual";
 export const VIRTUAL_NUMERAL_SELECTOR = `.${VIRTUAL_NUMERAL_CLASS}`;
 
@@ -5,7 +8,23 @@ interface ObsidianWindow extends Window {
   createFragment(): DocumentFragment;
 }
 
-export function createVirtualNumeralElement(ownerDocument: Document, label: string): HTMLSpanElement {
+export function headingNumberHint(kind: HeadingNumberPillKind, t: Translate): string {
+  if (kind === "virtual") return t("display.heading.virtualHint");
+  if (kind === "manual") return t("display.heading.manualHint");
+  return t("display.heading.storedHint");
+}
+
+export function headingNumberAccessibleLabel(label: string, hint: string): string {
+  return `${label} — ${hint}`;
+}
+
+export function identifyHeadingNumberPill(element: HTMLElement, label: string, hint: string): void {
+  element.title = hint;
+  element.setAttribute("role", "img");
+  element.setAttribute("aria-label", headingNumberAccessibleLabel(label, hint));
+}
+
+export function createVirtualNumeralElement(ownerDocument: Document, label: string, hint = ""): HTMLSpanElement {
   const fragment = (ownerDocument.win as ObsidianWindow).createFragment();
   const element = fragment.createSpan();
   element.className = `${VIRTUAL_NUMERAL_CLASS} number-suite-heading-number`;
@@ -13,7 +32,8 @@ export function createVirtualNumeralElement(ownerDocument: Document, label: stri
   const semanticSeparator = element.createSpan();
   semanticSeparator.hidden = true;
   semanticSeparator.textContent = " ";
-  element.setAttribute("aria-hidden", "true");
+  if (hint) identifyHeadingNumberPill(element, label, hint);
+  else element.setAttribute("aria-hidden", "true");
   element.setAttribute("contenteditable", "false");
   return element;
 }

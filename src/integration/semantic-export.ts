@@ -142,7 +142,7 @@ function headingTargets(
     showVirtualNumbers: effective.showVirtualNumbers,
     concealStoredNumbers: effective.concealStoredNumbers,
     numbering,
-    cleanupScope: settings.concealScope,
+    cleanupScope: effective.concealScope,
     templateSources: cleanupTemplateSources(settings),
     revealOnActiveLine: false,
     selections: [],

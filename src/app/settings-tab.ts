@@ -317,10 +317,6 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .setDesc(t("settings.concealStored.desc"))
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.concealStoredNumbers)
         .onChange((value) => this.updateControl("general.concealStoredNumbers", value)));
-    new Setting(container).setName(t("settings.styleStored"))
-      .setDesc(t("settings.styleStored.desc"))
-      .addToggle((toggle) => toggle.setValue(this.plugin.settings.styleStoredHeadingNumbers)
-        .onChange((value) => this.updateControl("general.styleStoredHeadingNumbers", value)));
     new Setting(container)
       .setName(t("settings.concealScope"))
       .setDesc(t("settings.concealScope.desc"))
@@ -330,6 +326,15 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
         .addOption("common", t("conceal.common"))
         .setValue(this.plugin.settings.concealScope)
         .onChange((value) => this.updateControl("general.concealScope", value)));
+    new Setting(container)
+      .setName(t("settings.styleStored"))
+      .setDesc(t("settings.styleStored.desc"))
+      .addDropdown((dropdown) => dropdown
+        .addOption("off", t("styleStored.off"))
+        .addOption("templates", t("styleStored.templates"))
+        .addOption("common", t("styleStored.common"))
+        .setValue(this.plugin.settings.storedHeadingNumberStyleScope)
+        .onChange((value) => this.updateControl("general.storedHeadingNumberStyleScope", value)));
     renderHeadingDisplayGuide(container, t);
     renderNoteOverridesGuide(container, t, "settings");
     new Setting(container)

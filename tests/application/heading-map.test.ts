@@ -29,6 +29,7 @@ function mapFor(
   const plan = createDisplayPlan(parseAtxHeadings(source), {
     showVirtualNumbers,
     concealStoredNumbers,
+    storedHeadingNumberStyleScope: recognizeStoredNumbers ? "templates" : "off",
     numbering,
     cleanupScope: "templates",
     templateSources: templates,
@@ -36,14 +37,7 @@ function mapFor(
     selections: [],
     composing: false,
   });
-  return createHeadingMap(source, {
-    headingDisplayPlan: plan,
-    numbering,
-    cleanupScope: "templates",
-    templateSources: templates,
-    concealStoredNumbers,
-    recognizeStoredNumbers,
-  });
+  return createHeadingMap(source, { headingDisplayPlan: plan });
 }
 
 describe("heading mind map", () => {
@@ -118,26 +112,18 @@ describe("heading mind map", () => {
   it("shows independently sourced virtual and stored numbers with distinct kinds", () => {
     const source = "# 2.1 Experiment";
     const headingDisplayPlan = createDisplayPlan(parseAtxHeadings(source), {
-      showVirtualNumbers: true, concealStoredNumbers: false, styleStoredNumbers: true,
+      showVirtualNumbers: true, concealStoredNumbers: false, storedHeadingNumberStyleScope: "common",
       numbering, cleanupScope: "templates", templateSources: templates,
       revealOnActiveLine: false, selections: [], composing: false,
     });
-    const result = createHeadingMap(source, {
-      headingDisplayPlan, numbering, cleanupScope: "templates",
-      templateSources: templates, concealStoredNumbers: false,
-      recognizeStoredNumbers: true, styleStoredNumbers: true,
-    });
+    const result = createHeadingMap(source, { headingDisplayPlan });
     expect(result[0]).toMatchObject({
       title: "Experiment", numberKind: "virtual", numberLabel: "1",
-      storedNumberLabel: "2.1",
+      storedNumber: { label: "2.1", kind: "manual" },
     });
-    const suspicious = createHeadingMap("# 2026.11 Release", {
-      headingDisplayPlan: [], numbering, cleanupScope: "templates",
-      templateSources: templates, concealStoredNumbers: false,
-      recognizeStoredNumbers: true, styleStoredNumbers: true,
-    });
+    const suspicious = mapFor("# 2026.11 Release", false);
     expect(suspicious[0]).toMatchObject({
-      title: "2026.11 Release", numberLabel: null, storedNumberLabel: null,
+      title: "2026.11 Release", numberLabel: null, storedNumber: null,
     });
   });
 

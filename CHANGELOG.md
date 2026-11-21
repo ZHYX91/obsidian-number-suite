@@ -4,7 +4,9 @@ All notable changes to Number Suite are documented here.
 
 ## 0.7.1
 
-- Display calculated virtual heading numbers even when a written prefix remains visible. Add an optional setting to hide common handwritten prefixes.
+- Display calculated virtual heading numbers even when a written prefix remains visible.
+- Set which visible stored heading numbers get an outline. Scheme matches and plugin-marked numbers get a solid outline, and common handwritten numbers can get a dashed outline.
+- Hide recognized stored heading numbers in the current note using the global recognition scope or a per-note choice.
 - Respect Setext section boundaries when moving headings. Keep native Outline enhancements active in notes with Setext headings or inline comments.
 - Use theme-accented help cards in Settings and Current note.
 

@@ -90,10 +90,10 @@ describe("Live Preview note widgets", () => {
     expect(shouldShowNoteWidgets({ ...DEFAULT_SETTINGS, showNoteNumbers: false }, true)).toBe(false);
   });
 
-  it("returns note-widget events to CodeMirror so a click can reveal source", () => {
+  it("returns heading and note widget clicks to CodeMirror so it can select source", () => {
     expect(new NumeralWidget("1", "note-reference").ignoreEvent(new Event("mousedown"))).toBe(false);
     expect(new NumeralWidget("[1]", "note-definition").ignoreEvent(new Event("mousedown"))).toBe(false);
-    expect(new NumeralWidget("1", "heading").ignoreEvent(new Event("mousedown"))).toBe(true);
+    expect(new NumeralWidget("1", "heading").ignoreEvent(new Event("mousedown"))).toBe(false);
   });
 });
 

@@ -29,8 +29,10 @@ const configured = { ...DEFAULT_SETTINGS, showVirtualNumbers: true, selectedSche
 const views: EditorView[] = [];
 
 beforeEach(() => {
-  window.Node.prototype.createSpan = function createSpan(): HTMLSpanElement {
+  window.Node.prototype.createSpan = function createSpan(options?: string | DomElementInfo): HTMLSpanElement {
     const span = document.createElement("span");
+    if (typeof options === "string") span.className = options;
+    else if (options?.cls != null) span.className = Array.isArray(options.cls) ? options.cls.join(" ") : options.cls;
     this.appendChild(span);
     return span;
   };
@@ -105,6 +107,80 @@ describe("source Properties validation at display entry points", () => {
     expect([...reading.querySelectorAll(".number-suite-heading-number")].map((element) => [
       Number(element.parentElement?.dataset.line), element.textContent?.trim(),
     ])).toEqual(expected);
+    processor.dispose();
+  });
+
+  it("restores visible manual pills after leaving the active Live Preview heading", () => {
+    host.parsed = {};
+    const source = "## 3. Paper patterns\n\nBody";
+    const parent = document.body.appendChild(document.createElement("div"));
+    const controller = new HeadingDisplayController(() => ({
+      ...configured,
+      concealStoredNumbers: true,
+      storedHeadingNumberStyleScope: "common",
+    }));
+    const view = new EditorView({ parent, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+    }) });
+    views.push(view);
+    const manualPill = () => parent.querySelector(".number-suite-stored-heading-number.is-manual");
+    expect(manualPill()?.getAttribute("aria-label")).toBe("3. — Common handwritten heading number");
+    expect(parent.querySelector(".number-suite-heading-number")?.getAttribute("aria-label"))
+      .toBe("1.1 — Virtual heading number");
+    view.dispatch({ selection: { anchor: 4 } });
+    expect(manualPill()).toBeNull();
+    view.dispatch({ selection: { anchor: source.length } });
+    expect(manualPill()?.textContent).toBe("3.");
+    expect(view.state.doc.toString()).toBe(source);
+  });
+
+  it.each([
+    { globalScope: "templates", noteScope: null, manualVisible: true },
+    { globalScope: "templates", noteScope: "common", manualVisible: false },
+    { globalScope: "common", noteScope: "templates", manualVisible: true },
+  ] as const)("applies per-note concealment ($noteScope over $globalScope) in body and Outline", async ({ globalScope, noteScope, manualVisible }) => {
+    const entries = ["heading.hide-stored=true"];
+    if (noteScope != null) entries.push(`heading.hide-stored-scope=${noteScope}`);
+    host.parsed = { "number-suite": entries };
+    const source = ["---", "number-suite:", ...entries.map((entry) => `  - ${entry}`), "---",
+      "# 7 Lantern archive", "## 3. Paper patterns", "", "Body"].join("\n");
+    const overrides = {
+      ...configured,
+      concealStoredNumbers: false,
+      concealScope: globalScope,
+      storedHeadingNumberStyleScope: "common" as const,
+    };
+    const parent = document.body.appendChild(document.createElement("div"));
+    const controller = new HeadingDisplayController(() => overrides);
+    const view = new EditorView({ parent, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+    }) });
+    views.push(view);
+    const reading = document.body.appendChild(document.createElement("div"));
+    reading.append(document.createElement("h1"), document.createElement("h2"));
+    reading.children[0]!.textContent = "7 Lantern archive";
+    reading.children[1]!.textContent = "3. Paper patterns";
+    const file = new (TFile as unknown as new (path: string) => TFile)("Lantern archive.md");
+    const app = { vault: { getAbstractFileByPath: () => file, cachedRead: async () => source } } as unknown as App;
+    const processor = new HeadingReadingProcessor(app, () => overrides);
+    await processor.process(reading, {
+      sourcePath: file.path, frontmatter: host.parsed,
+      getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: source.split("\n").length - 1 }),
+    } as unknown as MarkdownPostProcessorContext);
+    for (const surface of [parent, reading]) {
+      expect([...surface.querySelectorAll(".number-suite-heading-number")].map((pill) => pill.textContent?.trim()))
+        .toEqual(["1", "1.1"]);
+      expect(surface.querySelector(".number-suite-stored-heading-number.is-manual")?.textContent ?? null)
+        .toBe(manualVisible ? "3." : null);
+      expect(surface.querySelector(".number-suite-stored-heading-number.is-stored")).toBeNull();
+    }
+    const outline = createNativeOutlineProjection(source, [], overrides);
+    expect([...outline.numberLabels.values()]).toEqual(["1", "1.1"]);
+    expect([...outline.secondaryStoredNumbers?.values() ?? []])
+      .toEqual(manualVisible ? [{ label: "3.", kind: "manual" }] : []);
+    expect(view.state.doc.toString()).toBe(source);
     processor.dispose();
   });
 

@@ -32,7 +32,7 @@ function plans(
   const display = createDisplayPlan(headings, {
     showVirtualNumbers: virtual,
     concealStoredNumbers: conceal,
-    styleStoredNumbers: true,
+    storedHeadingNumberStyleScope: "templates",
     numbering,
     cleanupScope: "templates",
     templateSources,
@@ -81,11 +81,16 @@ describe("virtual and reliable source-number presentation", () => {
     expect(entryVisits).toBeLessThanOrEqual(4 * count);
   });
 
-  it("defaults stored-number outlining ON and keeps the Wiki enhancement OFF", () => {
-    expect(DEFAULT_SETTINGS.styleStoredHeadingNumbers).toBe(true);
+  it("defaults to template outlining, honors the legacy toggle, and keeps the Wiki enhancement off", () => {
+    expect(DEFAULT_SETTINGS.storedHeadingNumberStyleScope).toBe("templates");
     expect(DEFAULT_SETTINGS.enhanceNativeWikiHeadingLinks).toBe(false);
-    expect(sanitizeSettings({ styleStoredHeadingNumbers: false }).styleStoredHeadingNumbers).toBe(false);
-    expect(sanitizeSettings({ styleStoredHeadingNumbers: true }).styleStoredHeadingNumbers).toBe(true);
+    expect(sanitizeSettings({ styleStoredHeadingNumbers: false }).storedHeadingNumberStyleScope).toBe("off");
+    expect(sanitizeSettings({ styleStoredHeadingNumbers: true }).storedHeadingNumberStyleScope).toBe("templates");
+    expect(sanitizeSettings({}).storedHeadingNumberStyleScope).toBe("templates");
+    expect(sanitizeSettings({
+      styleStoredHeadingNumbers: false,
+      storedHeadingNumberStyleScope: "common",
+    }).storedHeadingNumberStyleScope).toBe("common");
   });
 
   it("handles all four virtual/conceal combinations without modifying Markdown", () => {
@@ -155,13 +160,47 @@ describe("virtual and reliable source-number presentation", () => {
     }
   });
 
+  it("outlines visible manual prefixes independently of concealment and virtual numbering", () => {
+    const source = [
+      "# 7 Lantern archive",
+      "## 3. Lantern patterns",
+      "## 2026.11 release",
+      "## 2025 inventory",
+      "## version 2.1",
+      "# \u2060Box 3\u2060 Forest lights",
+    ].join("\n");
+    const headings = parseAtxHeadings(source);
+    const options = {
+      showVirtualNumbers: true, concealStoredNumbers: true,
+      numbering, cleanupScope: "templates" as const, templateSources,
+      revealOnActiveLine: false, selections: [], composing: false,
+    };
+    const common = createDisplayPlan(headings, { ...options, storedHeadingNumberStyleScope: "common" });
+    expect(common.filter((item) => item.kind === "stored")).toMatchObject([
+      { line: 1, label: "3.", pillKind: "manual" },
+    ]);
+    expect(common.filter((item) => item.kind === "conceal").map((item) => item.line)).toEqual([0, 5]);
+    expect(common.filter((item) => item.kind === "virtual").map((item) => item.line)).toEqual([0, 1, 2, 3, 4, 5]);
+    const templates = createDisplayPlan(headings, {
+      ...options, concealStoredNumbers: false, storedHeadingNumberStyleScope: "templates",
+    });
+    expect(templates.filter((item) => item.kind === "stored")).toMatchObject([
+      { line: 0, label: "7", pillKind: "stored" },
+      { line: 5, label: "Box 3", pillKind: "stored" },
+    ]);
+    const off = createDisplayPlan(headings, {
+      ...options, concealStoredNumbers: false, storedHeadingNumberStyleScope: "off",
+    });
+    expect(off.map((item) => item.kind)).toEqual(Array.from({ length: headings.length }, () => "virtual"));
+  });
+
   it("does not style an authored number when the source is being edited", () => {
     const source = heading;
     const headings = parseAtxHeadings(source);
     const result = createDisplayPlan(headings, {
       showVirtualNumbers: false,
       concealStoredNumbers: false,
-      styleStoredNumbers: true,
+      storedHeadingNumberStyleScope: "templates",
       numbering,
       cleanupScope: "templates",
       templateSources,
@@ -179,7 +218,7 @@ describe("virtual and reliable source-number presentation", () => {
     const source = "# Excluded\nSee [[#Excluded]]";
     const h = parseAtxHeadings(source);
     const display = createDisplayPlan(h, {
-      showVirtualNumbers: true, concealStoredNumbers: false, styleStoredNumbers: false,
+      showVirtualNumbers: true, concealStoredNumbers: false, storedHeadingNumberStyleScope: "off",
       numbering: { ...numbering, scheme }, cleanupScope: "templates",
       templateSources, revealOnActiveLine: false, selections: [], composing: false,
     });

@@ -1,6 +1,9 @@
+import type { HeadingNumberPillKind } from "../application/display-plan";
+import type { StoredHeadingNumberPill } from "../application/heading-map";
+import { headingNumberHint, identifyHeadingNumberPill } from "../ui/virtual-numeral";
 import { Menu, Notice, ItemView, MarkdownView, TFile, setIcon, type HeadingCache, type Plugin, type View } from "obsidian";
 import { planSameParentHeadingMove, type SameParentHeadingMove } from "../application/heading-map-reorder";
-import type { Translate } from "../config/i18n";
+import { createTranslator, type Translate } from "../config/i18n";
 import type { NumberSuiteSettings } from "../config/settings";
 import { withoutTrailingBlockId } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
@@ -30,8 +33,8 @@ interface ObservedOutline {
   onDrop: (event: DragEvent) => void;
   labels: ReadonlyMap<number, string>;
   titles: ReadonlyMap<number, string>;
-  numberKinds: ReadonlyMap<number, "virtual" | "stored">;
-  secondaryStoredNumbers: ReadonlyMap<number, string>;
+  numberKinds: ReadonlyMap<number, HeadingNumberPillKind>;
+  secondaryStoredNumbers: ReadonlyMap<number, StoredHeadingNumberPill>;
   nativeDragging: boolean;
   drag: { file: TFile; path: string; source: string; line: number } | null;
   preview: SameParentHeadingMove | null;
@@ -503,6 +506,7 @@ export class NativeOutlineEnhancer {
     const rows = outlineRows(entry.view);
     entry.observer.disconnect();
     try {
+      const t = this.translate ?? createTranslator(this.settings().language);
       entry.root.querySelectorAll("." + NUMBER_CLASS).forEach((el) => el.remove());
       entry.root.querySelectorAll("." + EXTRA_CLASS).forEach((el) => el.classList.remove(EXTRA_CLASS));
       if (rows == null) return;
@@ -551,24 +555,22 @@ export class NativeOutlineEnhancer {
           const span = outlineSpan(element.ownerDocument);
           const kind = entry.numberKinds.get(line);
           span.className = NUMBER_CLASS
-            + (label == null ? " number-suite-native-outline-level" : kind === "stored"
-              ? " is-stored" : " is-virtual");
-          span.title = kind === "stored"
-            ? this.translate?.("display.heading.storedHint") ?? "Stored heading number"
-            : kind === "virtual"
-              ? this.translate?.("display.heading.virtualHint") ?? "Virtual heading number"
-              : "H" + item.level;
-          span.setAttribute("aria-hidden", "true");
+            + (kind == null ? " number-suite-native-outline-level" : ` is-${kind}`);
+          if (kind != null) {
+            identifyHeadingNumberPill(span, badge, headingNumberHint(kind, t));
+          } else {
+            span.title = badge;
+            span.setAttribute("aria-hidden", "true");
+          }
           span.textContent = badge;
           element.append(span);
         }
         const saved = entry.secondaryStoredNumbers.get(line);
-        if (saved) {
+        if (saved != null) {
           const span = outlineSpan(element.ownerDocument);
-          span.className = NUMBER_CLASS + " is-stored";
-          span.title = this.translate?.("display.heading.storedHint") ?? "Stored heading number";
-          span.setAttribute("aria-hidden", "true");
-          span.textContent = saved;
+          span.className = NUMBER_CLASS + ` is-${saved.kind}`;
+          identifyHeadingNumberPill(span, saved.label, headingNumberHint(saved.kind, t));
+          span.textContent = saved.label;
           element.append(span);
         }
         element.append(element.ownerDocument.createTextNode(title));

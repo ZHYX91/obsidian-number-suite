@@ -231,12 +231,6 @@ function headingDefinitions(
       t("settings.concealStored.desc"),
       DEFAULT_SETTINGS.concealStoredNumbers,
     ),
-    toggleDefinition(
-      "general.styleStoredHeadingNumbers",
-      t("settings.styleStored"),
-      t("settings.styleStored.desc"),
-      DEFAULT_SETTINGS.styleStoredHeadingNumbers,
-    ),
     dropdownDefinition(
       "general.concealScope",
       t("settings.concealScope"),
@@ -247,6 +241,17 @@ function headingDefinitions(
         common: t("conceal.common"),
       },
       DEFAULT_SETTINGS.concealScope,
+    ),
+    dropdownDefinition(
+      "general.storedHeadingNumberStyleScope",
+      t("settings.styleStored"),
+      t("settings.styleStored.desc"),
+      {
+        off: t("styleStored.off"),
+        templates: t("styleStored.templates"),
+        common: t("styleStored.common"),
+      },
+      DEFAULT_SETTINGS.storedHeadingNumberStyleScope,
     ),
     customDefinition(
       t("settings.headings.guide.title"),

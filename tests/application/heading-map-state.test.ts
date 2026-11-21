@@ -2,20 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { createHeadingMap } from "../../src/application/heading-map";
 import { headingMapCollapsedForRange } from "../../src/application/heading-map-state";
-import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
 function roots() {
   return createHeadingMap("# A\n## B\n### C\n#### D", {
     headingDisplayPlan: [],
-    numbering: {
-      scheme: BUILT_IN_SCHEMES.hierarchical,
-      missingLevelStrategy: "fill-one",
-      starts: {},
-    },
-    cleanupScope: "templates",
-    templateSources: [],
-    concealStoredNumbers: false,
-    recognizeStoredNumbers: false,
   });
 }
 

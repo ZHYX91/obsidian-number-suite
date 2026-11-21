@@ -5,6 +5,7 @@ import {
   applyNoteOverrideChange,
   readNoteControlSnapshot,
 } from "../../src/application/note-overrides";
+import { parseNoteOverrides, resolveNoteSettings } from "../../src/config/frontmatter";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 
 describe("current note overrides", () => {
@@ -40,6 +41,28 @@ describe("current note overrides", () => {
       effectiveShowVirtual: true,
       effectiveConcealStored: false,
     });
+  });
+
+  it("uses saved conceal scope only during explicit note concealment", () => {
+    const settings = { ...DEFAULT_SETTINGS, concealScope: "templates" as const, cleanupScope: "plugin" as const };
+    const values: Record<string, unknown> = { "number-suite": ["heading.hide-stored=true"] };
+    const effective = () => resolveNoteSettings(settings, parseNoteOverrides(values));
+    expect(effective()).toMatchObject({ concealStoredNumbers: true, concealScope: "templates", cleanupScope: "plugin" });
+    applyNoteOverrideChange(values, { kind: "conceal-scope", value: "common" });
+    expect(effective()).toMatchObject({ concealStoredNumbers: true, concealScope: "common", cleanupScope: "plugin" });
+    applyNoteOverrideChange(values, { kind: "conceal-stored", value: "off" });
+    expect(effective()).toMatchObject({ concealStoredNumbers: false, concealScope: "templates" });
+    applyNoteOverrideChange(values, { kind: "conceal-stored", value: "inherit" });
+    expect(values).toEqual({ "number-suite": ["heading.hide-stored-scope=common"] });
+    expect(resolveNoteSettings({ ...settings, concealStoredNumbers: true }, parseNoteOverrides(values)))
+      .toMatchObject({ concealStoredNumbers: true, concealScope: "templates" });
+    applyNoteOverrideChange(values, { kind: "conceal-stored", value: "on" });
+    expect(effective().concealScope).toBe("common");
+    applyNoteOverrideChange(values, { kind: "conceal-scope", value: null });
+    expect(values).toEqual({ "number-suite": ["heading.hide-stored=true"] });
+    expect(effective().concealScope).toBe("templates");
+    expect(parseNoteOverrides({ "number-suite": ["heading.hide-stored-scope=inherit"] }).issues)
+      .toMatchObject([{ code: "invalid-value", field: "heading.hide-stored-scope" }]);
   });
 
   it("deletes a property when its control returns to follow global", () => {
