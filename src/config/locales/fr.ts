@@ -451,6 +451,7 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "Faites glisser un titre sur un titre frère de même niveau pour déplacer la section entière avant ou après celui-ci. Seul le réordonnancement au même niveau est possible. Cela modifie le Markdown, peut être annulé et nécessite un éditeur ouvert.",
   "headingMap.rearrange.hint": "Réorganisation : glissez entre titres frères ou utilisez ↑ / ↓. Annulable.",
   "headingMap.rearrange.invalid": "Choisissez un autre titre de même parent et niveau.",
+  "headingMap.rearrange.boundary": "Ce déplacement franchirait ou modifierait la limite d’une section Markdown.",
   "headingMap.rearrange.noEditor": "Ouvrez cette note dans un éditeur source.",
   "headingMap.rearrange.before": "Insérer avant « {title} »",
   "headingMap.rearrange.after": "Insérer après « {title} »",

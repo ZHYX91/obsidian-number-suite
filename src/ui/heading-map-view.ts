@@ -11,7 +11,7 @@ import { navigateToLine } from "../adapters/navigate-to-line";
 import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import { createDisplayPlan } from "../application/display-plan";
 import { HeadingMapIdentity } from "../application/heading-map-identity";
-import { planSameParentHeadingMove } from "../application/heading-map-reorder";
+import { assessSameParentHeadingMove, planSameParentHeadingMove } from "../application/heading-map-reorder";
 import { headingMapCollapsedForRange, type HeadingMapExpandRange } from "../application/heading-map-state";
 import { zoomHeadingMapViewport } from "../application/heading-map-viewport";
 import {
@@ -435,7 +435,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private setFile(file: TFile | null, refresh = true): void {
     const markdown = file?.extension.toLowerCase() === "md" ? file : null;
-    if (this.currentFile?.path === markdown?.path) return;
+    if (this.currentFile === markdown) return;
     this.clearRefreshTimer();
     this.request += 1;
     this.currentFile = markdown;
@@ -500,8 +500,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private async sourceForFile(file: TFile): Promise<string> {
+    const request = this.request;
     const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
-    if (bound.leaf != null) this.sourceLeaf = bound.leaf;
+    if (request === this.request && this.currentFile === file && bound.leaf != null) this.sourceLeaf = bound.leaf;
     return bound.source;
   }
 
@@ -808,12 +809,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
             const file = this.currentFile;
             const path = file?.path;
             const sibling = adjacentHeadingMapSibling(this.roots, node.id, direction);
-            if (!this.rearranging || this.moving || source == null || file == null || path == null || sibling == null
-              || planSameParentHeadingMove(source, node.line, sibling.line,
-                direction === "up" ? "before" : "after") == null) return;
+            if (!this.rearranging || this.moving || source == null || file == null || path == null || sibling == null) return;
+            const placement = direction === "up" ? "before" : "after";
+            if (!this.checkMove(source, node.line, sibling.line, placement)) return;
             this.setSelection(node.id);
-            void this.applyMove({ id: node.id, line: node.line, source, path, file }, sibling.line,
-              direction === "up" ? "before" : "after");
+            void this.applyMove({ id: node.id, line: node.line, source, path, file }, sibling.line, placement);
           });
         }
       }
@@ -901,11 +901,14 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.setMoveStatus("headingMap.rearrange.invalid", true);
       return false;
     }
-    if (planSameParentHeadingMove(drag.source, drag.line, target.line, placement) == null) {
-      this.setMoveStatus(); // Adjacent no-op is a valid location, not a failure.
-      return false;
-    }
-    return true;
+    return this.checkMove(drag.source, drag.line, target.line, placement);
+  }
+
+  private checkMove(source: string, line: number, target: number, placement: "before" | "after"): boolean {
+    const move = assessSameParentHeadingMove(source, line, target, placement);
+    if (move === null) this.setMoveStatus("headingMap.rearrange.boundary", true);
+    else if (move === "unchanged") this.setMoveStatus();
+    return move !== null && move !== "unchanged";
   }
 
   private previewMove(event: DragEvent, target: HeadingMapTreeNode, card: HTMLElement): void {

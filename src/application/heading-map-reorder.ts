@@ -21,7 +21,18 @@ export function planSameParentHeadingMove(
   targetLine: number,
   placement: "before" | "after",
 ): SameParentHeadingMove | null {
-  if (movingLine === targetLine) return null;
+  const move = assessSameParentHeadingMove(source, movingLine, targetLine, placement);
+  return move === "unchanged" ? null : move;
+}
+
+/** A refused structural change needs feedback; an unchanged drop can stay quiet. */
+export function assessSameParentHeadingMove(
+  source: string,
+  movingLine: number,
+  targetLine: number,
+  placement: "before" | "after",
+): SameParentHeadingMove | "unchanged" | null {
+  if (movingLine === targetLine) return "unchanged";
   const lines = scanMarkdownProtectedLines(source);
   const atx = parseAtxHeadings(source, lines);
   if (!atx.some((heading) => heading.line === movingLine) || !atx.some((heading) => heading.line === targetLine)) return null;
@@ -63,7 +74,7 @@ export function planSameParentHeadingMove(
     ? headings[targetIndex]!.lineFrom
     : sectionEnd(targetIndex);
   // Adjacent no-ops and destinations inside the moved subtree are not writes.
-  if (targetAt >= movingFrom && targetAt <= movingTo) return null;
+  if (targetAt >= movingFrom && targetAt <= movingTo) return "unchanged";
 
   const from = Math.min(movingFrom, targetAt);
   const to = Math.max(movingTo, targetAt);
@@ -84,7 +95,7 @@ export function planSameParentHeadingMove(
     replacement = after + terminal + before.slice(0, -terminal.length);
   }
   const original = source.slice(from, to);
-  if (replacement === original) return null;
+  if (replacement === original) return "unchanged";
   // Reparse both joins. A fence, HTML block, comment or paragraph may now
   // consume a heading, or expose a previously protected heading with the same title.
   const result = source.slice(0, from) + replacement + source.slice(to);

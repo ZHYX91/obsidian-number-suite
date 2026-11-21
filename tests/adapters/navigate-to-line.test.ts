@@ -11,6 +11,20 @@ function pane(file: TFile): WorkspaceLeaf {
 }
 
 describe("source pane navigation", () => {
+  it("navigates to the replacement file instead of a retired pane at the same path", async () => {
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
+    const retired = pane(Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path }));
+    const current = pane(file);
+    const revealLeaf = vi.fn();
+    const app = { workspace: {
+      iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => [retired, current].forEach(visit),
+      getActiveViewOfType: () => retired.view, revealLeaf,
+    } } as unknown as App;
+    await navigateToLine(app, file, 3, retired);
+    expect(revealLeaf).toHaveBeenCalledWith(current);
+    expect(retired.setEphemeralState).not.toHaveBeenCalled();
+  });
+
   it("prefers the source pane over enumeration order and falls back after it closes", async () => {
     const file = Object.assign(Object.create(TFile.prototype) as TFile, { path: "Note.md" });
     const left = pane(file);

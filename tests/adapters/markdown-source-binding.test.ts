@@ -37,6 +37,18 @@ describe("Markdown source binding", () => {
     });
   });
 
+  it("reads the current file's buffer when a preferred pane still holds a retired same-path file", async () => {
+    const FileConstructor = TFile as unknown as new (path: string) => TFile;
+    const file = new FileConstructor("Same.md");
+    const retired = { view: view(new FileConstructor("Same.md"), "# Deleted note") } as unknown as WorkspaceLeaf;
+    const current = { view: view(file, "# Recreated note") } as unknown as WorkspaceLeaf;
+    const app = { workspace: {
+      iterateAllLeaves: (visit: (leaf: WorkspaceLeaf) => void) => [retired, current].forEach(visit),
+      getActiveViewOfType: () => null,
+    } } as unknown as App;
+    await expect(readBoundMarkdownSource(app, file, retired)).resolves.toEqual({ leaf: current, source: "# Recreated note" });
+  });
+
   it("uses the active same-file pane when no preferred pane remains", async () => {
     const FileConstructor = TFile as unknown as new (path: string) => TFile;
     const file = new FileConstructor("Same.md");

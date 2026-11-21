@@ -6,18 +6,19 @@ export async function navigateToLine(
 ): Promise<void> {
   const matching: WorkspaceLeaf[] = [];
   app.workspace.iterateAllLeaves((leaf) => {
-    if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) matching.push(leaf);
+    if (leaf.view instanceof MarkdownView && leaf.view.file === file) matching.push(leaf);
   });
   const active = app.workspace.getActiveViewOfType?.(MarkdownView)?.leaf;
   const recent = app.workspace.getMostRecentLeaf?.();
   const target = [preferred, active, recent].find((leaf) => leaf != null && matching.includes(leaf))
     ?? matching[0] ?? app.workspace.getLeaf("tab");
-  if (!(target.view instanceof MarkdownView) || target.view.file?.path !== file.path) {
+  if (!(target.view instanceof MarkdownView) || target.view.file !== file) {
     await target.openFile(file, { active: true, eState: { line } });
   }
+  if (!(target.view instanceof MarkdownView) || target.view.file !== file) return;
   target.setEphemeralState({ line });
   await app.workspace.revealLeaf(target);
-  if (target.view instanceof MarkdownView && target.view.getMode() === "source") {
+  if (target.view instanceof MarkdownView && target.view.file === file && target.view.getMode() === "source") {
     const position = { line, ch: 0 };
     target.view.editor.setCursor(position);
     target.view.editor.scrollIntoView({ from: position, to: position }, true);
