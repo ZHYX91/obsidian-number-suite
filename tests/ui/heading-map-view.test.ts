@@ -99,6 +99,8 @@ it.each([
 });
 
 describe("heading map touch targets", () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
   it("zooms when one finger starts on a heading card", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child");
@@ -128,6 +130,79 @@ describe("heading map touch targets", () => {
     }));
     expect(view.viewport.classList.contains("is-panning")).toBe(false);
     expect(view.scale).toBe(1);
+  });
+
+  async function reorderHarness() {
+    const view = makeView();
+    view.moveStatusEl = document.createElement("div");
+    await view.refreshMap("# Root\n## A\n### Child\n## B");
+    view.collapsed.clear();
+    view.rearranging = true;
+    view.render();
+    const [a, b] = view.roots[0]!.children;
+    const card = (node: HeadingMapNode) => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${node.id}"]`)!;
+    const body = card(a!).querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
+    const child = card(a!.children[0]!);
+    const target = card(b!);
+    const hitTest = vi.spyOn(document, "elementFromPoint").mockReturnValue(target);
+    const write = vi.spyOn(view, "applyMove").mockResolvedValue(undefined);
+    const captured = new Set<number>();
+    view.viewport.setPointerCapture = (id: number) => { captured.add(id); };
+    view.viewport.hasPointerCapture = (id: number) => captured.has(id);
+    view.viewport.releasePointerCapture = (id: number) => { captured.delete(id); };
+    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
+    view.viewport.addEventListener("pointermove", (event) => view.movePan(event));
+    view.viewport.addEventListener("pointerup", (event) => view.endPan(event));
+    view.viewport.addEventListener("pointercancel", (event) => view.endPan(event));
+    const touch = (type: string, element: HTMLElement, y: number, pointerId = 1) => {
+      const event = new PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerType: "touch", pointerId, clientX: 100, clientY: y,
+      });
+      element.dispatchEvent(event);
+      return event;
+    };
+    return { view, a: a!, b: b!, body, child, target, hitTest, write, touch, captured };
+  }
+
+  it("shows the insertion target and commits the captured source to the hit sibling on touch release", async () => {
+    const { view, a, b, body, target, write, touch, captured } = await reorderHarness();
+    touch("pointerdown", body, 10);
+    expect(touch("pointermove", body, 13).defaultPrevented).toBe(false);
+    expect(write).not.toHaveBeenCalled();
+    expect(touch("pointermove", body, 30).defaultPrevented).toBe(true);
+    expect(captured.has(1)).toBe(true);
+    expect(target.classList.contains("is-drop-after")).toBe(true);
+    touch("pointerup", view.viewport, 30);
+    expect(write).toHaveBeenCalledExactlyOnceWith(
+      { id: a.id, line: a.line, source: "# Root\n## A\n### Child\n## B", path: "Same.md", file: view.currentFile },
+      b.line, "after",
+    );
+    expect(target.classList.contains("is-drop-after")).toBe(false);
+    expect(captured.size).toBe(0);
+  });
+
+  it("clears touch feedback on an invalid drop, cancellation, or a second finger", async () => {
+    const { view, body, child, target, hitTest, write, touch } = await reorderHarness();
+    hitTest.mockReturnValue(child);
+    touch("pointerdown", body, 10);
+    touch("pointermove", body, 30);
+    expect(child.classList.contains("is-drop-invalid")).toBe(true);
+    touch("pointerup", view.viewport, 30);
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.invalid");
+
+    hitTest.mockReturnValue(target);
+    touch("pointerdown", body, 10);
+    touch("pointermove", body, 30);
+    touch("pointercancel", view.viewport, 30);
+    expect(target.classList.contains("is-drop-after")).toBe(false);
+
+    touch("pointerdown", body, 10);
+    touch("pointermove", body, 30);
+    touch("pointerdown", view.viewport, 100, 2);
+    touch("pointerup", view.viewport, 30);
+    touch("pointerup", view.viewport, 100, 2);
+    expect(write).not.toHaveBeenCalled();
+    expect(target.classList.contains("is-drop-after")).toBe(false);
   });
 });
 

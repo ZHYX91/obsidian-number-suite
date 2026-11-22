@@ -9,6 +9,7 @@ All notable changes to Number Suite are documented here.
 - Keep native Outline badges stable during ordinary typing, update source positions after edits, and keep navigation bound to the correct note and pane.
 - Protect intervening disk edits before batch writes and undo, keep valid recovery records, and support folder exclusion paths with commas.
 - Recheck Markdown heading boundaries before moving sections. Preserve excluded sections, ambiguous caption objects, and duplicate block IDs during previewed writes.
+- Drag sibling sections by touch in the heading mind map's Adjust structure mode.
 
 ## 0.7.1
 

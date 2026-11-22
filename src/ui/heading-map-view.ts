@@ -62,9 +62,25 @@ interface TouchPoint {
   y: number;
 }
 
+interface SectionDrag {
+  readonly id: string;
+  readonly line: number;
+  readonly source: string;
+  readonly path: string;
+  readonly file: TFile;
+}
+
+interface TouchReorder {
+  readonly pointerId: number;
+  readonly start: TouchPoint;
+  readonly drag: SectionDrag;
+  active: boolean;
+}
+
 const MIN_SCALE = 0.38;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 1.2;
+const TOUCH_REORDER_THRESHOLD = 8;
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 export class NumberSuiteHeadingMapView extends ItemView {
@@ -90,10 +106,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private overviewInitialized = false;
   private pan: PanState | null = null;
   private readonly touchPointers = new Map<number, TouchPoint>();
+  private touchReorder: TouchReorder | null = null;
   private lastSource: string | null = null;
   private rearranging = false;
   private moving = false;
-  private dragSource: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }> | null = null;
+  private dragSource: SectionDrag | null = null;
   private rearrangeButton: HTMLButtonElement | null = null;
   private moveStatusEl: HTMLElement | null = null;
   private moveStatusError = false;
@@ -157,7 +174,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.viewport.addEventListener("pointermove", (event) => this.movePan(event));
     this.viewport.addEventListener("pointerup", (event) => this.endPan(event));
     this.viewport.addEventListener("pointercancel", (event) => this.endPan(event));
-    this.viewport.addEventListener("lostpointercapture", (event) => this.endPan(event));
+    this.viewport.addEventListener("lostpointercapture", (event) => {
+      if (event.target === this.viewport) this.endPan(event);
+    });
+    this.viewport.addEventListener("contextmenu", (event) => {
+      if (this.touchReorder != null) event.preventDefault();
+    });
 
     this.registerEvent(this.app.workspace.on("file-open", (file) => {
       if (!this.pinnedToEntry) this.setFile(file);
@@ -183,6 +205,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.request += 1;
     this.clearRefreshTimer();
     this.dragSource = null;
+    this.cancelTouchReorder();
+    this.touchPointers.clear();
+    this.pan = null;
     this.lastSource = null;
     this.contentEl.empty();
     this.contentEl.removeAttribute("dir");
@@ -442,6 +467,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.currentFile = markdown;
     this.rearranging = false;
     this.dragSource = null;
+    this.cancelTouchReorder();
     this.updateToolbarLabels();
     this.identities = new HeadingMapIdentity();
     this.roots = [];
@@ -587,6 +613,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private renderStatus(message: string): void {
+    this.cancelTouchReorder();
     this.roots = [];
     this.selectedId = null;
     this.scopeId = null;
@@ -602,6 +629,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private render(): void {
     const host = this.sceneHost;
     if (host == null) return;
+    this.cancelTouchReorder();
     const previousAnchor = this.lastLayout?.nodes.find(({ node }) => node.id === this.selectedId);
     host.empty();
     if (this.currentFile == null) {
@@ -705,7 +733,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         card.draggable = true;
         card.classList.add("is-rearrangeable");
         card.addEventListener("dragstart", (event) => {
-          if (this.moving || this.lastSource == null || this.currentFile == null) {
+          if (this.touchReorder != null || this.moving || this.lastSource == null || this.currentFile == null) {
             event.preventDefault();
             return;
           }
@@ -859,7 +887,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     }
   }
 
-  private dropPlacement(event: DragEvent, card: HTMLElement): "before" | "after" {
+  private dropPlacement(event: MouseEvent, card: HTMLElement): "before" | "after" {
     const bounds = card.getBoundingClientRect();
     return this.layoutDirection === "top-to-bottom"
       ? event.clientX < bounds.left + bounds.width / 2 ? "before" : "after"
@@ -881,7 +909,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private validateDrop(
-    drag: NonNullable<NumberSuiteHeadingMapView["dragSource"]>,
+    drag: SectionDrag,
     target: HeadingMapTreeNode,
     placement: "before" | "after",
   ): boolean {
@@ -918,22 +946,27 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.clearDropIndicators();
     if (drag == null || this.moving) return;
     event.preventDefault(); // Receive invalid drops too, to explain the refusal locally.
-    const placement = this.dropPlacement(event, card);
+    if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
+    this.showMoveTarget(drag, target, card, this.dropPlacement(event, card));
+  }
+
+  private showMoveTarget(
+    drag: SectionDrag,
+    target: HeadingMapTreeNode,
+    card: HTMLElement,
+    placement: "before" | "after",
+  ): void {
     if (!this.validateDrop(drag, target, placement)) {
-      // Receive the drop so its local refusal survives dragend. The immutable
-      // plan validation still rejects the move; Escape remains a cancellation.
-      if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
       if (this.moveStatusError) card.classList.add("is-drop-invalid");
       return;
     }
-    if (event.dataTransfer != null) event.dataTransfer.dropEffect = "move";
     card.classList.add(placement === "before" ? "is-drop-before" : "is-drop-after");
     card.dataset.dropAxis = this.layoutDirection === "top-to-bottom" ? "horizontal" : "vertical";
     this.setMoveStatus(`headingMap.rearrange.${placement}`, false, { title: target.title });
   }
 
   private async applyMove(
-    drag: Readonly<{ id: string; line: number; source: string; path: string; file: TFile }>,
+    drag: SectionDrag,
     targetLine: number,
     placement: "before" | "after",
   ): Promise<void> {
@@ -1182,21 +1215,23 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const ElementType = this.contentEl.ownerDocument.defaultView?.Element;
     const target = ElementType != null && event.target instanceof ElementType ? event.target : null;
     if (viewport == null || event.button !== 0) return;
-    const onCard = target?.closest(".number-suite-heading-map-card") != null;
+    const card = target?.closest<HTMLElement>(".number-suite-heading-map-card");
     if (event.pointerType === "touch") {
       this.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (this.touchPointers.size > 1) {
+        this.cancelTouchReorder();
         this.pan = null;
         viewport.addClass("is-panning");
         return;
       }
-      // Preserve a single-finger card tap, but track it if a second finger
-      // starts a pinch on the card or blank canvas.
-      if (onCard) return;
+      if (card != null) {
+        this.beginTouchReorder(event, card, target?.closest("button"));
+        return;
+      }
     } else if (this.pan != null) {
       return;
     }
-    if (onCard || target?.closest(".number-suite-heading-map-toolbar") != null) return;
+    if (card != null || target?.closest(".number-suite-heading-map-toolbar") != null) return;
     this.pan = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -1228,6 +1263,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         );
         return;
       }
+      if (this.moveTouchReorder(event, viewport)) return;
     }
     const pan = this.pan;
     if (pan == null || pan.pointerId !== event.pointerId) return;
@@ -1239,6 +1275,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private endPan(event: PointerEvent): void {
     const viewport = this.viewport;
     if (viewport == null) return;
+    this.finishTouchReorder(event);
     this.touchPointers.delete(event.pointerId);
     if (this.pan?.pointerId === event.pointerId) this.pan = null;
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
@@ -1253,6 +1290,73 @@ export class NumberSuiteHeadingMapView extends ItemView {
       };
     }
     if (this.pan == null && this.touchPointers.size === 0) viewport.removeClass("is-panning");
+  }
+
+  private beginTouchReorder(event: PointerEvent, card: HTMLElement, control: Element | null | undefined): void {
+    const source = this.lastSource;
+    const file = this.currentFile;
+    if (!this.rearranging || this.moving || source == null || file == null
+      || !card.classList.contains("is-rearrangeable")
+      || control?.matches(".number-suite-heading-map-order-action, .number-suite-heading-map-children")) return;
+    const node = findHeadingMapNode(this.roots, card.dataset.nodeId ?? "");
+    if (node == null) return;
+    this.touchReorder = {
+      pointerId: event.pointerId,
+      start: { x: event.clientX, y: event.clientY },
+      drag: { id: node.id, line: node.line, source, path: file.path, file },
+      active: false,
+    };
+  }
+
+  private moveTouchReorder(event: PointerEvent, viewport: HTMLElement): boolean {
+    const touch = this.touchReorder;
+    if (touch?.pointerId !== event.pointerId) return false;
+    if (!touch.active) {
+      if (Math.hypot(event.clientX - touch.start.x, event.clientY - touch.start.y) < TOUCH_REORDER_THRESHOLD) return false;
+      touch.active = true;
+      // Keep the drag inside this viewport and route the completed gesture away
+      // from the card's ordinary click actions.
+      viewport.setPointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    this.clearDropIndicators();
+    const hit = this.touchMoveTarget(event);
+    if (hit == null) this.setMoveStatus();
+    else this.showMoveTarget(touch.drag, hit.node, hit.card, hit.placement);
+    return true;
+  }
+
+  private finishTouchReorder(event: PointerEvent): void {
+    const touch = this.touchReorder;
+    if (touch?.pointerId !== event.pointerId) return;
+    this.cancelTouchReorder();
+    if (!touch.active || event.type !== "pointerup") return;
+    event.preventDefault();
+    const hit = this.touchMoveTarget(event);
+    if (hit != null && this.validateDrop(touch.drag, hit.node, hit.placement)) {
+      void this.applyMove(touch.drag, hit.node.line, hit.placement);
+    }
+  }
+
+  private touchMoveTarget(event: PointerEvent): {
+    card: HTMLElement;
+    node: HeadingMapTreeNode;
+    placement: "before" | "after";
+  } | null {
+    const card = this.contentEl.ownerDocument.elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>(".number-suite-heading-map-card");
+    if (card == null || !this.canvas?.contains(card)) return null;
+    const node = this.lastLayout?.nodes.find((item) => item.node.id === card.dataset.nodeId)?.node;
+    return node == null ? null : { card, node, placement: this.dropPlacement(event, card) };
+  }
+
+  private cancelTouchReorder(): void {
+    const active = this.touchReorder?.active;
+    this.touchReorder = null;
+    if (active) {
+      this.clearDropIndicators();
+      this.setMoveStatus();
+    }
   }
 
   private requestFrame(callback: () => void): void {
