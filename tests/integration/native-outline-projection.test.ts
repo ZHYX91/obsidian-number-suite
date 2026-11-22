@@ -48,6 +48,16 @@ describe("native Outline projection", () => {
     expect(result.numberLabels.get(0)).toBeTruthy();
   });
 
+  it.each([
+    ["follow-body", "1"], ["scheme", "1.1"], ["current-only", "1"],
+  ] as const)("formats Outline numbers using its %s preference", (format, label) => {
+    const result = createNativeOutlineProjection("# Chapter\n## Detail", [], {
+      ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical", showVirtualNumbers: true,
+      bodyHeadingNumberFormat: "current-only", outlineHeadingNumberFormat: format,
+    });
+    expect(result.numberLabels.get(1)).toBe(label);
+  });
+
   it("localizes the actual host heading field used by native filtering", () => {
     const result = createNativeOutlineProjection(source, headings, DEFAULT_SETTINGS,
       (kind) => ({ Figure: "图", Table: "表", Equation: "公式", Code: "代码" }[kind]));

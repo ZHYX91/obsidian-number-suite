@@ -309,6 +309,20 @@ function cleanupDefinitions(t: Translate): SettingGroupItem<SettingsControlKey>[
   ];
 }
 
+export const virtualHeadingFormatControls = [
+  ["bodyHeadingNumberFormat", "settings.virtualFormat.body"],
+  ["outlineHeadingNumberFormat", "settings.virtualFormat.outline"],
+  ["referenceHeadingNumberFormat", "settings.virtualFormat.references"],
+] as const;
+
+export function virtualHeadingFormatOptions(t: Translate, followBody: boolean): Record<string, string> {
+  return {
+    ...(followBody ? { "follow-body": t("settings.virtualFormat.followBody") } : {}),
+    scheme: t("settings.virtualFormat.scheme"),
+    "current-only": t("settings.virtualFormat.currentOnly"),
+  };
+}
+
 function viewDefinitions(t: Translate): SettingDefinitionItem<SettingsControlKey>[] {
   return [
     {
@@ -324,6 +338,14 @@ function viewDefinitions(t: Translate): SettingDefinitionItem<SettingsControlKey
         toggleDefinition("views.revealOnActiveLine", t("settings.reveal"), undefined,
           DEFAULT_SETTINGS.revealOnActiveLine),
       ],
+    },
+    {
+      type: "group",
+      heading: t("settings.virtualFormat.title"),
+      items: virtualHeadingFormatControls.map(([key, label]) => dropdownDefinition(
+        `views.${key}`, t(label), t("settings.virtualFormat.help"),
+        virtualHeadingFormatOptions(t, key === "outlineHeadingNumberFormat"), DEFAULT_SETTINGS[key],
+      )),
     },
     {
       type: "group",

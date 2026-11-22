@@ -2,6 +2,12 @@
 
 [Back to the Number Suite README](../README.md)
 
+## Show shorter numbers on headings
+
+Under **Display & appearance → Virtual heading number format**, choose **Current level only** for headings in the note to show `5` where the scheme gives `1.2.3.4.5`. The Outline and heading map follow the note by default. Links and references to headings keep the scheme’s label by default, so readers can identify the full path even when two headings both display `5`. You can change each choice independently. A scheme that already formats only one level, such as `第３章`, keeps its own wording and punctuation.
+
+These choices apply to virtual heading numbers. Stored numbers keep their original spelling, and writing, renumbering and semantic export use the note’s numbering scheme.
+
 ## Roman numeral limits and batch recovery
 
 Roman numeral templates support values from 1 to 3999. Preview checks every generated heading, including later increments and parent counters referenced by a template. If any Roman counter is outside that range, Write and Renumber leave the entire file unchanged and explain how to adjust the start or format. Cleanup remains available. Display-only numbering omits an unavailable label instead of showing a decimal fallback.

@@ -36,6 +36,9 @@ export type SettingsControlKey =
   | "views.enableReadingView"
   | "views.enableSourceMode"
   | "views.revealOnActiveLine"
+  | "views.bodyHeadingNumberFormat"
+  | "views.outlineHeadingNumberFormat"
+  | "views.referenceHeadingNumberFormat"
   | "views.virtualOpacity"
   | "views.virtualGapEm"
   | "views.excludedFolders"
@@ -82,6 +85,9 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "views.enableReadingView",
   "views.enableSourceMode",
   "views.revealOnActiveLine",
+  "views.bodyHeadingNumberFormat",
+  "views.outlineHeadingNumberFormat",
+  "views.referenceHeadingNumberFormat",
   "views.virtualOpacity",
   "views.virtualGapEm",
   "views.excludedFolders",
@@ -130,6 +136,9 @@ export function getSettingsControlValue(
     case "views.enableReadingView": return settings.enableReadingView;
     case "views.enableSourceMode": return settings.enableSourceMode;
     case "views.revealOnActiveLine": return settings.revealOnActiveLine;
+    case "views.bodyHeadingNumberFormat": return settings.bodyHeadingNumberFormat;
+    case "views.outlineHeadingNumberFormat": return settings.outlineHeadingNumberFormat;
+    case "views.referenceHeadingNumberFormat": return settings.referenceHeadingNumberFormat;
     case "views.virtualOpacity": return settings.virtualOpacity;
     case "views.virtualGapEm": return settings.virtualGapEm;
     case "views.excludedFolders": return settings.excludedFolders.join(", ");
@@ -278,6 +287,18 @@ export function applySettingsControlValue(
       impact = "display";
       break;
     }
+    case "views.bodyHeadingNumberFormat":
+    case "views.referenceHeadingNumberFormat":
+      if (value !== "scheme" && value !== "current-only") throw invalidControlValue(key);
+      if (key === "views.bodyHeadingNumberFormat") next.bodyHeadingNumberFormat = value;
+      else next.referenceHeadingNumberFormat = value;
+      impact = "display";
+      break;
+    case "views.outlineHeadingNumberFormat":
+      if (value !== "follow-body" && value !== "scheme" && value !== "current-only") throw invalidControlValue(key);
+      next.outlineHeadingNumberFormat = value;
+      impact = "display";
+      break;
     case "views.virtualOpacity":
       next.virtualOpacity = boundedControlNumber(key, value, 0.15, 1);
       impact = "appearance";

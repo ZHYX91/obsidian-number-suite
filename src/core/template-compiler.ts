@@ -127,8 +127,8 @@ export function renderTemplate(source: string, counters: Counters): string {
   return compiled.diagnostics.length === 0 ? renderCompiledTemplate(compiled, counters) : "";
 }
 
-export function renderCurrentLevel(source: string, level: number, counters: Counters): string {
-  const compiled = compileTemplate(source);
+export function renderCurrentLevel(template: string | CompiledTemplate, level: number, counters: Counters): string {
+  const compiled = typeof template === "string" ? compileTemplate(template) : template;
   if (compiled.diagnostics.length > 0) return "";
   const countersInTemplate = compiled.nodes.filter((node) => node.kind === "counter");
   const current = countersInTemplate.find((node) => node.kind === "counter" && node.level === level);

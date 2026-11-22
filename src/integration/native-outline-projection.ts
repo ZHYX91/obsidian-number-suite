@@ -6,6 +6,7 @@ import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import {
   cleanupTemplateSources,
+  outlineHeadingFormat,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
@@ -106,6 +107,7 @@ export function createNativeOutlineProjection(
   const templateSources = cleanupTemplateSources(settings);
   const plan = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,
+    virtualNumberFormat: outlineHeadingFormat(settings),
     concealStoredNumbers: effective.concealStoredNumbers, numbering,
     storedHeadingNumberStyleScope: settings.showOutlineNumbers ? settings.storedHeadingNumberStyleScope : "off",
     cleanupScope: effective.concealScope, templateSources,

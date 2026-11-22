@@ -16,6 +16,8 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
 import type { CaptionKind } from "../core/document-semantics";
 
+export type VirtualHeadingNumberFormat = "scheme" | "current-only";
+
 export type StoredHeadingNumberStyleScope = "off" | "templates" | "common";
 
 export type CaptionPlacement = "above" | "below";
@@ -58,6 +60,9 @@ export interface NumberSuiteSettings {
   enableLivePreview: boolean;
   enableReadingView: boolean;
   enableSourceMode: boolean;
+  bodyHeadingNumberFormat: VirtualHeadingNumberFormat;
+  outlineHeadingNumberFormat: VirtualHeadingNumberFormat | "follow-body";
+  referenceHeadingNumberFormat: VirtualHeadingNumberFormat;
   virtualOpacity: number;
   virtualGapEm: number;
   excludedFolders: string[];
@@ -146,11 +151,19 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   enableLivePreview: true,
   enableReadingView: true,
   enableSourceMode: false,
+  bodyHeadingNumberFormat: "scheme",
+  outlineHeadingNumberFormat: "follow-body",
+  referenceHeadingNumberFormat: "scheme",
   virtualOpacity: 0.82,
   virtualGapEm: 0.32,
   excludedFolders: [],
   batchBackupLimitMb: 12,
 };
+
+export function outlineHeadingFormat(settings: NumberSuiteSettings): VirtualHeadingNumberFormat {
+  return settings.outlineHeadingNumberFormat === "follow-body"
+    ? settings.bodyHeadingNumberFormat : settings.outlineHeadingNumberFormat;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value != null && !Array.isArray(value);
@@ -363,6 +376,12 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     enableLivePreview: booleanOr(raw.enableLivePreview, DEFAULT_SETTINGS.enableLivePreview),
     enableReadingView: booleanOr(raw.enableReadingView, DEFAULT_SETTINGS.enableReadingView),
     enableSourceMode: booleanOr(raw.enableSourceMode, DEFAULT_SETTINGS.enableSourceMode),
+    bodyHeadingNumberFormat: oneOf(raw.bodyHeadingNumberFormat,
+      ["scheme", "current-only"] as const, DEFAULT_SETTINGS.bodyHeadingNumberFormat),
+    outlineHeadingNumberFormat: oneOf(raw.outlineHeadingNumberFormat,
+      ["follow-body", "scheme", "current-only"] as const, DEFAULT_SETTINGS.outlineHeadingNumberFormat),
+    referenceHeadingNumberFormat: oneOf(raw.referenceHeadingNumberFormat,
+      ["scheme", "current-only"] as const, DEFAULT_SETTINGS.referenceHeadingNumberFormat),
     virtualOpacity: boundedNumber(raw.virtualOpacity, DEFAULT_SETTINGS.virtualOpacity, 0.15, 1),
     virtualGapEm: boundedNumber(raw.virtualGapEm, DEFAULT_SETTINGS.virtualGapEm, 0, 2),
     excludedFolders,
