@@ -30,10 +30,13 @@ function replacementPrefix(label: string, writeMarkers: boolean): string {
   return `${writeMarkers ? wrapPluginNumber(label) : label} `;
 }
 
-export function applyTextChanges(source: string, changes: readonly PlannedChange[]): string {
+export function applyTextChanges(source: string, changes: readonly Pick<PlannedChange, "from" | "to" | "insert">[]): string {
+  if (changes.length === 0) return source;
   const descending = [...changes].sort((left, right) => right.from - left.from);
-  let result = source;
-  let lastFrom = source.length + 1;
+  // Build right to left from the original source. Equal-position changes keep
+  // the same order as sequential descending edits without copying whole notes.
+  const fragments: string[] = [];
+  let lastFrom = source.length;
   for (const change of descending) {
     if (change.from < 0 || change.to < change.from || change.to > source.length) {
       throw new RangeError(`Invalid heading change range ${change.from}:${change.to}`);
@@ -41,10 +44,11 @@ export function applyTextChanges(source: string, changes: readonly PlannedChange
     if (change.to > lastFrom) {
       throw new RangeError("Heading changes overlap");
     }
-    result = result.slice(0, change.from) + change.insert + result.slice(change.to);
+    fragments.push(source.slice(change.to, lastFrom), change.insert);
     lastFrom = change.from;
   }
-  return result;
+  fragments.push(source.slice(0, lastFrom));
+  return fragments.reverse().join("");
 }
 
 function previewAfter(content: string, from: number, to: number, insert: string): string {

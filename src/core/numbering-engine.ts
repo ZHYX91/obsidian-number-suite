@@ -57,6 +57,7 @@ export function numberHeadings(
 
   for (const heading of headings) {
     if (skippedSectionLevel != null && heading.level <= skippedSectionLevel) skippedSectionLevel = null;
+    if (excludedSubtreeLevel != null && heading.level <= excludedSubtreeLevel) excludedSubtreeLevel = null;
     // This heading starts a fresh group for every deeper level, even when levels are missing.
     seenInParent.fill(0, heading.level);
     if (heading.content.trim().length === 0) {
@@ -76,7 +77,7 @@ export function numberHeadings(
     const skipDocument = seenInDocument[index] <= (skipFirst[index] ?? 0);
     const skipParent = heading.level > 1 && seenInParent[index] <= (skipPerParent[index] ?? 0);
     if (skippedSectionLevel == null && (skipDocument || skipParent)) skippedSectionLevel = heading.level;
-    if (excludedSubtreeLevel != null && heading.level > excludedSubtreeLevel) {
+    if (excludedSubtreeLevel != null) {
       output.push({
         heading,
         label: null,
@@ -86,7 +87,6 @@ export function numberHeadings(
       });
       continue;
     }
-    if (excludedSubtreeLevel != null) excludedSubtreeLevel = null;
 
     const exclusion = matchHeadingExclusion(heading, scheme);
     if (exclusion != null) {

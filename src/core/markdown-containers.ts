@@ -24,6 +24,7 @@ interface InlineLiteralRange extends SourceRange {
 
 export interface MarkdownContainerLine {
   readonly nested: boolean;
+  readonly listItemId: boolean;
   readonly continuesParagraph: boolean;
   readonly literal: boolean;
   readonly literalKind: LiteralKind | null;
@@ -296,6 +297,15 @@ function equationBlock(inlineSpans: readonly SourceRange[], acceptedInline: Read
  * Physical offsets and source text stay with the caller. Normalizing only this
  * parser input lets LF, CRLF and CR share the same Markdown block rules.
  */
+/** A list item can own a trailing ID. Individual lines of a blockquote cannot. */
+function isListItemOffset(tree: ReturnType<typeof parser.parse>, offset: number): boolean {
+  for (let node = tree.resolveInner(offset, 1); node.parent != null; node = node.parent) {
+    if (node.name === "ListItem") return true;
+    if (node.name === "Blockquote") return false;
+  }
+  return false;
+}
+
 export function scanMarkdownContainerLines(
   lines: readonly PhysicalSourceLine[],
 ): readonly MarkdownContainerLine[] {
@@ -350,11 +360,14 @@ export function scanMarkdownContainerLines(
     const nextLine = lines[index + 1]?.text;
     const setextLevel = nextLine != null && /^ {0,3}(?:=+|-+)[ \t]*$/u.test(nextLine)
       ? facts.setext.get(from + lines[index]!.text.length - lines[index]!.text.trimStart().length) : undefined;
+    const nested = (containers[containerIndex]?.from ?? Infinity) <= to;
+    const caret = nested ? lines[index]!.text.lastIndexOf("^") : -1;
     return {
       ...(setextLevel == null ? {} : { setextLevel }),
       ...(equationLastLine == null ? {} : { equationLastLine }),
       continuesParagraph,
-      nested: (containers[containerIndex]?.from ?? Infinity) <= to,
+      nested,
+      listItemId: caret >= 0 && isListItemOffset(tree, from + caret),
       literal: literal != null,
       literalKind: literal?.kind ?? null,
       inlineLiterals: protectedRanges,

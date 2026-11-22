@@ -1,11 +1,10 @@
 import {
-  bindCaptionObjects,
+  adjacentCaptionSourceLine,
   scanCaptionObjects,
   type CaptionObject,
 } from "./caption-objects";
 import {
   CAPTION_KINDS,
-  parseDocumentSemantics,
   scanSemanticSourceLines,
   type CaptionKind,
   type SemanticSourceLine,
@@ -175,19 +174,20 @@ function targetForObject(
 function validatedTargetForObject(
   source: string,
   lines: readonly SemanticSourceLine[],
+  objects: readonly CaptionObject[],
   object: CaptionObject,
 ): CaptionInsertionTarget | null {
   const target = targetForObject(source, lines, object);
-  if (target?.action !== "relocate") return target;
-  const captions = parseDocumentSemantics(source, lines).captions;
-  const exactCaption = captions.find((caption) => (
-    caption.line === target.line
+  if (target == null || target.action === "insert") return target;
+  // A legacy spelling is still owned by its neighbours before the repair.
+  // Reuse the display binding's adjacency rule even for noncanonical keywords.
+  const placement = target.action === "normalize" ? "above" : "below";
+  if (adjacentCaptionSourceLine(object, lines, placement)?.number !== target.line) return null;
+  const shared = objects.some((other) => other !== object && (
+    adjacentCaptionSourceLine(other, lines, "above")?.number === target.line
+    || adjacentCaptionSourceLine(other, lines, "below")?.number === target.line
   ));
-  if (exactCaption == null) return target;
-  return bindCaptionObjects(source, lines, captions).some((binding) => (
-    binding.caption.line === exactCaption.line
-    && binding.object.from === object.from
-  )) ? target : null;
+  return shared ? null : target;
 }
 
 export function findCaptionInsertionTarget(
@@ -196,22 +196,24 @@ export function findCaptionInsertionTarget(
 ): CaptionInsertionTarget | null {
   if (!Number.isInteger(cursorOffset) || cursorOffset < 0 || cursorOffset > source.length) return null;
   const lines = scanSemanticSourceLines(source);
-  const object = scanCaptionObjects(source, lines).find((candidate) => (
+  const objects = scanCaptionObjects(source, lines);
+  const object = objects.find((candidate) => (
     cursorOffset >= candidate.from && cursorOffset <= candidate.to
   ));
   return object == null
     ? null
-    : validatedTargetForObject(source, lines, object);
+    : validatedTargetForObject(source, lines, objects, object);
 }
 
 export function findCaptionObjectForTableRange(
   source: string,
   from: number,
   to: number,
+  objects?: readonly CaptionObject[],
 ): CaptionObject | null {
   if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to)
     || from < 0 || to <= from || to > source.length) return null;
-  return scanCaptionObjects(source).find((candidate) => (
+  return (objects ?? scanCaptionObjects(source)).find((candidate) => (
     candidate.kind === "Table" && candidate.visualFrom === from && candidate.visualTo === to
   )) ?? null;
 }
@@ -222,10 +224,11 @@ export function findCaptionInsertionTargetForTableRange(
   to: number,
 ): CaptionInsertionTarget | null {
   const lines = scanSemanticSourceLines(source);
-  const object = findCaptionObjectForTableRange(source, from, to);
+  const objects = scanCaptionObjects(source, lines);
+  const object = findCaptionObjectForTableRange(source, from, to, objects);
   return object == null
     ? null
-    : validatedTargetForObject(source, lines, object);
+    : validatedTargetForObject(source, lines, objects, object);
 }
 
 function preferredNewline(source: string): "\n" | "\r\n" {

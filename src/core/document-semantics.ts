@@ -59,6 +59,8 @@ export interface SemanticSourceLine {
   readonly number: number;
   readonly available: boolean;
   readonly topLevel: boolean;
+  readonly listItemId?: boolean;
+  readonly blockIdCarrier?: boolean;
   readonly fenceOpening?: boolean;
   readonly equationLastLine?: number | undefined;
   readonly inlineMaskedText?: string;
@@ -81,6 +83,8 @@ export function scanSemanticSourceLines(
     to: line.to,
     number: line.number,
     topLevel: line.topLevel,
+    listItemId: line.listItemId === true && !protectedNoteLines.has(line.number),
+    blockIdCarrier: line.blockIdCarrier === true && !protectedNoteLines.has(line.number),
     inlineMaskedText: line.inlineMaskedText,
     equationLastLine: protectedNoteLines.has(line.number) ? undefined : line.equationLastLine,
     captionAvailable: true,
@@ -139,14 +143,16 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
 
   for (const line of lines) {
     if (!line.available) {
-      previousSemanticLine = null;
+      previousSemanticLine = line.blockIdCarrier === true ? line.number : null;
       interveningBlankLines = 0;
       continue;
     }
     const masked = maskInlineProtectedSyntax(line.inlineMaskedText ?? line.commentMaskedText);
     const standalone = STANDALONE_BLOCK_ID.exec(masked);
     if (standalone?.[1] != null) {
-      if (line.topLevel && previousSemanticLine != null) recordBlockOwner(standalone[1], previousSemanticLine);
+      if ((line.topLevel || line.listItemId === true) && previousSemanticLine != null) {
+        recordBlockOwner(standalone[1], previousSemanticLine);
+      }
       continue;
     }
 
@@ -180,9 +186,11 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
       interveningBlankLines += 1;
       if (interveningBlankLines > 1) previousSemanticLine = null;
     } else {
-      previousSemanticLine = line.topLevel ? line.number : null;
+      // Keep native block owners in the uniqueness index even when they cannot
+      // be Number Suite heading or caption targets.
+      previousSemanticLine = line.number;
       interveningBlankLines = 0;
-      const blockId = line.topLevel ? TRAILING_BLOCK_ID.exec(masked)?.[1] : undefined;
+      const blockId = line.topLevel || line.listItemId === true ? TRAILING_BLOCK_ID.exec(masked)?.[1] : undefined;
       if (blockId != null) recordBlockOwner(blockId, line.number);
     }
 

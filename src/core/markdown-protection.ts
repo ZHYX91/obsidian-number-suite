@@ -10,6 +10,8 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
   /** True only for an actual top-level fenced-code opening, never a protected lookalike. */
   readonly fenceOpening: boolean;
   readonly topLevel: boolean;
+  readonly listItemId?: boolean;
+  readonly blockIdCarrier?: boolean;
   readonly inlineMaskedText: string;
   /** Closed top-level equation carrier; its interior is never semantic prose. */
   readonly equationLastLine?: number;
@@ -141,6 +143,9 @@ export function scanMarkdownProtectedLines(
     const inline = commentMaskedText.split("");
     for (const range of container?.inlineLiterals ?? []) blankRange(inline, range.from, range.to);
     output.push({ ...line, available, commentMaskedText, inlineMaskedText: inline.join(""), topLevel,
+      ...(container?.listItemId === true ? { listItemId: true } : {}),
+      ...(container?.literalKind === "FencedCode" || container?.literalKind === "NumberSuiteEquation"
+        || container?.nested === true ? { blockIdCarrier: true } : {}),
       ...(available && headingAvailable && topLevel && container?.setextLevel != null ? { setextLevel: container.setextLevel } : {}),
       ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });

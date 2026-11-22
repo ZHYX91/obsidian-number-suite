@@ -20,6 +20,9 @@ describe("heading exclusions", () => {
     for (const source of [
       "# 参考文献",
       "# 2 参考文献",
+      "# 参考文献 ^refs",
+      "# 2 参考文献 ^refs",
+      "# 参考文献\n^refs",
       `# ${WORD_JOINER}2${WORD_JOINER} 参考文献`,
     ]) {
       expect(matchHeadingExclusion(parseAtxHeadings(source)[0]!, scheme)?.scope).toBe("subtree");

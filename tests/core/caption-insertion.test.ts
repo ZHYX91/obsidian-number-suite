@@ -238,16 +238,23 @@ describe("caption insertion", () => {
     ].join("\n"));
   });
 
-  it("offers no repair when one caption is ambiguous between two objects", () => {
+  it.each(["Figure", "figure", "FIGURE"])("offers no repair for an ambiguous %s caption between two objects", (kind) => {
     const source = [
       "![[before.png]]",
       "",
-      "Figure: Comparison",
+      `${kind}: Comparison`,
       "",
       "![[after.png]]",
     ].join("\n");
     expect(findCaptionInsertionTarget(source, offsetOf(source, "before.png"))).toBeNull();
     expect(findCaptionInsertionTarget(source, offsetOf(source, "after.png"))).toBeNull();
+  });
+
+  it("keeps a pipe-free image row in its table even when the table has no caption action", () => {
+    const source = "| A |\n| - |\n![[photo.png]]";
+    expect(createCaptionInsertionPlan(source, source.indexOf("photo"), "Plot")).toBeNull();
+    const table = source.replace("| - |", "| --- |");
+    expect(findCaptionInsertionTarget(table, table.indexOf("photo"))?.kind).toBe("Table");
   });
 
   it("rejects empty, multiline, and out-of-range plans", () => {

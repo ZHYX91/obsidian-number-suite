@@ -1,3 +1,4 @@
+import { withoutTrailingBlockId } from "./document-semantics";
 import { parseHeadingNumberPrefixes } from "./number-parser";
 import type {
   HeadingExclusionRule,
@@ -15,6 +16,9 @@ function titleCandidates(
 ): string[] {
   const raw = normalizeExclusionTitle(heading.content);
   const candidates = raw.length === 0 ? [] : [raw];
+  const title = withoutTrailingBlockId(heading.content);
+  const logicalTitle = normalizeExclusionTitle(title);
+  if (logicalTitle.length > 0 && logicalTitle !== raw) candidates.push(logicalTitle);
   const [prefix] = parseHeadingNumberPrefixes(heading.content, 1, {
     headingLevel: heading.level,
     templateSources: [{
@@ -32,9 +36,9 @@ function titleCandidates(
       || prefix.confidence === "high"
       || prefix.confidence === "certain")
   ) {
-    const withoutPrefix = normalizeExclusionTitle(heading.content.slice(prefix.to));
-    if (withoutPrefix.length > 0 && !candidates.includes(withoutPrefix)) {
-      candidates.push(withoutPrefix);
+    for (const content of [heading.content, title]) {
+      const withoutPrefix = normalizeExclusionTitle(content.slice(prefix.to));
+      if (withoutPrefix.length > 0 && !candidates.includes(withoutPrefix)) candidates.push(withoutPrefix);
     }
   }
   return candidates;

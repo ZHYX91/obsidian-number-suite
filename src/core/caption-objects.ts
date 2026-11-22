@@ -1,3 +1,4 @@
+import { parser } from "@lezer/markdown";
 import { scanTableBlocks } from "./markdown-table-blocks";
 import {
   parseDocumentSemantics,
@@ -38,7 +39,6 @@ export interface ImageText {
 const BLOCK_ID_SUFFIX = /[ \t]+\^[A-Za-z0-9-]+[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^[A-Za-z0-9-]+[ \t]*$/u;
 const WIKI_EMBED = /!\[\[([^\]\r\n]+)\]\]/gu;
-const MARKDOWN_IMAGE = /!\[([^\]\r\n]*)\]\(([^\r\n)]+(?:\([^\r\n)]*\)[^\r\n)]*)*)\)/gu;
 const IMAGE_EXTENSIONS = new Set([
   "apng", "avif", "bmp", "gif", "jpeg", "jpg", "png", "svg", "webp",
 ]);
@@ -79,24 +79,33 @@ function wikiImageText(body: string): ImageText | null {
   };
 }
 
-function markdownImageText(alt: string, destination: string): ImageText | null {
-  const target = destination.trim().replace(/^<|>$/gu, "").split(/[ \t]+["']/u, 1)[0] ?? "";
-  if (!IMAGE_EXTENSIONS.has(imageExtension(target))) return null;
-  const replacementText = alt.trim();
-  return {
-    suggestedTitle: replacementText || basenameWithoutExtension(target),
-    replacementText,
-  };
+function markdownImageAt(text: string, offset: number, standalone = false): ImageText | null {
+  if (!text.includes("![")) return null;
+  const tree = parser.parse(text);
+  for (const side of [-1, 1] as const) {
+    for (let node = tree.resolveInner(offset, side); node.parent != null; node = node.parent) {
+      if (node.name !== "Image") continue;
+      if (standalone && (node.from !== 0 || node.to !== text.length)) return null;
+      const destination = node.getChild("URL");
+      const closeAlt = node.getChildren("LinkMark")[1];
+      if (destination == null || closeAlt == null) continue;
+      const target = text.slice(destination.from, destination.to).replace(/^<|>$/gu, "");
+      if (!IMAGE_EXTENSIONS.has(imageExtension(target))) return null;
+      const replacementText = text.slice(node.from + 2, closeAlt.from).trim();
+      return { suggestedTitle: replacementText || basenameWithoutExtension(target), replacementText };
+    }
+  }
+  return null;
 }
 
 export function standaloneImageText(text: string): ImageText | null {
   const line = withoutBlockId(text);
   const wiki = /^ {0,3}!\[\[([^\]\r\n]+)\]\][ \t]*$/u.exec(line);
   if (wiki?.[1] != null) return wikiImageText(wiki[1]);
-  const markdown = /^ {0,3}!\[([^\]\r\n]*)\]\((.+)\)[ \t]*$/u.exec(line);
-  return markdown?.[1] == null || markdown[2] == null
-    ? null
-    : markdownImageText(markdown[1], markdown[2]);
+  const prefix = /^ {0,3}(?=!\[)/u.exec(line);
+  if (prefix == null) return null;
+  const body = line.slice(prefix[0].length).replace(/[ \t]+$/u, "");
+  return markdownImageAt(body, 1, true);
 }
 
 export function imageTextAtLineOffset(text: string, offset: number): ImageText | null {
@@ -107,13 +116,7 @@ export function imageTextAtLineOffset(text: string, offset: number): ImageText |
       return wikiImageText(match[1]);
     }
   }
-  for (const match of text.matchAll(MARKDOWN_IMAGE)) {
-    if (match.index == null || match[1] == null || match[2] == null) continue;
-    if (offset >= match.index && offset <= match.index + match[0].length) {
-      return markdownImageText(match[1], match[2]);
-    }
-  }
-  return null;
+  return markdownImageAt(text, offset);
 }
 
 function includeFollowingBlockId(
@@ -130,7 +133,7 @@ function includeFollowingBlockId(
 function imageObjects(lines: readonly SemanticSourceLine[]): CaptionObject[] {
   const output: CaptionObject[] = [];
   for (const line of lines) {
-    if (!line.available || !line.topLevel) continue;
+    if (!line.available || !line.topLevel || line.captionAvailable === false) continue;
     const image = standaloneImageText(line.text);
     if (image == null) continue;
     const lastLine = includeFollowingBlockId(lines, line.number);
@@ -248,12 +251,11 @@ export function scanCaptionObjects(source: string, lines: readonly SemanticSourc
   ].sort((left, right) => left.from - right.from || left.to - right.to);
 }
 
-function adjacentCaption(
+export function adjacentCaptionSourceLine(
   object: CaptionObject,
-  captionsByLine: ReadonlyMap<number, ParsedCaption>,
   lines: readonly SemanticSourceLine[],
   placement: CaptionSourcePlacement,
-): ParsedCaption | null {
+): SemanticSourceLine | null {
   const start = placement === "above" ? object.firstLine - 1 : object.lastLine + 1;
   const direction = placement === "above" ? -1 : 1;
   let blanks = 0;
@@ -271,7 +273,7 @@ function adjacentCaption(
       if (standaloneBlockIds > 1) return null;
       continue;
     }
-    return captionsByLine.get(line.number) ?? null;
+    return line;
   }
   return null;
 }
@@ -292,7 +294,8 @@ export function bindCaptionObjects(
   const candidates: CaptionBindingCandidate[] = [];
   for (const object of objects) {
     for (const sourcePlacement of ["above", "below"] as const) {
-      const caption = adjacentCaption(object, captionsByLine, lines, sourcePlacement);
+      const line = adjacentCaptionSourceLine(object, lines, sourcePlacement);
+      const caption = line == null ? null : captionsByLine.get(line.number);
       if (caption != null) candidates.push({ caption, object, sourcePlacement });
     }
   }
