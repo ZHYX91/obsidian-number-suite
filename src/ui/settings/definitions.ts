@@ -164,7 +164,7 @@ export function createSettingDefinitions(
         {
           name: t("settings.excluded"),
           desc: t("settings.excluded.desc"),
-          control: { type: "text", key: "views.excludedFolders", defaultValue: "" },
+          control: { type: "textarea", key: "views.excludedFolders", defaultValue: "" },
         },
         sliderDefinition("views.batchBackupLimitMb", t("settings.backupLimit"),
           DEFAULT_SETTINGS.batchBackupLimitMb, 1, 100, 1),

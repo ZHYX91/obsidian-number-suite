@@ -340,11 +340,11 @@ describe("settings", () => {
       createdAt: "2026-08-23T00:00:00.000Z",
       operation: "write",
       status: "applied",
-      files: [{ path: "note.md", before: "# A", afterHash: "sha256:abc" }],
+      files: [{ path: "note.md", before: "# A", afterHash: "sha256:" + "a".repeat(64) }],
     })?.files[0]).toEqual({
       path: "note.md",
       before: "# A",
-      afterHash: "sha256:abc",
+      afterHash: "sha256:" + "a".repeat(64),
     });
     expect(sanitizeLastBatch({
       createdAt: "2026-08-23T00:00:00.000Z",

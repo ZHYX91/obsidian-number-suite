@@ -51,10 +51,16 @@ function harness(
   let persistenceCalls = 0;
   const persistedSnapshots: Array<LastBatchSnapshot | null> = [];
   const leaves: Array<{ view: MarkdownView }> = [];
+  const cachedSources = new Map<string, string>();
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? folders.get(path) ?? null,
     getMarkdownFiles: () => [...files.values()],
     cachedRead: async (file: TFile) => {
+      const source = contents.get(file.path) ?? "";
+      await readHook?.(file);
+      return cachedSources.get(file.path) ?? source;
+    },
+    read: async (file: TFile) => {
       const source = contents.get(file.path) ?? "";
       await readHook?.(file);
       return source;
@@ -89,6 +95,7 @@ function harness(
   };
   return {
     contents,
+    cachedSources,
     controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, excludedFolders, selectedSchemeId: "hierarchical" }), persistence),
     addFolder: (path: string) => {
       const folder = Object.assign(Object.create(TFolder.prototype) as TFolder, { path });
@@ -143,11 +150,8 @@ function applyHarness(diskSource: string, bufferSource: string) {
   const view = new MarkdownView({} as never);
   view.file = file;
   const leaves: Array<{ view: MarkdownView }> = [{ view }];
-  let afterSave: (() => void) | null = null;
-  const save = vi.fn(async () => {
-    contents.set(file.path, bufferSource);
-    afterSave?.();
-  });
+  let afterRead: (() => void) | null = null;
+  const save = vi.fn(async () => { contents.set(file.path, bufferSource); });
   Object.assign(view, {
     editor: { getValue: () => bufferSource },
     save,
@@ -156,7 +160,7 @@ function applyHarness(diskSource: string, bufferSource: string) {
   const app = {
     vault: {
       getAbstractFileByPath: (path: string) => path === file.path ? file : null,
-      cachedRead: async (target: TFile) => contents.get(target.path) ?? "",
+      read: async (target: TFile) => { afterRead?.(); return contents.get(target.path) ?? ""; },
       process: async (target: TFile, transform: (current: string) => string) => {
         const current = contents.get(target.path) ?? "";
         const next = transform(current);
@@ -182,7 +186,7 @@ function applyHarness(diskSource: string, bufferSource: string) {
     file,
     leaves,
     save,
-    setAfterSave: (hook: typeof afterSave) => { afterSave = hook; },
+    setAfterRead: (hook: typeof afterRead) => { afterRead = hook; },
     view,
   };
 }
@@ -397,6 +401,30 @@ describe("BatchController preview", () => {
     expect(test.contents.get("b.md")).toBe("# Disk B");
   });
 
+  it("preserves an external disk revision delivered after preview of a dirty editor", async () => {
+    const test = harness({ "a.md": "# Initial" });
+    const open = test.addView("a.md", "# Local draft");
+    await preview(test.controller);
+    const shown = currentPreview();
+    test.contents.set("a.md", "# External revision");
+    await shown.onConfirm(shown.documents);
+    expect(test.contents.get("a.md")).toBe("# External revision");
+    expect(open.save).not.toHaveBeenCalled();
+    expect(test.persistedSnapshots).toEqual([]);
+    expect(test.processCalls()).toBe(0);
+  });
+
+  it("accepts the same preview once the host has saved its dirty buffer", async () => {
+    const test = harness({ "a.md": "# Initial" });
+    const open = test.addView("a.md", "# Local draft");
+    await preview(test.controller);
+    const shown = currentPreview();
+    test.contents.set("a.md", "# Local draft");
+    await shown.onConfirm(shown.documents);
+    expect(open.save).not.toHaveBeenCalled();
+    expect(test.contents.get("a.md")).toBe("# 1 Local draft");
+  });
+
   it("fails closed when two panes of one target disagree", async () => {
     const test = harness({ "a.md": "# Disk A" });
     const first = test.addView("a.md", "# Pane A");
@@ -422,7 +450,7 @@ describe("BatchController recovery loading", () => {
     const app = {
       vault: {
         getAbstractFileByPath: () => file,
-        cachedRead: async () => contents.get("a.md") ?? "",
+        read: async () => contents.get("a.md") ?? "",
         process: async (_file: TFile, transform: (current: string) => string) => {
           const next = transform(contents.get("a.md") ?? "");
           contents.set("a.md", next);
@@ -456,6 +484,28 @@ describe("BatchController undo", () => {
     expect(test.contents.get("a.md")).toBe("before:a.md");
     expect(test.contents.get("b.md")).toBe("before:b.md");
     expect(test.getStored()).toBeNull();
+  });
+
+  it("restores disk even when the read cache still contains the pre-batch text", async () => {
+    const applied = { "a.md": "after-a" };
+    const test = harness(applied, await snapshot(applied));
+    test.cachedSources.set("a.md", "before:a.md");
+
+    await test.controller.undo((key) => key);
+
+    expect(test.contents.get("a.md")).toBe("before:a.md");
+    expect(test.getStored()).toBeNull();
+  });
+
+  it("keeps recovery when stale cached pre-batch text hides an external edit", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "external edit" }, recovery);
+    test.cachedSources.set("a.md", "before:a.md");
+
+    await test.controller.undo((key) => key);
+
+    expect(test.contents.get("a.md")).toBe("external edit");
+    expect(test.getStored()).toBe(recovery);
   });
 
   it("preserves a concurrent edit and retains recovery when a rollback conflicts", async () => {
@@ -503,19 +553,19 @@ describe("BatchController apply", () => {
     expect((Notice as unknown as { readonly messages: string[] }).messages).toContain("notice.batchChanged");
   });
 
-  it("saves an unchanged bound editor buffer before guarded replacement", async () => {
+  it("uses a matching saved buffer without dispatching an unguarded editor save", async () => {
     const test = applyHarness("before", "before");
 
     await applyPreview(test.controller, previewDocument("before", "after"));
 
-    expect(test.save).toHaveBeenCalledOnce();
+    expect(test.save).not.toHaveBeenCalled();
     expect(test.contents.get("a.md")).toBe("after");
     expect(test.getStored()?.status).toBe("applied");
   });
 
-  it("rejects the preview when its bound view closes during save", async () => {
+  it("rejects the preview when its bound view closes during disk validation", async () => {
     const test = applyHarness("before", "before");
-    test.setAfterSave(() => test.leaves.splice(0));
+    test.setAfterRead(() => test.leaves.splice(0));
 
     await applyPreview(test.controller, previewDocument("before", "after"));
 
@@ -525,10 +575,10 @@ describe("BatchController apply", () => {
       .toContain("notice.batchChanged");
   });
 
-  it("rejects the preview when its bound view changes files during save", async () => {
+  it("rejects the preview when its bound view changes files during disk validation", async () => {
     const test = applyHarness("before", "before");
     const FileConstructor = TFile as unknown as new (path: string) => TFile;
-    test.setAfterSave(() => { test.view.file = new FileConstructor("other.md"); });
+    test.setAfterRead(() => { test.view.file = new FileConstructor("other.md"); });
 
     await applyPreview(test.controller, previewDocument("before", "after"));
 
@@ -538,9 +588,9 @@ describe("BatchController apply", () => {
       .toContain("notice.batchChanged");
   });
 
-  it("rejects a new stale view of the same file opened during save", async () => {
+  it("rejects a new stale view of the same file opened during disk validation", async () => {
     const test = applyHarness("before", "before");
-    test.setAfterSave(() => {
+    test.setAfterRead(() => {
       const lateView = new MarkdownView({} as never);
       lateView.file = test.file;
       Object.assign(lateView, {

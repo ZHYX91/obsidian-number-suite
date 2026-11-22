@@ -102,7 +102,7 @@ describe("Obsidian 1.13 settings definitions", () => {
     await tab.setControlValue("references.showCrossReferences", false);
     await tab.setControlValue("notes.showNoteNumbers", false);
     await tab.setControlValue("notes.displayMode", "source");
-    await tab.setControlValue("views.excludedFolders", "Private, /Archive/, Private");
+    await tab.setControlValue("views.excludedFolders", "Private\n/Archive/\nPrivate\nDrafts, final");
 
     expect(host.settings.language).toBe("zh");
     expect(host.settings.showVirtualNumbers).toBe(true);
@@ -120,7 +120,7 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(host.settings.showCrossReferences).toBe(false);
     expect(host.settings.showNoteNumbers).toBe(false);
     expect(host.settings.noteDisplayMode).toBe("source");
-    expect(host.settings.excludedFolders).toEqual(["Private", "Archive"]);
+    expect(host.settings.excludedFolders).toEqual(["Private", "Archive", "Drafts, final"]);
     expect(host.saveSettings).toHaveBeenCalledTimes(16);
     expect(host.scheduleSettings).toHaveBeenCalledTimes(1);
   });

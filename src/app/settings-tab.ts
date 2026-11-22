@@ -445,7 +445,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     new Setting(container).setName(t("settings.batch")).setHeading();
     renderBatchOperationsGuide(container, t);
     new Setting(container).setName(t("settings.excluded")).setDesc(t("settings.excluded.desc"))
-      .addText((text) => text.setValue(this.plugin.settings.excludedFolders.join(", "))
+      .addTextArea((text) => text.setValue(this.plugin.settings.excludedFolders.join("\n"))
         .onChange((value) => this.updateControl("views.excludedFolders", value)));
     new Setting(container).setName(t("settings.backupLimit")).setDesc(t("settings.backupLimit.desc")).addSlider((slider) => slider
       .setLimits(1, 100, 1).setDynamicTooltip().setValue(this.plugin.settings.batchBackupLimitMb)

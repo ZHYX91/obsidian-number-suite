@@ -132,7 +132,7 @@ export function getSettingsControlValue(
     case "views.revealOnActiveLine": return settings.revealOnActiveLine;
     case "views.virtualOpacity": return settings.virtualOpacity;
     case "views.virtualGapEm": return settings.virtualGapEm;
-    case "views.excludedFolders": return settings.excludedFolders.join(", ");
+    case "views.excludedFolders": return settings.excludedFolders.join("\n");
     case "views.batchBackupLimitMb": return settings.batchBackupLimitMb;
   }
 }
@@ -330,7 +330,7 @@ function boundedControlNumber(
 }
 
 function parseExcludedFolders(value: string): string[] {
-  return value.split(",")
+  return value.split(/\r\n?|\n/u)
     .map((entry) => entry.trim().replace(/\\/gu, "/").replace(/^\/+|\/+$/gu, ""))
     .filter((entry, index, all) => entry.length > 0 && all.indexOf(entry) === index);
 }

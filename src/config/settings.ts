@@ -378,18 +378,24 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
 function isBatchFile(value: unknown): value is BatchFileSnapshot {
   return isRecord(value)
     && typeof value.path === "string"
+    && /\.md$/iu.test(value.path)
+    && value.path.split("/").every((part) => part.length > 0 && part !== "." && part !== "..")
     && typeof value.before === "string"
-    && typeof value.afterHash === "string";
+    && typeof value.afterHash === "string"
+    && /^sha256:[0-9a-f]{64}$/u.test(value.afterHash);
 }
 
 export function sanitizeLastBatch(value: unknown): LastBatchSnapshot | null {
-  if (!isRecord(value) || !Array.isArray(value.files) || !value.files.every(isBatchFile)) {
+  if (!isRecord(value) || !Array.isArray(value.files) || value.files.length === 0 || !value.files.every(isBatchFile)) {
     return null;
   }
   if (
     typeof value.createdAt !== "string"
-    || !["write", "remove", "renumber", "strip-markers"].includes(String(value.operation))
-    || !["pending", "applied"].includes(String(value.status))
+    || new Set(value.files.map((file) => file.path)).size !== value.files.length
+    || typeof value.operation !== "string"
+    || !["write", "remove", "renumber", "strip-markers"].includes(value.operation)
+    || typeof value.status !== "string"
+    || !["pending", "applied"].includes(value.status)
   ) {
     return null;
   }

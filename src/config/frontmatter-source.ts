@@ -46,28 +46,29 @@ export function notePropertySourceIssues(frontmatter: string): NotePropertyIssue
   return issues;
 }
 
-export function parseNoteOverridesFromSource(source: string): NoteOverrides | null {
+function readProperties(source: string): { record: Record<string, unknown>; issues: NotePropertyIssue[] } | null {
   try {
     const info = getFrontMatterInfo(source);
-    return info.exists
-      ? withNotePropertyIssues(parseNoteOverrides(parseYaml(info.frontmatter)), notePropertySourceIssues(info.frontmatter))
-      : parseNoteOverrides(null);
+    if (!info.exists) return { record: {}, issues: [] };
+    const value: unknown = parseYaml(info.frontmatter);
+    if (value == null) {
+      // Both an empty document and an explicit YAML null can parse to null.
+      const empty = info.frontmatter.split(/\r\n|\r|\n/u).every((line) => /^\s*(?:#.*)?$/u.test(line));
+      return empty ? { record: {}, issues: [] } : null;
+    }
+    if (Object.prototype.toString.call(value) !== "[object Object]") return null;
+    return { record: value as Record<string, unknown>, issues: notePropertySourceIssues(info.frontmatter) };
   } catch {
     return null;
   }
 }
 
+export function parseNoteOverridesFromSource(source: string): NoteOverrides | null {
+  const properties = readProperties(source);
+  return properties == null ? null : withNotePropertyIssues(parseNoteOverrides(properties.record), properties.issues);
+}
+
 export function parseFrontmatterRecordFromSource(source: string): Record<string, unknown> | null {
-  try {
-    const info = getFrontMatterInfo(source);
-    if (!info.exists) return {};
-    if (notePropertySourceIssues(info.frontmatter).length > 0) return null;
-    const value: unknown = parseYaml(info.frontmatter);
-    if (value == null) return {};
-    return typeof value === "object" && !Array.isArray(value)
-      ? value as Record<string, unknown>
-      : null;
-  } catch {
-    return null;
-  }
+  const properties = readProperties(source);
+  return properties?.issues.length === 0 ? properties.record : null;
 }
