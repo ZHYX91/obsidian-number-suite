@@ -9,7 +9,7 @@ export interface StableReferenceModalOptions {
   readonly app: App;
   readonly plan: StableReferencePlan;
   readonly translate: Translate;
-  readonly onConfirm: () => Promise<void>;
+  readonly onConfirm: (owner?: Window | null) => Promise<void>;
 }
 
 export class StableReferenceModal extends Modal {
@@ -51,7 +51,7 @@ export class StableReferenceModal extends Modal {
         if (this.closed || this.options.signal?.aborted || this.applying) return;
         this.applying = true;
         confirmButton?.setDisabled(true);
-        void this.options.onConfirm()
+        void this.options.onConfirm(this.contentEl.ownerDocument.defaultView)
           .then(() => this.close())
           .catch((error: unknown) => {
             this.applying = false;

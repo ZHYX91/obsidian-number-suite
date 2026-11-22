@@ -452,6 +452,7 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "Arraste um título sobre outro do mesmo nível e pai para mover a seção inteira antes ou depois dele. Só é possível reordenar títulos irmãos. A ação altera o Markdown, permite desfazer e exige a nota aberta no editor.",
   "headingMap.rearrange.hint": "Ajustando estrutura: arraste entre irmãos ou use ↑ / ↓. Permite desfazer.",
   "headingMap.rearrange.invalid": "Escolha outro título com o mesmo pai e nível.",
+  "headingMap.rearrange.boundary": "Este movimento cruzaria ou alteraria o limite de uma seção Markdown.",
   "headingMap.rearrange.noEditor": "Abra esta nota no editor de código-fonte.",
   "headingMap.rearrange.before": "Inserir antes de “{title}”",
   "headingMap.rearrange.after": "Inserir depois de “{title}”",

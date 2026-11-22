@@ -452,6 +452,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "اسحب عنوانًا إلى عنوان شقيق له ضمن القسم الأب نفسه لنقل القسم كاملًا قبله أو بعده. يدعم إعادة ترتيب الأشقاء فقط، ويعدّل Markdown مع إمكانية التراجع. يجب فتح الملاحظة في المحرر.",
   "headingMap.rearrange.hint": "تعديل البنية: اسحب بين العناوين الشقيقة أو استخدم ↑ / ↓. يمكن التراجع.",
   "headingMap.rearrange.invalid": "اختر عنوانًا آخر من المستوى والأب نفسيهما.",
+  "headingMap.rearrange.boundary": "سيؤدي نقل هذا القسم إلى تجاوز حدود أحد أقسام Markdown أو تغييرها.",
   "headingMap.rearrange.noEditor": "افتح هذه الملاحظة في محرر المصدر.",
   "headingMap.rearrange.before": "إدراج قبل «{title}»",
   "headingMap.rearrange.after": "إدراج بعد «{title}»",

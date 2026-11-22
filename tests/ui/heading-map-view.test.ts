@@ -220,6 +220,28 @@ describe("heading map interactions", () => {
     expect(view.moveStatusError).toBe(true);
   });
 
+  it("announces a boundary-changing move from the button and drag handle, but keeps an adjacent no-op quiet", async () => {
+    const view = makeView();
+    view.moveStatusEl = document.createElement("div");
+    await view.refreshMap("# Apples\nFirst section\n# Pears\n```");
+    view.rearranging = true;
+    view.render();
+    const [a, b] = view.roots.map((node) => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${node.id}"]`)!);
+    const up = b!.querySelector<HTMLButtonElement>(".number-suite-heading-map-order-action")!;
+    up.click();
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.boundary");
+    b!.dispatchEvent(new Event("dragstart"));
+    // A's before and after halves are a real move and an adjacent no-op, respectively.
+    a!.dispatchEvent(new MouseEvent("dragover", { clientY: -1, cancelable: true }));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.boundary");
+    a!.dispatchEvent(new MouseEvent("drop", { clientY: -1, cancelable: true }));
+    b!.dispatchEvent(new Event("dragend"));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.boundary");
+    b!.dispatchEvent(new Event("dragstart"));
+    a!.dispatchEvent(new MouseEvent("dragover", { clientY: 1, cancelable: true }));
+    expect(view.moveStatusEl.textContent).toBe("headingMap.rearrange.hint");
+  });
+
   it("uses one level capsule with a level tooltip and no child control on heading leaves", async () => {
     const view = makeView();
     await view.refreshMap("# Root\n## Child");
@@ -442,6 +464,17 @@ describe("heading map interactions", () => {
     view.onActiveLeafChange({ view: markdown } as WorkspaceLeaf);
     vi.advanceTimersByTime(200);
     expect(refreshMap.mock.calls).toEqual([["# New pane", "Same.md"]]);
+  });
+
+  it("binds a reopened same-path replacement as a new document and leaves Adjust structure", () => {
+    const view = makeView();
+    Object.assign(view, { refreshMap: vi.fn().mockResolvedValue(undefined), rearranging: true });
+    const replacement = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "Same.md", basename: "Same", extension: "md",
+    });
+    view.showFile(replacement, null, true);
+    expect(view.currentFile).toBe(replacement);
+    expect(view.rearranging).toBe(false);
   });
 
   it("keeps a map opened from another pane bound to that pane's document", () => {

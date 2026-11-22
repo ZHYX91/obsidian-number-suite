@@ -7,6 +7,64 @@ import { planHeadingTransform } from "../../src/core/transform";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
 describe("shared Markdown protection", () => {
+  it.each(["pre", "script", "style", "textarea"])(
+    "protects a raw %s tag whose attributes start on the following line", (tag) => {
+      const source = [`<${tag.toUpperCase()}`, 'class="example">', "", "# literal", `</${tag}>`, "# Real"].join("\n");
+      const plan = planHeadingTransform(source, "write", {
+        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+        writeMarkers: false, cleanupScope: "templates", templateSources: [],
+        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+      });
+      expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+    },
+  );
+
+  it.each([
+    ["<pre>", "</PRE >", "# literal", "</pre>", "", "# Real"],
+    ["<textarea>", "</textarea\t>", "# literal", "</STYLE>", "", "# Real"],
+    ["<script>", "# literal", "const sample = '</TeXtArEa>';", "", "# Real"],
+    ["<style> body::after { content: '</PRE>' }", "", "# Real"],
+  ])("honors CommonMark raw HTML end conditions after %s", (...lines) => {
+    const source = lines.join("\n");
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+  });
+
+  it.each([
+    ["<script>", "</ſcript>", "# literal", "</STYLE>", "# Real"],
+    ["<div>", "\u00a0", "# literal", "", "# Real"],
+    ["<widget>", "\u2003", "# literal", "\t", "# Real"],
+    ["<ſtyle>", "# Real"],
+  ])("keeps actual HTML boundaries for Unicode text after %s", (...lines) => {
+    const source = lines.join("\n");
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+  });
+
+  it("keeps similar tag-name prefixes from starting raw HTML blocks", () => {
+    expect(parseAtxHeadings("<preview\n# Real").map((heading) => heading.content)).toEqual(["Real"]);
+  });
+
+  it.each(["pre", "script", "style", "textarea"])(
+    "resumes numbering after a standalone self-closing <%s/> block", (tag) => {
+      const source = [`<${tag}/>`, "# Inside HTML", "", "# First", "## Second"].join("\n");
+      const plan = planHeadingTransform(source, "write", {
+        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+        writeMarkers: false, cleanupScope: "templates", templateSources: [],
+        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+      });
+      expect(plan.result).toBe(source.replace("# First", "# 1 First").replace("## Second", "## 1.1 Second"));
+    },
+  );
+
   it("preserves caption code and link source while masking comments and literal references", () => {
     const source = "Figure: Using `foo()` and [docs](https://example.com) <!-- private --> ^fig\n\nCode: `print(x)`\n\nSee `@[[#Hidden]]` and @[[#^fig]]";
     const parsed = parseDocumentSemantics(source);
@@ -15,7 +73,7 @@ describe("shared Markdown protection", () => {
     expect(parsed.references.map((r) => r.target)).toEqual(["fig"]);
   });
 
-  it.each(["# Heading", "```\ncode\n```", "***"]) (
+  it.each(["# Heading", "```\ncode\n```", "***", "[label]: /url", "[label]:\n  /url"]) (
     "protects type-7 HTML after a completed block: %s", (prefix) => {
       const source = `${prefix}\n<custom-tag>\n## Protected\n\n## Visible`;
       const plan = planHeadingTransform(source, "write", {
@@ -29,6 +87,16 @@ describe("shared Markdown protection", () => {
 
   it("does not start type-7 HTML in the middle of a paragraph", () => {
     expect(parseAtxHeadings("Paragraph\n<custom-tag>\n## Visible").map((h) => h.content)).toEqual(["Visible"]);
+  });
+
+  it("keeps a complete custom tag inline after a non-interrupting ordered list marker", () => {
+    const source = "Body\n2. continuation\n<custom-tag>\n# Candidate\n\n# Tail";
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Candidate", "# 1 Candidate").replace("# Tail", "# 2 Tail"));
   });
 
   it("keeps comment delimiters inert inside another comment and recognizes successive comments", () => {

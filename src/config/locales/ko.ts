@@ -452,6 +452,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "headingMap.rearrange.description": "제목을 같은 부모의 형제 제목으로 끌어 전체 섹션을 앞이나 뒤로 이동합니다. 같은 단계의 정렬만 지원하며 Markdown이 수정됩니다. 실행 취소할 수 있습니다. 해당 노트를 편집기에서 열어야 합니다.",
   "headingMap.rearrange.hint": "구조 조정 중: 같은 계층으로 끌거나 ↑ / ↓ 사용. 실행 취소 가능.",
   "headingMap.rearrange.invalid": "부모와 수준이 같은 다른 제목을 선택하세요.",
+  "headingMap.rearrange.boundary": "이 이동은 Markdown 섹션 경계를 넘거나 변경합니다.",
   "headingMap.rearrange.noEditor": "이 노트를 소스 편집기에서 여세요.",
   "headingMap.rearrange.before": "“{title}” 앞에 삽입",
   "headingMap.rearrange.after": "“{title}” 뒤에 삽입",

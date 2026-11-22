@@ -15,7 +15,7 @@ export function codeSpanEnd(text: string, from: number): number | null {
 
 export function scanInlineComments(text: string, initial: CommentKind | null = null,
   codeRanges: readonly { from: number; to: number }[] = []) {
-  const characters = text.split("");
+  let characters: string[] | undefined;
   const ranges: Array<{ from: number; to: number; kind: CommentKind }> = [];
   let state = initial;
   let unclosedFrom: number | null = null;
@@ -43,12 +43,13 @@ export function scanInlineComments(text: string, initial: CommentKind | null = n
     const closing = text.indexOf(ending, cursor + openingLength);
     const to = closing < 0 ? text.length : closing + ending.length;
     ranges.push({ from, to, kind: state });
+    characters ??= text.split("");
     blankRange(characters, from, to);
     if (closing < 0) { unclosedFrom = from; break; }
     state = null;
     cursor = to;
   }
-  return { masked: characters.join(""), ranges, state, unclosedFrom };
+  return { masked: characters?.join("") ?? text, ranges, state, unclosedFrom };
 }
 
 export function blankRange(characters: string[], from: number, to: number): void {

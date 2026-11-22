@@ -1,4 +1,4 @@
-import { blockHtmlStart, completeCustomHtmlTag, leadingMarkup, rawHtmlStart } from "./markdown-html-blocks";
+import { blockHtmlStart, completeCustomHtmlTag, endsRawHtmlBlock, leadingMarkup, startsRawHtmlBlock } from "./markdown-html-blocks";
 import { blankRange, codeSpanEnd, scanInlineComments, type CommentKind } from "./markdown-comments";
 import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 import { scanMarkdownContainerLines } from "./markdown-containers";
@@ -19,12 +19,8 @@ export interface MarkdownProtectedLine extends PhysicalSourceLine {
 type ProtectedBlockState =
   | Readonly<{ kind: "fence"; character: "`" | "~"; length: number }>
   | Readonly<{ kind: "until"; ending: string }>
-  | Readonly<{ kind: "raw-html"; tag: string }>
+  | Readonly<{ kind: "raw-html" }>
   | Readonly<{ kind: "blank-html" }>;
-
-function closesRawTag(text: string, tag: string): boolean {
-  return new RegExp(`</${tag}[ \\t]*>`, "iu").test(text);
-}
 
 /**
  * Marks physical lines that are safe for Number Suite's top-level Markdown scanners.
@@ -39,12 +35,11 @@ export function scanMarkdownProtectedLines(
   const containers = scanMarkdownContainerLines(lines);
   const output: MarkdownProtectedLine[] = [];
   let state: ProtectedBlockState | null = null;
-  let inParagraph = false;
   let inlineComment: CommentKind | null = null;
 
   for (const line of lines) {
     const container = containers[line.number];
-    const trimmed = line.text.trim();
+    const blank = /^[ \t]*$/u.test(line.text);
     let available = true;
     let commentMaskedText = line.text;
     let headingAvailable = true;
@@ -63,9 +58,9 @@ export function scanMarkdownProtectedLines(
       if (line.text.includes(state.ending)) state = null;
     } else if (state?.kind === "raw-html") {
       available = false;
-      if (closesRawTag(line.text, state.tag)) state = null;
+      if (endsRawHtmlBlock(line.text)) state = null;
     } else if (state?.kind === "blank-html") {
-      if (trimmed.length === 0) {
+      if (blank) {
         state = null;
         available = true;
       } else {
@@ -122,14 +117,13 @@ export function scanMarkdownProtectedLines(
           available = false;
           if (!markup.includes(">", 2)) state = { kind: "until", ending: ">" };
         } else if (markup != null) {
-          const rawTag = rawHtmlStart(markup);
-          if (rawTag != null) {
+          if (startsRawHtmlBlock(markup)) {
             available = false;
-            if (!closesRawTag(markup, rawTag)) state = { kind: "raw-html", tag: rawTag };
+            if (!endsRawHtmlBlock(markup)) state = { kind: "raw-html" };
           } else if (blockHtmlStart(markup)) {
             available = false;
             state = { kind: "blank-html" };
-          } else if (!inParagraph && completeCustomHtmlTag(markup)) {
+          } else if (!container?.continuesParagraph && completeCustomHtmlTag(markup)) {
             available = false;
             state = { kind: "blank-html" };
           }
@@ -150,10 +144,6 @@ export function scanMarkdownProtectedLines(
       ...(available && headingAvailable && topLevel && container?.setextLevel != null ? { setextLevel: container.setextLevel } : {}),
       ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });
-    // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
-    // heading, fence, thematic break or other block without a blank line.
-    inParagraph = available && trimmed.length > 0
-      && !/^ {0,3}(?:#{1,9}(?:[ \t]|$)|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|(?:-[ \t]*){3,}$|[=-]+[ \t]*$|>|[-+*][ \t]|\d+[.)][ \t])/u.test(line.text);
   }
 
   return output;

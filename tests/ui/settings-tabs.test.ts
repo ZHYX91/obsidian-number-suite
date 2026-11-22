@@ -33,7 +33,7 @@ describe("settings tabs", () => {
       "true", "false", "false", "false", "false", "false", "false",
     ]);
     expect(Array.from(tabs, (tab) => tab.tabIndex)).toEqual([0, -1, -1, -1, -1, -1, -1]);
-    expect(tabs[0]?.getAttribute("aria-controls")).toBe(result.panel.id);
+    for (const tab of tabs) expect(document.getElementById(tab.getAttribute("aria-controls")!)).toBe(result.panel);
     expect(result.panel.getAttribute("role")).toBe("tabpanel");
     expect(result.panel.getAttribute("aria-labelledby")).toBe("number-suite-settings-tab-general");
     result.cleanup();
