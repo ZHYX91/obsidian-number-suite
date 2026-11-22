@@ -154,4 +154,107 @@ describe("native Outline metadata catch-up", () => {
     expect(views[0]!.getHeadings()).toEqual([]);
     enhancer.stop();
   });
+
+  it("reads and navigates an open external note without resolving it through the vault", async () => {
+    Object.defineProperty(document, "win", { configurable: true, value: {
+      createSpan: () => document.createElement("span"),
+    } });
+    const path = "file:C:/External/Note.md";
+    const makeFile = (name: string) => new (TFile as unknown as new (path: string) => TFile)(name);
+    const file = makeFile(path);
+    const markdownLeaf = (file: TFile, initial: string) => {
+      let data = initial;
+      const editor = { getValue: () => data, transaction: vi.fn() };
+      const leaf = { view: {} as MarkdownView, setEphemeralState: vi.fn(), openFile: vi.fn() };
+      leaf.view = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
+        leaf, file, editor, getState: () => ({ file: file.path }), getViewData: () => data,
+        getMode: () => "preview",
+      });
+      return { leaf, editor, setData: (value: string) => { data = value; } };
+    };
+    // The source editor normalizes CRLF while the native cache indexes the file's raw offsets.
+    const content = (title: string) => "\n# Chapter\n####### " + title + "\n";
+    const own = markdownLeaf(file, content("External inside"));
+    const sameName = markdownLeaf(makeFile("Note.md"), content("Vault inside"));
+    const otherExternal = markdownLeaf(makeFile("file:C:/Other/Note.md"), content("Other inside"));
+    const split = markdownLeaf(file, content("Split inside"));
+    let open = [sameName.leaf, otherExternal.leaf, own.leaf];
+    let active = sameName.leaf;
+    const view = Object.assign(new (ItemView as unknown as new () => ItemView)(), {
+      getState: () => ({ file: path }),
+      getHeadings: (): HeadingCache[] => [{
+        heading: "Chapter", level: 1,
+        position: { start: { line: 1, col: 0, offset: 2 }, end: { line: 1, col: 9, offset: 11 } },
+      }],
+      update: () => {
+        const children = view.getHeadings().map((heading) => {
+          const innerEl = document.createElement("div");
+          innerEl.className = "tree-item-self";
+          innerEl.textContent = heading.heading;
+          return { heading, innerEl, vChildren: { _children: [] } };
+        });
+        Object.assign(view, { tree: { root: { vChildren: { _children: children } } } });
+        view.contentEl.replaceChildren(...children.map((item) => item.innerEl));
+      },
+    });
+    document.body.append(view.contentEl);
+    const listeners = new Map<string, (...args: unknown[]) => void>();
+    const on = (name: string, callback: (...args: unknown[]) => void) => { listeners.set(name, callback); };
+    const emit = (name: string, ...args: unknown[]) => listeners.get(name)?.(...args);
+    const revealLeaf = vi.fn();
+    const getLeaf = vi.fn();
+    const lookup = vi.fn(() => null);
+    const read = vi.fn();
+    const plugin = {
+      registerEvent: vi.fn(), register: vi.fn(),
+      app: {
+        workspace: { on, onLayoutReady: (callback: () => void) => callback(), revealLeaf, getLeaf,
+          getLeavesOfType: (type: string) => type === "outline" ? [{ view }] : open,
+          getActiveViewOfType: () => active.view, getMostRecentLeaf: () => active,
+          iterateAllLeaves: (visit: (leaf: typeof active) => void) => open.forEach(visit) },
+        vault: { on, cachedRead: read, getAbstractFileByPath: lookup }, metadataCache: { on },
+      },
+    };
+    const enhancer = new NativeOutlineEnhancer(plugin as never, () => ({
+      ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical", showVirtualNumbers: true, showOutlineExtendedHeadings: true,
+    }));
+    const labels = () => view.getHeadings().map((heading) => heading.heading);
+
+    enhancer.start();
+    await Promise.resolve();
+    expect(labels()).toEqual(["Chapter", "External inside"]);
+    expect(view.contentEl.querySelector(".number-suite-native-outline-number")?.textContent).toBe("1");
+    view.contentEl.lastElementChild!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(own.leaf.setEphemeralState).toHaveBeenCalledExactlyOnceWith({ line: 2 });
+    expect(revealLeaf).toHaveBeenCalledExactlyOnceWith(own.leaf);
+    expect(sameName.leaf.setEphemeralState).not.toHaveBeenCalled();
+    expect(otherExternal.leaf.setEphemeralState).not.toHaveBeenCalled();
+
+    open.push(split.leaf);
+    active = split.leaf;
+    emit("active-leaf-change", active);
+    expect(labels()).toEqual(["Chapter", "Split inside"]);
+    own.setData(content("Inactive edit"));
+    emit("editor-change", own.editor, { file });
+    expect(labels()).toEqual(["Chapter", "Split inside"]);
+    split.setData(content("Unsaved edit"));
+    emit("editor-change", split.editor, { file });
+    expect(labels()).toEqual(["Chapter", "Unsaved edit"]);
+    const current = view.contentEl.lastElementChild!;
+    expect(current.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true, cancelable: true, isPrimary: true, pointerType: "mouse",
+    }))).toBe(true);
+
+    open = [sameName.leaf, otherExternal.leaf];
+    active = otherExternal.leaf;
+    current.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    emit("layout-change");
+    expect(labels()).toEqual(["Chapter"]);
+    expect(getLeaf).not.toHaveBeenCalled();
+    expect(own.leaf.openFile).not.toHaveBeenCalled();
+    expect(split.leaf.setEphemeralState).not.toHaveBeenCalled();
+    expect(lookup).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
+    enhancer.stop();
+  });
 });

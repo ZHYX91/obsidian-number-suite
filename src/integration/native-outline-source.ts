@@ -31,7 +31,7 @@ export function readOutlineStructure(source: string) {
   );
   const lineKey = JSON.stringify([[...native.keys()], [...captionByLine.keys()]]);
   return { contentKey: JSON.stringify(content), lineKey, positionKey: positionsKey(native, captionByLine),
-    frontmatterEnd, lastStructuralOffset, native, captionByLine };
+    hasCarriageReturns: source.includes("\r"), frontmatterEnd, lastStructuralOffset, native, captionByLine };
 }
 
 export type OutlineStructure = ReturnType<typeof readOutlineStructure>;
@@ -81,6 +81,25 @@ export function nativeHeadingIsCurrent(structure: OutlineStructure, item: Headin
   const { line, col, offset } = item.position.start;
   const row = structure.native.get(line);
   return row != null && row.level === item.level && row.offset + col === offset && sameOutlineTitle(row.title, item.heading);
+}
+
+/** The Source editor uses LF while the metadata worker can index CRLF bytes.
+ * Align only when every native heading matches the same position convention. */
+export function nativeHeadingsInSource(headings: HeadingCache[], structure: OutlineStructure): HeadingCache[] | null {
+  if (headings.every((item) => nativeHeadingIsCurrent(structure, item))) return headings;
+  if (structure.hasCarriageReturns || !headings.every((item) => {
+    const { line, col, offset } = item.position.start;
+    const row = structure.native.get(line);
+    return row != null && row.level === item.level && row.offset + col + line === offset
+      && sameOutlineTitle(row.title, item.heading);
+  })) return null;
+  return headings.map((item) => {
+    const { start, end } = item.position;
+    return { ...item, position: {
+      start: { ...start, offset: start.offset - start.line },
+      end: { ...end, offset: end.offset - end.line },
+    } };
+  });
 }
 
 export function syntheticRowIsCurrent(structure: OutlineStructure, item: ExtraOutlineHeading): boolean {
