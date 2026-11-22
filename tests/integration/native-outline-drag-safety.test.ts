@@ -100,6 +100,10 @@ describe("native Outline section gestures", () => {
     drag(h.row(6), "drop");
     expect(h.transaction).toHaveBeenCalledTimes(1);
     expect(h.editor.getValue()).toBe("# Chapter\n####### Second\nbody B\n####### First\nbody A\nFigure: Picture\n######## Child\nchild body\n");
+    const reordered = (h.view as unknown as { getHeadings(): ExtraOutlineHeading[] }).getHeadings();
+    expect(reordered.filter((item) => item.__numberSuiteExtra === "extended").map((item) => [
+      item.heading, item.position.start.line,
+    ])).toEqual([["Second", 1], ["First", 3], ["Child", 6]]);
     h.enhancer.stop();
   });
   it("rejects a stale editor even if the Outline snapshot has not refreshed", () => {

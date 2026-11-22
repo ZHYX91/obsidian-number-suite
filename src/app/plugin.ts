@@ -97,6 +97,8 @@ export default class NumberSuitePlugin extends Plugin {
     this.readingProcessor = new HeadingReadingProcessor(this.app, () => this.settings);
     this.registerMarkdownPostProcessor((element, context) => this.readingProcessor?.process(element, context));
     registerReadingViewRefresh(this);
+    this.registerEvent(this.app.vault.on("delete", (file) => this.readingProcessor?.forget(file.path)));
+    this.registerEvent(this.app.vault.on("rename", (_file, oldPath) => this.readingProcessor?.forget(oldPath)));
 
     this.batchController = new BatchController(
       this.app,
@@ -312,7 +314,10 @@ export default class NumberSuitePlugin extends Plugin {
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = file?.extension.toLowerCase() === "md";
-        if (!checking && available) void this.openHeadingMap(file.path);
+        if (!checking && available) {
+          const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+          void this.openHeadingMap(file.path, view?.file === file ? view.leaf : null);
+        }
         return available;
       },
     });

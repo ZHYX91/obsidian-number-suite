@@ -18,27 +18,33 @@ export const captionLayoutCleanup = new WeakMap<HTMLElement, () => void>();
 export const captionTargetLayoutCleanup = new WeakMap<HTMLElement, () => void>();
 export const referenceOriginalNodes = new WeakMap<HTMLElement, readonly ChildNode[]>();
 
+/** An embedded Markdown file owns its own source positions and rendered content. */
+export function readingDescendants<E extends Element>(root: Element, selector: string): E[] {
+  const owner = root.closest(".markdown-embed");
+  return [...root.querySelectorAll<E>(selector)].filter((element) => element.closest(".markdown-embed") === owner);
+}
+
 export function headingElements(container: HTMLElement): HTMLHeadingElement[] {
   const output: HTMLHeadingElement[] = [];
   if (/^H[1-6]$/u.test(container.tagName)) {
     output.push(container as HTMLHeadingElement);
   }
-  output.push(...container.querySelectorAll<HTMLHeadingElement>("h1, h2, h3, h4, h5, h6"));
+  output.push(...readingDescendants<HTMLHeadingElement>(container, "h1, h2, h3, h4, h5, h6"));
   return output;
 }
 
 function cleanupHeading(element: HTMLElement): void {
-  for (const virtual of element.querySelectorAll<HTMLElement>(VIRTUAL_NUMERAL_SELECTOR)) {
+  for (const virtual of readingDescendants<HTMLElement>(element, VIRTUAL_NUMERAL_SELECTOR)) {
     const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);
     else virtual.remove();
   }
-  for (const decorated of element.querySelectorAll<HTMLElement>(
+  for (const decorated of readingDescendants<HTMLElement>(element,
     ".number-suite-concealed, .number-suite-stored-heading-number"
   )) {
     decorated.replaceWith(...decorated.childNodes);
   }
-  element.normalize();
+  if (!element.querySelector(".markdown-embed")) element.normalize();
   element.removeAttribute("data-number-suite-mode");
   element.removeAttribute("data-number-suite-heading-level");
   element.classList.remove(
@@ -50,17 +56,17 @@ function cleanupHeading(element: HTMLElement): void {
 }
 
 function cleanupSemantic(container: HTMLElement): void {
-  for (const link of container.querySelectorAll<HTMLElement>(
+  for (const link of readingDescendants<HTMLElement>(container,
     "a.internal-link:has(.number-suite-native-wiki-hidden-prefix)"
   )) restoreNativeWikiHeadingPrefix(link);
-  for (const virtual of container.querySelectorAll<HTMLElement>(
+  for (const virtual of readingDescendants<HTMLElement>(container,
     ".number-suite-caption-number, .number-suite-reference-number, .number-suite-native-wiki-number",
   )) {
     const original = virtual.dataset.numberSuiteOriginal;
     if (original != null) virtual.replaceWith(original);
     else virtual.remove();
   }
-  for (const anchor of container.querySelectorAll<HTMLElement>("[data-number-suite-reference]")) {
+  for (const anchor of readingDescendants<HTMLElement>(container, "[data-number-suite-reference]")) {
     const originalNodes = referenceOriginalNodes.get(anchor);
     if (originalNodes != null) anchor.replaceChildren(...originalNodes);
     else anchor.textContent = anchor.dataset.numberSuiteReferenceOriginal ?? anchor.textContent;
@@ -82,7 +88,7 @@ function cleanupSemantic(container: HTMLElement): void {
   }
   const captions: HTMLElement[] = [];
   if (container.matches("[data-number-suite-caption-kind]")) captions.push(container);
-  captions.push(...container.querySelectorAll<HTMLElement>("[data-number-suite-caption-kind]"));
+  captions.push(...readingDescendants<HTMLElement>(container, "[data-number-suite-caption-kind]"));
   for (const caption of captions) {
     const origin = captionOrigins.get(caption);
     if (origin != null) {
@@ -121,17 +127,17 @@ function cleanupSemantic(container: HTMLElement): void {
   }
   const captionObjects: HTMLElement[] = [];
   if (container.matches(".number-suite-caption-object")) captionObjects.push(container);
-  captionObjects.push(...container.querySelectorAll<HTMLElement>(".number-suite-caption-object"));
+  captionObjects.push(...readingDescendants<HTMLElement>(container, ".number-suite-caption-object"));
   for (const object of captionObjects) {
     captionTargetLayoutCleanup.get(object)?.();
     object.classList.remove("number-suite-caption-object");
     delete object.dataset.numberSuiteCaptionPlacement;
   }
   if (container.matches("[data-number-suite-tooltip]")) clearSemanticTooltip(container);
-  for (const element of container.querySelectorAll<HTMLElement>("[data-number-suite-tooltip]")) {
+  for (const element of readingDescendants<HTMLElement>(container, "[data-number-suite-tooltip]")) {
     clearSemanticTooltip(element);
   }
-  for (const element of container.querySelectorAll<HTMLElement>("[data-number-suite-note-original]")) {
+  for (const element of readingDescendants<HTMLElement>(container, "[data-number-suite-note-original]")) {
     element.textContent = element.dataset.numberSuiteNoteOriginal ?? "";
     if (element.dataset.numberSuiteNoteAriaPresent === "true") {
       element.setAttribute("aria-label", element.dataset.numberSuiteNoteAriaOriginal ?? "");
@@ -143,7 +149,7 @@ function cleanupSemantic(container: HTMLElement): void {
     delete element.dataset.numberSuiteNoteAriaOriginal;
     delete element.dataset.numberSuiteNoteAriaPresent;
   }
-  for (const item of container.querySelectorAll<HTMLElement>("[data-number-suite-note-value]")) {
+  for (const item of readingDescendants<HTMLElement>(container, "[data-number-suite-note-value]")) {
     const original = item.dataset.numberSuiteNoteValue;
     if (original == null || original === "") item.removeAttribute("value");
     else item.setAttribute("value", original);
@@ -151,14 +157,14 @@ function cleanupSemantic(container: HTMLElement): void {
     delete item.dataset.numberSuiteNoteKind;
     delete item.dataset.numberSuiteNoteLabel;
   }
-  container.normalize();
+  if (!container.querySelector(".markdown-embed")) container.normalize();
 }
 
 export function cleanupNumberSuiteReadingDom(container: HTMLElement): void {
   cleanupSemantic(container);
   const headings = new Set<HTMLElement>([
     ...headingElements(container),
-    ...container.querySelectorAll<HTMLElement>(".number-suite-extended-heading"),
+    ...readingDescendants<HTMLElement>(container, ".number-suite-extended-heading"),
   ]);
   if (container.classList.contains("number-suite-extended-heading")) headings.add(container);
   for (const heading of headings) cleanupHeading(heading);

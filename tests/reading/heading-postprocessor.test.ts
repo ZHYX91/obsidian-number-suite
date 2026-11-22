@@ -1540,3 +1540,70 @@ describe("HeadingReadingProcessor", () => {
     expect(link.dataset.numberSuiteNoteOriginal).toBeUndefined();
   });
 });
+
+describe("reading plan ownership", () => {
+  const makeFile = (path: string) => new (TFile as unknown as new (path: string) => TFile)(path);
+
+  it("keeps an embedded note's reference and navigation independent of its parent", async () => {
+    const outerFile = makeFile("Outer.md");
+    const innerFile = makeFile("Inner.md");
+    const outerSource = "# Parent\n![[Inner]]";
+    const innerSource = "Figure: Cat\nSee @[[#Figure: Cat]]";
+    const context = (file: TFile, text: string) => ({
+      sourcePath: file.path, getSectionInfo: () => ({ text, lineStart: 0, lineEnd: 1 }),
+    } as unknown as MarkdownPostProcessorContext);
+    const outer = document.body.appendChild(document.createElement("div"));
+    outer.innerHTML = '<h1>Parent</h1><div class="internal-embed markdown-embed"></div>';
+    const inner = outer.querySelector(".markdown-embed")!.appendChild(document.createElement("div"));
+    inner.innerHTML = '<p>Figure: Cat</p><p>See @<a class="internal-link" data-href="#Figure: Cat">Figure: Cat</a></p>';
+    const leaves = [outerFile, innerFile].map((file) => ({
+      view: Object.assign(new MarkdownView({} as never), {
+        file, containerEl: file === outerFile ? outer : document.createElement("div"), getMode: () => "preview",
+      }), setEphemeralState: vi.fn(),
+    }));
+    const revealLeaf = vi.fn(async () => {});
+    const app = { vault: {
+      getAbstractFileByPath: (path: string) => path === outerFile.path ? outerFile : innerFile,
+      cachedRead: async (file: TFile) => file === outerFile ? outerSource : innerSource,
+    }, workspace: {
+      iterateAllLeaves: (visit: (leaf: typeof leaves[number]) => void) => leaves.forEach(visit), revealLeaf,
+    } } as unknown as App;
+    const processor = new HeadingReadingProcessor(app, () => settings({ showCrossReferences: true }));
+    await processor.process(outer, context(outerFile, outerSource));
+    await processor.process(inner, context(innerFile, innerSource));
+    const link = inner.querySelector("a")!;
+    for (const refreshParent of [false, true]) {
+      if (refreshParent) await processor.process(outer, context(outerFile, outerSource));
+      expect(link.classList.contains("number-suite-reference-pill")).toBe(true);
+      link.click();
+      expect(revealLeaf).toHaveBeenCalledExactlyOnceWith(leaves[1]);
+      revealLeaf.mockClear();
+    }
+    processor.dispose();
+    expect(link.classList.contains("number-suite-reference-pill")).toBe(false);
+  });
+
+  it("evicts old notes while repeated sections reuse the current reading plan", async () => {
+    const files = Array.from({ length: 80 }, (_, index) => makeFile(index + ".md"));
+    const app = { vault: {
+      getAbstractFileByPath: (path: string) => files.find((file) => file.path === path),
+      cachedRead: async () => "# Test",
+    } } as unknown as App;
+    const processor = new HeadingReadingProcessor(app, () => settings({}));
+    const build = vi.spyOn(processor as unknown as { buildPlan(): unknown }, "buildPlan");
+    const section = document.createElement("div");
+    const visit = (file: TFile) => processor.process(section, {
+      sourcePath: file.path, getSectionInfo: () => null,
+    } as unknown as MarkdownPostProcessorContext);
+    for (const file of files) await visit(file);
+    expect(build).toHaveBeenCalledTimes(files.length);
+    await visit(files[files.length - 1]!);
+    expect(build).toHaveBeenCalledTimes(files.length);
+    await visit(files[0]!);
+    expect(build).toHaveBeenCalledTimes(files.length + 1);
+    processor.forget(files[0]!.path);
+    await visit(files[0]!);
+    expect(build).toHaveBeenCalledTimes(files.length + 2);
+    processor.dispose();
+  });
+});

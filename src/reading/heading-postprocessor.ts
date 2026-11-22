@@ -1,5 +1,5 @@
 import { captionOrigins, sharedCaptionOrigins, captionLayoutCleanup, captionTargetLayoutCleanup,
-  referenceOriginalNodes, headingElements, cleanupNumberSuiteReadingDom } from "./reading-dom-lifecycle";
+  referenceOriginalNodes, readingDescendants, headingElements, cleanupNumberSuiteReadingDom } from "./reading-dom-lifecycle";
 export { cleanupNumberSuiteReadingDom } from "./reading-dom-lifecycle";
 
 import { navigateToLine } from "../adapters/navigate-to-line";
@@ -85,7 +85,7 @@ function renderedHeadingElements(container: HTMLElement): RenderedHeading[] {
   }));
   const paragraphs: HTMLElement[] = [];
   if (container.matches("p")) paragraphs.push(container);
-  paragraphs.push(...container.querySelectorAll<HTMLElement>("p"));
+  paragraphs.push(...readingDescendants<HTMLElement>(container, "p"));
   const extended = paragraphs.flatMap((element): RenderedHeading[] => {
     const marker = leadingExtendedMarker(element);
     if (marker == null) return [];
@@ -104,8 +104,8 @@ function renderedHeadingElements(container: HTMLElement): RenderedHeading[] {
 function captionRoots(container: HTMLElement): HTMLElement[] {
   const roots: HTMLElement[] = [];
   if (container.matches("p")) roots.push(container);
-  roots.push(...container.querySelectorAll<HTMLElement>("p"));
-  return roots;
+  roots.push(...readingDescendants<HTMLElement>(container, "p"));
+  return roots.filter((root) => root.querySelector(".markdown-embed") == null);
 }
 
 function enhanceCaption(element: HTMLElement, kind: string, label: string): boolean {
@@ -161,7 +161,8 @@ function renderedCaptionObject(
     ? caption.nextElementSibling as HTMLElement | null
     : caption.previousElementSibling as HTMLElement | null;
   for (let distance = 0; sibling != null && distance < 5; distance += 1) {
-    if (sibling.matches("[data-number-suite-caption-kind]")) return null;
+    if (sibling.matches("[data-number-suite-caption-kind], .markdown-embed")
+      || sibling.querySelector(".markdown-embed") != null) return null;
     const target = sibling.matches(selector)
       ? sibling
       : sibling.querySelector<HTMLElement>(selector);
@@ -200,7 +201,7 @@ function renderedSectionObject(
     : item.objectKind === "Table" ? ".el-table"
       : item.objectKind === "Equation" ? ".el-div" : ".el-pre";
   if (!(sibling instanceof caption.ownerDocument.defaultView!.HTMLElement)
-    || !sibling.matches(sectionSelector)) return null;
+    || !sibling.matches(sectionSelector) || sibling.querySelector(".markdown-embed") != null) return null;
   const renderedSection = context.getSectionInfo(sibling);
   if (renderedSection == null || renderedSection.lineStart !== item.objectFirstLine) return null;
   // Native image paragraphs include their immediately following block-ID line.
@@ -214,7 +215,7 @@ function renderedSectionObject(
   const selector = item.objectKind === "Figure" ? "img"
     : item.objectKind === "Equation" && sibling.querySelector("mjx-container[display='true']") != null
       ? "mjx-container[display='true']" : captionObjectSelector(item.objectKind);
-  const targets = sibling.querySelectorAll<HTMLElement>(selector);
+  const targets = readingDescendants<HTMLElement>(sibling, selector);
   if (targets.length !== 1) return null;
   const target = targets[0]!;
   let placementTarget = target;
@@ -440,7 +441,7 @@ function annotateUnboundImages(container: HTMLElement): void {
     const rootImage = container.closest<HTMLImageElement>("img");
     if (rootImage != null) images.push(rootImage);
   }
-  images.push(...container.querySelectorAll<HTMLImageElement>("img"));
+  images.push(...readingDescendants<HTMLImageElement>(container, "img"));
   for (const image of images) {
     if (image.dataset.numberSuiteTooltip === "true") continue;
     const alt = meaningfulImageReplacementText(image.alt);
@@ -527,7 +528,7 @@ function bindRenderedReferences(
     group.push(candidate);
     candidatesByTarget.set(candidate.href, group);
   }
-  const anchors = [...container.querySelectorAll<HTMLElement>("a.internal-link")]
+  const anchors = [...readingDescendants<HTMLElement>(container, "a.internal-link")]
     .filter((anchor) => anchor.closest("pre, code") == null);
   const bindings: Array<{ anchor: HTMLElement; item: SemanticDisplayDecoration }> = [];
   for (const [target, group] of candidatesByTarget) {
@@ -577,7 +578,7 @@ function enhanceReference(
 function noteReferenceRoots(container: HTMLElement): HTMLElement[] {
   const roots: HTMLElement[] = [];
   if (container.matches("sup.footnote-ref")) roots.push(container);
-  roots.push(...container.querySelectorAll<HTMLElement>("sup.footnote-ref"));
+  roots.push(...readingDescendants<HTMLElement>(container, "sup.footnote-ref"));
   return roots;
 }
 
@@ -642,7 +643,7 @@ function enhanceNoteDefinitions(
   container: HTMLElement,
   plan: readonly SemanticDisplayDecoration[],
 ): boolean {
-  const items = [...container.querySelectorAll<HTMLElement>("li.footnote-item, section.footnotes > ol > li")];
+  const items = [...readingDescendants<HTMLElement>(container, "li.footnote-item, section.footnotes > ol > li")];
   if (items.length === 0) return false;
   const definitions = orderedNoteDefinitions(plan);
   if (items.length !== definitions.length) return false;
@@ -681,9 +682,9 @@ function leadingTextNodes(element: HTMLElement): Text[] {
   while (current != null) {
     const parent = current.parentElement;
     if (
-      parent == null
-      || (!parent.classList.contains("number-suite-virtual")
-        && !parent.classList.contains("number-suite-concealed"))
+      parent != null && parent.closest(".markdown-embed") === element.closest(".markdown-embed")
+      && !parent.classList.contains("number-suite-virtual")
+      && !parent.classList.contains("number-suite-concealed")
     ) {
       nodes.push(current as Text);
     }
@@ -757,6 +758,8 @@ function concealPrefix(element: HTMLElement, sourcePrefix: string): boolean {
   return remaining === 0;
 }
 
+const MAX_READING_PLANS = 32;
+
 export class HeadingReadingProcessor {
   private readonly cache = new Map<string, ReadingPlanCacheEntry>();
   private readonly containerRequests = new WeakMap<HTMLElement, number>();
@@ -773,6 +776,10 @@ export class HeadingReadingProcessor {
     private readonly app: App,
     private readonly getSettings: () => NumberSuiteSettings,
   ) {}
+
+  forget(path: string): void {
+    this.cache.delete(path);
+  }
 
   invalidate(): void {
     this.cache.clear();
@@ -815,9 +822,11 @@ export class HeadingReadingProcessor {
     if (!(file instanceof TFile) || file.extension.toLowerCase() !== "md") {
       return;
     }
+    const path = file.path;
     const source = await this.app.vault.cachedRead(file);
     if (
-      this.generation !== generation
+      file.path !== path || this.app.vault.getAbstractFileByPath(path) !== file
+      || this.generation !== generation
       || this.containerRequests.get(container) !== request
     ) {
       return;
@@ -839,7 +848,12 @@ export class HeadingReadingProcessor {
         fingerprint,
         ...this.buildPlan(source, settings, effective, file),
       };
-      this.cache.set(file.path, cached);
+    }
+    this.cache.delete(path);
+    this.cache.set(path, cached);
+    if (this.cache.size > MAX_READING_PLANS) {
+      const oldest = this.cache.keys().next();
+      if (!oldest.done) this.cache.delete(oldest.value);
     }
     const { headings, displayPlan, semanticPlan, referenceCandidates, unverifiedReferenceLines } = cached;
     const section = context.getSectionInfo(container);
@@ -1058,7 +1072,8 @@ export class HeadingReadingProcessor {
       const anchor = (target as Element).closest<HTMLElement>(
         "a.number-suite-reference-pill[data-number-suite-reference-line]",
       );
-      if (anchor == null || !container.contains(anchor)) return;
+      if (event.defaultPrevented || anchor == null || !container.contains(anchor)
+        || anchor.closest(".markdown-embed") !== container.closest(".markdown-embed")) return;
       const line = Number(anchor.dataset.numberSuiteReferenceLine);
       if (!Number.isSafeInteger(line) || line < 0) return;
       event.preventDefault();
