@@ -1,3 +1,4 @@
+import { HEADING_LEVELS } from "../../core/types";
 import { languageOptions } from "../../config/language-options";
 import type { Setting, SettingDefinitionItem, SettingGroupItem } from "obsidian";
 
@@ -17,6 +18,7 @@ import {
 
 export interface SettingsDefinitionContext {
   readonly t: Translate;
+  readonly usesCaptionSections: () => boolean;
   readonly selectedSchemeName: () => string;
   readonly renderSaveStatus: (setting: Setting) => () => void;
   readonly renderSchemes: (container: HTMLElement) => void;
@@ -68,6 +70,14 @@ export function createSettingDefinitions(
         saveStatusDefinition(context),
         toggleDefinition("captions.showCaptionNumbers", t("settings.captions.enable"),
           t("settings.captions.enable.desc"), DEFAULT_SETTINGS.showCaptionNumbers),
+        dropdownDefinition("captions.countScope", t("settings.captions.countScope"),
+          t("settings.captions.countScope.desc"), { note: t("settings.captions.countScope.note"),
+            section: t("settings.captions.countScope.section") }, DEFAULT_SETTINGS.captionCountScope),
+        {
+          ...dropdownDefinition("captions.sectionLevel", t("settings.captions.sectionLevel"), undefined,
+            Object.fromEntries(HEADING_LEVELS.map((level) => [level, `H${level}`])), String(DEFAULT_SETTINGS.captionSectionLevel)),
+          visible: context.usesCaptionSections,
+        },
         customDefinition(
           t("settings.captions.guide.title"),
           (container) => renderCaptionNumberingGuide(container, t),

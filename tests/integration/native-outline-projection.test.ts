@@ -168,4 +168,15 @@ describe("native Outline projection", () => {
     expect(result.headings.filter((heading) => heading.__numberSuiteExtra === "caption").map((heading) => heading.__numberSuiteCaption?.ordinal)).toEqual([1, 1, 2]);
   });
 
+  it("shows the same section ordinal in native caption text and its decorated outline item", () => {
+    const source = "# A\n## Sub\nFigure: One\nFigure: Two\n## Next\nFigure: Three";
+    const projection = createNativeOutlineProjection(source, [], {
+      ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical", showVirtualNumbers: false,
+      captionCountScope: "section", captionSectionLevel: 2,
+    });
+    const captions = projection.headings.filter((item) => item.__numberSuiteExtra === "caption");
+    expect(captions.map((item) => item.heading)).toEqual(["Figure 1.1-1: One", "Figure 1.1-2: Two", "Figure 1.2-1: Three"]);
+    expect(captions.map((item) => item.__numberSuiteCaption?.displayNumber)).toEqual(["1.1-1", "1.1-2", "1.2-1"]);
+  });
+
 });

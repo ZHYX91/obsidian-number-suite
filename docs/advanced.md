@@ -32,6 +32,10 @@ Caption and cross-reference display never writes Markdown. A caption is a top-le
 starts with exactly `Figure:`, `Table:`, `Equation:`, or `Code:`. `Listing:` is not an alias. A
 recognized caption is displayed as one filled pill; its optional number is part of that pill. Normal
 `[[#...]]` links remain entirely Obsidian's.
+In **Captions → Caption numbering scope**, choose **Whole note** or **Restart in each section**. The latter reveals a heading-level choice, initially H1. With H2 selected, the first figure in section 1.2 is **Figure 1.2-1**, including when referenced from section 1.3. Tables, equations and code count separately. Shortening the heading in the note or Outline does not shorten its caption prefix.
+
+A section ends at the next heading of the selected level or a higher level. The prefix comes from the section heading’s full numbering scheme, including per-note starts. A heading that advances its counter but has an empty template uses its numeric counter. Empty, excluded, skipped and unnumberable section headings end the preceding section. Captions outside a numbered section share one unprefixed counter per type across the note. Embedded notes use their own source. The existing interoperability v2 export keeps its document-wide caption ordinals.
+
 The caption keyword controls its semantic label and counter, while the adjacent standalone block is
 its visual carrier. Any caption type may bind an image, Markdown table, display equation, or fenced
 code block, so a `Figure:` caption can label a table that lays out a composite figure. Keep the caption beside its object, with at most one blank line between them. Leave two blank lines to separate them. A caption with candidates on both

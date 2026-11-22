@@ -33,6 +33,7 @@ import {
 } from "../ui/settings/usage-guides";
 import type NumberSuitePlugin from "./plugin";
 import { SchemeSettingsRenderer, selectedSchemeName } from "./scheme-settings-renderer";
+import { HEADING_LEVELS } from "../core/types";
 import { parseAtxHeadings } from "../core/heading-parser";
 import type { SettingsImpact } from "./settings-impact";
 import {
@@ -93,6 +94,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const t = createTranslator(this.plugin.settings.language);
     return createSettingDefinitions({
       t,
+      usesCaptionSections: () => this.plugin.settings.captionCountScope === "section",
       selectedSchemeName: () => selectedSchemeName(
         this.plugin.settings,
         createTranslator(this.plugin.settings.language),
@@ -357,6 +359,20 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       .addToggle((toggle) => toggle.setValue(this.plugin.settings.showCaptionNumbers)
         .onChange((value) => this.updateControl("captions.showCaptionNumbers", value)));
     renderCaptionNumberingGuide(container, t);
+    new Setting(container).setName(t("settings.captions.countScope"))
+      .setDesc(t("settings.captions.countScope.desc"))
+      .addDropdown((dropdown) => dropdown
+        .addOption("note", t("settings.captions.countScope.note"))
+        .addOption("section", t("settings.captions.countScope.section"))
+        .setValue(this.plugin.settings.captionCountScope)
+        .onChange((value) => this.updateControl("captions.countScope", value)));
+    if (this.plugin.settings.captionCountScope === "section") {
+      new Setting(container).setName(t("settings.captions.sectionLevel")).addDropdown((dropdown) => {
+        for (const level of HEADING_LEVELS) dropdown.addOption(String(level), `H${level}`);
+        dropdown.setValue(String(this.plugin.settings.captionSectionLevel))
+          .onChange((value) => this.updateControl("captions.sectionLevel", value));
+      });
+    }
     new Setting(container).setName(t("settings.captions.placement"))
       .setDesc(t("settings.captions.placement.desc"))
       .setHeading();

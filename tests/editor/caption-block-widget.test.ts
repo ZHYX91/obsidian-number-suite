@@ -2,7 +2,7 @@
 
 import { Prec, StateField, EditorState, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { editorLivePreviewField } from "obsidian";
 
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
@@ -152,6 +152,23 @@ function createCompositeTableView(
 }
 
 describe("anchored caption block widgets", () => {
+  it("renders the same section number on the Live Preview caption and its image tooltip", async () => {
+    const source = "# Chapter\n## Section\nFigure: Plot\n\n![[plot.png]]";
+    const controller = new HeadingDisplayController(() => ({ ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical",
+      showVirtualNumbers: false, captionCountScope: "section", captionSectionLevel: 2 }));
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const view = new EditorView({ parent, state: EditorState.create({ doc: source, selection: { anchor: 0 },
+      extensions: [editorLivePreviewField, controller.createExtension()] }) });
+    views.push(view);
+    expect(view.dom.querySelector(".number-suite-caption-widget")?.textContent).toBe("Figure 1.1-1: Plot");
+    const image = document.createElement("img");
+    view.dom.append(image);
+    vi.spyOn(view, "posAtCoords").mockReturnValue(source.indexOf("plot.png"));
+    await vi.waitFor(() => expect(image.dataset.numberSuiteTooltipTitle).toBe("Figure 1.1-1: Plot"));
+    expect(view.state.doc.toString()).toBe(source);
+  });
+
   it("moves the rendered widget toward the carrier without adding vertical margins", () => {
     expect(captionAttachmentShift("above", 58)).toBe(54);
     expect(captionAttachmentShift("below", 28)).toBe(-24);

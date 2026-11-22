@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarkdownView, TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
 
 import { DEFAULT_SETTINGS, type NumberSuiteSettings } from "../../src/config/settings";
+import { createNativeOutlineProjection } from "../../src/integration/native-outline-projection";
+import { exportSemanticSnapshotV2, NUMBER_SUITE_INTEROP_SCHEMA_V2 } from "../../src/integration/semantic-export";
 import {
   cleanupNumberSuiteReadingDom,
   HeadingReadingProcessor,
@@ -660,6 +662,45 @@ describe("HeadingReadingProcessor", () => {
     expect(second.textContent).toBe("Figure 2: Target");
     expect(container.querySelectorAll(".number-suite-caption-number")).toHaveLength(2);
     expect(container.querySelectorAll(".number-suite-caption-pill")).toHaveLength(2);
+  });
+
+  it("keeps the full target section on captions, links and tooltips when headings and Outline are shortened", async () => {
+    const source = [
+      "Figure: Front", "# Chapter", "## Section", "Figure: Plot ^fig", "", "![[plot.png|Chart]]",
+      "", "## Later", "See @[[#^fig|diagram]]",
+    ].join("\n");
+    const configured = settings({
+      selectedSchemeId: "hierarchical", showVirtualNumbers: true, showOutlineNumbers: true,
+      bodyHeadingNumberFormat: "current-only", outlineHeadingNumberFormat: "current-only",
+      showCaptionNumbers: true, captionCountScope: "section", captionSectionLevel: 2, showCrossReferences: true,
+    });
+    const { processor, context, container } = harness(source, configured);
+    container.innerHTML = '<p>Figure: Front</p><h1>Chapter</h1><h2>Section</h2><p>Figure: Plot</p><p><img alt="Chart"></p>'
+      + '<h2>Later</h2><p>See @<a class="internal-link" data-href="#^fig">diagram</a></p>';
+    await processor.process(container, context);
+    expect(container.querySelector("h2 .number-suite-heading-number")?.textContent?.trim()).toBe("1");
+    expect(container.querySelectorAll(".number-suite-caption-pill")[1]?.textContent).toContain("Figure 1.1-1");
+    expect(container.querySelector("a")?.textContent).toBe("Figure 1.1-1: diagram");
+    expect(container.querySelector("img")?.dataset.numberSuiteTooltipTitle).toBe("Figure 1.1-1: Plot");
+
+    const outline = createNativeOutlineProjection(source, [], configured);
+    expect(outline.numberLabels.get(2)).toBe("1");
+    expect(outline.headings.find((item) => item.position.start.line === 3)?.heading).toBe("Figure 1.1-1: Plot");
+    const exported = exportSemanticSnapshotV2(configured, { schema: NUMBER_SUITE_INTEROP_SCHEMA_V2, authoredMarkdown: source, frontmatter: null });
+    expect(exported.headingTargets.find((item) => item.authoredText === "Section")?.derivedNumber).toBe("1.1");
+    expect(exported.captionTargets.map((item) => item.derivedNumber)).toEqual(["1", "2"]);
+  });
+
+  it("renders a section-prefixed caption and its image tooltip with virtual headings switched off", async () => {
+    const source = "# Chapter\n## Section\nFigure: Plot\n\n![[plot.png|Chart]]";
+    const { processor, context, container } = harness(source, settings({
+      selectedSchemeId: "hierarchical", showVirtualNumbers: false,
+      showCaptionNumbers: true, captionCountScope: "section", captionSectionLevel: 2, showImageCaptionTooltips: true,
+    }));
+    container.innerHTML = '<h1>Chapter</h1><h2>Section</h2><p>Figure: Plot</p><p><img alt="Chart"></p>';
+    await processor.process(container, context);
+    expect(container.querySelector(".number-suite-caption-pill")?.textContent).toContain("Figure 1.1-1");
+    expect(container.querySelector("img")?.dataset.numberSuiteTooltipTitle).toBe("Figure 1.1-1: Plot");
   });
 
   it("moves a bound Figure caption below only in the rendered DOM and shares its tooltip", async () => {

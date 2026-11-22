@@ -335,6 +335,14 @@ describe("settings", () => {
     expect(configured.hiddenBuiltInSchemeIds).toEqual(["hierarchical"]);
   });
 
+  it("validates persisted caption scope and heading levels independently", () => {
+    expect(sanitizeSettings({ captionCountScope: "section", captionSectionLevel: 9 }))
+      .toMatchObject({ captionCountScope: "section", captionSectionLevel: 9 });
+    expect(sanitizeSettings({ captionCountScope: "invalid", captionSectionLevel: 2.5 }))
+      .toMatchObject({ captionCountScope: "note", captionSectionLevel: 1 });
+    expect(sanitizeSettings({})).toMatchObject({ captionCountScope: "note", captionSectionLevel: 1 });
+  });
+
   it("accepts only hash-bound recovery snapshots", () => {
     expect(sanitizeLastBatch({
       createdAt: "2026-08-23T00:00:00.000Z",

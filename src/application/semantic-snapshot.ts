@@ -1,6 +1,8 @@
 import { scanMarkdownProtectedLines } from "../core/markdown-protection";
 import { bindCaptionObjects, scanCaptionObjects } from "../core/caption-objects";
 import { createSemanticTitleIndex, numberCaptions, parseDocumentSemantics, scanSemanticSourceLines } from "../core/document-semantics";
+import type { HeadingLevel, NumberingOptions } from "../core/types";
+import { numberHeadings } from "../core/numbering-engine";
 import { parseAtxHeadings } from "../core/heading-parser";
 import { noteContainerLines, numberDocumentNotes, parseDocumentNotes } from "../core/note-semantics";
 
@@ -34,6 +36,13 @@ export function createSemanticSnapshot(source: string) {
 }
 
 export type SemanticSnapshot = ReturnType<typeof createSemanticSnapshot>;
+
+export function displayCaptionNumbers(
+  snapshot: SemanticSnapshot, sectionLevel: HeadingLevel | null | undefined, numbering: NumberingOptions,
+) {
+  return sectionLevel == null || snapshot.semantics.captions.length === 0 ? snapshot.numberedCaptions
+    : numberCaptions(snapshot.semantics.captions, { level: sectionLevel, headings: numberHeadings(snapshot.headings, numbering) });
+}
 
 export class SemanticSnapshotCache {
   private readonly documents = new WeakMap<object, SemanticSnapshot>();

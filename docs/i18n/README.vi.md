@@ -33,6 +33,8 @@ Ghi chú hiện tại hiển thị gọn tên tệp, trạng thái tự động 
 
 Trên hình ảnh, bảng, công thức riêng hoặc khối mã, thêm dòng bắt đầu bằng `Figure:`, `Table:`, `Equation:` hoặc `Code:`. Giữ nguyên các từ khóa tiếng Anh này. Chú thích có thể hiển thị số. Dùng `@[[#Tiêu đề]]` để tham chiếu trong cùng ghi chú. Dùng `@[[#^block-id]]` khi ID khối thuộc về tiêu đề hoặc chú thích. Liên kết tới khối đoạn văn thông thường vẫn hoạt động theo mặc định của Obsidian. Chú thích chân trang `[^id]` và cuối tài liệu `[^endnote:id]` được đánh số riêng.
 
+Mặc định, chú thích được đánh số trong toàn bộ ghi chú. Bạn có thể bắt đầu đếm lại ở cấp tiêu đề đã chọn, ví dụ **Figure 1.2-1**.
+
 ```markdown
 Figure: Architecture
 

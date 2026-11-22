@@ -1,4 +1,4 @@
-import { createSemanticSnapshot, type SemanticSnapshot } from "./semantic-snapshot";
+import { createSemanticSnapshot, displayCaptionNumbers, type SemanticSnapshot } from "./semantic-snapshot";
 import type { DisplayDecorationPlan, SelectionSpan } from "./display-plan";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import { numberHeadings } from "../core/numbering-engine";
@@ -20,6 +20,7 @@ import {
 } from "../core/note-semantics";
 import type {
   CleanupTemplateSource,
+  HeadingLevel,
   NumberingOptions,
   ParsedHeading,
 } from "../core/types";
@@ -59,6 +60,7 @@ export interface SemanticDisplayDecoration {
 
 export interface SemanticDisplayPlanOptions {
   readonly showCaptionNumbers: boolean;
+  readonly captionSectionLevel?: HeadingLevel | null;
   readonly centeredCaptionKinds: readonly CaptionKind[];
   readonly captionPlacements?: Readonly<Record<CaptionKind, CaptionPlacement>>;
   readonly showImageCaptionTooltips?: boolean;
@@ -146,12 +148,12 @@ function captionReferenceLabel(
   showNumber: boolean,
 ): string {
   const title = alias ?? caption.title;
-  const prefix = showNumber ? `${caption.kind} ${caption.number}` : caption.kind;
+  const prefix = showNumber ? caption.label : caption.kind;
   return `${prefix}: ${title}`;
 }
 
 function captionDisplayLabel(caption: NumberedCaption, showNumber: boolean): string {
-  const prefix = showNumber ? `${caption.kind} ${caption.number}` : caption.kind;
+  const prefix = showNumber ? caption.label : caption.kind;
   return `${prefix}: ${caption.title}`;
 }
 
@@ -169,8 +171,8 @@ export function imageTooltipContentAtOffset(
   offset: number,
   showCaptionNumbers: boolean,
   snapshot: SemanticSnapshot = createSemanticSnapshot(source),
+  numbered: readonly NumberedCaption[] = snapshot.numberedCaptions,
 ): ImageTooltipContent | null {
-  const numbered = snapshot.numberedCaptions;
   const object = snapshot.objects.find((candidate) => (
     candidate.kind === "Figure" && offset >= candidate.from && offset <= candidate.to
   ));
@@ -239,7 +241,8 @@ export function createSemanticDisplayPlan(
   snapshot: SemanticSnapshot = createSemanticSnapshot(source),
 ): SemanticDisplayDecoration[] {
   const semantics = snapshot.semantics;
-  const numberedCaptions = snapshot.numberedCaptions;
+  const level = options.showCaptionNumbers ? options.captionSectionLevel : null;
+  const numberedCaptions = displayCaptionNumbers(snapshot, level, options.numbering);
   const bindings = new Map(snapshot.bindings.map((binding) => (
     [binding.caption.line, binding] as const
   )));
@@ -259,7 +262,7 @@ export function createSemanticDisplayPlan(
       pillFrom: caption.lineFrom,
       pillTo: caption.lineTo,
       line: caption.line,
-      label: options.showCaptionNumbers ? String(caption.number) : "",
+      label: options.showCaptionNumbers ? caption.displayNumber : "",
       displayLabel,
       captionKind: caption.kind,
       captionCentered: options.centeredCaptionKinds.includes(caption.kind),

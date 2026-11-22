@@ -33,6 +33,8 @@ La nota actual muestra de forma compacta el nombre, el estado automático y tres
 
 Encima de una imagen, tabla, ecuación independiente o bloque de código, escribe una línea que empiece por `Figure:`, `Table:`, `Equation:` o `Code:`. Estas palabras clave se escriben en inglés. Las leyendas pueden mostrar números. Las referencias dentro de la misma nota usan `@[[#Título]]`. Puedes usar `@[[#^block-id]]` si el ID pertenece a un título o a una leyenda. Los enlaces a bloques de párrafo normales conservan el comportamiento de Obsidian. Las notas al pie `[^id]` y las notas finales `[^endnote:id]` se numeran por separado.
 
+Los rótulos se numeran en toda la nota de forma predeterminada. Puedes reiniciar la numeración en el nivel de encabezado que elijas, por ejemplo **Figure 1.2-1**.
+
 ```markdown
 Figure: Architecture
 

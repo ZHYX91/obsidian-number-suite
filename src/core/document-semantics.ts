@@ -8,7 +8,7 @@ import {
   scanMarkdownProtectedLines,
   type MarkdownProtectedLine,
 } from "./markdown-protection";
-import type { ParsedHeading } from "./types";
+import type { HeadingLevel, NumberedHeading, ParsedHeading } from "./types";
 
 export const CAPTION_KINDS = ["Figure", "Table", "Equation", "Code"] as const;
 export type CaptionKind = (typeof CAPTION_KINDS)[number];
@@ -25,7 +25,9 @@ export interface ParsedCaption {
 }
 
 export interface NumberedCaption extends ParsedCaption {
+  /** Whole-note ordinal retained for interoperability. */
   readonly number: number;
+  readonly displayNumber: string;
   readonly label: string;
 }
 
@@ -214,12 +216,44 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
   return { captions, references, blockOwners, blockTargetIds };
 }
 
-export function numberCaptions(captions: readonly ParsedCaption[]): NumberedCaption[] {
-  const counters: Record<CaptionKind, number> = { Figure: 0, Table: 0, Equation: 0, Code: 0 };
+export interface CaptionSectionScope {
+  readonly level: HeadingLevel;
+  readonly headings: readonly NumberedHeading[];
+}
+
+function captionCounters(): Record<CaptionKind, number> {
+  return { Figure: 0, Table: 0, Equation: 0, Code: 0 };
+}
+
+function captionSectionPrefix(item: NumberedHeading, level: HeadingLevel): string | null {
+  if (item.heading.level !== level || item.exclusion != null || item.skippedBySectionRule
+    || item.warning != null || withoutTrailingBlockId(item.heading.content).length === 0) return null;
+  if (item.label != null) return item.label.trim();
+  // An empty template or heading above the numbering base still advances its counter.
+  const counter = item.counters[level - 1];
+  return counter != null && Number.isSafeInteger(counter) && counter > 0 ? String(counter) : null;
+}
+
+export function numberCaptions(captions: readonly ParsedCaption[], scope?: CaptionSectionScope): NumberedCaption[] {
+  const note = captionCounters(), outside = captionCounters();
+  let section: { prefix: string; counters: Record<CaptionKind, number> } | null = null;
+  let nextHeading = 0;
   return captions.map((caption) => {
-    const number = counters[caption.kind] + 1;
-    counters[caption.kind] = number;
-    return { ...caption, number, label: `${caption.kind} ${number}` };
+    while (scope != null && nextHeading < scope.headings.length) {
+      const item = scope.headings[nextHeading]!;
+      if (item.heading.line >= caption.line) break;
+      nextHeading += 1;
+      if (item.heading.level > scope.level) continue;
+      const prefix = captionSectionPrefix(item, scope.level);
+      section = prefix == null ? null : { prefix, counters: captionCounters() };
+    }
+    const number = ++note[caption.kind];
+    let displayNumber = String(number);
+    if (scope != null) {
+      displayNumber = section == null ? String(++outside[caption.kind])
+        : `${section.prefix}-${++section.counters[caption.kind]}`;
+    }
+    return { ...caption, number, displayNumber, label: `${caption.kind} ${displayNumber}` };
   });
 }
 

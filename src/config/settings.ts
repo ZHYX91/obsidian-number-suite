@@ -2,6 +2,8 @@ import { isUiLanguage, type UiLanguage } from "./language-options";
 import {
   CONFIDENCES,
   HEADING_LEVEL_COUNT,
+  HEADING_LEVELS,
+  type HeadingLevel,
   type CleanupScope,
   type CleanupTemplateHistory,
   type CleanupTemplateSource,
@@ -29,6 +31,8 @@ export interface NumberSuiteSettings {
   storedHeadingNumberStyleScope: StoredHeadingNumberStyleScope;
   concealScope: CleanupScope;
   showCaptionNumbers: boolean;
+  captionCountScope: "note" | "section";
+  captionSectionLevel: HeadingLevel;
   centerFigureCaptions: boolean;
   centerTableCaptions: boolean;
   centerEquationCaptions: boolean;
@@ -120,6 +124,8 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   storedHeadingNumberStyleScope: "templates",
   concealScope: "templates",
   showCaptionNumbers: true,
+  captionCountScope: "note",
+  captionSectionLevel: 1,
   centerFigureCaptions: true,
   centerTableCaptions: false,
   centerEquationCaptions: true,
@@ -304,6 +310,8 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
       ["plugin", "templates", "common"] as const,
       DEFAULT_SETTINGS.concealScope,
     ),
+    captionCountScope: oneOf(raw.captionCountScope, ["note", "section"] as const, DEFAULT_SETTINGS.captionCountScope),
+    captionSectionLevel: HEADING_LEVELS.find((level) => level === raw.captionSectionLevel) ?? DEFAULT_SETTINGS.captionSectionLevel,
     showCaptionNumbers: booleanOr(raw.showCaptionNumbers, DEFAULT_SETTINGS.showCaptionNumbers),
     centerFigureCaptions: booleanOr(
       raw.centerFigureCaptions,
@@ -495,6 +503,10 @@ export function captionPlacements(
     Equation: settings.equationCaptionPlacement,
     Code: settings.codeCaptionPlacement,
   };
+}
+
+export function captionLevelForDisplay(settings: NumberSuiteSettings): HeadingLevel | null {
+  return settings.captionCountScope === "section" ? settings.captionSectionLevel : null;
 }
 
 export function toNumberingOptions(

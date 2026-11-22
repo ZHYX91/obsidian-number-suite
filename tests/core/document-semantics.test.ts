@@ -5,9 +5,59 @@ import {
   parseDocumentSemantics,
   resolveUniqueSemanticTitleTarget,
 } from "../../src/core/document-semantics";
+import { numberHeadings } from "../../src/core/numbering-engine";
+import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+import type { HeadingLevel, NumberingOptions } from "../../src/core/types";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 
+function sectionNumbers(source: string, level: HeadingLevel, overrides: Partial<NumberingOptions> = {}) {
+  const headings = numberHeadings(parseAtxHeadings(source), {
+    scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {}, ...overrides,
+  });
+  return numberCaptions(parseDocumentSemantics(source).captions, { level, headings });
+}
+
 describe("document semantics", () => {
+  it("resets each caption kind only at its section boundary and resumes the unprefixed sequence", () => {
+    const source = [
+      "Figure: Front", "Table: Front", "# Chapter", "## A", "Figure: First", "Table: Results", "Code: A", "Equation: A",
+      "### More", "Figure: Second", "## B", "Figure: Third", "Table: Second table", "Code: B", "Equation: B",
+      "# New chapter", "Figure: Outside", "Table: Outside", "## Next", "Figure: Fourth",
+    ].join("\r\n");
+    const captions = sectionNumbers(source, 2, { starts: { 1: 3, 2: 4 } });
+    expect(captions.map((caption) => caption.displayNumber)).toEqual([
+      "1", "1", "3.4-1", "3.4-1", "3.4-1", "3.4-1", "3.4-2",
+      "3.5-1", "3.5-1", "3.5-1", "3.5-1", "2", "2", "4.4-1",
+    ]);
+    expect(captions.filter((caption) => caption.kind === "Figure").map((caption) => caption.number)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it("ends a section on skipped, excluded, empty or unnumberable headings", () => {
+    const source = [
+      "# Skip", "Figure: A", "# Normal", "Figure: B", "# Exclude", "Figure: C", "# Good", "Figure: D",
+      "#", "Figure: E", "# Last", "Figure: F",
+    ].join("\n");
+    const scope = { ...BUILT_IN_SCHEMES.hierarchical, exclusions: [{ title: "Exclude", scope: "subtree" as const }] };
+    expect(sectionNumbers(source, 1, { scheme: scope, skipFirst: { 1: 1 } }).map((c) => c.displayNumber))
+      .toEqual(["1", "1-1", "2", "2-1", "3", "3-1"]);
+    expect(sectionNumbers("## Missing\nTable: A", 2, { missingLevelStrategy: "skip" })[0]?.displayNumber).toBe("1");
+    const overflow = sectionNumbers("# Last\nFigure: A\n# Overflow\nFigure: B", 1, { starts: { 1: Number.MAX_SAFE_INTEGER } });
+    expect(overflow.map((c) => c.displayNumber)).toEqual([`${Number.MAX_SAFE_INTEGER}-1`, "1"]);
+  });
+
+  it("uses a hidden heading's valid counter, the full configured label, and all nine levels", () => {
+    const hidden = sectionNumbers("# No H1 label\nCode: First\n# Next\nCode: Second", 1, {
+      scheme: BUILT_IN_SCHEMES["hierarchical-h2"], starts: { 1: 4 },
+    });
+    expect(hidden.map((c) => c.displayNumber)).toEqual(["4-1", "5-1"]);
+    const templates = [...BUILT_IN_SCHEMES.hierarchical.templates];
+    templates[1] = "Part {1.roman_upper}.{2.arabic}";
+    expect(sectionNumbers("# A\n## Sub\nTable: X", 2, { scheme: { ...BUILT_IN_SCHEMES.hierarchical, templates } })[0]?.displayNumber)
+      .toBe("Part I.1-1");
+    const allLevels = Array.from({ length: 9 }, (_, index) => `${"#".repeat(index + 1)} Chapter`).join("\n");
+    expect(sectionNumbers(`${allLevels}\nEquation: Nine`, 9)[0]?.displayNumber).toBe("1.1.1.1.1.1.1.1.1-1");
+  });
+
   it("recognizes only the four frozen caption declarations and numbers each type per file", () => {
     const source = [
       "Figure: First",
