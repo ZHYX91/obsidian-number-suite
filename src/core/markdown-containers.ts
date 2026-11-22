@@ -24,6 +24,7 @@ interface InlineLiteralRange extends SourceRange {
 
 export interface MarkdownContainerLine {
   readonly nested: boolean;
+  readonly continuesParagraph: boolean;
   readonly literal: boolean;
   readonly literalKind: LiteralKind | null;
   /** Exact code, math and link-metadata offsets, including cross-line spans. */
@@ -37,6 +38,7 @@ const LITERALS = new Set<string>(["FencedCode", "CodeBlock", "HTMLBlock", "Numbe
 const INLINE_LITERALS = new Set(["InlineCode", INLINE_MATH_NODE, "URL", "LinkTitle"]);
 
 function markdownFacts(tree: ReturnType<typeof parser.parse>) {
+  const paragraphs: SourceRange[] = [];
   const containers: SourceRange[] = [];
   const literals: LiteralRange[] = [];
   const inlineLiterals: InlineLiteralRange[] = [];
@@ -47,6 +49,7 @@ function markdownFacts(tree: ReturnType<typeof parser.parse>) {
       if (depth === 0 && (node.name === "SetextHeading1" || node.name === "SetextHeading2")) {
         setext.set(node.from, node.name === "SetextHeading1" ? 1 : 2);
       }
+      if (node.name === "Paragraph") paragraphs.push({ from: node.from, to: node.to });
       if (CONTAINERS.has(node.name)) {
         if (depth === 0) containers.push({ from: node.from, to: node.to });
         depth += 1;
@@ -64,7 +67,7 @@ function markdownFacts(tree: ReturnType<typeof parser.parse>) {
     },
     leave(node) { if (CONTAINERS.has(node.name)) depth -= 1; },
   });
-  return { containers, literals, inlineLiterals, setext };
+  return { paragraphs, containers, literals, inlineLiterals, setext };
 }
 
 function firstRangeAfter<T extends SourceRange>(ranges: readonly T[], offset: number): T | undefined {
@@ -321,11 +324,14 @@ export function scanMarkdownContainerLines(
   const { containers, literals } = facts;
   const inlineLiterals = protectTableBoundaries(tree, lines, starts, bases, facts.inlineLiterals);
 
+  let paragraphIndex = 0;
   let containerIndex = 0;
   let literalIndex = 0;
   let inlineIndex = 0;
   return starts.map((from, index) => {
     const to = (starts[index + 1] ?? offset) - 1;
+    while (facts.paragraphs[paragraphIndex] != null && facts.paragraphs[paragraphIndex]!.to <= from) paragraphIndex += 1;
+    const continuesParagraph = (facts.paragraphs[paragraphIndex]?.from ?? Infinity) < from;
     while (containers[containerIndex] != null && containers[containerIndex]!.to <= from) containerIndex += 1;
     while (literals[literalIndex] != null && literals[literalIndex]!.to <= from) literalIndex += 1;
     const literal = (literals[literalIndex]?.from ?? Infinity) <= to ? literals[literalIndex] : null;
@@ -347,6 +353,7 @@ export function scanMarkdownContainerLines(
     return {
       ...(setextLevel == null ? {} : { setextLevel }),
       ...(equationLastLine == null ? {} : { equationLastLine }),
+      continuesParagraph,
       nested: (containers[containerIndex]?.from ?? Infinity) <= to,
       literal: literal != null,
       literalKind: literal?.kind ?? null,

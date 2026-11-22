@@ -73,7 +73,7 @@ describe("shared Markdown protection", () => {
     expect(parsed.references.map((r) => r.target)).toEqual(["fig"]);
   });
 
-  it.each(["# Heading", "```\ncode\n```", "***"]) (
+  it.each(["# Heading", "```\ncode\n```", "***", "[label]: /url", "[label]:\n  /url"]) (
     "protects type-7 HTML after a completed block: %s", (prefix) => {
       const source = `${prefix}\n<custom-tag>\n## Protected\n\n## Visible`;
       const plan = planHeadingTransform(source, "write", {
@@ -87,6 +87,16 @@ describe("shared Markdown protection", () => {
 
   it("does not start type-7 HTML in the middle of a paragraph", () => {
     expect(parseAtxHeadings("Paragraph\n<custom-tag>\n## Visible").map((h) => h.content)).toEqual(["Visible"]);
+  });
+
+  it("keeps a complete custom tag inline after a non-interrupting ordered list marker", () => {
+    const source = "Body\n2. continuation\n<custom-tag>\n# Candidate\n\n# Tail";
+    const plan = planHeadingTransform(source, "write", {
+      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+      writeMarkers: false, cleanupScope: "templates", templateSources: [],
+      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+    });
+    expect(plan.result).toBe(source.replace("# Candidate", "# 1 Candidate").replace("# Tail", "# 2 Tail"));
   });
 
   it("keeps comment delimiters inert inside another comment and recognizes successive comments", () => {

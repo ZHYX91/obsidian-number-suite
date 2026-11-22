@@ -35,7 +35,6 @@ export function scanMarkdownProtectedLines(
   const containers = scanMarkdownContainerLines(lines);
   const output: MarkdownProtectedLine[] = [];
   let state: ProtectedBlockState | null = null;
-  let inParagraph = false;
   let inlineComment: CommentKind | null = null;
 
   for (const line of lines) {
@@ -124,7 +123,7 @@ export function scanMarkdownProtectedLines(
           } else if (blockHtmlStart(markup)) {
             available = false;
             state = { kind: "blank-html" };
-          } else if (!inParagraph && completeCustomHtmlTag(markup)) {
+          } else if (!container?.continuesParagraph && completeCustomHtmlTag(markup)) {
             available = false;
             state = { kind: "blank-html" };
           }
@@ -145,10 +144,6 @@ export function scanMarkdownProtectedLines(
       ...(available && headingAvailable && topLevel && container?.setextLevel != null ? { setextLevel: container.setextLevel } : {}),
       ...(container?.equationLastLine == null ? {} : { equationLastLine: container.equationLastLine }),
       fenceOpening, headingAvailable: available && headingAvailable && topLevel });
-    // Type-7 HTML cannot interrupt a paragraph, but may follow a completed
-    // heading, fence, thematic break or other block without a blank line.
-    inParagraph = available && !blank
-      && !/^ {0,3}(?:#{1,9}(?:[ \t]|$)|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|(?:-[ \t]*){3,}$|[=-]+[ \t]*$|>|[-+*][ \t]|\d+[.)][ \t])/u.test(line.text);
   }
 
   return output;
