@@ -85,6 +85,18 @@ describe("shared Markdown protection", () => {
     },
   );
 
+  it.each(["</widget disabled>", "</widget/>", "<widget = >", "<widget key=>", "<widget 3=value>",
+    "<widget key=two=parts>", "<widget\u00a0key>", "<div\u00a0key>", "<script\u00a0key>", "<widget key='unfinished>"])(
+    "leaves headings after malformed tag text available: %s", (line) => {
+      expect(parseAtxHeadings(`${line}\n## Visible`).map((heading) => heading.content)).toEqual(["Visible"]);
+    },
+  );
+
+  it.each(["<widget-tag data-a='a > b' disabled :slot.name=main />", '<widget data="two words">',
+    "<widget key = unquoted>", "</widget   >"])("protects complete standalone tag %s", (line) => {
+    expect(parseAtxHeadings(`${line}\n## Protected\n\n# Visible`).map((heading) => heading.content)).toEqual(["Visible"]);
+  });
+
   it("does not start type-7 HTML in the middle of a paragraph", () => {
     expect(parseAtxHeadings("Paragraph\n<custom-tag>\n## Visible").map((h) => h.content)).toEqual(["Visible"]);
   });
