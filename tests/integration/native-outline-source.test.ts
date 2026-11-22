@@ -51,6 +51,20 @@ describe("native Outline source positions", () => {
     expect(nativeHeadingsInSource(aligned, structure, editor.source)).toBe(aligned);
   });
 
+  it.each(endings)("rejects stale and out-of-bounds endpoints in physical %j source", ending => {
+    const { source, headings: [root, child] } = headingFixture([ending, ending, ending]);
+    const structure = readOutlineStructure(source);
+    const valid = root.position.end;
+    for (const end of [
+      { ...valid, offset: valid.offset + 1 },
+      { ...valid, offset: valid.offset + 1, col: valid.col + 1 },
+      { ...child.position.end, offset: child.position.end.offset + 4 },
+    ]) {
+      const item = end.line === valid.line ? root : child;
+      expect(nativeHeadingsInSource([{ ...item, position: { start: item.position.start, end } }], structure, source)).toBeNull();
+    }
+  });
+
   it("rejects cache positions that cannot belong to the same physical note", () => {
     const editor = headingFixture(["\n", "\n", "\n"]);
     const { headings: [root, child] } = headingFixture(["\r\n", "\r\n", "\r\n"]);

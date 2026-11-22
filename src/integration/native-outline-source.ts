@@ -86,10 +86,12 @@ export function nativeHeadingIsCurrent(structure: OutlineStructure, item: Headin
 /** Cached offsets can count an extra CR at any line break normalized by the editor.
  * Accept a single consistent newline history for all verified heading endpoints. */
 export function nativeHeadingsInSource(headings: HeadingCache[], structure: OutlineStructure, source: string): HeadingCache[] | null {
-  if (headings.every((item) => nativeHeadingIsCurrent(structure, item) && (structure.hasCarriageReturns
-    || (item.position.start.line === item.position.end.line &&
-      item.position.end.offset - item.position.start.offset === item.position.end.col - item.position.start.col)))) return headings;
-  if (structure.hasCarriageReturns) return null;
+  if (headings.every((item) => {
+    const { start, end } = item.position;
+    const row = structure.native.get(start.line);
+    return row != null && start.line === end.line && start.col >= 0 && end.col >= start.col
+      && end.col <= row.end - row.offset && end.offset === row.offset + end.col && nativeHeadingIsCurrent(structure, item);
+  })) return headings;
   const extras = new Map<number, number>([[0, 0]]);
   const aligned: HeadingCache[] = [];
   const record = (line: number, extra: number): boolean => {
@@ -105,15 +107,21 @@ export function nativeHeadingsInSource(headings: HeadingCache[], structure: Outl
       || start.col < 0 || start.col > row.end - row.offset || end.line < start.line) return null;
     const from = row.offset + start.col;
     let endLineStart = row.offset;
-    for (let line = start.line; line < end.line; line++) {
-      const newline = source.indexOf("\n", endLineStart);
-      if (newline < 0) return null;
-      endLineStart = newline + 1;
+    let lineEnd = row.end;
+    if (end.line > start.line) {
+      const breaks = /\r\n?|\n/gu;
+      breaks.lastIndex = endLineStart;
+      for (let line = start.line; line < end.line; line++) {
+        if (!breaks.exec(source)) return null;
+        endLineStart = breaks.lastIndex;
+      }
+      lineEnd = breaks.exec(source)?.index ?? source.length;
     }
     const to = endLineStart + end.col;
-    const newline = end.line === start.line ? row.end : source.indexOf("\n", endLineStart);
-    if (end.col < 0 || to < from || to > (newline < 0 ? source.length : newline)
-      || !record(start.line, start.offset - from) || !record(end.line, end.offset - to)) return null;
+    const startExtra = start.offset - from;
+    const endExtra = end.offset - to;
+    if (end.col < 0 || to < from || to > lineEnd || (structure.hasCarriageReturns && (startExtra !== 0 || endExtra !== 0))
+      || !record(start.line, startExtra) || !record(end.line, endExtra)) return null;
     aligned.push(start.offset === from && end.offset === to ? item
       : { ...item, position: { start: { ...start, offset: from }, end: { ...end, offset: to } } });
   }

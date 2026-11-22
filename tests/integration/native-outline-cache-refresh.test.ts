@@ -182,11 +182,12 @@ describe("native Outline metadata catch-up", () => {
     const split = markdownLeaf(file, content("Split inside"));
     let open = [sameName.leaf, otherExternal.leaf, own.leaf];
     let active = sameName.leaf;
+    let cacheOffset = prefix.length + 100;
     const view = Object.assign(new (ItemView as unknown as new () => ItemView)(), {
       getState: () => ({ file: path }),
       getHeadings: (): HeadingCache[] => [{
         heading: "Chapter", level: 1,
-        position: { start: { line, col: 0, offset: prefix.length }, end: { line, col: 9, offset: prefix.length + 9 } },
+        position: { start: { line, col: 0, offset: cacheOffset }, end: { line, col: 9, offset: cacheOffset + 9 } },
       }],
       update: () => {
         const children = view.getHeadings().map((heading) => {
@@ -223,6 +224,10 @@ describe("native Outline metadata catch-up", () => {
     const labels = () => view.getHeadings().map((heading) => heading.heading);
 
     enhancer.start();
+    await Promise.resolve();
+    expect(labels()).toEqual(["Chapter"]);
+    cacheOffset = prefix.length;
+    emit("active-leaf-change", own.leaf);
     await Promise.resolve();
     expect(labels()).toEqual(["Chapter", "External inside"]);
     expect(view.contentEl.querySelector(".number-suite-native-outline-number")?.textContent).toBe("1");

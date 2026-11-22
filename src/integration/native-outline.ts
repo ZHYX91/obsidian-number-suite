@@ -363,6 +363,14 @@ export class NativeOutlineEnhancer {
         }
       },
     };
+    const nativeOnly = (headings: HeadingCache[]): HeadingCache[] => {
+      current.enhanced = false;
+      current.labels = new Map();
+      current.titles = new Map();
+      current.numberKinds = new Map();
+      current.secondaryStoredNumbers = new Map();
+      return headings;
+    };
     const projectionHook = detachableHeadings(native, original, () => {
       const headings = original.call(native);
       if (!Array.isArray(headings) || current.nativeDragging) return headings;
@@ -380,14 +388,7 @@ export class NativeOutlineEnhancer {
           .sort((left, right) => left.position.start.offset - right.position.start.offset);
       }
       current.lastProjection = null;
-      if (source == null) {
-        current.enhanced = false;
-        current.labels = new Map();
-        current.titles = new Map();
-        current.numberKinds = new Map();
-        current.secondaryStoredNumbers = new Map();
-        return headings;
-      }
+      if (source == null) return nativeOnly(headings);
       try {
         let relocated: HeadingCache[] | null = null;
         if (path != null && structure != null) {
@@ -400,6 +401,7 @@ export class NativeOutlineEnhancer {
             const previousHeadings = nativeHeadingsInSource(headings, previous, current.nativeStructure.source);
             if (previousHeadings != null) relocated = rebaseNativeHeadings(previousHeadings, previous, structure);
           }
+          if (aligned == null && relocated == null) return nativeOnly(headings);
         }
         const projection = createNativeOutlineProjection(source, relocated ?? headings, this.settings(), (kind) => {
           const key = ("caption.kind." + kind.toLowerCase()) as Parameters<Translate>[0];
@@ -420,12 +422,7 @@ export class NativeOutlineEnhancer {
         // prevent Obsidian from rendering its unmodified heading list.
         if (!current.warned) console.warn("Number Suite: native Outline enhancement unavailable", error);
         current.warned = true;
-        current.enhanced = false;
-        current.labels = new Map();
-        current.titles = new Map();
-        current.numberKinds = new Map();
-        current.secondaryStoredNumbers = new Map();
-        return headings;
+        return nativeOnly(headings);
       }
     });
     current.wrapped = projectionHook.wrapped;
