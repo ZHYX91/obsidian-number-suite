@@ -130,6 +130,13 @@ describe("native Outline metadata catch-up", () => {
     await Promise.resolve();
     expect(read).toHaveBeenCalledTimes(2);
     expect(views[0]!.getHeadings().map((h) => h.heading)).toEqual(["A.md"]);
+    const detached = views.shift()!;
+    const retained = detached.getHeadings;
+    // Another plugin can wrap the Number Suite method and keep calling it after detachment.
+    detached.getHeadings = () => retained();
+    emit("layout-change");
+    expect(detached.getHeadings()).toEqual([]);
+    expect(views[0]!.getHeadings().map((h) => h.heading)).toEqual(["A.md"]);
     emit("delete", files[0]);
     expect(views[0]!.getHeadings()).toEqual([]);
 
@@ -138,12 +145,12 @@ describe("native Outline metadata catch-up", () => {
     await Promise.resolve();
     emit("changed", files[0]);
     emit("modify", files[2]);
-    expect(read).toHaveBeenCalledTimes(3);
+    expect(read).toHaveBeenCalledTimes(4);
     expect(views[0]!.getHeadings().map((h) => h.heading)).toEqual(["B.md"]);
     enabled = false;
     enhancer.refresh();
     emit("changed", files[1]);
-    expect(read).toHaveBeenCalledTimes(3);
+    expect(read).toHaveBeenCalledTimes(4);
     expect(views[0]!.getHeadings()).toEqual([]);
     enhancer.stop();
   });

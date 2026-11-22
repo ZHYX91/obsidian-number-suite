@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { readFileSync } from "node:fs";
-import { defineLanguageFacet, Language } from "@codemirror/language";
+import { defineLanguageFacet, forceParsing, Language } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { parser } from "@lezer/markdown";
@@ -90,6 +90,7 @@ describe("source Properties validation at display entry points", () => {
       extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
     }) });
     views.push(view);
+    expect(forceParsing(view, source.length, 1000)).toBe(true);
     const lines = source.split("\n");
     const expected = labels.map(([heading, number]) => [lines.indexOf(heading), number]);
     expect([...createNativeOutlineProjection(source, [], configured).numberLabels]).toEqual(expected);
@@ -236,4 +237,22 @@ describe("source Properties validation at display entry points", () => {
     processor.dispose();
     expect(heading.textContent).toBe("Heading");
   });
+});
+
+it("adds heading labels when a parse-only transaction completes the syntax tree", async () => {
+  const { syntaxTreeAvailable } = await import("@codemirror/language");
+  host.parsed = {};
+  const source = "---\ntitle: Test\n---\n" + "a".repeat(3300) + "\n\n# One\n\n## Two\n\nBody";
+  const parent = document.body.appendChild(document.createElement("div"));
+  const controller = new HeadingDisplayController(() => configured);
+  const view = new EditorView({ parent, state: EditorState.create({
+    doc: source, selection: { anchor: source.length },
+    extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+  }) });
+  views.push(view);
+  expect(syntaxTreeAvailable(view.state)).toBeFalsy();
+  expect(parent.querySelector(".number-suite-heading-number")).toBeNull();
+  expect(forceParsing(view, source.length, 1000)).toBe(true);
+  expect([...parent.querySelectorAll(".number-suite-heading-number")].map((pill) => pill.textContent?.trim()))
+    .toEqual(["1", "1.1"]);
 });

@@ -132,3 +132,29 @@ describe("plugin localization lifecycle", () => {
     expect(chrome.ribbonEl).toBeNull();
   });
 });
+
+it("opens the heading map in the originating pane when a file has two editors", async () => {
+  const { NumberSuiteHeadingMapView } = await import("../../src/ui/heading-map-view");
+  const file = new (TFile as unknown as new (path: string) => TFile)("Note.md");
+  const pane = () => {
+    const view = Object.assign(new MarkdownView({} as never), { file });
+    const leaf = { view };
+    Object.assign(view, { leaf });
+    return leaf;
+  };
+  const first = pane();
+  const active = pane();
+  const showFile = vi.fn();
+  const map = Object.assign(Object.create(NumberSuiteHeadingMapView.prototype) as InstanceType<typeof NumberSuiteHeadingMapView>, { showFile });
+  const app = { vault: { getAbstractFileByPath: () => file }, workspace: {
+    getActiveFile: () => file, getActiveViewOfType: () => active.view,
+    getLeavesOfType: (type: string) => type === "markdown" ? [first, active] : [{ view: map }],
+    revealLeaf: async () => {},
+  } } as unknown as App;
+  const plugin = new NumberSuitePlugin(app, { id: "number-suite", name: "Number Suite" } as PluginManifest);
+  const runtime = plugin as unknown as { registerCommands(): void; localizedCommands: Array<{ command: Command }> };
+  runtime.registerCommands();
+  runtime.localizedCommands.find(({ command }) => command.id.endsWith(":open-heading-mind-map"))!.command.checkCallback!(false);
+  await Promise.resolve();
+  expect(showFile).toHaveBeenCalledWith(file, active, false);
+});

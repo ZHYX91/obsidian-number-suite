@@ -697,9 +697,9 @@ export class HeadingDisplayController {
         ));
         if (
           update.docChanged
+          || this.displayTree !== syntaxTree(update.state)
           || (update.selectionSet && (
-            this.displayTree !== syntaxTree(update.state)
-            || this.displayComposing !== this.isComposing()
+            this.displayComposing !== this.isComposing()
             || !caretMoveKeepsDecorations(update.startState, update.state)
           ))
           || livePreviewChanged
@@ -739,11 +739,16 @@ export class HeadingDisplayController {
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
         const allowed = semanticTooltipAllowed(settings, this.overrides, livePreview ? "live-preview" : "source");
+        const images = this.view.dom.querySelectorAll<HTMLImageElement>("img");
+        if (images.length === 0) return;
+        if (!allowed) {
+          for (const image of images) clearSemanticTooltip(image);
+          return;
+        }
         const snapshot = semanticSnapshots.get(this.view.state.doc, () => this.view.state.doc.toString());
         const source = snapshot.source;
-        for (const image of this.view.dom.querySelectorAll<HTMLImageElement>("img")) {
+        for (const image of images) {
           clearSemanticTooltip(image);
-          if (!allowed) continue;
           let offset: number | null = null;
           try {
             const rect = image.getBoundingClientRect();
