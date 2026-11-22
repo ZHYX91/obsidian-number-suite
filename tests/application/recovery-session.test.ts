@@ -7,7 +7,7 @@ const snapshot: LastBatchSnapshot = {
   createdAt: "2026-08-08T00:00:00.000Z",
   operation: "write",
   status: "applied",
-  files: [{ path: "a.md", before: "# A", afterHash: "sha256:abc" }],
+  files: [{ path: "a.md", before: "# A", afterHash: "sha256:" + "a".repeat(64) }],
 };
 
 describe("RecoverySession", () => {

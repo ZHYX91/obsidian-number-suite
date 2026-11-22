@@ -1,5 +1,6 @@
 import { normalizePath, type App, type PluginManifest } from "obsidian";
 
+import { InvalidBatchRecoveryError } from "../../application/recovery-session";
 import { sanitizeLastBatch, type LastBatchSnapshot } from "../../config/settings";
 
 export class RecoveryStore {
@@ -13,10 +14,12 @@ export class RecoveryStore {
   }
 
   async load(): Promise<LastBatchSnapshot | null> {
+    let found = false;
     for (const path of [this.temporaryPath, this.path]) {
       if (!await this.app.vault.adapter.exists(path)) continue;
       // An unreadable pending file may contain newer recovery. Do not fall back or
       // let the session cache absence until storage can actually be read.
+      found = true;
       const source = await this.app.vault.adapter.read(path);
       try {
         const snapshot = sanitizeLastBatch(JSON.parse(source));
@@ -26,6 +29,7 @@ export class RecoveryStore {
         console.error(`Number Suite: ignored invalid recovery JSON ${path}`, error);
       }
     }
+    if (found) throw new InvalidBatchRecoveryError("Number Suite could not read a valid batch recovery snapshot.");
     return null;
   }
 

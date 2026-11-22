@@ -32,10 +32,28 @@ const snapshot: LastBatchSnapshot = {
   createdAt: "2026-08-08T00:00:00.000Z",
   operation: "write",
   status: "applied",
-  files: [{ path: "note.md", before: "# A", afterHash: "sha256:abc" }],
+  files: [{ path: "note.md", before: "# A", afterHash: "sha256:" + "a".repeat(64) }],
 };
 
 describe("RecoveryStore", () => {
+  it.each([{ files: [] }, { files: [snapshot.files[0], snapshot.files[0]] },
+    { files: [{ ...snapshot.files[0], afterHash: "sha256:invalid" }] }])(
+    "falls back to durable recovery for records the writer cannot produce", async ({ files }) => {
+      const durable = ".obsidian/plugins/number-suite/recovery.json";
+      const pending = ".obsidian/plugins/number-suite/recovery.pending.json";
+      const storage = harness({ [durable]: JSON.stringify(snapshot), [pending]: JSON.stringify({ ...snapshot, files }) });
+      await expect(storage.store.load()).resolves.toEqual(snapshot);
+      expect(storage.files.size).toBe(2);
+    },
+  );
+
+  it("preserves corruption evidence when neither file is usable", async () => {
+    const durable = ".obsidian/plugins/number-suite/recovery.json";
+    const storage = harness({ [durable]: "null" });
+    await expect(storage.store.load()).rejects.toThrow("recovery snapshot");
+    expect(storage.files.get(durable)).toBe("null");
+  });
+
   it("promotes the pending file and removes both paths when cleared", async () => {
     const { files, store } = harness();
     await store.save(snapshot);

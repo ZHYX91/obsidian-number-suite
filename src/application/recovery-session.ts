@@ -1,5 +1,7 @@
 import type { LastBatchSnapshot } from "../config/settings";
 
+export class InvalidBatchRecoveryError extends Error {}
+
 export interface RecoveryPersistence {
   load(): Promise<LastBatchSnapshot | null>;
   save(snapshot: LastBatchSnapshot | null): Promise<void>;

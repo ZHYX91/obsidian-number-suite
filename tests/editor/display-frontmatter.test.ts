@@ -56,6 +56,13 @@ const cases = [
 ];
 
 describe("source Properties validation at display entry points", () => {
+  it.each([{ root: ["list"] }, { root: "scalar" }, { root: 7 }])("refuses a non-mapping Properties root across note controls and writes", async ({ root }) => {
+    const { parseFrontmatterRecordFromSource } = await import("../../src/config/frontmatter-source");
+    host.parsed = root as unknown as Record<string, unknown>;
+    const source = "---\nmalformed properties\n---\n# Title";
+    expect(parseFrontmatterRecordFromSource(source)).toBeNull();
+    expect(createSourcePlan(source, "write", configured)).toEqual({ status: "invalid-frontmatter", plan: null });
+  });
   type SkipFixture = { fileName: string; h2Start: number | null; labels: [string, string][] };
   const fixtures: SkipFixture[] = [
     { fileName: "Section skip rules.md", h2Start: null, labels: [["## 试用总结", "4"], ["### 下一步", "4.1"]] },

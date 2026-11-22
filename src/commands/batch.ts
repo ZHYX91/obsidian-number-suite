@@ -8,6 +8,7 @@ import type {
 import type { TransformOperation, TransformPlan } from "../core/types";
 import { planChangesSource } from "../core/transform";
 import { digestText } from "../core/text-digest";
+import { InvalidBatchRecoveryError } from "../application/recovery-session";
 import { ContentConflictError } from "../application/conditional-replace";
 import { withBatchSettlement } from "../adapters/obsidian/batch-settlement";
 import { BatchModal, type BatchScope, type BatchPreview } from "../ui/batch-modals";
@@ -98,7 +99,7 @@ export class BatchController {
       });
     } catch (error: unknown) {
       console.error("Number Suite batch preflight failed", error);
-      if (!this.disposed) this.notify(translate("notice.batchFailed"));
+      this.notify(translate(error instanceof InvalidBatchRecoveryError ? "notice.batchInvalidRecovery" : "notice.batchFailed"));
     } finally {
       this.operationActive = false;
     }
@@ -154,23 +155,18 @@ export class BatchController {
       expectedSources.set(item.path, current);
       preflight.push({ file, path: item.path, before: current, after: item.before });
     }
-    if (!(await this.synchronizeOpenMarkdownViews(expectedSources, bindings))) {
+    if (!(await this.validateBatchSources(expectedSources, bindings))) {
       this.notify(translate("notice.undoConflict"));
       return;
     }
     const verified: BoundBatchFile[] = [];
-    for (const item of preflight) {
+    for (const [index, item] of preflight.entries()) {
       if (!this.fileBindingIsCurrent(item.file, item.path)) {
         this.notify(translate("notice.undoConflict"));
         return;
       }
-      const current = await this.app.vault.cachedRead(item.file);
-      this.assertActive();
-      if (!this.fileBindingIsCurrent(item.file, item.path)) {
-        this.notify(translate("notice.undoConflict"));
-        return;
-      }
-      const snapshotFile = snapshot.files.find((candidate) => candidate.path === item.path);
+      const current = item.before;
+      const snapshotFile = snapshot.files[index];
       if (snapshotFile == null) {
         this.notify(translate("notice.undoConflict"));
         return;
@@ -250,9 +246,9 @@ export class BatchController {
     return views;
   }
 
-  private async synchronizeOpenMarkdownViews(
+  private async validateBatchSources(
     expectedSources: ReadonlyMap<string, string>,
-    expectedFiles?: ReadonlyMap<string, TFile>,
+    expectedFiles: ReadonlyMap<string, TFile>,
   ): Promise<boolean> {
     const initialViews = this.openMarkdownViews();
     const relevantViews = initialViews.filter((view) => {
@@ -266,10 +262,14 @@ export class BatchController {
       expected: expectedSources.get(view.file?.path ?? "") ?? "",
     }));
     if (!this.openMarkdownViewsMatch(expectedSources, expectedFiles, relevantViews)) return false;
-    for (const view of relevantViews) {
+    // A dirty editor may still hold the preview while sync has already delivered
+    // a different disk revision. Calling view.save() here would erase that revision.
+    for (const [path, expected] of expectedSources) {
+      const file = expectedFiles.get(path);
+      if (!file || !this.fileBindingIsCurrent(file, path)) return false;
+      const current = await this.app.vault.cachedRead(file);
       this.assertActive();
-      await view.save();
-      this.assertActive();
+      if (current !== expected || !this.fileBindingIsCurrent(file, path)) return false;
     }
     const currentViews = this.openMarkdownViews();
     if (originalBindings.some(({ view, path, file, expected }) => (
@@ -528,22 +528,10 @@ export class BatchController {
     }
     if (
       !this.bindingsAreCurrent(files)
-      || !(await this.synchronizeOpenMarkdownViews(expectedSources, bindings))
+      || !(await this.validateBatchSources(expectedSources, bindings))
     ) {
       this.notify(translate("notice.batchChanged"));
       return;
-    }
-    for (const item of files) {
-      if (!this.fileBindingIsCurrent(item.file, item.path)) {
-        this.notify(translate("notice.batchChanged"));
-        return;
-      }
-      const current = await this.app.vault.cachedRead(item.file);
-      this.assertActive();
-      if (!this.fileBindingIsCurrent(item.file, item.path) || current !== item.before) {
-        this.notify(translate("notice.batchChanged"));
-        return;
-      }
     }
     const pendingSnapshot: LastBatchSnapshot = {
       createdAt: new Date().toISOString(),
