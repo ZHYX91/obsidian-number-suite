@@ -5,18 +5,20 @@ import { createDisplayPlan, type HeadingNumberPillKind } from "../application/di
 import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import {
+  captionLevelForDisplay,
   cleanupTemplateSources,
   outlineHeadingFormat,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
+import { numberHeadings } from "../core/numbering-engine";
 import { numberCaptions, parseDocumentSemantics, withoutTrailingBlockId } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
 import { analyzeInlineHtmlComments, scanMarkdownProtectedLines } from "../core/markdown-protection";
 
 export interface ExtraOutlineHeading extends HeadingCache {
   __numberSuiteExtra?: "extended" | "caption";
-  __numberSuiteCaption?: { kind: CaptionKind; ordinal: number; title: string };
+  __numberSuiteCaption?: { kind: CaptionKind; ordinal: number; displayNumber: string; title: string };
 }
 export interface NativeOutlineProjection {
   readonly headings: ExtraOutlineHeading[];
@@ -82,13 +84,17 @@ export function createNativeOutlineProjection(
       usedLines.add(heading.line);
     }
   }
+  const numbering = toNumberingOptions(settings, effective);
   if (settings.showOutlineCaptions) {
-    for (const caption of numberCaptions(parseDocumentSemantics(source).captions)) {
+    const captions = parseDocumentSemantics(source).captions;
+    const level = captionLevelForDisplay(settings);
+    const scope = level == null || captions.length === 0 ? undefined : { level, headings: numberHeadings(headings, numbering) };
+    for (const caption of numberCaptions(captions, scope)) {
       if (usedLines.has(caption.line)) continue;
 
       extras.push({
         heading: (captionTypeLabel?.(caption.kind) ?? caption.kind)
-          + (settings.showCaptionNumbers ? " " + caption.number : "")
+          + (settings.showCaptionNumbers ? " " + caption.displayNumber : "")
           + ": " + withoutTrailingBlockId(caption.content),
         // Higher than every supported heading: attached to the preceding
         // section, then popped before any following heading. Captions stay leaves.
@@ -98,12 +104,11 @@ export function createNativeOutlineProjection(
           end: { line: caption.line, col: caption.lineTo - caption.lineFrom, offset: caption.lineTo },
         },
         __numberSuiteExtra: "caption",
-        __numberSuiteCaption: { kind: caption.kind, ordinal: caption.number, title: withoutTrailingBlockId(caption.content) },
+        __numberSuiteCaption: { kind: caption.kind, ordinal: caption.number, displayNumber: caption.displayNumber, title: withoutTrailingBlockId(caption.content) },
       });
       usedLines.add(caption.line);
     }
   }
-  const numbering = toNumberingOptions(settings, effective);
   const templateSources = cleanupTemplateSources(settings);
   const plan = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,

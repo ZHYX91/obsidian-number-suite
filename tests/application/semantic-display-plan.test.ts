@@ -5,6 +5,7 @@ import {
   createSemanticDisplayPlan,
   imageTooltipContentAtOffset,
 } from "../../src/application/semantic-display-plan";
+import { createSemanticSnapshot, displayCaptionNumbers } from "../../src/application/semantic-snapshot";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 import type { CleanupTemplateSource, NumberingOptions } from "../../src/core/types";
@@ -47,6 +48,21 @@ function plan(source: string, showVirtualNumbers = true) {
 }
 
 describe("semantic display plan", () => {
+  it("uses the target section for references and image tooltips even with heading numbers hidden", () => {
+    const source = "# First\n## Subsection\nFigure: Plot ^fig\n\n![[plot.png|Data]]\n\n# Later\n@[[#^fig|chart]]";
+    const snapshot = createSemanticSnapshot(source);
+    const opts = { showCaptionNumbers: true, captionSectionLevel: 2 as const, centeredCaptionKinds: [],
+      showCrossReferences: true, showNoteNumbers: false, noteSelections: [], numbering, templateSources,
+      headingDisplayPlan: [], composing: false };
+    const display = createSemanticDisplayPlan(source, snapshot.headings, opts, snapshot);
+    expect(display.find((item) => item.kind === "caption")?.displayLabel).toBe("Figure 1.1-1: Plot");
+    expect(display.find((item) => item.kind === "reference")?.label).toBe("Figure 1.1-1: chart");
+    const labels = displayCaptionNumbers(snapshot, opts.captionSectionLevel, numbering);
+    expect(imageTooltipContentAtOffset(source, source.indexOf("plot.png"), true, snapshot, labels)?.title).toBe("Figure 1.1-1: Plot");
+    const off = createSemanticDisplayPlan(source, snapshot.headings, { ...opts, showCaptionNumbers: false }, snapshot);
+    expect(off.find((item) => item.kind === "reference")?.label).toBe("Figure: chart");
+  });
+
   it("numbers ID-free captions and resolves existing caption block IDs", () => {
     const source = "Figure: Plain\nFigure: Target ^fig\nSee @[[#^fig|diagram]]";
     expect(plan(source).map(({ kind, line, label }) => ({ kind, line, label }))).toEqual([

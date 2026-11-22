@@ -3,6 +3,7 @@ import {
   numberCaptions,
   parseDocumentSemantics,
   type CaptionKind,
+  type CaptionSectionScope,
 } from "../core/document-semantics";
 import { parseAtxHeadings } from "../core/heading-parser";
 
@@ -28,6 +29,7 @@ export interface CaptionOutlineNode extends OutlineNodeBase {
 export interface DocumentOutlineOptions {
   readonly headingDisplayPlan: readonly DisplayDecorationPlan[];
   readonly showCaptionNumbers: boolean;
+  readonly captionSection?: CaptionSectionScope;
 }
 
 const TRAILING_BLOCK_ID = /(?:^|[ \t])\^[A-Za-z0-9-]{1,128}[ \t]*$/u;
@@ -62,7 +64,7 @@ export function createDocumentOutline(
       children: [],
     };
   });
-  const captionNodes = numberCaptions(parseDocumentSemantics(source).captions).map((caption): CaptionOutlineNode => ({
+  const captionNodes = numberCaptions(parseDocumentSemantics(source).captions, options.captionSection).map((caption): CaptionOutlineNode => ({
     kind: "caption",
     line: caption.line,
     captionKind: caption.kind,

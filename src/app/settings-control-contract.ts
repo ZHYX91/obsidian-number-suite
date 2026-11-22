@@ -1,3 +1,4 @@
+import { HEADING_LEVELS } from "../core/types";
 import { isUiLanguage } from "../config/language-options";
 import { cloneSettings, type NumberSuiteSettings } from "../config/settings";
 import type { SettingsImpact } from "./settings-impact";
@@ -8,6 +9,8 @@ export type SettingsControlKey =
   | "general.concealStoredNumbers"
   | "general.storedHeadingNumberStyleScope"
   | "general.concealScope"
+  | "captions.countScope"
+  | "captions.sectionLevel"
   | "captions.showCaptionNumbers"
   | "captions.centerFigure"
   | "captions.centerTable"
@@ -57,6 +60,8 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "general.concealStoredNumbers",
   "general.storedHeadingNumberStyleScope",
   "general.concealScope",
+  "captions.countScope",
+  "captions.sectionLevel",
   "captions.showCaptionNumbers",
   "captions.centerFigure",
   "captions.centerTable",
@@ -108,6 +113,8 @@ export function getSettingsControlValue(
     case "general.concealStoredNumbers": return settings.concealStoredNumbers;
     case "general.storedHeadingNumberStyleScope": return settings.storedHeadingNumberStyleScope;
     case "general.concealScope": return settings.concealScope;
+    case "captions.countScope": return settings.captionCountScope;
+    case "captions.sectionLevel": return String(settings.captionSectionLevel);
     case "captions.showCaptionNumbers": return settings.showCaptionNumbers;
     case "captions.centerFigure": return settings.centerFigureCaptions;
     case "captions.centerTable": return settings.centerTableCaptions;
@@ -179,6 +186,19 @@ export function applySettingsControlValue(
       next.concealScope = value;
       impact = "display";
       break;
+    case "captions.countScope":
+      if (value !== "note" && value !== "section") throw invalidControlValue(key);
+      next.captionCountScope = value;
+      refreshSurface = true;
+      impact = "display";
+      break;
+    case "captions.sectionLevel": {
+      const level = HEADING_LEVELS.find((candidate) => String(candidate) === value);
+      if (level === undefined) throw invalidControlValue(key);
+      next.captionSectionLevel = level;
+      impact = "display";
+      break;
+    }
     case "captions.showCaptionNumbers":
       next.showCaptionNumbers = controlBoolean(key, value);
       impact = "display";

@@ -100,6 +100,26 @@ describe("Obsidian 1.13 settings definitions", () => {
     await expect(tab.setControlValue("views.bodyHeadingNumberFormat", "follow-body")).rejects.toThrow();
   });
 
+  it("retains the selected section level when switching back to note-wide caption counts", async () => {
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    const page = tab.getDeclarativeSettingDefinitions().find((item) => "type" in item && item.type === "page" && item.name === "Captions");
+    const level = page != null && "items" in page && Array.isArray(page.items)
+      ? page.items.find((item) => "control" in item && item.control.key === "captions.sectionLevel") : undefined;
+    const isVisible = level != null && "visible" in level && typeof level.visible === "function" ? level.visible : undefined;
+    expect(isVisible?.()).toBe(false);
+    expect(tab.getControlValue("captions.countScope")).toBe("note");
+    expect(tab.getControlValue("captions.sectionLevel")).toBe("1");
+    await tab.setControlValue("captions.countScope", "section");
+    expect(isVisible?.()).toBe(true);
+    await tab.setControlValue("captions.sectionLevel", "9");
+    await tab.setControlValue("captions.countScope", "note");
+    expect(isVisible?.()).toBe(false);
+    expect(host.settings.captionSectionLevel).toBe(9);
+    await expect(tab.setControlValue("captions.sectionLevel", "10")).rejects.toThrow();
+    await expect(tab.setControlValue("captions.countScope", "unknown")).rejects.toThrow();
+  });
+
   it("persists native control changes through the plugin host", async () => {
     const host = createHost();
     const tab = new NumberSuiteSettingTab(new App(), host as never);

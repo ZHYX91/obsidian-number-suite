@@ -26,13 +26,14 @@ import { invalidNoteOverrides, resolveNoteSettings, type NoteOverrides } from ".
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { createTranslator } from "../config/i18n";
 import {
+  captionLevelForDisplay,
   centeredCaptionKinds,
   captionPlacements,
   cleanupTemplateSources,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
-import { SemanticSnapshotCache } from "../application/semantic-snapshot";
+import { displayCaptionNumbers, SemanticSnapshotCache } from "../application/semantic-snapshot";
 import { meaningfulImageReplacementText } from "../core/caption-objects";
 import type { CaptionKind } from "../core/document-semantics";
 import type { NoteKind } from "../core/note-semantics";
@@ -558,6 +559,7 @@ function buildAnchoredCaptionDecorations(
   const selections = state.selection.ranges.map((range) => ({ from: range.from, to: range.to }));
   const semanticPlan = createSemanticDisplayPlan(source, [], {
     showCaptionNumbers: settings.showCaptionNumbers,
+    captionSectionLevel: captionLevelForDisplay(settings),
     centeredCaptionKinds: centeredCaptionKinds(settings),
     captionPlacements: captionPlacements(settings),
     showImageCaptionTooltips: settings.showImageCaptionTooltips,
@@ -747,6 +749,9 @@ export class HeadingDisplayController {
         }
         const snapshot = semanticSnapshots.get(this.view.state.doc, () => this.view.state.doc.toString());
         const source = snapshot.source;
+        const numbers = settings.showCaptionNumbers
+          ? displayCaptionNumbers(snapshot, captionLevelForDisplay(settings), toNumberingOptions(settings, resolveNoteSettings(settings, this.overrides)))
+          : snapshot.numberedCaptions;
         for (const image of images) {
           clearSemanticTooltip(image);
           let offset: number | null = null;
@@ -762,7 +767,7 @@ export class HeadingDisplayController {
           }
           const tooltip = offset == null
             ? null
-            : imageTooltipContentAtOffset(source, offset, settings.showCaptionNumbers, snapshot);
+            : imageTooltipContentAtOffset(source, offset, settings.showCaptionNumbers, snapshot, numbers);
           const fallback = meaningfulImageReplacementText(image.alt);
           if (tooltip != null) {
             applySemanticTooltip(image, tooltip.title, tooltip.body);
@@ -816,6 +821,7 @@ export class HeadingDisplayController {
         });
         const semanticPlan = createSemanticDisplayPlan(source, headings, {
           showCaptionNumbers: settings.showCaptionNumbers,
+          captionSectionLevel: captionLevelForDisplay(settings),
           centeredCaptionKinds: centeredCaptionKinds(settings),
           captionPlacements: captionPlacements(settings),
           showImageCaptionTooltips: settings.showImageCaptionTooltips,

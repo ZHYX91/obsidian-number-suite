@@ -38,7 +38,7 @@ Expand a file to see which numbers will change and check its warnings. This exam
   the number of direct child headings.
 - Exclude an exact heading or its whole subtree without consuming a number.
 - Show `Figure:`, `Table:`, `Equation:`, and `Code:` captions as filled pills, with optional
-  display-only numbers that restart independently in every Markdown file.
+  display-only numbers. Each type counts across the note by default. In **Captions**, you can restart numbering at a chosen heading level, for example **Figure 1.2-1**.
 - Center each caption type independently; Figure and Equation captions are centered by default,
   while Table and Code captions follow the current theme.
 - Place each bound caption above or below its object in Live Preview and Reading View without

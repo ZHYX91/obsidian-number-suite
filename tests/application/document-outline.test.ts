@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDisplayPlan } from "../../src/application/display-plan";
 import { createDocumentOutline } from "../../src/application/document-outline";
+import { numberHeadings } from "../../src/core/numbering-engine";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
@@ -23,6 +24,13 @@ function headingPlan(source: string) {
 }
 
 describe("document outline", () => {
+  it("keeps section labels on caption leaves when heading labels are hidden", () => {
+    const source = "# Chapter\nFigure: First\n# Another\nFigure: Second";
+    const headings = numberHeadings(parseAtxHeadings(source), { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} });
+    const outline = createDocumentOutline(source, { headingDisplayPlan: [], showCaptionNumbers: true, captionSection: { level: 1, headings } });
+    expect(outline.map((node) => node.children[0]?.numberLabel)).toEqual(["Figure 1-1", "Figure 2-1"]);
+  });
+
   it("nests H1-H9 headings and captions by source structure", () => {
     const source = [
       "Figure: Root figure ^root-figure",

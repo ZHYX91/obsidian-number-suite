@@ -33,6 +33,8 @@ La note active affiche de façon compacte le nom, le statut automatique et trois
 
 Au-dessus d’une image, d’un tableau, d’une formule isolée ou d’un bloc de code, ajoutez une ligne commençant par `Figure:`, `Table:`, `Equation:` ou `Code:`. Ces mots-clés restent en anglais. Les légendes peuvent afficher un numéro. Les renvois au sein de la même note utilisent `@[[#Titre]]`. Utilisez `@[[#^block-id]]` si l’identifiant du bloc appartient à un titre ou à une légende. Obsidian ouvre les liens vers des paragraphes ordinaires comme d’habitude. Les notes de bas de page `[^id]` et les notes de fin `[^endnote:id]` sont numérotées séparément.
 
+Par défaut, les légendes sont numérotées dans toute la note. Vous pouvez recommencer à chaque titre du niveau choisi, par exemple **Figure 1.2-1**.
+
 ```markdown
 Figure: Architecture
 

@@ -658,7 +658,7 @@ export class NativeOutlineEnhancer {
         if (caption != null) {
           const key = ("caption.kind." + caption.kind.toLowerCase()) as Parameters<Translate>[0];
           const captionLabel = (this.translate?.(key) ?? caption.kind)
-            + (this.settings().showCaptionNumbers ? " " + caption.ordinal : "");
+            + (this.settings().showCaptionNumbers ? " " + caption.displayNumber : "");
           decorateRow(entry, element, JSON.stringify([caption.kind, captionLabel, caption.title]), () => {
             element.replaceChildren();
             const icon = outlineSpan(element.ownerDocument);

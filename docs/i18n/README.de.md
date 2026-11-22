@@ -33,6 +33,8 @@ Aktuelle Notiz zeigt Dateiname, automatischen Status und drei Hauptoptionen komp
 
 Schreibe über einem Bild, einer Tabelle, einer eigenen Formel oder einem Codeblock eine Zeile mit `Figure:`, `Table:`, `Equation:` oder `Code:`. Diese Schlüsselwörter bleiben auf Englisch. Beschriftungen können Nummern anzeigen. Mit `@[[#Überschrift]]` erhältst du einen Verweis innerhalb derselben Notiz. Gehört eine Block-ID zu einer Überschrift oder Beschriftung, kannst du mit `@[[#^block-id]]` darauf verweisen. Links zu normalen Absatzblöcken behandelt Obsidian wie gewohnt. Fußnoten `[^id]` und Endnoten `[^endnote:id]` werden getrennt gezählt.
 
+Beschriftungen zählen standardmäßig in der gesamten Notiz. Unter **Beschriftungen** kannst du die Zählung an einer Überschriftenebene neu beginnen lassen, etwa mit **Figure 1.2-1**.
+
 ```markdown
 Figure: Architecture
 

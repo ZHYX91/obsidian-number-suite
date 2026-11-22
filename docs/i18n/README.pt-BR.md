@@ -33,6 +33,8 @@ A nota atual mostra de forma compacta o nome, o estado automático e três opç�
 
 Acima de uma imagem, tabela, equação isolada ou bloco de código, escreva uma linha com `Figure:`, `Table:`, `Equation:` ou `Code:`. Essas palavras-chave devem ficar em inglês. As legendas podem mostrar números. Para referências dentro da mesma nota, use `@[[#Título]]`. Use `@[[#^block-id]]` quando o ID do bloco pertencer a um título ou a uma legenda. Links para blocos de parágrafos comuns mantêm o comportamento padrão do Obsidian. Notas de rodapé `[^id]` e notas de fim `[^endnote:id]` têm contagens separadas.
 
+Por padrão, as legendas são numeradas em toda a nota. Você pode reiniciar a contagem no nível de título desejado, por exemplo **Figure 1.2-1**.
+
 ```markdown
 Figure: Architecture
 

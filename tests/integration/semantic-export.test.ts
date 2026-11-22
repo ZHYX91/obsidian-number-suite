@@ -7,6 +7,13 @@ import {
 } from "../../src/integration/semantic-export";
 
 describe("Number Suite interoperability snapshot", () => {
+  it("keeps v2 whole-note ordinals when the displayed captions restart by section", () => {
+    const input = { schema: NUMBER_SUITE_INTEROP_SCHEMA_V2, authoredMarkdown: "# A\nFigure: One\n# B\nFigure: Two ^fig\n@[[#^fig]]", frontmatter: null };
+    const snapshot = exportSemanticSnapshotV2({ ...DEFAULT_SETTINGS, captionCountScope: "section", captionSectionLevel: 1 }, input);
+    expect(snapshot).toEqual(exportSemanticSnapshotV2(DEFAULT_SETTINGS, input));
+    expect(snapshot.captionTargets.map((target) => target.derivedNumber)).toEqual(["1", "2"]);
+  });
+
   it("disables overflowing heading targets and their dependent descendant labels", () => {
     const snapshot = exportSemanticSnapshotV2({
       ...DEFAULT_SETTINGS,

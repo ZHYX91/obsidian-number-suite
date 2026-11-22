@@ -18,6 +18,7 @@ import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { meaningfulImageReplacementText } from "../core/caption-objects";
 import { createTranslator, type Translate } from "../config/i18n";
 import {
+  captionLevelForDisplay,
   centeredCaptionKinds,
   captionPlacements,
   cleanupTemplateSources,
@@ -1121,6 +1122,7 @@ export class HeadingReadingProcessor {
       ...readingReferenceSource(source),
       semanticPlan: createSemanticDisplayPlan(source, headings, {
         showCaptionNumbers: settings.showCaptionNumbers,
+        captionSectionLevel: captionLevelForDisplay(settings),
         centeredCaptionKinds: centeredCaptionKinds(settings),
         captionPlacements: captionPlacements(settings),
         showImageCaptionTooltips: settings.showImageCaptionTooltips,
