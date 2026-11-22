@@ -45,6 +45,17 @@ describe("caption object binding", () => {
     expect(meaningfulImageReplacementText("Lunch photo")).toBe("Lunch photo");
   });
 
+  it("requires one complete Markdown image, including an optional titled angle destination", () => {
+    const titled = '![A](<my photo.png> "Caption")';
+    expect(standaloneImageText(titled)?.suggestedTitle).toBe("A");
+    expect(imageTextAtOffset(titled, titled.indexOf("photo"))?.replacementText).toBe("A");
+    for (const line of ["![A](a.png) ![B](b.png)", "![A](a.png) with other text (b.png)"]) {
+      expect(standaloneImageText(line)).toBeNull();
+    }
+    const source = "| A |\n| --- |\n![[a.png]]\n\nTable: Photos";
+    expect(bindCaptionObjects(source).map((binding) => binding.object.kind)).toEqual(["Table"]);
+  });
+
   it("finds inline and table-cell replacement text without making them caption objects", () => {
     const source = "Text ![Lunch](lunch.png)\n| A |\n| --- |\n| ![[miao.png|Cat]] |";
     expect(imageTextAtOffset(source, source.indexOf("Lunch"))?.replacementText).toBe("Lunch");

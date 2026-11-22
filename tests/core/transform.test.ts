@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { WORD_JOINER } from "../../src/core/markers";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
-import { planHeadingTransform, type TransformOptions } from "../../src/core/transform";
+import { applyTextChanges, planHeadingTransform, type TransformOptions } from "../../src/core/transform";
 
 function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
   return {
@@ -26,6 +26,29 @@ function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
 }
 
 describe("heading transforms", () => {
+  it("assembles unsorted edits with stable same-position behavior and checks original ranges", () => {
+    expect(applyTextChanges("abcdef", [
+      { from: 2, to: 3, insert: "X" }, { from: 2, to: 2, insert: "Y" },
+      { from: 6, to: 6, insert: "!" }, { from: 0, to: 1, insert: "" },
+    ])).toBe("bYXdef!");
+    expect(applyTextChanges("abc", [{ from: 1, to: 1, insert: "x" }, { from: 1, to: 1, insert: "y" }])).toBe("ayxbc");
+    expect(() => applyTextChanges("abc", [{ from: 1, to: 3, insert: "" }, { from: 2, to: 2, insert: "x" }]))
+      .toThrow("overlap");
+    expect(() => applyTextChanges("abc", [{ from: 2, to: 4, insert: "" }])).toThrow("Invalid heading change range");
+  });
+
+  it("ends a subtree exclusion at an empty sibling without stripping its descendants' numbers", () => {
+    const numbering = options().numbering;
+    const opts = options({ writeMarkers: true, numbering: { ...numbering, scheme: {
+      ...numbering.scheme, exclusions: [{ title: "References", scope: "subtree" }],
+    } } });
+    const marker = WORD_JOINER;
+    const source = `# References ^refs\n## Excluded\n#\n## ${marker}1.1${marker} Next section\n# Body`;
+    const plan = planHeadingTransform(source, "write", opts);
+    expect(plan.result).toBe(source.replace("# Body", `# ${marker}2${marker} Body`));
+    expect(plan.changes.map((change) => change.line)).toEqual([4]);
+  });
+
   it.each(["roman_upper", "roman_lower"])("refuses the entire write/renumber plan when %s crosses 3999", (format) => {
     const templates = [...BUILT_IN_SCHEMES.hierarchical.templates];
     templates[0] = `{1.${format}}.`;

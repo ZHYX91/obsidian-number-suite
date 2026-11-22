@@ -166,6 +166,26 @@ describe("stable cross-reference planning", () => {
     });
   });
 
+  it.each([
+    "- Item ^anchor",
+    "- Item\n  ^anchor",
+    "> Quotation\n\n^anchor",
+    "- List\n\n^anchor",
+    "```text\nexample\n```\n\n^anchor",
+    "| A |\n| --- |\n| Cell |\n\n^anchor",
+  ])("refuses a duplicate owned by a native block in either source order: %s", (block) => {
+    for (const source of [`# Title ^anchor\n\n${block}\n\nEnd`, `${block}\n\n# Title ^anchor`]) {
+      expect(createStableReferencePlan(source, source.indexOf("Title"))).toBeNull();
+      expect(parseDocumentSemantics(source).blockOwners.has(blockTargetKey("anchor"))).toBe(false);
+    }
+  });
+
+  it.each(["> Quoted text ^anchor", "- Inline `code ^anchor`"])(
+    "keeps a unique target when nested text does not declare a native ID: %s", (body) => {
+      expect(createStableReferencePlan(`# Title ^anchor\n\n${body}`, 3)?.blockId).toBe("anchor");
+    },
+  );
+
   it("still rejects a duplicate ID owned by an ordinary paragraph", () => {
     expect(createStableReferencePlan("# Title ^anchor\n\nBody ^anchor", 3)).toBeNull();
   });

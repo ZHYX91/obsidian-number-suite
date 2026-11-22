@@ -16,7 +16,7 @@ export function leadingMarkup(text: string): string | null {
 }
 
 export function startsRawHtmlBlock(markup: string): boolean {
-  const tag = /^<([A-Za-z]+)(?=\s|>|$)/u.exec(markup)?.[1];
+  const tag = /^<([A-Za-z]+)(?=[ \t]|>|$)/u.exec(markup)?.[1];
   return tag !== undefined && RAW_HTML_TAGS.has(tag.toLowerCase());
 }
 
@@ -30,11 +30,17 @@ export function endsRawHtmlBlock(text: string): boolean {
 }
 
 export function blockHtmlStart(markup: string): boolean {
-  const match = /^<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s|\/?>|$)/u.exec(markup);
+  const match = /^<\/?([A-Za-z][A-Za-z0-9-]*)(?:[ \t]|\/?>|$)/u.exec(markup);
   const tag = match?.[1]?.toLowerCase() ?? null;
   return tag != null && BLOCK_HTML_TAGS.has(tag);
 }
 
+// CommonMark attributes have distinct name and value tokens. An unfinished
+// attribute must not require trying different splits of the same text.
+const ATTRIBUTE = /[ \t]+[A-Za-z_:][A-Za-z0-9_.:-]*(?:[ \t]*=[ \t]*(?:"[^"]*"|'[^']*'|[^ \t"'=<>`]+))?/u;
+const COMPLETE_OPEN_TAG = new RegExp(`^<[A-Za-z][A-Za-z0-9-]*(?:${ATTRIBUTE.source})*[ \\t]*/?>[ \\t]*$`, "u");
+const COMPLETE_CLOSE_TAG = /^<\/[A-Za-z][A-Za-z0-9-]*[ \t]*>[ \t]*$/u;
+
 export function completeCustomHtmlTag(markup: string): boolean {
-  return /^<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+(?:[^<>"']+|"[^"]*"|'[^']*')*)?\s*\/?>[ \t]*$/u.test(markup);
+  return COMPLETE_OPEN_TAG.test(markup) || COMPLETE_CLOSE_TAG.test(markup);
 }
