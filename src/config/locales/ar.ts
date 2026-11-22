@@ -148,6 +148,8 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "batch.operation.strip": "إزالة علامات Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "صفحات إعدادات Number Suite",
+  "settings.tabs.earlier": "إظهار علامات التبويب السابقة",
+  "settings.tabs.later": "إظهار علامات التبويب التالية",
   "settings.tab.general": "عام",
   "settings.tab.headings": "ترقيم العناوين",
   "settings.tab.outline": "تحسينات المخطط",

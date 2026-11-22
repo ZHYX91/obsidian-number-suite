@@ -98,6 +98,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 
 The Links & references tab keeps a short explanation beside the ordinary Wiki link toggle. Its reference guide covers eligible targets, native link behavior and exclusions.
 
+When tabs extend beyond either edge, a theme-accented arrow on that side reveals the next clipped tab. Scrolling leaves the current settings page selected. Both gutters disappear when all tabs fit.
+
 Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
 Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent
 underline with a semibold label, and stable space separates the baseline from the content panel. Built-in schemes can be expanded

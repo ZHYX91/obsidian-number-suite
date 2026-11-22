@@ -148,6 +148,8 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Supprimer les marqueurs Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Sections des paramètres Number Suite",
+  "settings.tabs.earlier": "Afficher les onglets précédents",
+  "settings.tabs.later": "Afficher les onglets suivants",
   "settings.tab.general": "Général",
   "settings.tab.headings": "Numérotation des titres",
   "settings.tab.outline": "Améliorations du plan",

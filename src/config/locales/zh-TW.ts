@@ -148,6 +148,8 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "batch.operation.strip": "移除 Number Suite 隱形標記",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Number Suite 設定分類",
+  "settings.tabs.earlier": "顯示前面的分頁",
+  "settings.tabs.later": "顯示後面的分頁",
   "settings.tab.general": "一般",
   "settings.tab.headings": "標題編號",
   "settings.tab.outline": "大綱增強",

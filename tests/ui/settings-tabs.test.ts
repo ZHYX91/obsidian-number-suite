@@ -14,6 +14,8 @@ const definitions = [
   { id: "views", label: "Views" },
 ] as const;
 
+const scrollLabels = { earlier: "Show earlier tabs", later: "Show later tabs" };
+
 describe("settings tabs", () => {
   beforeEach(() => {
     document.body.replaceChildren();
@@ -25,7 +27,7 @@ describe("settings tabs", () => {
     installHelpers(container);
     document.body.append(container);
     const select = vi.fn();
-    const result = createSettingsTabs(container, definitions, "general", "Sections", select);
+    const result = createSettingsTabs(container, definitions, "general", "Sections", scrollLabels, select);
     const tabs = container.querySelectorAll<HTMLElement>("[role=tab]");
     expect(container.querySelector("[role=tablist]")?.getAttribute("aria-label")).toBe("Sections");
     expect(container.querySelector("[role=tablist]")?.getAttribute("aria-orientation")).toBe("horizontal");
@@ -39,6 +41,53 @@ describe("settings tabs", () => {
     result.cleanup();
   });
 
+  it.each(["ltr", "rtl"])("reveals the next clipped tab without selecting it (%s)", (direction) => {
+    const container = document.createElement("div");
+    container.dir = direction;
+    installHelpers(container);
+    document.body.append(container);
+    const select = vi.fn();
+    const layout = createSettingsTabs(container, definitions, "general", "Sections", scrollLabels, select);
+    const list = container.querySelector<HTMLElement>("[role=tablist]")!;
+    const strip = list.parentElement!;
+    const earlier = strip.querySelector<HTMLButtonElement>('[data-direction="earlier"]')!;
+    const later = strip.querySelector<HTMLButtonElement>('[data-direction="later"]')!;
+    const buttons = Array.from(list.querySelectorAll<HTMLElement>("[role=tab]"));
+    const rtl = direction === "rtl";
+    const width = 100;
+    let available = 164;
+    Object.defineProperty(strip, "clientWidth", { get: () => available });
+    Object.defineProperty(list, "scrollWidth", { get: () => buttons.length * 80 });
+    vi.spyOn(list, "getBoundingClientRect").mockReturnValue({ left: 0, right: width, width } as DOMRect);
+    for (const [index, button] of buttons.entries()) {
+      vi.spyOn(button, "getBoundingClientRect").mockImplementation(() => {
+        const left = (rtl ? width - (index + 1) * 80 : index * 80) - list.scrollLeft;
+        return { left, right: left + 80, width: 80 } as DOMRect;
+      });
+    }
+    // Mimic the scroll event fired after native wheel or touch interaction.
+    list.dispatchEvent(new Event("scroll"));
+    expect(earlier.hidden).toBe(true);
+    expect(later.hidden).toBe(false);
+    expect(later.getAttribute("aria-label")).toBe(scrollLabels.later);
+    later.click();
+    expect(list.scrollLeft).toBe(rtl ? -60 : 60);
+    expect(earlier.hidden).toBe(false);
+    expect(later.hidden).toBe(false);
+    for (let index = 2; index < buttons.length; index++) later.click();
+    expect(later.hidden).toBe(true);
+    expect(earlier.hidden).toBe(false);
+    expect(buttons[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(select).not.toHaveBeenCalled();
+
+    available = buttons.length * 80;
+    list.dispatchEvent(new Event("scroll"));
+    expect(strip.classList.contains("has-overflow")).toBe(false);
+    expect(earlier.hidden).toBe(true);
+    expect(later.hidden).toBe(true);
+    layout.cleanup();
+  });
+
   it.each([
     ["ArrowRight", "headings"],
     ["ArrowLeft", "views"],
@@ -49,7 +98,7 @@ describe("settings tabs", () => {
     installHelpers(container);
     document.body.append(container);
     const select = vi.fn();
-    createSettingsTabs(container, definitions, "general", "Sections", select);
+    createSettingsTabs(container, definitions, "general", "Sections", scrollLabels, select);
     const activeTab = container.querySelector<HTMLElement>("[role=tab][aria-selected=true]");
 
     activeTab?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
@@ -62,7 +111,7 @@ describe("settings tabs", () => {
     installHelpers(container);
     document.body.append(container);
     const select = vi.fn();
-    createSettingsTabs(container, definitions, "general", "Sections", select);
+    createSettingsTabs(container, definitions, "general", "Sections", scrollLabels, select);
     const tabs = container.querySelectorAll<HTMLElement>("[role=tab]");
 
     tabs[0]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));

@@ -170,11 +170,13 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       { id: "cleanup", label: t("settings.tab.cleanup") },
       { id: "views", label: t("settings.tab.views") },
     ] as const;
-    const layout = createSettingsTabs(containerEl, tabs, this.activeTab, t("settings.tabs.label"), (id) => {
+    const layout = createSettingsTabs(containerEl, tabs, this.activeTab, t("settings.tabs.label"), {
+      earlier: t("settings.tabs.earlier"), later: t("settings.tabs.later"),
+    }, (id) => {
       this.activeTab = id;
       this.display();
       const target = this.containerEl.querySelector<HTMLElement>(`#number-suite-settings-tab-${id}`);
-      target?.focus();
+      target?.focus({ preventScroll: true });
     });
     const statusCleanup = this.renderSaveStatus(layout.panel, t);
     if (this.activeTab === "general") this.renderGeneral(layout.panel, t);
