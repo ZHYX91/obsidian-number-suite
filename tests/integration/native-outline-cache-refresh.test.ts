@@ -174,7 +174,7 @@ describe("native Outline metadata catch-up", () => {
       return { leaf, editor, setData: (value: string) => { data = value; } };
     };
     // The source editor normalizes CRLF while the native cache indexes the file's raw offsets.
-    const content = (title: string) => prefix.replaceAll("\r\n", "\n") + "# Chapter\n####### " + title + "\n";
+    const content = (title: string) => prefix.replace(/\r\n/gu, "\n") + "# Chapter\n####### " + title + "\n";
     const line = prefix.split("\n").length - 1;
     const own = markdownLeaf(file, content("External inside"));
     const sameName = markdownLeaf(makeFile("Note.md"), content("Vault inside"));
