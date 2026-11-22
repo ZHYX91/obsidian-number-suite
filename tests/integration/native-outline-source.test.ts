@@ -35,7 +35,7 @@ describe("native Outline source positions", () => {
     const aligned = nativeHeadingsInSource(cached, structure)!;
     expect(aligned.map((item) => [item.position.start.offset, item.position.end.offset])).toEqual([[6, 12], [16, 24]]);
     expect(nativeHeadingsInSource(aligned, structure)).toBe(aligned);
-    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replaceAll("\n", "\r\n")))).toBe(cached);
+    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace(/\n/gu, "\r\n")))).toBe(cached);
     expect(nativeHeadingsInSource([cached[0]!, aligned[1]!], structure)).toBeNull();
     expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace("Child", "Other")))).toBeNull();
     expect(cached[1]!.position.start.offset).toBe(19);
