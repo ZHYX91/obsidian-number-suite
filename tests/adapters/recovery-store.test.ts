@@ -37,11 +37,12 @@ const snapshot: LastBatchSnapshot = {
 
 describe("RecoveryStore", () => {
   it.each([{ files: [] }, { files: [snapshot.files[0], snapshot.files[0]] },
-    { files: [{ ...snapshot.files[0], afterHash: "sha256:invalid" }] }])(
-    "falls back to durable recovery for records the writer cannot produce", async ({ files }) => {
+    { files: [{ ...snapshot.files[0], afterHash: "sha256:invalid" }] },
+    { operation: ["write"] }, { status: ["pending"] }])(
+    "falls back to durable recovery for records the writer cannot produce", async (invalidFields) => {
       const durable = ".obsidian/plugins/number-suite/recovery.json";
       const pending = ".obsidian/plugins/number-suite/recovery.pending.json";
-      const storage = harness({ [durable]: JSON.stringify(snapshot), [pending]: JSON.stringify({ ...snapshot, files }) });
+      const storage = harness({ [durable]: JSON.stringify(snapshot), [pending]: JSON.stringify({ ...snapshot, ...invalidFields }) });
       await expect(storage.store.load()).resolves.toEqual(snapshot);
       expect(storage.files.size).toBe(2);
     },

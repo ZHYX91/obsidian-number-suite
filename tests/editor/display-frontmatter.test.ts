@@ -56,12 +56,17 @@ const cases = [
 ];
 
 describe("source Properties validation at display entry points", () => {
-  it.each([{ root: ["list"] }, { root: "scalar" }, { root: 7 }])("refuses a non-mapping Properties root across note controls and writes", async ({ root }) => {
+  it.each([{ root: ["list"] }, { root: "scalar" }, { root: 7 }, { root: null }, { root: new Date("2026-01-01") }])("refuses a non-mapping Properties root across note controls and writes", async ({ root }) => {
     const { parseFrontmatterRecordFromSource } = await import("../../src/config/frontmatter-source");
     host.parsed = root as unknown as Record<string, unknown>;
     const source = "---\nmalformed properties\n---\n# Title";
     expect(parseFrontmatterRecordFromSource(source)).toBeNull();
     expect(createSourcePlan(source, "write", configured)).toEqual({ status: "invalid-frontmatter", plan: null });
+  });
+  it.each(["", "# A comment\n  # Another"])("accepts empty and comment-only Properties", async (yaml) => {
+    const { parseFrontmatterRecordFromSource } = await import("../../src/config/frontmatter-source");
+    host.parsed = null as unknown as Record<string, unknown>;
+    expect(parseFrontmatterRecordFromSource(`---\n${yaml}\n---\n# Title`)).toEqual({});
   });
   type SkipFixture = { fileName: string; h2Start: number | null; labels: [string, string][] };
   const fixtures: SkipFixture[] = [

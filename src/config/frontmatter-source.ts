@@ -51,8 +51,13 @@ function readProperties(source: string): { record: Record<string, unknown>; issu
     const info = getFrontMatterInfo(source);
     if (!info.exists) return { record: {}, issues: [] };
     const value: unknown = parseYaml(info.frontmatter);
-    if (value != null && (typeof value !== "object" || Array.isArray(value))) return null;
-    return { record: (value ?? {}) as Record<string, unknown>, issues: notePropertySourceIssues(info.frontmatter) };
+    if (value == null) {
+      // Both an empty document and an explicit YAML null can parse to null.
+      const empty = info.frontmatter.split(/\r\n|\r|\n/u).every((line) => /^\s*(?:#.*)?$/u.test(line));
+      return empty ? { record: {}, issues: [] } : null;
+    }
+    if (Object.prototype.toString.call(value) !== "[object Object]") return null;
+    return { record: value as Record<string, unknown>, issues: notePropertySourceIssues(info.frontmatter) };
   } catch {
     return null;
   }

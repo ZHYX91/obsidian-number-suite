@@ -51,10 +51,16 @@ function harness(
   let persistenceCalls = 0;
   const persistedSnapshots: Array<LastBatchSnapshot | null> = [];
   const leaves: Array<{ view: MarkdownView }> = [];
+  const cachedSources = new Map<string, string>();
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? folders.get(path) ?? null,
     getMarkdownFiles: () => [...files.values()],
     cachedRead: async (file: TFile) => {
+      const source = contents.get(file.path) ?? "";
+      await readHook?.(file);
+      return cachedSources.get(file.path) ?? source;
+    },
+    read: async (file: TFile) => {
       const source = contents.get(file.path) ?? "";
       await readHook?.(file);
       return source;
@@ -89,6 +95,7 @@ function harness(
   };
   return {
     contents,
+    cachedSources,
     controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, excludedFolders, selectedSchemeId: "hierarchical" }), persistence),
     addFolder: (path: string) => {
       const folder = Object.assign(Object.create(TFolder.prototype) as TFolder, { path });
@@ -153,7 +160,7 @@ function applyHarness(diskSource: string, bufferSource: string) {
   const app = {
     vault: {
       getAbstractFileByPath: (path: string) => path === file.path ? file : null,
-      cachedRead: async (target: TFile) => { afterRead?.(); return contents.get(target.path) ?? ""; },
+      read: async (target: TFile) => { afterRead?.(); return contents.get(target.path) ?? ""; },
       process: async (target: TFile, transform: (current: string) => string) => {
         const current = contents.get(target.path) ?? "";
         const next = transform(current);
@@ -443,7 +450,7 @@ describe("BatchController recovery loading", () => {
     const app = {
       vault: {
         getAbstractFileByPath: () => file,
-        cachedRead: async () => contents.get("a.md") ?? "",
+        read: async () => contents.get("a.md") ?? "",
         process: async (_file: TFile, transform: (current: string) => string) => {
           const next = transform(contents.get("a.md") ?? "");
           contents.set("a.md", next);
@@ -477,6 +484,28 @@ describe("BatchController undo", () => {
     expect(test.contents.get("a.md")).toBe("before:a.md");
     expect(test.contents.get("b.md")).toBe("before:b.md");
     expect(test.getStored()).toBeNull();
+  });
+
+  it("restores disk even when the read cache still contains the pre-batch text", async () => {
+    const applied = { "a.md": "after-a" };
+    const test = harness(applied, await snapshot(applied));
+    test.cachedSources.set("a.md", "before:a.md");
+
+    await test.controller.undo((key) => key);
+
+    expect(test.contents.get("a.md")).toBe("before:a.md");
+    expect(test.getStored()).toBeNull();
+  });
+
+  it("keeps recovery when stale cached pre-batch text hides an external edit", async () => {
+    const recovery = await snapshot({ "a.md": "after-a" });
+    const test = harness({ "a.md": "external edit" }, recovery);
+    test.cachedSources.set("a.md", "before:a.md");
+
+    await test.controller.undo((key) => key);
+
+    expect(test.contents.get("a.md")).toBe("external edit");
+    expect(test.getStored()).toBe(recovery);
   });
 
   it("preserves a concurrent edit and retains recovery when a rollback conflicts", async () => {

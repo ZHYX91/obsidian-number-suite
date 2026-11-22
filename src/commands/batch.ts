@@ -145,7 +145,7 @@ export class BatchController {
         this.notify(translate("notice.undoConflict"));
         return;
       }
-      const current = await this.app.vault.cachedRead(file);
+      const current = await this.app.vault.read(file);
       this.assertActive();
       if (!this.fileBindingIsCurrent(file, item.path)) {
         this.notify(translate("notice.undoConflict"));
@@ -267,7 +267,7 @@ export class BatchController {
     for (const [path, expected] of expectedSources) {
       const file = expectedFiles.get(path);
       if (!file || !this.fileBindingIsCurrent(file, path)) return false;
-      const current = await this.app.vault.cachedRead(file);
+      const current = await this.app.vault.read(file);
       this.assertActive();
       if (current !== expected || !this.fileBindingIsCurrent(file, path)) return false;
     }

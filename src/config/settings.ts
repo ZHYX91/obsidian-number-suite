@@ -392,8 +392,10 @@ export function sanitizeLastBatch(value: unknown): LastBatchSnapshot | null {
   if (
     typeof value.createdAt !== "string"
     || new Set(value.files.map((file) => file.path)).size !== value.files.length
-    || !["write", "remove", "renumber", "strip-markers"].includes(String(value.operation))
-    || !["pending", "applied"].includes(String(value.status))
+    || typeof value.operation !== "string"
+    || !["write", "remove", "renumber", "strip-markers"].includes(value.operation)
+    || typeof value.status !== "string"
+    || !["pending", "applied"].includes(value.status)
   ) {
     return null;
   }
