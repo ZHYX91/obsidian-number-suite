@@ -1,3 +1,4 @@
+import type { HeadingCache } from "obsidian";
 import { describe, expect, it } from "vitest";
 import { nativeHeadingsInSource, readOutlineStructure, updateOutlineStructure } from "../../src/integration/native-outline-source";
 
@@ -25,37 +26,56 @@ describe("native Outline source positions", () => {
     expect(updateOutlineStructure(plain, plain + " ends", structure)).toBe(structure);
   });
 
-  it("aligns a CRLF cache to LF only when all indexed headings match", () => {
-    const source = "Intro\n# Root\n\n  ## Child";
-    const structure = readOutlineStructure(source);
-    const cached = [
-      { heading: "Root", level: 1, position: { start: { line: 1, col: 0, offset: 7 }, end: { line: 1, col: 6, offset: 13 } } },
-      { heading: "Child", level: 2, position: { start: { line: 3, col: 2, offset: 19 }, end: { line: 3, col: 10, offset: 27 } } },
-    ];
-    const aligned = nativeHeadingsInSource(cached, structure, source)!;
-    expect(aligned.map((item) => [item.position.start.offset, item.position.end.offset])).toEqual([[6, 12], [16, 24]]);
-    expect(nativeHeadingsInSource(aligned, structure, source)).toBe(aligned);
-    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace(/\n/gu, "\r\n")), source.replace(/\n/gu, "\r\n"))).toBe(cached);
-    expect(nativeHeadingsInSource([cached[0]!, aligned[1]!], structure, source)).toBeNull();
-    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace("Child", "Other")), source.replace("Child", "Other"))).toBeNull();
-    expect(cached[1]!.position.start.offset).toBe(19);
-  });
-  it("validates mixed line endings at both endpoints of a multiline native heading", () => {
-    const source = "# One\nTitle\n-----\n";
-    const structure = readOutlineStructure(source);
-    const first = { heading: "One", level: 1,
-      position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 5, offset: 5 } } };
-    // Only the break between the Setext title and underline was CRLF.
-    const title = { heading: "Title", level: 2,
-      position: { start: { line: 1, col: 0, offset: 6 }, end: { line: 2, col: 5, offset: 18 } } };
-    const original = [first, title];
-    const aligned = nativeHeadingsInSource(original, structure, source)!;
-    expect(aligned[0]).toBe(first);
-    expect(aligned[1]!.position.end.offset).toBe(17);
-    expect(title.position.end.offset).toBe(18);
-    expect(nativeHeadingsInSource(aligned, structure, source)).toBe(aligned);
-    expect(nativeHeadingsInSource([first, { ...title, position: { ...title.position,
-      end: { ...title.position.end, offset: 19 } } }], structure, source)).toBeNull();
+  const endings = ["\n", "\r", "\r\n"];
+  const combinations = endings.flatMap(first =>
+    endings.flatMap(second => endings.map(third => [first, second, third] as const)));
+
+  it.each(combinations)("aligns physical heading offsets for %j, %j, %j", (first, second, third) => {
+    const editor = headingFixture(["\n", "\n", "\n"]);
+    const diskEndings = [first, second, third] as const;
+    const physical = headingFixture(diskEndings);
+    const before = headingFixture(diskEndings).headings;
+    const aligned = nativeHeadingsInSource(physical.headings, readOutlineStructure(editor.source), editor.source);
+    expect(aligned).toEqual(editor.headings);
+    expect(physical.headings).toEqual(before);
+    expect(nativeHeadingsInSource(physical.headings, readOutlineStructure(physical.source), physical.source))
+      .toBe(physical.headings);
   });
 
+  it("reuses heading objects whose physical offsets already match the editor", () => {
+    const editor = headingFixture(["\n", "\n", "\n"]);
+    const structure = readOutlineStructure(editor.source);
+    const oneMixedEnding = headingFixture(["\n", "\n", "\r\n"]);
+    const aligned = nativeHeadingsInSource(oneMixedEnding.headings, structure, editor.source)!;
+    expect(aligned[0]).toBe(oneMixedEnding.headings[0]);
+    expect(nativeHeadingsInSource(aligned, structure, editor.source)).toBe(aligned);
+  });
+
+  it("rejects cache positions that cannot belong to the same physical note", () => {
+    const editor = headingFixture(["\n", "\n", "\n"]);
+    const { headings: [root, child] } = headingFixture(["\r\n", "\r\n", "\r\n"]);
+    const structure = readOutlineStructure(editor.source);
+    const align = (headings: HeadingCache[]) =>
+      nativeHeadingsInSource(headings, structure, editor.source);
+
+    // There is no line break inside the root heading on which an extra CR could disappear.
+    const inconsistentEnd = { ...root.position.end, offset: root.position.end.offset - 1 };
+    expect(align([{ ...root, position: { ...root.position, end: inconsistentEnd } }])).toBeNull();
+    expect(align([root, editor.headings[1]])).toBeNull();
+    const impossibleUnderline = { ...child.position.end, offset: child.position.end.offset + 1 };
+    expect(align([root, { ...child, position: { ...child.position, end: impossibleUnderline } }])).toBeNull();
+    expect(align([root, { ...child, heading: "Renamed" }])).toBeNull();
+  });
 });
+
+/** Use the actual string as the offset oracle for both the on-disk and editor spellings. */
+function headingFixture(endings: readonly [string, string, string]) {
+  const rows = ["Intro", "  # 🌱 Root", "Child", "-----"] as const;
+  const source = rows.map((row, i) => row + (endings[i] ?? "")).join("");
+  const position = (line: number, col: number) => ({ line, col, offset: source.indexOf(rows[line]!) + col });
+  const headings: [HeadingCache, HeadingCache] = [
+    { heading: "🌱 Root", level: 1, position: { start: position(1, 2), end: position(1, rows[1].length) } },
+    { heading: "Child", level: 2, position: { start: position(2, 0), end: position(3, rows[3].length) } },
+  ];
+  return { source, headings };
+}
