@@ -155,7 +155,8 @@ describe("native Outline metadata catch-up", () => {
     enhancer.stop();
   });
 
-  it("reads and navigates an open external note without resolving it through the vault", async () => {
+  it.each(["\r\n", "p\r\n".repeat(12) + "q\n"])(
+    "reads and navigates external headings with physical line endings %j", async (prefix) => {
     Object.defineProperty(document, "win", { configurable: true, value: {
       createSpan: () => document.createElement("span"),
     } });
@@ -173,7 +174,8 @@ describe("native Outline metadata catch-up", () => {
       return { leaf, editor, setData: (value: string) => { data = value; } };
     };
     // The source editor normalizes CRLF while the native cache indexes the file's raw offsets.
-    const content = (title: string) => "\n# Chapter\n####### " + title + "\n";
+    const content = (title: string) => prefix.replaceAll("\r\n", "\n") + "# Chapter\n####### " + title + "\n";
+    const line = prefix.split("\n").length - 1;
     const own = markdownLeaf(file, content("External inside"));
     const sameName = markdownLeaf(makeFile("Note.md"), content("Vault inside"));
     const otherExternal = markdownLeaf(makeFile("file:C:/Other/Note.md"), content("Other inside"));
@@ -184,7 +186,7 @@ describe("native Outline metadata catch-up", () => {
       getState: () => ({ file: path }),
       getHeadings: (): HeadingCache[] => [{
         heading: "Chapter", level: 1,
-        position: { start: { line: 1, col: 0, offset: 2 }, end: { line: 1, col: 9, offset: 11 } },
+        position: { start: { line, col: 0, offset: prefix.length }, end: { line, col: 9, offset: prefix.length + 9 } },
       }],
       update: () => {
         const children = view.getHeadings().map((heading) => {
@@ -225,7 +227,7 @@ describe("native Outline metadata catch-up", () => {
     expect(labels()).toEqual(["Chapter", "External inside"]);
     expect(view.contentEl.querySelector(".number-suite-native-outline-number")?.textContent).toBe("1");
     view.contentEl.lastElementChild!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    expect(own.leaf.setEphemeralState).toHaveBeenCalledExactlyOnceWith({ line: 2 });
+    expect(own.leaf.setEphemeralState).toHaveBeenCalledExactlyOnceWith({ line: line + 1 });
     expect(revealLeaf).toHaveBeenCalledExactlyOnceWith(own.leaf);
     expect(sameName.leaf.setEphemeralState).not.toHaveBeenCalled();
     expect(otherExternal.leaf.setEphemeralState).not.toHaveBeenCalled();

@@ -48,7 +48,7 @@ interface ObservedOutline {
   pendingMetadata: boolean;
   nativePositions: string;
   nativeRows: string;
-  nativeStructure: { path: string; structure: OutlineStructure } | null;
+  nativeStructure: { path: string; structure: OutlineStructure; source: string } | null;
   lastProjection: { structure: OutlineStructure; path: string; extras: ExtraOutlineHeading[]; relocated: HeadingCache[] | null } | null;
   readonly decoratedRows: Map<HTMLElement, DecoratedRow>;
   readonly rowSources: WeakMap<HTMLElement, OutlineStructure>;
@@ -391,13 +391,13 @@ export class NativeOutlineEnhancer {
       try {
         let relocated: HeadingCache[] | null = null;
         if (path != null && structure != null) {
-          const aligned = nativeHeadingsInSource(headings, structure);
+          const aligned = nativeHeadingsInSource(headings, structure, source);
           if (aligned != null) {
-            current.nativeStructure = { path, structure };
+            current.nativeStructure = { path, structure, source };
             if (aligned !== headings) relocated = aligned;
           } else if (current.nativeStructure?.path === path) {
             const previous = current.nativeStructure.structure;
-            const previousHeadings = nativeHeadingsInSource(headings, previous);
+            const previousHeadings = nativeHeadingsInSource(headings, previous, current.nativeStructure.source);
             if (previousHeadings != null) relocated = rebaseNativeHeadings(previousHeadings, previous, structure);
           }
         }
@@ -795,7 +795,7 @@ export class NativeOutlineEnhancer {
       }
       const cached = this.readNativeHeadings(entry);
       if (cached == null) { this.updateEntry(entry); continue; }
-      entry.pendingMetadata = nativeHeadingsInSource(cached, next) == null;
+      entry.pendingMetadata = nativeHeadingsInSource(cached, next, source) == null;
       this.updateEntry(entry);
     }
     return true;
@@ -864,7 +864,7 @@ export class NativeOutlineEnhancer {
           if (native == null) continue;
           const structure = this.structures.get(path);
           if (structure == null) continue;
-          const caughtUp = nativeHeadingsInSource(native, structure) != null;
+          const caughtUp = nativeHeadingsInSource(native, structure, source) != null;
           if (entry.pendingMetadata && !caughtUp) continue;
           if (entry.nativeRows === this.nativeRows(native) && !entry.pendingMetadata) continue;
           entry.pendingMetadata = false;

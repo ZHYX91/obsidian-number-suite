@@ -32,12 +32,30 @@ describe("native Outline source positions", () => {
       { heading: "Root", level: 1, position: { start: { line: 1, col: 0, offset: 7 }, end: { line: 1, col: 6, offset: 13 } } },
       { heading: "Child", level: 2, position: { start: { line: 3, col: 2, offset: 19 }, end: { line: 3, col: 10, offset: 27 } } },
     ];
-    const aligned = nativeHeadingsInSource(cached, structure)!;
+    const aligned = nativeHeadingsInSource(cached, structure, source)!;
     expect(aligned.map((item) => [item.position.start.offset, item.position.end.offset])).toEqual([[6, 12], [16, 24]]);
-    expect(nativeHeadingsInSource(aligned, structure)).toBe(aligned);
-    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace(/\n/gu, "\r\n")))).toBe(cached);
-    expect(nativeHeadingsInSource([cached[0]!, aligned[1]!], structure)).toBeNull();
-    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace("Child", "Other")))).toBeNull();
+    expect(nativeHeadingsInSource(aligned, structure, source)).toBe(aligned);
+    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace(/\n/gu, "\r\n")), source.replace(/\n/gu, "\r\n"))).toBe(cached);
+    expect(nativeHeadingsInSource([cached[0]!, aligned[1]!], structure, source)).toBeNull();
+    expect(nativeHeadingsInSource(cached, readOutlineStructure(source.replace("Child", "Other")), source.replace("Child", "Other"))).toBeNull();
     expect(cached[1]!.position.start.offset).toBe(19);
   });
+  it("validates mixed line endings at both endpoints of a multiline native heading", () => {
+    const source = "# One\nTitle\n-----\n";
+    const structure = readOutlineStructure(source);
+    const first = { heading: "One", level: 1,
+      position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 5, offset: 5 } } };
+    // Only the break between the Setext title and underline was CRLF.
+    const title = { heading: "Title", level: 2,
+      position: { start: { line: 1, col: 0, offset: 6 }, end: { line: 2, col: 5, offset: 18 } } };
+    const original = [first, title];
+    const aligned = nativeHeadingsInSource(original, structure, source)!;
+    expect(aligned[0]).toBe(first);
+    expect(aligned[1]!.position.end.offset).toBe(17);
+    expect(title.position.end.offset).toBe(18);
+    expect(nativeHeadingsInSource(aligned, structure, source)).toBe(aligned);
+    expect(nativeHeadingsInSource([first, { ...title, position: { ...title.position,
+      end: { ...title.position.end, offset: 19 } } }], structure, source)).toBeNull();
+  });
+
 });

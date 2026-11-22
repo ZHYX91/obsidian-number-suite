@@ -83,23 +83,49 @@ export function nativeHeadingIsCurrent(structure: OutlineStructure, item: Headin
   return row != null && row.level === item.level && row.offset + col === offset && sameOutlineTitle(row.title, item.heading);
 }
 
-/** The Source editor uses LF while the metadata worker can index CRLF bytes.
- * Align only when every native heading matches the same position convention. */
-export function nativeHeadingsInSource(headings: HeadingCache[], structure: OutlineStructure): HeadingCache[] | null {
-  if (headings.every((item) => nativeHeadingIsCurrent(structure, item))) return headings;
-  if (structure.hasCarriageReturns || !headings.every((item) => {
-    const { line, col, offset } = item.position.start;
-    const row = structure.native.get(line);
-    return row != null && row.level === item.level && row.offset + col + line === offset
-      && sameOutlineTitle(row.title, item.heading);
-  })) return null;
-  return headings.map((item) => {
+/** Cached offsets can count an extra CR at any line break normalized by the editor.
+ * Accept a single consistent newline history for all verified heading endpoints. */
+export function nativeHeadingsInSource(headings: HeadingCache[], structure: OutlineStructure, source: string): HeadingCache[] | null {
+  if (headings.every((item) => nativeHeadingIsCurrent(structure, item) && (structure.hasCarriageReturns
+    || (item.position.start.line === item.position.end.line &&
+      item.position.end.offset - item.position.start.offset === item.position.end.col - item.position.start.col)))) return headings;
+  if (structure.hasCarriageReturns) return null;
+  const extras = new Map<number, number>([[0, 0]]);
+  const aligned: HeadingCache[] = [];
+  const record = (line: number, extra: number): boolean => {
+    const known = extras.get(line);
+    if (!Number.isSafeInteger(extra) || extra < 0 || extra > line || (known !== undefined && known !== extra)) return false;
+    extras.set(line, extra);
+    return true;
+  };
+  for (const item of headings) {
     const { start, end } = item.position;
-    return { ...item, position: {
-      start: { ...start, offset: start.offset - start.line },
-      end: { ...end, offset: end.offset - end.line },
-    } };
-  });
+    const row = structure.native.get(start.line);
+    if (row == null || row.level !== item.level || !sameOutlineTitle(row.title, item.heading)
+      || start.col < 0 || start.col > row.end - row.offset || end.line < start.line) return null;
+    const from = row.offset + start.col;
+    let endLineStart = row.offset;
+    for (let line = start.line; line < end.line; line++) {
+      const newline = source.indexOf("\n", endLineStart);
+      if (newline < 0) return null;
+      endLineStart = newline + 1;
+    }
+    const to = endLineStart + end.col;
+    const newline = end.line === start.line ? row.end : source.indexOf("\n", endLineStart);
+    if (end.col < 0 || to < from || to > (newline < 0 ? source.length : newline)
+      || !record(start.line, start.offset - from) || !record(end.line, end.offset - to)) return null;
+    aligned.push(start.offset === from && end.offset === to ? item
+      : { ...item, position: { start: { ...start, offset: from }, end: { ...end, offset: to } } });
+  }
+  let previousLine = 0;
+  let previousExtra = 0;
+  for (const [line, extra] of [...extras].sort(([left], [right]) => left - right)) {
+    const additional = extra - previousExtra;
+    if (additional < 0 || additional > line - previousLine) return null;
+    previousLine = line;
+    previousExtra = extra;
+  }
+  return aligned.every((item, index) => item === headings[index]) ? headings : aligned;
 }
 
 export function syntheticRowIsCurrent(structure: OutlineStructure, item: ExtraOutlineHeading): boolean {
