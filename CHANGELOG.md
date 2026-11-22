@@ -2,6 +2,14 @@
 
 All notable changes to Number Suite are documented here.
 
+## 0.8.0
+
+- Choose the full scheme or just the current level for virtual heading numbers in the note, Outline, and references. Outline can follow the note's setting. Written numbers and authored aliases keep their original text.
+- Count figures, tables, equations, and code captions across the entire note or restart each count at a selected heading level. References display the target caption's number.
+- Keep native Outline badges stable during ordinary typing, update source positions after edits, and keep navigation bound to the correct note and pane.
+- Protect intervening disk edits before batch writes and undo, keep valid recovery records, and support folder exclusion paths with commas.
+- Recheck Markdown heading boundaries before moving sections. Preserve excluded sections, ambiguous caption objects, and duplicate block IDs during previewed writes.
+
 ## 0.7.1
 
 - Display calculated virtual heading numbers even when a written prefix remains visible.
