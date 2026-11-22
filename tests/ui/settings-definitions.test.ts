@@ -7,7 +7,7 @@ import { App } from "obsidian";
 import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
 import { createTranslator } from "../../src/config/i18n";
 import type { SettingsSaveStatus } from "../../src/config/settings-save-coordinator";
-import { cloneSettings, DEFAULT_SETTINGS } from "../../src/config/settings";
+import { cloneSettings, DEFAULT_SETTINGS, sanitizeSettings } from "../../src/config/settings";
 
 function createHost(
   status: SettingsSaveStatus = { state: "saved", error: null },
@@ -78,6 +78,26 @@ describe("Obsidian 1.13 settings definitions", () => {
     expect(serialized).toContain('"key":"notes.displayMode"');
     expect(serialized).not.toContain('"key":"general.displayMode"');
     expect(tab.containerEl.querySelector("[role=tablist]")).toBeNull();
+  });
+
+  it("loads previous preferences and persists virtual number formats through display controls", async () => {
+    const legacy = sanitizeSettings({ showVirtualNumbers: true });
+    expect(legacy).toMatchObject({
+      bodyHeadingNumberFormat: "scheme", outlineHeadingNumberFormat: "follow-body", referenceHeadingNumberFormat: "scheme",
+    });
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    for (const key of ["bodyHeadingNumberFormat", "outlineHeadingNumberFormat", "referenceHeadingNumberFormat"] as const) {
+      const control = `views.${key}`;
+      expect(JSON.stringify(tab.getDeclarativeSettingDefinitions())).toContain(`"key":"${control}"`);
+      await tab.setControlValue(control, "current-only");
+      expect(host.saveSettings).toHaveBeenLastCalledWith(host.settings, "display");
+      expect(sanitizeSettings(host.settings)[key]).toBe("current-only");
+      expect(tab.getControlValue(control)).toBe("current-only");
+      await expect(tab.setControlValue(control, "invalid")).rejects.toThrow();
+    }
+    await tab.setControlValue("views.outlineHeadingNumberFormat", "follow-body");
+    await expect(tab.setControlValue("views.bodyHeadingNumberFormat", "follow-body")).rejects.toThrow();
   });
 
   it("persists native control changes through the plugin host", async () => {

@@ -1102,6 +1102,8 @@ export class HeadingReadingProcessor {
     const headings = parseAtxHeadings(source);
     const displayPlan = createDisplayPlan(headings, {
       showVirtualNumbers: effective.showVirtualNumbers,
+      virtualNumberFormat: settings.bodyHeadingNumberFormat,
+      referenceNumberFormat: settings.referenceHeadingNumberFormat,
       concealStoredNumbers: effective.concealStoredNumbers,
       storedHeadingNumberStyleScope: settings.storedHeadingNumberStyleScope,
       numbering: toNumberingOptions(settings, effective),

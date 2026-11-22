@@ -803,6 +803,8 @@ export class HeadingDisplayController {
         const numbering = toNumberingOptions(settings, effective);
         const plan = createDisplayPlan(headings, {
           showVirtualNumbers: effective.showVirtualNumbers,
+          virtualNumberFormat: settings.bodyHeadingNumberFormat,
+          referenceNumberFormat: settings.referenceHeadingNumberFormat,
           concealStoredNumbers: effective.concealStoredNumbers,
           storedHeadingNumberStyleScope: livePreview ? settings.storedHeadingNumberStyleScope : "off",
           numbering,

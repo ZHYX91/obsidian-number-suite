@@ -4,6 +4,8 @@ import {
   MarkdownView,
   PluginSettingTab,
   Setting,
+  setIcon,
+  setTooltip,
   type SettingDefinitionItem,
 } from "obsidian";
 
@@ -15,7 +17,7 @@ import {
   type NumberSuiteSettings,
 } from "../config/settings";
 import type { SettingsSaveStatus } from "../config/settings-save-coordinator";
-import { createSettingDefinitions } from "../ui/settings/definitions";
+import { createSettingDefinitions, virtualHeadingFormatControls, virtualHeadingFormatOptions } from "../ui/settings/definitions";
 import { renderNoteNumberingGuide } from "../ui/settings/note-guide";
 import { renderNoteOverridesGuide } from "../ui/settings/note-overrides-guide";
 import { renderSameFileReferenceGuide } from "../ui/settings/reference-guide";
@@ -464,6 +466,30 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     toggle("settings.reading", "enableReadingView");
     toggle("settings.source", "enableSourceMode", "settings.source.desc");
     toggle("settings.reveal", "revealOnActiveLine");
+    const formats = new Setting(container).setName(t("settings.virtualFormat.title")).setHeading();
+    const help = t("settings.virtualFormat.help");
+    formats.setDesc(help);
+    formats.descEl.hidden = true;
+    formats.descEl.id = `${container.id}-virtual-heading-format-help`;
+    const info = formats.controlEl.createEl("button", {
+      cls: "clickable-icon",
+      attr: { type: "button", "aria-expanded": "false", "aria-controls": formats.descEl.id },
+    });
+    setIcon(info, "info");
+    setTooltip(info, help);
+    info.setAttribute("aria-label", help);
+    info.addEventListener("click", () => {
+      formats.descEl.hidden = !formats.descEl.hidden;
+      info.setAttribute("aria-expanded", String(!formats.descEl.hidden));
+    });
+    for (const [key, label] of virtualHeadingFormatControls) {
+      new Setting(container).setName(t(label)).addDropdown((dropdown) => {
+        dropdown.selectEl.setAttribute("aria-label", t(label));
+        dropdown.addOptions(virtualHeadingFormatOptions(t, key === "outlineHeadingNumberFormat"))
+          .setValue(this.plugin.settings[key])
+          .onChange((value) => this.updateControl(`views.${key}`, value));
+      });
+    }
     new Setting(container).setName(t("settings.appearance")).setHeading();
     new Setting(container).setName(t("settings.opacity")).addSlider((slider) => slider
       .setLimits(0.15, 1, 0.05).setDynamicTooltip().setValue(this.plugin.settings.virtualOpacity)

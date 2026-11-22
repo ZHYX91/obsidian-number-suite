@@ -1,6 +1,7 @@
-import type { StoredHeadingNumberStyleScope } from "../config/settings";
+import type { StoredHeadingNumberStyleScope, VirtualHeadingNumberFormat } from "../config/settings";
 import { meetsCleanupScope } from "../core/number-parser";
 import { sourceOffsetForHeadingContent } from "../core/heading-parser";
+import { compileTemplate, renderCurrentLevel } from "../core/template-compiler";
 import { numberHeadings } from "../core/numbering-engine";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
 import type {
@@ -26,13 +27,15 @@ interface DisplayDecorationBase {
 }
 
 export type DisplayDecorationPlan = DisplayDecorationBase & (
-  | { kind: "virtual" }
+  | { kind: "virtual"; referenceLabel?: string }
   | { kind: "conceal"; sourceText?: string }
   | { kind: "stored"; pillKind: StoredHeadingNumberPillKind; sourceText: string }
 );
 
 export interface DisplayPlanOptions {
   showVirtualNumbers: boolean;
+  virtualNumberFormat?: VirtualHeadingNumberFormat;
+  referenceNumberFormat?: VirtualHeadingNumberFormat;
   concealStoredNumbers: boolean;
   /** Cosmetic source-prefix highlight, never a Markdown write. */
   storedHeadingNumberStyleScope?: StoredHeadingNumberStyleScope;
@@ -65,6 +68,8 @@ export function createDisplayPlan(
     return [];
   }
   const numbered = numberHeadings(headings, options.numbering);
+  const currentLevelTemplates = options.virtualNumberFormat === "current-only" || options.referenceNumberFormat === "current-only"
+    ? options.numbering.scheme.templates.map(compileTemplate) : [];
   const decorations: DisplayDecorationPlan[] = [];
   for (const item of numbered) {
     const { heading } = item;
@@ -125,12 +130,17 @@ export function createDisplayPlan(
       }
     }
     if (options.showVirtualNumbers && item.exclusion == null && item.label != null) {
+      const template = currentLevelTemplates[heading.level - 1];
+      const currentLevel = template == null ? item.label : renderCurrentLevel(template, heading.level, item.counters);
+      const label = options.virtualNumberFormat === "current-only" ? currentLevel : item.label;
+      const referenceLabel = options.referenceNumberFormat === "current-only" ? currentLevel : item.label;
       const virtualFrom = sourceOffsetForHeadingContent(heading, concealTo);
       decorations.push({
         kind: "virtual",
         from: virtualFrom,
         to: virtualFrom,
-        label: item.label,
+        label,
+        ...(referenceLabel === label ? {} : { referenceLabel }),
         line: heading.line,
       });
     }

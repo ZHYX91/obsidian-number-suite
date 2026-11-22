@@ -123,6 +123,25 @@ describe("source Properties validation at display entry points", () => {
     processor.dispose();
   });
 
+  it("shows short Live Preview headings and full numbered references without changing the note", () => {
+    host.parsed = {};
+    const source = "# Chapter\n## Detail\n\nSee [[#Detail|Guide]] and @[[#Detail|Guide]]\n\nEnd";
+    const parent = document.body.appendChild(document.createElement("div"));
+    const controller = new HeadingDisplayController(() => ({
+      ...configured, bodyHeadingNumberFormat: "current-only", enhanceNativeWikiHeadingLinks: true,
+    }));
+    const view = new EditorView({ parent, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+    }) });
+    views.push(view);
+    expect([...parent.querySelectorAll(".number-suite-heading-number")].map((pill) => pill.textContent?.trim()))
+      .toEqual(["1", "1"]);
+    expect(parent.querySelector(".number-suite-native-wiki-number")?.textContent?.trim()).toBe("1.1");
+    expect(parent.querySelector(".number-suite-reference-pill")?.textContent).toBe("1.1 Guide");
+    expect(view.state.doc.toString()).toBe(source);
+  });
+
   it("restores visible manual pills after leaving the active Live Preview heading", () => {
     host.parsed = {};
     const source = "## 3. Paper patterns\n\nBody";

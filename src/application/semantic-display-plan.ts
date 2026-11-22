@@ -126,7 +126,11 @@ function headingTitle(
   heading: ParsedHeading,
   visibleLabel: string | null,
   templateSources: readonly CleanupTemplateSource[],
+  concealedPrefix: string | undefined,
 ): string {
+  if (concealedPrefix && heading.content.startsWith(concealedPrefix)) {
+    return withoutTrailingBlockId(heading.content.slice(concealedPrefix.length));
+  }
   const content = withoutTrailingBlockId(heading.content);
   if (visibleLabel == null) return content;
   const first = analyzeHeadingPrefix(heading, visibleLabel, templateSources).first;
@@ -330,7 +334,7 @@ export function createSemanticDisplayPlan(
   const virtualByLine = new Map<number, string>();
   const concealedByLine = new Map<number, string>();
   for (const item of options.headingDisplayPlan) {
-    if (item.kind === "virtual") virtualByLine.set(item.line, item.label);
+    if (item.kind === "virtual") virtualByLine.set(item.line, item.referenceLabel ?? item.label);
     else if (item.kind === "conceal") concealedByLine.set(item.line, item.sourceText ?? "");
   }
   const visibleHeadings = options.showCrossReferences && semantics.references.length > 0
@@ -393,7 +397,7 @@ export function createSemanticDisplayPlan(
       label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);
     } else if (targetKind === "heading" && heading != null) {
       const number = visibleHeadings?.get(targetLine) ?? null;
-      const title = reference.alias ?? headingTitle(heading, number, options.templateSources);
+      const title = reference.alias ?? headingTitle(heading, number, options.templateSources, concealedByLine.get(targetLine));
       label = number == null || title === number || title.startsWith(`${number} `)
         ? title
         : `${number} ${title}`;

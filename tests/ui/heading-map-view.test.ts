@@ -64,9 +64,9 @@ type Subject = {
   currentFile: { path: string; extension: string } | null;
 };
 
-function makeView(): Subject {
+function makeView(settings = DEFAULT_SETTINGS): Subject {
   const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
-    getSettings: () => DEFAULT_SETTINGS,
+    getSettings: () => settings,
     getTranslate: () => ((key: string) => key),
   });
   const contentEl = document.createElement("div");
@@ -86,6 +86,17 @@ function makeView(): Subject {
 
 beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
+
+it.each([
+  ["follow-body", "1"], ["scheme", "1.1"], ["current-only", "1"],
+] as const)("uses the %s Outline preference for the heading map", async (format, label) => {
+  const view = makeView({
+    ...DEFAULT_SETTINGS, selectedSchemeId: "hierarchical", showVirtualNumbers: true,
+    bodyHeadingNumberFormat: "current-only", outlineHeadingNumberFormat: format,
+  });
+  await view.refreshMap("# Chapter\n## Detail");
+  expect(view.roots[0]?.children[0]?.numberLabel).toBe(label);
+});
 
 describe("heading map touch targets", () => {
   it("zooms when one finger starts on a heading card", async () => {

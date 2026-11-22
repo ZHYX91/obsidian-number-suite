@@ -1075,6 +1075,25 @@ describe("HeadingReadingProcessor", () => {
     expect(container.querySelector(".number-suite-caption-number")).toBeNull();
   });
 
+  it.each([
+    ["current-only", "scheme", "1", "1.1"],
+    ["scheme", "current-only", "1.1", "1"],
+  ] as const)("displays %s headings with %s heading references", async (body, references, bodyLabel, referenceLabel) => {
+    const source = "# Chapter\n## Detail\n\n[[#Detail|See here]] and @[[#Detail|See here]]";
+    const { processor, context, container } = harness(source, settings({
+      showVirtualNumbers: true, enhanceNativeWikiHeadingLinks: true, selectedSchemeId: "hierarchical",
+      bodyHeadingNumberFormat: body, referenceHeadingNumberFormat: references,
+    }));
+    container.innerHTML = '<h1>Chapter</h1><h2>Detail</h2><p><a class="internal-link" data-href="#Detail">See here</a>'
+      + ' and @<a class="internal-link" data-href="#Detail">See here</a></p>';
+    await processor.process(container, context);
+    expect(container.querySelector("h2 .number-suite-heading-number")?.textContent?.trim()).toBe(bodyLabel);
+    const links = [...container.querySelectorAll("a")];
+    expect(links.map((link) => link.textContent)).toEqual([`${referenceLabel} See here`, `${referenceLabel} See here`]);
+    expect(links.map((link) => link.dataset.href)).toEqual(["#Detail", "#Detail"]);
+    processor.dispose();
+  });
+
   it("adds inert native Wiki numbers in Reading View and cleans them on unload", async () => {
     const source = "# Heading\n\n[[#Heading|first]] [[note#Heading|chapter]] [[Other#Heading|other]] [[note.md#Heading]]";
     const { processor, context } = harness(source, settings({
