@@ -1,3 +1,5 @@
+import type { Line, MarkdownConfig } from "@lezer/markdown";
+
 const RAW_HTML_TAGS = new Set(["pre", "script", "style", "textarea"]);
 const BLOCK_HTML_TAGS = new Set([
   "address", "article", "aside", "base", "basefont", "blockquote", "body",
@@ -43,4 +45,42 @@ const COMPLETE_CLOSE_TAG = /^<\/[A-Za-z][A-Za-z0-9-]*[ \t]*>[ \t]*$/u;
 
 export function completeCustomHtmlTag(markup: string): boolean {
   return COMPLETE_OPEN_TAG.test(markup) || COMPLETE_CLOSE_TAG.test(markup);
+}
+
+export const HTML_DECLARATION = "NumberSuiteDeclaration";
+
+export function isHtmlDeclaration(text: string): boolean {
+  return /^<![A-Za-z]/u.test(text);
+}
+
+/** Declarations end at a content ">", after the surrounding quote/list markers.
+ * Let the normal composite parser end an unclosed declaration at its container boundary. */
+export function htmlDeclarations(): MarkdownConfig {
+  const starts = (line: Line) => line.indent < line.baseIndent + 4 && isHtmlDeclaration(line.text.slice(line.pos));
+  let closed = false;
+  return {
+    defineNodes: [{
+      name: HTML_DECLARATION, block: true,
+      composite(cx, line) {
+        if (closed) return false;
+        closed = line.text.includes(">", line.basePos);
+        line.addMarker(cx.elt("HTMLBlock", cx.lineStart + line.basePos, cx.lineStart + line.text.length));
+        line.moveBase(line.text.length);
+        return true;
+      },
+    }],
+    parseBlock: [{
+      name: HTML_DECLARATION, before: "HTMLBlock",
+      endLeaf: (_cx, line) => starts(line),
+      parse(cx, line) {
+        if (!starts(line)) return false;
+        closed = line.text.includes(">", line.pos);
+        const from = cx.lineStart + line.pos;
+        cx.startComposite(HTML_DECLARATION, from);
+        cx.addElement(cx.elt("HTMLBlock", from, cx.lineStart + line.text.length));
+        line.moveBase(line.text.length);
+        return null;
+      },
+    }],
+  };
 }

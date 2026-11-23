@@ -1,7 +1,7 @@
 import { parser, type BlockContext, type BlockParser, type LeafBlockParser, type Line } from "@lezer/markdown";
 
 import { scanInlineComments, type CommentKind } from "./markdown-comments";
-import { blockHtmlStart, completeCustomHtmlTag, startsRawHtmlBlock } from "./markdown-html-blocks";
+import { blockHtmlStart, completeCustomHtmlTag, htmlDeclarations, HTML_DECLARATION, isHtmlDeclaration, startsRawHtmlBlock } from "./markdown-html-blocks";
 import { INLINE_MATH_NODE, inlineMath } from "./markdown-inline-math";
 import { inlineSemanticMarkers } from "./markdown-inline-markers";
 import { scanTableBlocks, splitTableRow } from "./markdown-table-blocks";
@@ -12,7 +12,7 @@ interface SourceRange {
   readonly to: number;
 }
 
-type LiteralKind = "FencedCode" | "CodeBlock" | "HTMLBlock" | "NumberSuiteEquation" | "NumberSuiteUnclosedEquation";
+type LiteralKind = typeof HTML_DECLARATION | "FencedCode" | "CodeBlock" | "HTMLBlock" | "NumberSuiteEquation" | "NumberSuiteUnclosedEquation";
 
 interface LiteralRange extends SourceRange {
   readonly kind: LiteralKind;
@@ -35,7 +35,7 @@ export interface MarkdownContainerLine {
 }
 
 const CONTAINERS = new Set(["BulletList", "OrderedList", "Blockquote"]);
-const LITERALS = new Set<string>(["FencedCode", "CodeBlock", "HTMLBlock", "NumberSuiteEquation", "NumberSuiteUnclosedEquation"]);
+const LITERALS = new Set<string>([HTML_DECLARATION, "FencedCode", "CodeBlock", "HTMLBlock", "NumberSuiteEquation", "NumberSuiteUnclosedEquation"]);
 const INLINE_LITERALS = new Set(["InlineCode", INLINE_MATH_NODE, "URL", "LinkTitle"]);
 
 function markdownFacts(tree: ReturnType<typeof parser.parse>) {
@@ -191,7 +191,7 @@ function commentProjection(input: string, inlineSpans: readonly SourceRange[], a
           && !inAcceptedInline(inlineSpans, acceptedInline, cx.lineStart + line.pos)) return;
         if (line.indent < line.baseIndent + 4 && (
           text.startsWith("<!--") || text.startsWith("<?") || text.startsWith("<![CDATA[")
-          || /^<![A-Z]/u.test(text) || startsRawHtmlBlock(text) || blockHtmlStart(text)
+          || isHtmlDeclaration(text) || startsRawHtmlBlock(text) || blockHtmlStart(text)
           || (!continuation && completeCustomHtmlTag(text))
         )) return;
       }
@@ -322,7 +322,7 @@ export function scanMarkdownContainerLines(
     offset += text.length + 1;
     return text;
   }).join("\n");
-  const markdown = parser.configure([inlineMath(), inlineSemanticMarkers()]);
+  const markdown = parser.configure([inlineMath(), inlineSemanticMarkers(), htmlDeclarations()]);
   const rawBases = new Map<number, number>();
   const rawTree = markdown.configure({ parseBlock: [recordLineBases(rawBases)] }).parse(input);
   const rawInline = protectTableBoundaries(rawTree, lines, starts, rawBases, markdownFacts(rawTree).inlineLiterals);
