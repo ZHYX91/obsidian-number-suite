@@ -11,7 +11,7 @@ const BLOCK_HTML_TAGS = new Set([
 ]);
 
 export function leadingMarkup(text: string): string | null {
-  const match = /^ {0,3}(\S.*)$/u.exec(text);
+  const match = /^ {0,3}(\S.*)$/su.exec(text);
   return match?.[1] ?? (text.trim().length === 0 ? "" : null);
 }
 

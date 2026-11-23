@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 
 describe("parseAtxHeadings", () => {
+  it.each(["\u2028", "\u2029"])("retains the title and removes closing hashes across %j", separator => {
+    const title = `First${separator}part`;
+    const source = `## ${title} ###`;
+    const [heading] = parseAtxHeadings(source);
+    expect(heading?.content).toBe(title);
+    expect(source.slice(heading?.contentFrom, heading?.contentTo)).toBe(title);
+  });
+
   it("trims padding across hidden fragments and maps visible UTF-16 ranges back to the note", () => {
     const source = "## <!--one--> \t<!--two--> 甲<!--mid-->😀\u00a0 \t%%a%%\t %%b%%\n# <!--empty--> \t %%end%%";
     const [title, empty] = parseAtxHeadings(source);
