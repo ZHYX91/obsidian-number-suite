@@ -12,6 +12,8 @@ export interface PreviewDocument {
   plan: TransformPlan;
 }
 
+export type PreviewApplyResult = void | boolean | { readonly message: string; readonly stale: boolean };
+
 export interface PreviewModalOptions {
   readonly signal?: AbortSignal;
   app: App;
@@ -20,7 +22,7 @@ export interface PreviewModalOptions {
   translate: Translate;
   cleanupScope?: CleanupScope;
   onCleanupScopeChange?: (scope: CleanupScope) => readonly PreviewDocument[] | Promise<readonly PreviewDocument[]>;
-  onConfirm: (documents: readonly PreviewDocument[]) => Promise<void | boolean>;
+  onConfirm: (documents: readonly PreviewDocument[]) => Promise<PreviewApplyResult>;
 }
 
 function visibleMarkers(value: string): string {
@@ -130,8 +132,13 @@ export class ChangePreviewPane {
         void this.options.onConfirm(this.documents)
           .then((applied) => {
             this.applying = false;
-            if (applied !== false) this.close();
-            else { this.stale = true; this.failure = t("notice.stalePreview"); this.render(); }
+            if (applied === false || typeof applied === "object") {
+              this.stale = applied === false || applied.stale;
+              this.failure = applied === false ? t("notice.stalePreview") : applied.message;
+              this.render();
+            } else {
+              this.close();
+            }
           })
           .catch((error: unknown) => {
             this.applying = false;

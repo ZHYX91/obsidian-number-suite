@@ -125,7 +125,7 @@ Batch editing uses one dialog. Choose a folder or the entire vault and an operat
 Both choices start empty. The confirmation shows the selected scope and operation, Markdown notes checked
 after folder exclusions, notes whose source will change, individual changes and warnings. Apply names the
 number of notes it will edit and is disabled at zero. Back keeps both choices and the next preview reads
-the current notes again. At narrow widths the scope and operation controls stack.
+the current notes again. A refused or failed apply keeps the preview and its explanation visible. A stale source or an incomplete rollback requires a fresh preview. A temporary failure with intact originals can be retried. At narrow widths the scope and operation controls stack.
 
 Current-note and batch previews identify file, line, before/after text, and
 warnings. A stale preview cancels as a whole. Ambiguous or multiple prefixes, empty headings,

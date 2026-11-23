@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App, Modal } from "obsidian";
-import { ChangePreviewModal, ChangePreviewPane, type PreviewDocument } from "../../src/ui/preview-modal";
+import { ChangePreviewModal, ChangePreviewPane, type PreviewModalOptions, type PreviewDocument } from "../../src/ui/preview-modal";
 import { BatchModal, type BatchPreview } from "../../src/ui/batch-modals";
 import { changedTextParts } from "../../src/ui/preview-diff";
 import { createTranslator } from "../../src/config/i18n";
@@ -175,6 +175,29 @@ describe("file-grouped heading preview", () => {
     pane.close();
     expect(close).toHaveBeenCalledOnce();
   });
+  it("keeps a retryable batch refusal in the dialog and closes after a successful retry", async () => {
+    const host = document.createElement("div");
+    const close = vi.fn();
+    const translate = createTranslator("en");
+    const message = translate("notice.batchBusy");
+    const apply = vi.fn<PreviewModalOptions["onConfirm"]>()
+      .mockResolvedValueOnce({ message, stale: false }).mockResolvedValueOnce(true);
+    const changed = documentPlan("fixed.md", 1);
+    changed.plan = { ...changed.plan, source: "# Title", result: "# 1 Title" };
+    const pane = new ChangePreviewPane({ app: {} as never, operation: "write",
+      documents: [changed], translate, onConfirm: apply },
+    host, document.createElement("h3"), host, close, { scope: "Vault", checked: 1, onBack: vi.fn() });
+    const confirm = () => [...host.querySelectorAll("button")].find((button) =>
+      button.textContent === translate("batch.confirm", { files: 1 }))!;
+    pane.onOpen();
+    confirm().click();
+    await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(message));
+    expect(close).not.toHaveBeenCalled();
+    expect(confirm().disabled).toBe(false);
+    confirm().click();
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+  });
+
   it("explains counter overflow from the real transform plan without any write preview", () => {
     const plan = planHeadingTransform("# First\n# Overflow", "write", {
       numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, starts: { 1: Number.MAX_SAFE_INTEGER }, missingLevelStrategy: "fill-one" },
