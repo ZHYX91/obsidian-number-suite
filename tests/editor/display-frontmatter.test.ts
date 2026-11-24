@@ -267,6 +267,7 @@ describe("source Properties validation at display entry points", () => {
       extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
     }) });
     views.push(view);
+    expect(forceParsing(view, source.length, 1000)).toBe(true);
     const reading = document.body.appendChild(document.createElement("div"));
     reading.append(document.createElement("h1"), document.createElement("h2"));
     reading.children[0]!.textContent = "7 Lantern archive";
