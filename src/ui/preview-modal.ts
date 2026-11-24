@@ -1,4 +1,4 @@
-import { App, Modal, Setting, type ButtonComponent } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
@@ -103,7 +103,7 @@ export class ChangePreviewPane {
     const actions = new Setting(contentEl);
     actions.settingEl.addClass("number-suite-preview-actions");
     const batch = this.batch;
-    let confirm: ButtonComponent | undefined;
+    let confirm: import("obsidian").ButtonComponent | undefined;
     let canApply = false;
     this.refreshScopePreview = () => {
       const changes = this.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
