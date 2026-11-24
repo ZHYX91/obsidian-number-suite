@@ -190,7 +190,7 @@ describe("file-grouped heading preview", () => {
     expect(modal.contentEl.querySelector(".number-suite-warning-list")?.textContent)
       .toContain("Numbering stopped: a counter exceeds the exact integer range.");
     expect(modal.contentEl.querySelector(".number-suite-preview-summary")?.textContent)
-      .toContain("0 changes");
+      .toBe("Changes: 0 · Warnings: 1");
     modal.onClose();
   });
 
@@ -204,7 +204,7 @@ describe("file-grouped heading preview", () => {
     const groups = modal.contentEl.querySelectorAll<HTMLDetailsElement>("details");
     expect(groups[0]?.open).toBe(true);
     expect(groups[1]?.open).toBe(false);
-    expect(groups[1]?.querySelector("summary")?.textContent).toContain("501 changes");
+    expect(groups[1]?.querySelector(".number-suite-preview-count")?.textContent).toBe("Changes: 501 · Warnings: 0");
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(1);
     groups[1]!.open = true;
     groups[1]!.dispatchEvent(new Event("toggle"));
