@@ -176,6 +176,48 @@ describe("file-grouped heading preview", () => {
     pane.close();
     expect(close).toHaveBeenCalledOnce();
   });
+  it("keeps the last valid scope and external focus when refreshing fails, then allows a retry", async () => {
+    const t = createTranslator("en");
+    const host = document.body.createDiv();
+    const other = document.body.createEl("input");
+    const old = documentPlan("first.md", 1);
+    const next = documentPlan("next.md", 2);
+    let reject!: (error: Error) => void;
+    const replan = vi.fn<NonNullable<PreviewModalOptions["onCleanupScopeChange"]>>()
+      .mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }))
+      .mockResolvedValueOnce([next]);
+    const onConfirm = vi.fn(async () => true);
+    const pane = new ChangePreviewPane({ app: new App(), operation: "remove", documents: [old],
+      translate: t, cleanupScope: "plugin", onCleanupScopeChange: replan, onConfirm },
+    host, document.createElement("h2"), host, vi.fn());
+    pane.onOpen();
+    const select = host.querySelector("select")!;
+    const apply = host.querySelector<HTMLButtonElement>(".number-suite-preview-actions button:last-child")!;
+    const changeScope = (): void => {
+      select.focus();
+      select.value = "common";
+      select.dispatchEvent(new Event("change"));
+    };
+    changeScope();
+    expect(apply.disabled).toBe(true);
+    other.focus();
+    reject(new Error("preview unavailable"));
+    await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(t("preview.scopeFailed")));
+    expect(select.value).toBe("plugin");
+    expect(apply.disabled).toBe(false);
+    expect(document.activeElement).toBe(other);
+    expect(host.querySelector("summary")?.textContent).toContain(old.path);
+    changeScope();
+    other.focus();
+    await vi.waitFor(() => expect(host.querySelector("summary")?.textContent).toContain(next.path));
+    expect(document.activeElement).toBe(other);
+    expect(select.value).toBe("common");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    apply.click();
+    expect(onConfirm).toHaveBeenCalledExactlyOnceWith([next]);
+    pane.onClose();
+  });
+
   it("leaves user focus in the other pane if an apply failure arrives in the background", async () => {
     const host = document.body.createDiv();
     const other = document.body.createEl("input");

@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal, Setting, type ButtonComponent } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";
@@ -35,6 +35,7 @@ const WARNING_PAGE_SIZE = 200;
 export class ChangePreviewPane {
   private applying = false;
   private replanning = false;
+  private refreshScopePreview: (() => void) | null = null;
   private failure: string | null = null;
   private stale = false;
   private closed = false;
@@ -92,27 +93,31 @@ export class ChangePreviewPane {
           .setValue(this.cleanupScope ?? "templates")
           .onChange((value) => void this.changeCleanupScope(value as CleanupScope)));
     }
-    const changes = this.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
-    const warnings = this.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
-    const files = this.batch ? this.documents.filter(({ plan }) => planChangesSource(plan)).length : 0;
-    contentEl.createEl("p", {
-      cls: "number-suite-preview-summary",
-      text: this.batch ? t("batch.summary", { checked: this.batch.checked, files, changes, warnings })
-        : t("preview.summary", { changes, warnings }),
-    });
+    const summary = contentEl.createEl("p", { cls: "number-suite-preview-summary" });
     contentEl.createEl("p", {
       cls: "number-suite-preview-risk",
       text: t("preview.warningLinks"),
     });
 
     const documents = contentEl.createDiv({ cls: "number-suite-preview-documents" });
-    for (const document of this.documents) {
-      this.renderDocument(documents, document);
-    }
-
     const actions = new Setting(contentEl);
     actions.settingEl.addClass("number-suite-preview-actions");
     const batch = this.batch;
+    let confirm: ButtonComponent | undefined;
+    let canApply = false;
+    this.refreshScopePreview = () => {
+      const changes = this.documents.reduce((sum, document) => sum + document.plan.changes.length, 0);
+      const warnings = this.documents.reduce((sum, document) => sum + document.plan.warnings.length, 0);
+      const files = batch ? this.documents.filter(({ plan }) => planChangesSource(plan)).length : 0;
+      summary.setText(batch ? t("batch.summary", { checked: batch.checked, files, changes, warnings })
+        : t("preview.summary", { changes, warnings }));
+      canApply = !this.stale && (batch ? files > 0 : changes > 0);
+      confirm?.setButtonText(batch ? t("batch.confirm", { files }) : t("preview.confirm")).setDisabled(!canApply);
+      const activeWasInResults = documents.contains(contentEl.ownerDocument.activeElement);
+      documents.empty();
+      for (const document of this.documents) this.renderDocument(documents, document);
+      if (activeWasInResults) contentEl.querySelector("select")?.focus({ preventScroll: true });
+    };
     if (batch) actions.addButton((button) => button.setButtonText(t("batch.back")).onClick(() => {
       if (!this.closed && !this.applying) batch.onBack();
     }));
@@ -120,9 +125,8 @@ export class ChangePreviewPane {
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));
     actions.addButton((button) => {
-      button.setButtonText(batch ? t("batch.confirm", { files }) : t("preview.confirm")).setCta();
-      const canApply = !this.stale && (batch ? files > 0 : changes > 0);
-      button.setDisabled(!canApply);
+      button.setCta();
+      confirm = button;
       if (this.options.operation === "remove") {
         button.setWarning();
       }
@@ -152,6 +156,7 @@ export class ChangePreviewPane {
           });
       });
     });
+    this.refreshScopePreview();
     applyModalDirection(this.modalEl, t);
     if (focusFeedback) feedback?.focus();
   }
@@ -224,8 +229,15 @@ export class ChangePreviewPane {
   private async changeCleanupScope(scope: CleanupScope): Promise<void> {
     if (this.closed || this.options.signal?.aborted || this.applying || this.replanning || this.options.onCleanupScopeChange == null || scope === this.cleanupScope) return;
     this.replanning = true;
-    const select = this.contentEl.querySelector("select");
-    if (select) select.disabled = true;
+    const select = this.contentEl.querySelector("select")!;
+    const apply = this.contentEl.querySelector<HTMLButtonElement>(".number-suite-preview-actions button:last-child")!;
+    const wasDisabled = apply.disabled;
+    const owner = this.contentEl.ownerDocument;
+    const ownedFocus = owner.activeElement === select;
+    this.contentEl.setAttribute("aria-busy", "true");
+    select.disabled = true;
+    apply.disabled = true;
+    this.contentEl.querySelector(".number-suite-replan-error")?.remove();
     try {
       const documents = await this.options.onCleanupScopeChange(scope);
       if (this.closed || this.options.signal?.aborted) return;
@@ -233,13 +245,24 @@ export class ChangePreviewPane {
       this.cleanupScope = scope;
       this.visibleChangeLimits.clear();
       this.visibleWarningLimits.clear();
+      select.disabled = false;
+      this.refreshScopePreview?.();
     } catch (error: unknown) {
+      if (this.closed || this.options.signal?.aborted) return;
+      select.value = this.cleanupScope ?? "templates";
+      apply.disabled = wasDisabled;
+      const message = this.contentEl.createDiv({
+        cls: "number-suite-note-control-error number-suite-replan-error",
+        text: this.options.translate("preview.scopeFailed"), attr: { role: "alert" },
+      });
+      select.closest(".setting-item")?.after(message);
       console.error("Number Suite preview replanning failed", error);
     } finally {
       this.replanning = false;
       if (!this.closed && !this.options.signal?.aborted) {
-        this.render();
-        this.contentEl.querySelector("select")?.focus();
+        this.contentEl.removeAttribute("aria-busy");
+        select.disabled = false;
+        if (ownedFocus && owner.activeElement === owner.body) select.focus({ preventScroll: true });
       }
     }
   }
@@ -254,6 +277,8 @@ export class ChangePreviewPane {
 
   onClose(): void {
     this.closed = true;
+    this.refreshScopePreview = null;
+    this.contentEl.removeAttribute("aria-busy");
     this.options.signal?.removeEventListener("abort", this.abort);
     this.modalEl.removeClass("number-suite-preview-modal");
     this.contentEl.empty();

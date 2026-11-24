@@ -132,6 +132,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "preview.confirm": "変更を適用",
   "preview.targetFixed": "対象はこのファイルに固定され、ノートを切り替えても変わりません。ソース変更後は戻って再プレビューしてください。",
   "preview.back": "ノート操作に戻る",
+  "preview.scopeFailed": "プレビューを更新できませんでした。以前の対象範囲を維持します。",
   "preview.applyFailed": "プレビューを適用できませんでした。ノート操作からやり直してください。",
   "preview.cancel": "キャンセル",
   "batch.scope.root": "保管庫全体",

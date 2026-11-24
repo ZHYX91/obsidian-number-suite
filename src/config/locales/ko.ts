@@ -132,6 +132,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "preview.confirm": "변경 적용",
   "preview.targetFixed": "대상은 이 파일로 고정됩니다. 노트를 바꿔도 변하지 않습니다. 원문이 바뀌면 돌아가서 미리 보기를 다시 만드세요.",
   "preview.back": "노트 작업으로 돌아가기",
+  "preview.scopeFailed": "미리 보기를 새로 고치지 못했습니다. 이전 범위가 그대로 선택되어 있습니다.",
   "preview.applyFailed": "미리 보기를 적용할 수 없습니다. 노트 작업에서 다시 시도하세요.",
   "preview.cancel": "취소",
   "batch.scope.root": "전체 보관함",

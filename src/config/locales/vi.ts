@@ -132,6 +132,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "preview.confirm": "Áp dụng thay đổi",
   "preview.targetFixed": "Đích luôn là tệp này khi chuyển ghi chú. Nếu nguồn thay đổi, hãy quay lại và tạo lại bản xem trước.",
   "preview.back": "Về các thao tác",
+  "preview.scopeFailed": "Không thể cập nhật bản xem trước. Phạm vi trước đó vẫn được chọn.",
   "preview.applyFailed": "Không thể áp dụng bản xem trước. Hãy thử lại từ các thao tác với ghi chú.",
   "preview.cancel": "Hủy",
   "batch.scope.root": "Toàn bộ kho ghi chú",

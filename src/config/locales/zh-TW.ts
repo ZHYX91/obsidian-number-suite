@@ -132,6 +132,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "preview.confirm": "套用變更",
   "preview.targetFixed": "目標固定為此檔案；切換筆記不會改變目標。原文變更後請返回並重新預覽。",
   "preview.back": "返回正文操作",
+  "preview.scopeFailed": "無法更新預覽，已保留原先的清理範圍。",
   "preview.applyFailed": "無法套用預覽。請從正文操作重試。",
   "preview.cancel": "取消",
   "batch.scope.root": "整個庫",
