@@ -1,4 +1,3 @@
-import { workspaceDocuments } from "../adapters/obsidian/workspace-documents";
 import {
   MarkdownView,
   Notice,
@@ -10,6 +9,7 @@ import {
 
 import { openObsidianPluginSettings } from "../adapters/obsidian/plugin-settings";
 import { RecoveryStore } from "../adapters/obsidian/recovery-store";
+import { workspaceDocuments } from "../adapters/obsidian/workspace-documents";
 import { RecoverySession } from "../application/recovery-session";
 import {
   updateDisplayPreferences,
