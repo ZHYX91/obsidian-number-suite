@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright-core";
+import { LOCALE_DE } from "../src/config/locales/de.ts";
 
 const browser = await chromium.launch(process.env.CHROME_BIN
   ? { executablePath: process.env.CHROME_BIN } : { channel: "chrome" });
@@ -33,7 +34,33 @@ try {
       assert.ok(result.measured > 320, "Host dropdown must still measure natural width");
     }
   }
-  console.log("Narrow settings keep the host dropdown measurement without horizontal scrolling.");
+  // A long action can have a narrow column even in the desktop settings window.
+  await page.setContent(`<style>
+    main { width:611px; font:15px system-ui }
+    .setting-item { display:flex; align-items:center; gap:8px; padding:16px }
+    .setting-item-info { flex:1 }
+    .setting-item-control { display:flex; justify-content:flex-end; flex:0 1 11rem }
+    button { font:inherit; height:30px; white-space:nowrap; padding-inline:12px }
+  </style><main><section class="number-suite-settings-panel"><div class="setting-item">
+    <div class="setting-item-info"></div><div class="setting-item-control"><button></button></div>
+  </div></section></main>`);
+  await page.addStyleTag({ path: "styles.css" });
+  await page.locator(".setting-item-info").evaluate((node, text) => { node.textContent = text; }, LOCALE_DE["settings.reset"]);
+  await page.locator("button").evaluate((node, text) => { node.textContent = text; }, LOCALE_DE["settings.reset.button"]);
+  for (const fontSize of [15, 20]) {
+    const fits = await page.locator("button").evaluate((button, fontSize) => {
+      button.style.fontSize = fontSize + "px";
+      const range = document.createRange();
+      range.selectNodeContents(button);
+      const bounds = button.getBoundingClientRect();
+      const lines = Array.from(range.getClientRects());
+      return lines.length > 0 && lines.every((line) =>
+        line.left >= bounds.left - 1 && line.right <= bounds.right + 1
+        && line.top >= bounds.top - 1 && line.bottom <= bounds.bottom + 1);
+    }, fontSize);
+    assert.ok(fits, `German reset label exceeds its desktop button at ${fontSize}px`);
+  }
+  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");
 } finally {
   await browser.close();
 }
