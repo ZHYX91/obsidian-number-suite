@@ -2,8 +2,8 @@
 
 import { readFileSync } from "node:fs";
 import { defineLanguageFacet, forceParsing, Language } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorState, Prec } from "@codemirror/state";
+import { Decoration, EditorView } from "@codemirror/view";
 import { parser } from "@lezer/markdown";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { editorLivePreviewField, TFile, type App, type MarkdownPostProcessorContext } from "obsidian";
@@ -140,6 +140,34 @@ describe("source Properties validation at display entry points", () => {
     expect(parent.querySelector(".number-suite-native-wiki-number")?.textContent?.trim()).toBe("1.1");
     expect(parent.querySelector(".number-suite-reference-pill")?.textContent).toBe("1.1 Guide");
     expect(view.state.doc.toString()).toBe(source);
+  });
+
+  it("keeps one accessible stored prefix around overlapping host styling and clears it when disabled", () => {
+    host.parsed = {};
+    const source = "# 一、标题\n\nBody";
+    const settings = { ...configured, showVirtualNumbers: false };
+    const controller = new HeadingDisplayController(() => settings);
+    const hostMark = Prec.lowest(EditorView.decorations.of(Decoration.set([
+      Decoration.mark({ class: "host-first-character" }).range(2, 3),
+    ])));
+    const view = new EditorView({ parent: document.body, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, hostMark, controller.createExtension()],
+    }) });
+    views.push(view);
+    const pills = () => [...view.dom.querySelectorAll(".number-suite-stored-heading-number[aria-label]")];
+    expect(pills().map((pill) => pill.textContent)).toEqual(["一、"]);
+    expect(pills()[0]?.querySelector(".host-first-character")?.textContent).toBe("一");
+    settings.enableLivePreview = false;
+    controller.refreshAll();
+    expect(pills()).toHaveLength(0);
+    expect(view.dom.querySelector(".host-first-character")?.textContent).toBe("一");
+    settings.enableLivePreview = true;
+    controller.refreshAll();
+    expect(pills()).toHaveLength(1);
+    host.parsed = { "number-suite": ["disabled=true"] };
+    view.dispatch({ changes: { from: 0, insert: "---\nnumber-suite: [disabled=true]\n---\n" } });
+    expect(pills()).toHaveLength(0);
   });
 
   it.each([

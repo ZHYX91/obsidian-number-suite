@@ -659,6 +659,7 @@ export class HeadingDisplayController {
     const displayPlugin = ViewPlugin.fromClass(class {
       decorations: DecorationSet;
       definitionDecorations: DecorationSet = Decoration.none;
+      storedPrefixDecorations: DecorationSet = Decoration.none;
       private overrides: NoteOverrides;
       private eventCompositionActive = false;
       private touchEditingActive = false;
@@ -785,6 +786,7 @@ export class HeadingDisplayController {
         this.displayTree = syntaxTree(this.view.state);
         this.displayComposing = this.isComposing();
         this.definitionDecorations = Decoration.none;
+        this.storedPrefixDecorations = Decoration.none;
         const settings = settingsProvider();
         const livePreview = this.view.state.field(editorLivePreviewField, false) ?? false;
         if ((livePreview && !settings.enableLivePreview) || (!livePreview && !settings.enableSourceMode)) {
@@ -840,6 +842,7 @@ export class HeadingDisplayController {
         }, snapshot);
         const ranges: Range<Decoration>[] = [];
         const definitionRanges: Range<Decoration>[] = [];
+        const storedPrefixRanges: Range<Decoration>[] = [];
         const t = createTranslator(settings.language);
         const decorations = [
           ...plan.map((item) => ({ ...item, semanticKind: null })),
@@ -936,7 +939,7 @@ export class HeadingDisplayController {
             }).range(item.from));
           } else if (item.semanticKind == null && item.kind === "stored") {
             const hint = headingNumberHint(item.pillKind, t);
-            ranges.push(Decoration.mark({
+            storedPrefixRanges.push(Decoration.mark({
               class: `number-suite-stored-heading-number is-${item.pillKind}`,
               attributes: { title: hint, role: "img", "aria-label": headingNumberAccessibleLabel(item.label, hint) },
             }).range(item.from, item.to));
@@ -962,16 +965,20 @@ export class HeadingDisplayController {
           }
         }
         this.definitionDecorations = Decoration.set(definitionRanges, true);
+        this.storedPrefixDecorations = Decoration.set(storedPrefixRanges, true);
         return Decoration.set(ranges, true);
       }
     }, {
       decorations: (instance) => instance.decorations,
-      // Native Live Preview hides "[^" and "]:" in separate overlapping
-      // replacements. Give only our complete definition label precedence so
-      // initial rendering and extension reload cannot clip its widget differently.
-      provide: (plugin) => Prec.high(EditorView.decorations.of((view) => (
-        view.plugin(plugin)?.definitionDecorations ?? Decoration.none
-      ))),
+      provide: (plugin) => [
+        // Native Live Preview hides "[^" and "]:" in separate overlapping replacements.
+        // The complete definition label takes precedence over those replacements.
+        Prec.high(EditorView.decorations.of((view) => (
+          view.plugin(plugin)?.definitionDecorations ?? Decoration.none
+        ))),
+        // A formatting mark ending inside a stored number must stay inside its single labelled pill.
+        EditorView.outerDecorations.of((view) => view.plugin(plugin)?.storedPrefixDecorations ?? Decoration.none),
+      ],
     });
 
     const compositionHandlers = EditorView.domEventHandlers({
