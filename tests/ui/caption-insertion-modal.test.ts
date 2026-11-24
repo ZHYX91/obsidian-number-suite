@@ -8,6 +8,9 @@ import { createTranslator } from "../../src/config/i18n";
 import { createCaptionInsertionPlanForTarget, findCaptionInsertionTarget } from "../../src/core/caption-insertion";
 import { CaptionInsertionModal } from "../../src/ui/caption-insertion-modal";
 
+import { StableReferenceModal } from "../../src/ui/stable-reference-modal";
+import { createStableReferencePlan } from "../../src/core/stable-reference";
+
 vi.mock("obsidian", async (importOriginal) => ({
   ...await importOriginal<typeof import("obsidian")>(),
   Modal: class {
@@ -103,4 +106,25 @@ it("closes on owner abort and ignores a pending completion's focus callback", as
   finish(true);
   await Promise.resolve();
   expect(onApplied).not.toHaveBeenCalled();
+});
+
+it.each(["caption", "reference"])("shows a failed %s operation in the open dialog and allows a retry", async (kind) => {
+  const t = createTranslator("en");
+  const onConfirm = vi.fn<() => Promise<void>>().mockRejectedValueOnce(new Error("Editor unavailable")).mockResolvedValue(undefined);
+  const options = { app: new App(), translate: t, onConfirm };
+  const modal = kind === "caption"
+    ? new CaptionInsertionModal({ ...options, target: findCaptionInsertionTarget("![[cat.png]]", 4)! })
+    : new StableReferenceModal({ ...options, plan: createStableReferencePlan("# Target", 3)! });
+  modal.onOpen();
+  const button = modal.contentEl.querySelectorAll<HTMLButtonElement>("button")[1]!;
+  const input = modal.contentEl.querySelector("input");
+  button.click();
+  expect(button.disabled).toBe(true);
+  if (input) expect(input.disabled).toBe(true);
+  await vi.waitFor(() => expect(modal.contentEl.querySelector('[role="alert"]')?.textContent).toBe(t("preview.applyFailed")));
+  expect(button.disabled).toBe(false);
+  if (input) expect(input.disabled).toBe(false);
+  button.click();
+  await vi.waitFor(() => expect(modal.contentEl.childElementCount).toBe(0));
+  expect(onConfirm).toHaveBeenCalledTimes(2);
 });

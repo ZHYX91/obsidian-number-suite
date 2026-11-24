@@ -122,6 +122,8 @@ Discard and reload remains available even when external Properties are invalid.
 
 Apply is disabled while the cleanup scope refreshes. A failed refresh keeps the previous scope and preview and shows an error. Refreshing preserves focus in the current control or another pane.
 
+Caption and stable-reference dialogs keep their preview open after an unexpected edit failure. They show the error and restore the controls for another attempt.
+
 Batch editing uses one dialog. Choose a folder or the entire vault and an operation, then open the preview.
 Both choices start empty. The confirmation shows the selected scope and operation, Markdown notes checked
 after folder exclusions, notes whose source will change, individual changes and warnings. Apply names the

@@ -133,7 +133,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "preview.targetFixed": "يبقى الهدف هذا الملف عند تبديل الملاحظات. إذا تغير المصدر، فارجع وأنشئ المعاينة مجددًا.",
   "preview.back": "العودة إلى إجراءات الملاحظة",
   "preview.scopeFailed": "تعذّر تحديث المعاينة. ما زال النطاق السابق محددًا.",
-  "preview.applyFailed": "تعذر تطبيق المعاينة. أعد المحاولة من إجراءات الملاحظة.",
+  "preview.applyFailed": "تعذّر تطبيق التغيير. تحقّق من الملاحظة قبل إعادة المحاولة.",
   "preview.cancel": "إلغاء",
   "batch.scope.root": "الخزنة بالكامل",
   "batch.scope.title": "اختيار مجلد",
