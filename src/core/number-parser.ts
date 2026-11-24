@@ -3,10 +3,12 @@ import type {
   CleanupScope,
   CleanupTemplateSource,
   Confidence,
+  HeadingLevel,
   HeadingNumberMatch,
   NumberStyle,
 } from "./types";
-import { templatePrefixPattern } from "./template-compiler";
+import { HEADING_LEVELS } from "./types";
+import { isAmbiguousCompactJoin, templatePrefixPattern } from "./template-compiler";
 
 const CONFIDENCE_RANK: Readonly<Record<Confidence, number>> = {
   low: 0,
@@ -15,9 +17,12 @@ const CONFIDENCE_RANK: Readonly<Record<Confidence, number>> = {
   certain: 3,
 };
 
-const CHINESE_DIGITS = "零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟";
+const CHINESE_DIGITS = "零〇一二三四五六七八九十百千万亿萬億壹贰貳叁參肆伍陆陸柒捌玖拾佰仟";
 const CIRCLED_NUMBERS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
 const MEASUREMENT_START = /^(?:倍|版(?:本)?|年|月|日|种|个|项|条|米|厘米|毫米|千米|克|千克|kg|g|mm|cm|m|%)/iu;
+// A complete ordinal delimiter before an adjacent title provides an extra boundary.
+// An isolated unit is still ambiguous; words such as “项目管理” and “Goals” are titles.
+const COMPACT_MEASUREMENT_START = /^(?:%|(?:kg|g|mm|cm|m)(?![a-z])|版本|版次|(?:倍|年|月|日|种|个|项|条|米|厘米|毫米|千米|克|千克)(?=$|[\s\p{Nd}\p{P}]))/iu;
 const VERSION_START = /^(?:v(?:ersion)?|version|release|build|版本|版次)(?:\b|\s|：|:)/iu;
 const YEAR = /^(?:19|20)\d{2}$/;
 
@@ -32,12 +37,12 @@ interface Candidate {
 
 function numericRiskText(text: string): string {
   return text.replace(/[٠-٩]/gu, (digit) => String(digit.charCodeAt(0) - 0x660))
-    .replace(/٫/gu, ".");
+    .replace(/[０-９]/gu, (digit) => String(digit.charCodeAt(0) - 0xff10))
+    .replace(/[٫．]/gu, ".");
 }
 
 function meaningfulRemainder(text: string, to: number): boolean {
-  const remainder = text.slice(to).trim();
-  return remainder.length > 0;
+  return /^[^\S\r\n]*[^\s]/u.test(text.slice(to));
 }
 
 function candidateFromRegex(
@@ -119,7 +124,7 @@ function inferStyle(core: string): NumberStyle {
 function parseHierarchical(text: string): HeadingNumberMatch | null {
   const candidate = candidateFromRegex(
     text,
-    /^(\d+(?:\.\d+){1,5})([.)、]?)[ \t]+/u,
+    /^(\d+(?:\.\d+){1,5}[.)、]?)([ \t\u00a0\u3000]+)/u,
     "hierarchical",
     "high",
     "manual-hierarchical",
@@ -127,15 +132,9 @@ function parseHierarchical(text: string): HeadingNumberMatch | null {
   if (candidate == null) {
     return null;
   }
-  const parts = candidate.core.split(".").map(Number);
+  const numeric = candidate.core.replace(/[.)、]$/u, "");
   const remainder = text.slice(candidate.matched.length).trimStart();
-  if (
-    parts.some((part) => part === 0)
-    || YEAR.test(String(parts[0] ?? ""))
-    || (parts.length === 2 && (parts[1] ?? 0) >= 10)
-    || MEASUREMENT_START.test(remainder)
-    || VERSION_START.test(remainder)
-  ) {
+  if (riskyHierarchy(numeric, remainder)) {
     candidate.confidence = "low";
     candidate.ruleId = "suspicious-decimal-or-version";
   }
@@ -159,45 +158,97 @@ function makeCandidateMatch(text: string, candidate: Candidate): HeadingNumberMa
   };
 }
 
-function parseTemplatePrefix(
-  text: string,
-  headingLevel: number,
-  sources: readonly CleanupTemplateSource[],
-): HeadingNumberMatch | null {
-  for (const source of sources) {
-    const template = source.templates[headingLevel - 1];
-    if (template == null || template.length === 0) continue;
-    const pattern = templatePrefixPattern(template);
-    const match = pattern?.exec(text);
-    if (match == null || match[0].length === 0 || !meaningfulRemainder(text, match[0].length)) continue;
-    const core = match[1] ?? match[0].trimEnd();
-    // Compare native numeric templates with the same conservative checks as ASCII.
-    // Each replacement preserves offsets; recognition and returned source stay unchanged.
-    const manual = parseManualPrefix(numericRiskText(text));
-    const confidence = manual?.confidence === "low" && manual.to === match[0].length
-      ? "low"
-      : "high";
-    return {
+interface TemplateRule {
+  readonly source: CleanupTemplateSource;
+  readonly level: HeadingLevel;
+  readonly pattern: RegExp;
+}
+
+// Settings and document plans supply immutable source lists. A new list gets a
+// new index on disable/restore or revision changes; retired indexes can be collected.
+const patternsByTemplates = new WeakMap<readonly string[], readonly (RegExp | null)[]>();
+const templateIndexes = new WeakMap<readonly CleanupTemplateSource[], readonly TemplateRule[]>();
+
+function templateIndex(sources: readonly CleanupTemplateSource[]): readonly TemplateRule[] {
+  const cached = templateIndexes.get(sources);
+  if (cached != null) return cached;
+  const rules: TemplateRule[] = [];
+  for (const level of HEADING_LEVELS) {
+    const seen = new Set<string>();
+    for (const source of sources) {
+      const template = source.templates[level - 1];
+      if (!template || seen.has(template)) continue;
+      seen.add(template);
+      let patterns = patternsByTemplates.get(source.templates);
+      if (patterns == null) {
+        patterns = source.templates.map(templatePrefixPattern);
+        patternsByTemplates.set(source.templates, patterns);
+      }
+      const pattern = patterns[level - 1];
+      if (pattern != null) rules.push({ source, level, pattern });
+    }
+  }
+  templateIndexes.set(sources, rules);
+  return rules;
+}
+
+function riskyHierarchy(numeric: string, remainder: string): boolean {
+  const parts = numeric.split(".").map(Number);
+  return parts.some((part) => part === 0)
+    || YEAR.test(String(parts[0]))
+    || (parts.length === 2 && (parts[1] ?? 0) >= 10)
+    || MEASUREMENT_START.test(remainder)
+    || VERSION_START.test(remainder);
+}
+
+function numericTemplateRisk(core: string, separator: string, remainder: string): boolean {
+  const label = /^(\d+(?:\.\d+)*)([.)、]?)$/u.exec(numericRiskText(core));
+  if (label == null) return false;
+  const numeric = label[1]!;
+  if (numeric.includes(".")) return riskyHierarchy(numeric, remainder);
+  const quantity = separator === "" && label[2] ? COMPACT_MEASUREMENT_START : MEASUREMENT_START;
+  return YEAR.test(numeric) || quantity.test(remainder) || VERSION_START.test(remainder);
+}
+
+function parseTemplatePrefix(text: string, context: HeadingNumberContext): HeadingNumberMatch | null {
+  let best: HeadingNumberMatch | null = null;
+  let ambiguous = false;
+  for (const { source, level, pattern } of templateIndex(context.templateSources)) {
+    if (!context.matchOtherLevels && level !== context.headingLevel) continue;
+    const match = pattern.exec(text);
+    if (match == null || !meaningfulRemainder(text, match[0].length)) continue;
+    const core = match[1] ?? "";
+    const separator = match[2] ?? "";
+    const remainder = text.slice(match[0].length);
+    if (!separator && isAmbiguousCompactJoin(core, remainder)) continue;
+    if (best != null) {
+      // Competing complete boundaries can include different parts of the
+      // title. Do not promote either interpretation to a reliable match.
+      if (best.to !== match[0].length || best.numberCore !== core) ambiguous = true;
+      if (best.templateLevel === context.headingLevel || level !== context.headingLevel) continue;
+    }
+    best = {
       fullPrefix: match[0],
       numberCore: core,
-      separator: match[2] ?? "",
+      separator,
       from: 0,
       to: match[0].length,
       style: inferStyle(core),
-      confidence,
+      confidence: numericTemplateRisk(core, separator, remainder) ? "low" : "high",
       provenance: "template",
       ruleId: `template:${source.schemeId}@${source.revision}`,
       schemeId: source.schemeId,
       schemeRevision: source.revision,
+      templateLevel: level,
     };
   }
-  return null;
+  return ambiguous && best != null ? { ...best, confidence: "low" } : best;
 }
 
 function parseManualPrefix(text: string): HeadingNumberMatch | null {
   const legal = candidateFromRegex(
     text,
-    new RegExp(`^(第[${CHINESE_DIGITS}\\d]+[编章节条款项])([ \\t]*)`, "u"),
+    new RegExp(`^(第[${CHINESE_DIGITS}\\d]+[编章节条款项])([ \\t\\u00a0\\u3000]*)`, "u"),
     "legal",
     "high",
     "manual-legal",
@@ -208,7 +259,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const bracketed = candidateFromRegex(
     text,
-    new RegExp(`^([（(][${CHINESE_DIGITS}\\d]+[）)])([ \\t]*)`, "u"),
+    new RegExp(`^([（(][${CHINESE_DIGITS}\\d]+[）)])([ \\t\\u00a0\\u3000]*)`, "u"),
     "bracketed",
     "high",
     "manual-bracketed",
@@ -219,7 +270,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const circled = candidateFromRegex(
     text,
-    new RegExp(`^([${CIRCLED_NUMBERS}])([ \\t]*)`, "u"),
+    new RegExp(`^([${CIRCLED_NUMBERS}])([ \\t\\u00a0\\u3000]*)`, "u"),
     "circled",
     "high",
     "manual-circled",
@@ -230,7 +281,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const chinese = candidateFromRegex(
     text,
-    new RegExp(`^([${CHINESE_DIGITS}]+)(、)[ \\t]*`, "u"),
+    new RegExp(`^([${CHINESE_DIGITS}]+、)([ \\t\\u00a0\\u3000]*)`, "u"),
     "chinese",
     "high",
     "manual-chinese",
@@ -246,14 +297,14 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const arabic = candidateFromRegex(
     text,
-    /^(\d+)([.)、])[ \t]+/u,
+    /^(\d+[.)、])([ \t\u00a0\u3000]+)/u,
     "arabic",
     "medium",
     "manual-arabic",
   );
   if (arabic != null) {
     const remainder = text.slice(arabic.matched.length).trimStart();
-    if (YEAR.test(arabic.core) || MEASUREMENT_START.test(remainder)) {
+    if (YEAR.test(arabic.core.slice(0, -1)) || MEASUREMENT_START.test(remainder)) {
       arabic.confidence = "low";
       arabic.ruleId = "suspicious-year-or-measurement";
     }
@@ -262,7 +313,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const bareArabic = candidateFromRegex(
     text,
-    /^(\d+)([ \t]+)/u,
+    /^(\d+)([ \t\u00a0\u3000]+)/u,
     "arabic",
     "medium",
     "manual-arabic-bare",
@@ -278,7 +329,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const roman = candidateFromRegex(
     text,
-    /^([IVXLCDM]+)([.)])[ \t]+/u,
+    /^([IVXLCDM]+[.)])([ \t\u00a0\u3000]+)/u,
     "roman",
     "medium",
     "manual-roman",
@@ -289,7 +340,7 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
   const letter = candidateFromRegex(
     text,
-    /^([A-Za-z])([.)])[ \t]+/u,
+    /^([A-Za-z][.)])([ \t\u00a0\u3000]+)/u,
     "letter",
     "medium",
     "manual-letter",
@@ -299,6 +350,8 @@ function parseManualPrefix(text: string): HeadingNumberMatch | null {
 
 export interface HeadingNumberContext {
   readonly headingLevel: number;
+  /** Display may recognize a stored style from another level. Writes use the actual level. */
+  readonly matchOtherLevels?: boolean;
   readonly templateSources: readonly CleanupTemplateSource[];
 }
 
@@ -306,15 +359,11 @@ export function parseHeadingNumber(
   text: string,
   context?: HeadingNumberContext,
 ): HeadingNumberMatch | null {
+  if (hasMalformedPluginMarker(text)) return null;
   const plugin = parsePluginPrefix(text);
-  if (plugin != null) {
-    return plugin;
-  }
-  if (hasMalformedPluginMarker(text)) {
-    return null;
-  }
+  if (plugin != null) return plugin;
   if (context != null) {
-    const template = parseTemplatePrefix(text, context.headingLevel, context.templateSources);
+    const template = parseTemplatePrefix(text, context);
     if (template != null) return template;
   }
   return parseManualPrefix(text);
@@ -376,6 +425,5 @@ export function isExpectedUnmarkedNumber(
   return match?.provenance === "manual"
     && match.confidence === "medium"
     && expectedLabel != null
-    && match.numberCore === expectedLabel
-    && match.fullPrefix === `${expectedLabel} `;
+    && match.numberCore === expectedLabel;
 }

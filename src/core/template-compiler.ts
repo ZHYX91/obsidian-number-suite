@@ -36,6 +36,8 @@ export interface TemplateDiagnostic {
 
 export interface CompiledTemplate {
   readonly source: string;
+  /** Exact whitespace to write between the rendered label and the title. */
+  readonly separator: string;
   readonly nodes: readonly TemplateNode[];
   readonly diagnostics: readonly TemplateDiagnostic[];
 }
@@ -50,13 +52,20 @@ function counterNode(content: string): TemplateNode | null {
   };
 }
 
+/** A final variable-length counter needs a boundary. Circled counters are self-delimiting. */
+export function defaultSeparatorAfter(node: TemplateNode | undefined): string {
+  if (node == null) return "";
+  const needsSpace = node.kind === "counter" ? node.format !== "circled" : /\p{Nd}$/u.test(node.value);
+  return needsSpace ? " " : "";
+}
+
 export function compileTemplate(source: string): CompiledTemplate {
   const nodes: TemplateNode[] = [];
   const diagnostics: TemplateDiagnostic[] = [];
   if (/[\r\n]/u.test(source)) {
     diagnostics.push({ from: 0, to: source.length, code: "unsafe-newline" });
   }
-  if (source.trim().length > 0 && /^[ \t]/u.test(source)) {
+  if (source.trim().length > 0 && /^[ \t\u00a0\u3000]/u.test(source)) {
     diagnostics.push({ from: 0, to: 1, code: "unsafe-leading-whitespace" });
   }
   const commentAt = source.search(/<!--|-->/u);
@@ -67,6 +76,8 @@ export function compileTemplate(source: string): CompiledTemplate {
   if (markerAt >= 0) {
     diagnostics.push({ from: markerAt, to: markerAt + 1, code: "unsafe-source-marker" });
   }
+  const trailingWhitespace = /[ \t\u00a0\u3000]+$/u.exec(source)?.[0] ?? "";
+  const coreEnd = source.length - trailingWhitespace.length;
   let literal = "";
   const flushLiteral = (): void => {
     if (literal.length > 0) {
@@ -74,7 +85,7 @@ export function compileTemplate(source: string): CompiledTemplate {
       literal = "";
     }
   };
-  for (let index = 0; index < source.length;) {
+  for (let index = 0; index < coreEnd;) {
     const character = source[index];
     if (character === "}") {
       diagnostics.push({ from: index, to: index + 1, code: "unexpected-closing-brace" });
@@ -113,7 +124,9 @@ export function compileTemplate(source: string): CompiledTemplate {
   if (onlyAlphaRoman && !hasDelimiter) {
     diagnostics.push({ from: 0, to: source.length, code: "unsafe-bare-alpha-roman" });
   }
-  return { source, nodes, diagnostics };
+  const last = nodes[nodes.length - 1];
+  const separator = trailingWhitespace || defaultSeparatorAfter(last);
+  return { source, nodes, separator, diagnostics };
 }
 
 export function renderCompiledTemplate(template: CompiledTemplate, counters: Counters): string {
@@ -147,5 +160,19 @@ export function templatePrefixPattern(source: string): RegExp | null {
   const body = compiled.nodes.map((node) => node.kind === "literal"
     ? escapeRegex(node.value)
     : NUMBER_FORMAT_PATTERNS[node.format]).join("");
-  return new RegExp(`^(${body})([ \\t]+)`, "u");
+  const spaces = compiled.separator === "" ? "*" : "+";
+  return new RegExp(`^(${body})([ \\t\\u00a0\\u3000]${spaces})`, "u");
+}
+
+/** A compact dotted prefix must not truncate a decimal, version, or abbreviation. */
+export function isAmbiguousCompactJoin(label: string, title: string): boolean {
+  if (/[.．٫]$/u.test(label)) {
+    return /^\p{Nd}/u.test(title) || (/[a-z][.．]$/iu.test(label) && /^[a-z]/iu.test(title));
+  }
+  return false;
+}
+
+/** The source preview and the writer must preserve the same unmarked boundary. */
+export function separatorBeforeTitle(label: string, separator: string, title: string): string {
+  return separator === "" && isAmbiguousCompactJoin(label, title) ? " " : separator;
 }

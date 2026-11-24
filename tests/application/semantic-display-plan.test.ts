@@ -80,6 +80,19 @@ describe("semantic display plan", () => {
       .find((item) => item.kind === "reference")?.label).toBe("7 Stored");
   });
 
+  it("preserves a tight cross-level source prefix on explicit references", () => {
+    const source = "## 一、设计\n@[[#一、设计]] and @[[#一、设计|别名]]";
+    const headings = parseAtxHeadings(source);
+    const result = createSemanticDisplayPlan(source, headings, {
+      showCaptionNumbers: false, centeredCaptionKinds: [], showCrossReferences: true,
+      showNoteNumbers: false, noteSelections: [], numbering,
+      templateSources: [{ schemeId: "chinese-official", schemeName: "Chinese official", revision: 1,
+        templates: BUILT_IN_SCHEMES["chinese-official"].templates }],
+      headingDisplayPlan: [], composing: false,
+    });
+    expect(result.map((item) => item.label)).toEqual(["一、设计", "一、 别名"]);
+  });
+
   it("resolves a user-authored block ID attached to a numbered heading", () => {
     const source = "# Heading\n^heading-block\nSee @[[#^heading-block|section]]";
     expect(plan(source).find((item) => item.kind === "reference")).toMatchObject({

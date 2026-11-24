@@ -1,7 +1,6 @@
-import { renderCurrentLevel, renderTemplate } from "./schemes";
 import { matchHeadingExclusion } from "./heading-exclusions";
 import { inspectSchemeTemplates } from "./scheme-template-validation";
-import { compileTemplate } from "./template-compiler";
+import { compileTemplate, defaultSeparatorAfter, renderCompiledTemplate, renderCurrentLevel } from "./template-compiler";
 import { HEADING_LEVEL_COUNT } from "./types";
 import type {
   Counters,
@@ -41,8 +40,8 @@ export function numberHeadings(
     }));
   }
   const starts = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedStart(options, index + 1));
-  const templateCounters = scheme.templates.map((template) => compileTemplate(template).nodes
-    .filter((node) => node.kind === "counter"));
+  const templates = scheme.templates.map(compileTemplate);
+  const templateCounters = templates.map((template) => template.nodes.filter((node) => node.kind === "counter"));
   const skipFirst = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options.skipFirst, index + 1));
   const skipPerParent = Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => normalizedSkip(options.skipPerParent, index + 1));
   const seenInDocument = Array.from({ length: HEADING_LEVEL_COUNT }, () => 0);
@@ -143,8 +142,8 @@ export function numberHeadings(
       continue;
     }
 
-    const template = scheme.templates[index] ?? "";
-    if (template.trim().length === 0) {
+    const template = templates[index];
+    if (template == null || template.nodes.length === 0) {
       output.push({ heading, label: null, counters: cloneCounters(counters), warning: null, exclusion: null });
       continue;
     }
@@ -200,11 +199,16 @@ export function numberHeadings(
     }
     const rendered = currentOnly
       ? renderCurrentLevel(template, heading.level, currentCounters)
-      : renderTemplate(template, currentCounters);
-    const label = /^[A-Za-z]+$/u.test(rendered.trim()) ? null : rendered;
+      : renderCompiledTemplate(template, currentCounters);
+    const label = rendered.length > 0 && !/^[A-Za-z]+$/u.test(rendered) ? rendered : null;
+    // Current-only shortens a multi-level template to a bare counter, even if the full label ends in punctuation.
+    const separator = currentOnly && counterNodes.length > 1
+      ? template.separator || defaultSeparatorAfter(renderedCounters[0])
+      : template.separator;
     output.push({
       heading,
-      label: label == null || label.trim().length === 0 ? null : label,
+      label,
+      separator,
       counters: currentCounters,
       warning: null,
       exclusion: null,

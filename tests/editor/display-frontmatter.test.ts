@@ -142,9 +142,58 @@ describe("source Properties validation at display entry points", () => {
     expect(view.state.doc.toString()).toBe(source);
   });
 
+  it.each([
+    { official: true, manual: false, kinds: ["stored", "stored", "stored"] },
+    { official: false, manual: false, kinds: [null, "stored", null] },
+    { official: false, manual: true, kinds: ["manual", "stored", "manual"] },
+  ])("uses the same Chinese prefix boundaries in Live Preview, Reading View and Outline ($official, $manual)", async ({ official, manual, kinds }) => {
+    host.parsed = {};
+    const titles = ["一、你好", "一、　 你好", "一、二、三"];
+    const source = titles.map((title, i) => `${i === 0 ? "#" : "##"} ${title}`).join("\n") + "\n\nBody";
+    const settings = {
+      ...configured, showVirtualNumbers: false, concealStoredNumbers: false,
+      storedHeadingNumberStyleScope: manual ? "common" as const : "templates" as const,
+      disabledBuiltInSchemeIds: official ? [] : ["chinese-official"],
+      customSchemes: [{
+        id: "custom-spaced", name: "Spaced", baseLevel: 1 as const, revision: 1,
+        templates: ["{1.chinese_lower}、 ", "", "", "", "", "", "", "", ""], exclusions: [],
+      }],
+    };
+    const parent = document.body.appendChild(document.createElement("div"));
+    const controller = new HeadingDisplayController(() => settings);
+    const view = new EditorView({ parent, state: EditorState.create({
+      doc: source, selection: { anchor: source.length },
+      extensions: [new Language(defineLanguageFacet(), parser), editorLivePreviewField, controller.createExtension()],
+    }) });
+    views.push(view);
+    const reading = document.body.appendChild(document.createElement("div"));
+    titles.forEach((text, index) => {
+      const heading = document.createElement(index === 0 ? "h1" : "h2");
+      heading.textContent = text;
+      reading.append(heading);
+    });
+    const file = new (TFile as unknown as new (path: string) => TFile)("Chinese.md");
+    const app = { vault: { getAbstractFileByPath: () => file, cachedRead: async () => source } } as unknown as App;
+    const processor = new HeadingReadingProcessor(app, () => settings);
+    await processor.process(reading, {
+      sourcePath: file.path, frontmatter: {}, getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: 4 }),
+    } as unknown as MarkdownPostProcessorContext);
+    for (const surface of [parent, reading]) {
+      const pills = [...surface.querySelectorAll(".number-suite-stored-heading-number")];
+      expect(pills.map((pill) => pill.classList.contains("is-manual") ? "manual" : "stored"))
+        .toEqual(kinds.filter((kind) => kind != null));
+      expect(pills.every((pill) => pill.textContent === "一、")).toBe(true);
+    }
+    const outline = createNativeOutlineProjection(source, [], settings);
+    expect(titles.map((_, i) => outline.numberKinds?.get(i) ?? null)).toEqual(kinds);
+    expect(outline.titleLabels?.get(2)).toBe(kinds[2] == null ? "一、二、三" : "二、三");
+    expect(view.state.doc.toString()).toBe(source);
+    processor.dispose();
+  });
+
   it("restores visible manual pills after leaving the active Live Preview heading", () => {
     host.parsed = {};
-    const source = "## 3. Paper patterns\n\nBody";
+    const source = "## 3) Paper patterns\n\nBody";
     const parent = document.body.appendChild(document.createElement("div"));
     const controller = new HeadingDisplayController(() => ({
       ...configured,
@@ -157,13 +206,13 @@ describe("source Properties validation at display entry points", () => {
     }) });
     views.push(view);
     const manualPill = () => parent.querySelector(".number-suite-stored-heading-number.is-manual");
-    expect(manualPill()?.getAttribute("aria-label")).toBe("3. — Common handwritten heading number");
+    expect(manualPill()?.getAttribute("aria-label")).toBe("3) — Common handwritten heading number");
     expect(parent.querySelector(".number-suite-heading-number")?.getAttribute("aria-label"))
       .toBe("1.1 — Virtual heading number");
     view.dispatch({ selection: { anchor: 4 } });
     expect(manualPill()).toBeNull();
     view.dispatch({ selection: { anchor: source.length } });
-    expect(manualPill()?.textContent).toBe("3.");
+    expect(manualPill()?.textContent).toBe("3)");
     expect(view.state.doc.toString()).toBe(source);
   });
 
@@ -176,7 +225,7 @@ describe("source Properties validation at display entry points", () => {
     if (noteScope != null) entries.push(`heading.hide-stored-scope=${noteScope}`);
     host.parsed = { "number-suite": entries };
     const source = ["---", "number-suite:", ...entries.map((entry) => `  - ${entry}`), "---",
-      "# 7 Lantern archive", "## 3. Paper patterns", "", "Body"].join("\n");
+      "# 7 Lantern archive", "## 3) Paper patterns", "", "Body"].join("\n");
     const overrides = {
       ...configured,
       concealStoredNumbers: false,
@@ -193,7 +242,7 @@ describe("source Properties validation at display entry points", () => {
     const reading = document.body.appendChild(document.createElement("div"));
     reading.append(document.createElement("h1"), document.createElement("h2"));
     reading.children[0]!.textContent = "7 Lantern archive";
-    reading.children[1]!.textContent = "3. Paper patterns";
+    reading.children[1]!.textContent = "3) Paper patterns";
     const file = new (TFile as unknown as new (path: string) => TFile)("Lantern archive.md");
     const app = { vault: { getAbstractFileByPath: () => file, cachedRead: async () => source } } as unknown as App;
     const processor = new HeadingReadingProcessor(app, () => overrides);
@@ -205,13 +254,13 @@ describe("source Properties validation at display entry points", () => {
       expect([...surface.querySelectorAll(".number-suite-heading-number")].map((pill) => pill.textContent?.trim()))
         .toEqual(["1", "1.1"]);
       expect(surface.querySelector(".number-suite-stored-heading-number.is-manual")?.textContent ?? null)
-        .toBe(manualVisible ? "3." : null);
+        .toBe(manualVisible ? "3)" : null);
       expect(surface.querySelector(".number-suite-stored-heading-number.is-stored")).toBeNull();
     }
     const outline = createNativeOutlineProjection(source, [], overrides);
     expect([...outline.numberLabels.values()]).toEqual(["1", "1.1"]);
     expect([...outline.secondaryStoredNumbers?.values() ?? []])
-      .toEqual(manualVisible ? [{ label: "3.", kind: "manual" }] : []);
+      .toEqual(manualVisible ? [{ label: "3)", kind: "manual" }] : []);
     expect(view.state.doc.toString()).toBe(source);
     processor.dispose();
   });

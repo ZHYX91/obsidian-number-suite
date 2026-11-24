@@ -7,7 +7,7 @@ import {
   findMatchingBuiltInSchemeId,
   isBuiltInSchemeId,
 } from "../core/schemes";
-import { NUMBER_FORMATS, renderTemplate } from "../core/template-compiler";
+import { compileTemplate, NUMBER_FORMATS, renderCompiledTemplate, separatorBeforeTitle } from "../core/template-compiler";
 import { resolvedUiLocale } from "../config/i18n";
 import { recommendedSchemeForLocale } from "../config/recommended-schemes";
 import { inspectSchemeTemplates, type SchemeTemplateIssue } from "../core/scheme-template-validation";
@@ -35,7 +35,8 @@ export function renderSchemeTemplatePreview(container: HTMLElement, template: st
     container.setText(t("settings.scheme.disabled"));
     return;
   }
-  const value = renderTemplate(template, PREVIEW_COUNTERS);
+  const compiled = compileTemplate(template);
+  const value = compiled.diagnostics.length === 0 ? renderCompiledTemplate(compiled, PREVIEW_COUNTERS) : "";
   if (value.length === 0) {
     // The validation message beside the editor explains an invalid template.
     container.setText("—");
@@ -43,7 +44,7 @@ export function renderSchemeTemplatePreview(container: HTMLElement, template: st
   }
   const heading = t("settings.scheme.preview.heading");
   container.addClass("number-suite-scheme-example");
-  container.setAttribute("title", t("settings.scheme.preview", { value: value + " " + heading }));
+  container.setAttribute("title", t("settings.scheme.preview", { value: value + separatorBeforeTitle(value, compiled.separator, heading) + heading }));
   container.createSpan({
     cls: "number-suite-heading-number number-suite-scheme-example-number",
     text: value,

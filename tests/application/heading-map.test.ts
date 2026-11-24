@@ -119,7 +119,7 @@ describe("heading mind map", () => {
     const result = createHeadingMap(source, { headingDisplayPlan });
     expect(result[0]).toMatchObject({
       title: "Experiment", numberKind: "virtual", numberLabel: "1",
-      storedNumber: { label: "2.1", kind: "manual" },
+      storedNumber: { label: "2.1", kind: "stored" },
     });
     const suspicious = mapFor("# 2026.11 Release", false);
     expect(suspicious[0]).toMatchObject({

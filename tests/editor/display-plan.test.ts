@@ -70,6 +70,15 @@ describe("display plan", () => {
       .toMatchObject([{ line: 0, pillKind: "stored" }, { line: 1, pillKind: "stored" }]);
   });
 
+  it("keeps incomplete marker chains visible and authenticates intact adjacent prefixes", () => {
+    const m = WORD_JOINER;
+    const headings = parseAtxHeadings(`# ${m}1${m}\u3000${m}dangling\n# ${m}1${m} ${m}2${m} Title${m}`);
+    const display = options({ showVirtualNumbers: false, storedHeadingNumberStyleScope: "templates" });
+    expect(createDisplayPlan(headings, display)).toMatchObject([{ line: 1, kind: "stored", label: "1" }]);
+    expect(createDisplayPlan(headings, { ...display, concealStoredNumbers: true }))
+      .toMatchObject([{ line: 1, kind: "conceal", sourceText: `${m}1${m} ${m}2${m} ` }]);
+  });
+
   it("does not display overflowed numbers or conceal their authored prefixes", () => {
     const source = `# First\n# ${WORD_JOINER}2${WORD_JOINER} Overflow\n## Child`;
     const plan = createDisplayPlan(parseAtxHeadings(source), options({

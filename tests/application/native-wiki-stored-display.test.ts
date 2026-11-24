@@ -136,13 +136,13 @@ describe("virtual and reliable source-number presentation", () => {
     expect(withAlias).toContain("[[#一、 实验设计|my own alias]]");
   });
 
-  it("keeps an unmarked no-space Chinese prefix under template-only concealment", () => {
-    const source = "# 一、实验设计\nSee [[#一、实验设计]].";
+  it.each(["#", "##"])("conceals only the compact official prefix in a %s heading and its unaliased link", (level) => {
+    const source = level + " 一、实验设计\nSee [[#一、实验设计]].";
     const result = plans(source, true, true);
-    expect(result.display.some((item) => item.kind === "conceal")).toBe(false);
+    expect(result.display.find((item) => item.kind === "conceal")?.sourceText).toBe("一、");
     expect(result.semantic).toHaveLength(1);
-    expect(result.semantic[0]?.nativeHiddenFrom).toBeUndefined();
-    expect(result.semantic[0]?.nativeHiddenTo).toBeUndefined();
+    const link = result.semantic[0];
+    expect(source.slice(link?.nativeHiddenFrom, link?.nativeHiddenTo)).toBe("一、");
   });
 
   it("never deduplicates a user-authored number against a virtual badge", () => {
@@ -163,7 +163,7 @@ describe("virtual and reliable source-number presentation", () => {
   it("outlines visible manual prefixes independently of concealment and virtual numbering", () => {
     const source = [
       "# 7 Lantern archive",
-      "## 3. Lantern patterns",
+      "## 3) Lantern patterns",
       "## 2026.11 release",
       "## 2025 inventory",
       "## version 2.1",
@@ -177,7 +177,7 @@ describe("virtual and reliable source-number presentation", () => {
     };
     const common = createDisplayPlan(headings, { ...options, storedHeadingNumberStyleScope: "common" });
     expect(common.filter((item) => item.kind === "stored")).toMatchObject([
-      { line: 1, label: "3.", pillKind: "manual" },
+      { line: 1, label: "3)", pillKind: "manual" },
     ]);
     expect(common.filter((item) => item.kind === "conceal").map((item) => item.line)).toEqual([0, 5]);
     expect(common.filter((item) => item.kind === "virtual").map((item) => item.line)).toEqual([0, 1, 2, 3, 4, 5]);

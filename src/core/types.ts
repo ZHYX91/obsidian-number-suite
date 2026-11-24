@@ -98,6 +98,7 @@ export interface HeadingNumberMatch {
   ruleId: string;
   schemeId?: string;
   schemeRevision?: number;
+  templateLevel?: HeadingLevel;
 }
 
 export interface NumberingScheme {
@@ -138,6 +139,8 @@ export interface NumberingOptions {
 export interface NumberedHeading {
   heading: ParsedHeading;
   label: string | null;
+  /** Exact source separator used when writing a non-null label. */
+  separator?: string;
   skippedBySectionRule?: true;
   counters: Counters;
   warning: "missing-parent" | "counter-overflow" | "roman-range" | null;

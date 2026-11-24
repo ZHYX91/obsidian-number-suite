@@ -698,15 +698,14 @@ function leadingTextNodes(element: HTMLElement): Text[] {
 function markStoredNumber(
   element: HTMLElement,
   core: string,
-  authored: string,
+  outlineText: string,
   kind: StoredHeadingNumberPillKind,
   hint: string,
 ): boolean {
   if (!core) return false;
   const nodes = leadingTextNodes(element);
   const text = nodes.map((node) => node.data).join("");
-  const prefix = authored.trimEnd();
-  let remaining = text.startsWith(prefix) ? prefix.length : text.startsWith(core) ? core.length : 0;
+  let remaining = text.startsWith(outlineText) ? outlineText.length : text.startsWith(core) ? core.length : 0;
   if (remaining === 0) return false;
   for (const node of nodes) {
     if (remaining <= 0) break;
@@ -932,7 +931,7 @@ export class HeadingReadingProcessor {
         }
       }
       if (stored != null) {
-        markStoredNumber(element, stored.label, stored.sourceText, stored.pillKind, headingNumberHint(stored.pillKind, t));
+        markStoredNumber(element, stored.label, stored.outlineText, stored.pillKind, headingNumberHint(stored.pillKind, t));
       }
       if (virtual != null) {
         prependVirtualNumber(element, virtual.label, headingNumberHint("virtual", t));

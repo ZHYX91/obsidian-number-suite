@@ -4,6 +4,7 @@ All notable changes to Number Suite are documented here.
 
 ## Unreleased
 
+- Recognize stored heading numbers across levels for display. The first four Chinese official levels write compact prefixes and still read existing spaced headings. A trailing space in a custom template requires a separator in the note.
 - Disabling a built-in scheme now excludes it from automatic outlining and concealment. Previously hidden built-in schemes start disabled. Enable a scheme again to restore recognition without changing note text.
 
 ## 0.8.0
