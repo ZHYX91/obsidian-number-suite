@@ -64,10 +64,12 @@ export class ChangePreviewPane {
     this.render();
   }
 
-  private render(): void {
+  private render(focusFailure = false): void {
     if (this.closed || this.options.signal?.aborted) return;
     const { contentEl, titleEl } = this;
     const t = this.options.translate;
+    const active = contentEl.ownerDocument.activeElement;
+    const focusFeedback = focusFailure && (active === contentEl.ownerDocument.body || contentEl.contains(active));
     contentEl.empty();
     titleEl.setText(t(`preview.title.${this.options.operation}`));
     contentEl.addClass("number-suite-preview");
@@ -76,7 +78,9 @@ export class ChangePreviewPane {
       scope.createSpan({ text: t("batch.scope.label") });
       scope.createEl("bdi", { text: this.batch.scope });
     }
-    if (this.failure != null) contentEl.createDiv({ cls: "number-suite-note-control-error", text: this.failure, attr: { role: "alert" } });
+    const feedback = this.failure == null ? null : contentEl.createDiv({
+      cls: "number-suite-note-control-error", text: this.failure, attr: { role: "alert", tabindex: "-1" },
+    });
     if (this.cleanupScope != null && this.options.onCleanupScopeChange != null) {
       new Setting(contentEl)
         .setName(t("preview.cleanupScope"))
@@ -135,7 +139,7 @@ export class ChangePreviewPane {
             if (applied === false || typeof applied === "object") {
               this.stale = applied === false || applied.stale;
               this.failure = applied === false ? t("notice.stalePreview") : applied.message;
-              this.render();
+              this.render(true);
             } else {
               this.close();
             }
@@ -143,12 +147,13 @@ export class ChangePreviewPane {
           .catch((error: unknown) => {
             this.applying = false;
             this.failure = t("preview.applyFailed");
-            this.render();
+            this.render(true);
             console.error("Number Suite preview apply failed", error);
           });
       });
     });
     applyModalDirection(this.modalEl, t);
+    if (focusFeedback) feedback?.focus();
   }
 
   private renderDocument(container: HTMLElement, document: PreviewDocument): void {
@@ -162,10 +167,33 @@ export class ChangePreviewPane {
     }) });
     const body = section.createDiv();
     const renderBody = (): void => {
-      body.empty();
-      const changeLimit = this.visibleChangeLimits.get(document.path) ?? CHANGE_PAGE_SIZE;
-      for (const change of document.plan.changes.slice(0, changeLimit)) {
-        const card = body.createDiv({ cls: "number-suite-change" });
+      const pages = <T>(
+        items: readonly T[], size: number, limits: Map<string, number>,
+        label: "preview.moreChanges" | "preview.moreWarnings", append: (item: T) => HTMLElement,
+      ): void => {
+        let count = Math.min(limits.get(document.path) ?? size, items.length);
+        items.slice(0, count).forEach(append);
+        if (count === items.length) return;
+        const moreText = (): string => t(label, { count: items.length - count });
+        const button = body.createEl("button", {
+          text: moreText(), cls: "number-suite-preview-more", attr: { type: "button" },
+        });
+        button.addEventListener("click", () => {
+          const next = Math.min(count + size, items.length);
+          const first = append(items[count]!);
+          for (let index = count + 1; index < next; index++) append(items[index]!);
+          count = next;
+          limits.set(document.path, count);
+          if (count === items.length) button.remove();
+          else button.setText(moreText());
+          first.tabIndex = -1;
+          first.focus();
+        });
+      };
+
+      const cards = body.createDiv();
+      pages(document.plan.changes, CHANGE_PAGE_SIZE, this.visibleChangeLimits, "preview.moreChanges", (change) => {
+        const card = cards.createDiv({ cls: "number-suite-change" });
         card.dataset.ruleId = change.ruleId;
         card.createDiv({ cls: "number-suite-change-meta", text: t("preview.line", { line: change.line + 1, level: change.level }) });
         const parts = changedTextParts(visibleMarkers(change.before), visibleMarkers(change.after));
@@ -175,24 +203,16 @@ export class ChangePreviewPane {
         const after = card.createDiv({ cls: "number-suite-diff number-suite-diff-after" });
         after.createEl("strong", { text: `${t("preview.after")}: ` });
         renderPreviewDifference(after, parts.prefix, parts.after, parts.suffix);
-      }
-      const more = (label: string, reveal: () => void): void => {
-        const button = body.createEl("button", { text: label, cls: "number-suite-preview-more", attr: { type: "button" } });
-        button.addEventListener("click", () => { reveal(); renderBody(); summary.focus(); });
-      };
-      if (document.plan.changes.length > changeLimit) more(t("preview.moreChanges", { count: document.plan.changes.length - changeLimit }),
-        () => this.visibleChangeLimits.set(document.path, changeLimit + CHANGE_PAGE_SIZE));
-      const warningLimit = this.visibleWarningLimits.get(document.path) ?? WARNING_PAGE_SIZE;
+        return card;
+      });
       if (document.plan.warnings.length > 0) {
         body.createEl("h3", { text: t("preview.warnings") });
         const list = body.createEl("ul", { cls: "number-suite-warning-list" });
-        for (const warning of document.plan.warnings.slice(0, warningLimit)) list.createEl("li", {
-          text: `${document.path}:${warning.line + 1} — ${t(`preview.warning.${warning.code}`)}`,
-        });
-        if (document.plan.warnings.length > warningLimit) more(t("preview.moreWarnings", { count: document.plan.warnings.length - warningLimit }),
-          () => this.visibleWarningLimits.set(document.path, warningLimit + WARNING_PAGE_SIZE));
+        pages(document.plan.warnings, WARNING_PAGE_SIZE, this.visibleWarningLimits, "preview.moreWarnings",
+          (warning) => list.createEl("li", {
+            text: `${document.path}:${warning.line + 1} — ${t(`preview.warning.${warning.code}`)}`,
+          }));
       }
-      applyModalDirection(this.modalEl, t);
     };
     if (section.open) renderBody();
     section.addEventListener("toggle", () => {

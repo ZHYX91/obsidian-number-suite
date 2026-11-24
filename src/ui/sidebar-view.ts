@@ -115,11 +115,11 @@ export class NumberSuiteSidebarView extends ItemView {
     if (notePane == null) return;
     this.previewPane?.onClose();
     const panel = notePane.mountPreview();
-    const title = panel.createEl("h3");
+    const title = panel.createEl("h3", { attr: { tabindex: "-1" } });
     const target = options.documents[0]?.path;
     const binding = panel.createDiv({ cls: "number-suite-preview-target" });
     binding.createSpan({ text: options.translate("sidebar.previewTarget") });
-    binding.createDiv({ text: target ?? "", attr: { dir: "auto" } });
+    binding.createDiv({ text: target ?? "", attr: { dir: "auto", title: target ?? "" } });
     panel.createEl("p", { cls: "number-suite-preview-binding", text: options.translate("preview.targetFixed") });
     const back = panel.createEl("button", { text: options.translate("preview.back"), attr: { type: "button" } });
     back.addEventListener("click", () => this.previewPane?.close());
@@ -130,7 +130,7 @@ export class NumberSuiteSidebarView extends ItemView {
       notePane.refresh();
     });
     this.previewPane.onOpen();
-    if (!options.signal?.aborted) back.focus();
+    if (!options.signal?.aborted) title.focus();
   }
 
   private setFile(file: TFile | null): void {

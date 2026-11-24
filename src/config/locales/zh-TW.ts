@@ -89,6 +89,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "請先切換到編輯模式，再修改標題文字。",
   "notice.noteDisabled": "目前筆記已禁用 Number Suite。",
   "notice.invalidFrontmatter": "目前筆記的 Properties YAML 無效，未應用任何修改。",
+  "panel.readFailed": "無法讀取這篇筆記。請重試以載入筆記屬性。",
   "notice.invalidProperties": "目前筆記的 Number Suite 屬性無效或互相沖突，未應用任何修改。",
   "notice.stalePreview": "預覽打開後筆記發生了變化，未應用任何修改。",
   "notice.applied": "已應用 {count} 處標題修改。",

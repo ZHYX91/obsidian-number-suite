@@ -89,6 +89,7 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "Cambia al modo de edición para modificar el texto del título.",
   "notice.noteDisabled": "Number Suite está desactivado para esta nota.",
   "notice.invalidFrontmatter": "El YAML de propiedades de la nota no es válido. No se aplicaron cambios.",
+  "panel.readFailed": "No se pudo leer esta nota. Vuelve a intentarlo para cargar sus propiedades.",
   "notice.invalidProperties": "Las propiedades de Number Suite de esta nota son inválidas o contradictorias. No se aplicaron cambios.",
   "notice.stalePreview": "La nota cambió después de abrir la vista previa. No se aplicaron cambios.",
   "notice.applied": "Se aplicaron {count} cambios en los títulos.",

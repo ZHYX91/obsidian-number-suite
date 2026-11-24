@@ -89,6 +89,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "Переключитесь в режим редактирования, чтобы изменить текст заголовка.",
   "notice.noteDisabled": "Number Suite отключён для этой заметки.",
   "notice.invalidFrontmatter": "YAML свойств заметки неверен. Изменения не применены.",
+  "panel.readFailed": "Не удалось прочитать заметку. Повторите попытку, чтобы загрузить её свойства.",
   "notice.invalidProperties": "Свойства Number Suite в этой заметке неверны или противоречат друг другу. Изменения не применены.",
   "notice.stalePreview": "Заметка изменилась после открытия предварительного просмотра. Изменения не применены.",
   "notice.applied": "Применено изменений заголовков: {count}.",

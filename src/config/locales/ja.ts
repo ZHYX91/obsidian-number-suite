@@ -89,6 +89,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "見出しの文字を変更するには編集モードに切り替えてください。",
   "notice.noteDisabled": "このノートでは Number Suite が無効です。",
   "notice.invalidFrontmatter": "ノートの Properties YAML が無効です。変更は適用されませんでした。",
+  "panel.readFailed": "ノートを読み込めませんでした。もう一度試してプロパティを読み込んでください。",
   "notice.invalidProperties": "このノートの Number Suite プロパティに誤りまたは競合があります。変更は適用されませんでした。",
   "notice.stalePreview": "プレビューを開いたあとでノートが変更されたため、何も書き込みませんでした。",
   "notice.applied": "見出しの変更 {count} 件を適用しました。",

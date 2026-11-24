@@ -89,6 +89,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "제목 텍스트를 바꾸려면 편집 모드로 전환하세요.",
   "notice.noteDisabled": "이 노트에서는 Number Suite가 꺼져 있습니다.",
   "notice.invalidFrontmatter": "노트의 Properties YAML이 올바르지 않습니다. 변경 사항을 적용하지 않았습니다.",
+  "panel.readFailed": "이 노트를 읽을 수 없습니다. 속성을 불러오려면 다시 시도하세요.",
   "notice.invalidProperties": "현재 노트의 Number Suite 속성이 잘못되었거나 충돌합니다. 변경 사항을 적용하지 않았습니다.",
   "notice.stalePreview": "미리 보기를 연 뒤 노트가 변경되어 작업을 적용하지 않았습니다.",
   "notice.applied": "제목 변경 {count}건을 적용했습니다.",

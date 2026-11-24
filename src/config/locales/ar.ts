@@ -89,6 +89,7 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "انتقل إلى وضع التحرير قبل تعديل نص العنوان.",
   "notice.noteDisabled": "Number Suite معطّل لهذه الملاحظة.",
   "notice.invalidFrontmatter": "خصائص YAML في الملاحظة غير صالحة. لم تُنفذ أي تغييرات.",
+  "panel.readFailed": "تعذّرت قراءة هذه الملاحظة. أعد المحاولة لتحميل خصائصها.",
   "notice.invalidProperties": "خصائص Number Suite غير صالحة أو متعارضة. لم تُنفذ أي تغييرات.",
   "notice.stalePreview": "تغيّرت الملاحظة بعد فتح المعاينة؛ لم تُنفذ أي تغييرات.",
   "notice.applied": "طُبقت {count} تغييرات على العناوين.",

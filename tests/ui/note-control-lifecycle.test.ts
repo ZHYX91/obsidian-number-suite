@@ -20,7 +20,10 @@ interface PaneInternals {
   finishLevelNumber(kind: "first-number", input: HTMLInputElement): void;
 }
 
-beforeEach(installDomFixture);
+beforeEach(() => {
+  installDomFixture();
+  document.body.replaceChildren();
+});
 
 function harness(initial: Record<string, unknown> = {}) {
   let current = structuredClone(initial);
@@ -141,6 +144,74 @@ describe("current-note pane lifecycle", () => {
     await h.internal.coordinator?.flush();
     expect(h.current()["number-suite"]).toEqual(["heading.first-number.h1=4"]);
     expect(h.status.textContent).toBe("Saved");
+    h.pane.destroy();
+  });
+
+  it("coalesces external updates while navigating display controls and reads after focus leaves", async () => {
+    const h = harness();
+    document.body.appendChild(h.host);
+    const display = h.host.querySelector<HTMLElement>('[role="tabpanel"]')!;
+    const first = display.createEl("input");
+    const second = display.createEl("select");
+    first.focus();
+    h.pane.refresh();
+    h.pane.refresh();
+    second.focus();
+    await Promise.resolve();
+    expect(h.app.vault.cachedRead).not.toHaveBeenCalled();
+    h.host.querySelector<HTMLButtonElement>('[role="tab"]')!.focus();
+    await vi.waitFor(() => expect(h.app.vault.cachedRead).toHaveBeenCalledExactlyOnceWith(h.file));
+    h.pane.destroy();
+  });
+
+  it("retains invalid numeric input until corrected and refreshes after its save completes", async () => {
+    const h = harness();
+    const resume = h.deferWrite();
+    const input = h.host.querySelector<HTMLElement>('[role="tabpanel"]')!.createEl("input");
+    h.internal.applyLevelNumber("first-number", 1, "-1", input);
+    h.pane.refresh();
+    h.internal.finishLevelNumber("first-number", input);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(h.app.vault.cachedRead).not.toHaveBeenCalled();
+    h.internal.applyLevelNumber("first-number", 1, "4", input);
+    h.internal.finishLevelNumber("first-number", input);
+    const writing = h.internal.coordinator!.flush();
+    await Promise.resolve();
+    expect(h.app.vault.cachedRead).not.toHaveBeenCalled();
+    resume();
+    await writing;
+    await vi.waitFor(() => expect(h.app.vault.cachedRead).toHaveBeenCalledExactlyOnceWith(h.file));
+    expect(h.current()["number-suite"]).toEqual(["heading.first-number.h1=4"]);
+    h.pane.destroy();
+  });
+
+  it.each(["close", "switch"])("cancels a deferred read after %s before the focusout microtask", async (action) => {
+    const h = harness();
+    document.body.appendChild(h.host);
+    const input = h.host.querySelector<HTMLElement>('[role="tabpanel"]')!.createEl("input");
+    input.focus();
+    h.pane.refresh();
+    input.blur();
+    if (action === "close") h.pane.destroy();
+    else h.pane.setFile(null, false);
+    await Promise.resolve();
+    expect(h.app.vault.cachedRead).not.toHaveBeenCalled();
+    if (action === "switch") h.pane.destroy();
+  });
+
+  it("ignores an old read that resolves after a same-path file replacement", async () => {
+    const h = harness();
+    let resume!: (source: string) => void;
+    vi.mocked(h.app.vault.cachedRead).mockImplementationOnce(() => new Promise((resolve) => { resume = resolve; }));
+    h.pane.refresh();
+    const next = new (TFile as unknown as new (path: string) => TFile)(h.file.path);
+    h.pane.setFile(next);
+    await vi.waitFor(() => expect(h.internal.coordinator).not.toBeNull());
+    const current = h.internal.coordinator;
+    resume("# Old note");
+    await Promise.resolve();
+    expect(h.internal.coordinator).toBe(current);
+    expect(h.internal.file).toBe(next);
     h.pane.destroy();
   });
 

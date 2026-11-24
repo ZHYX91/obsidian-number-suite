@@ -89,6 +89,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "Wechsle in den Bearbeitungsmodus, bevor du den Überschriftentext änderst.",
   "notice.noteDisabled": "Number Suite ist für diese Notiz deaktiviert.",
   "notice.invalidFrontmatter": "Die Properties-YAML dieser Notiz ist ungültig. Es wurden keine Änderungen übernommen.",
+  "panel.readFailed": "Diese Notiz konnte nicht gelesen werden. Versuche es erneut, um ihre Eigenschaften zu laden.",
   "notice.invalidProperties": "Die Number-Suite-Properties dieser Notiz sind fehlerhaft oder widersprüchlich. Nichts wurde geändert.",
   "notice.stalePreview": "Die Notiz wurde nach dem Öffnen der Vorschau geändert. Es wurden keine Änderungen übernommen.",
   "notice.applied": "{count} Überschriftenänderungen angewendet.",

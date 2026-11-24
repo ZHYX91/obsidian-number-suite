@@ -30,6 +30,9 @@ scoped pass into a claim that every product scenario passed.
 ## Highest-value loop
 
 - [ ] Click the ribbon icon and confirm it directly opens Current note with Display & numbering selected on first open and the note and global settings unchanged. Reopen saved legacy sidebar state and run old command shortcuts to verify migration.
+- [ ] Dock Current note at 285 × 540 CSS pixels and preview Remove with several changes. Reach every recognition setting, diff, Back, Cancel and Apply using the keyboard and pointer. Repeat Write at 285 × 430, then use a long localized target path and long property diagnostics. Keep the tabs and global settings reachable.
+- [ ] Preview 501 changes or 201 warnings, reveal the next page, and read the first newly focused item in place. Modify the source and Apply. The explanation receives focus and stale Apply is disabled.
+- [ ] Focus a display control, edit the same note’s Properties externally, and move focus out. Check that the pane picks up the change without reopening. Repeat with an invalid numeric draft, correct it and let its save finish. Verify a read failure can be retried and has different guidance from invalid YAML.
 - [ ] In Current note, confirm it names the active note and shows global, current-note
   override, and effective values. The command Open current note controls must open this panel.
 - [ ] Set virtual display and concealment independently through Follow global / On / Off; re-open the panel and verify persistence and effective display.

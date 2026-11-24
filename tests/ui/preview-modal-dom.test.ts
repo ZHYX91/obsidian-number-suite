@@ -156,7 +156,7 @@ describe("batch setup and confirmation", () => {
 describe("file-grouped heading preview", () => {
   beforeEach(() => { installDomFixture(); document.body.replaceChildren(); });
   it("keeps stale previews open with disabled Apply and separate scroll content/actions", async () => {
-    const host = document.createElement("div");
+    const host = document.body.createDiv();
     const close = vi.fn();
     const apply = vi.fn(async () => false);
     const pane = new ChangePreviewPane({ app: {} as never, operation: "write",
@@ -168,6 +168,7 @@ describe("file-grouped heading preview", () => {
       .find((button) => button.textContent === createTranslator("en")("preview.confirm"))!;
     confirm().click();
     await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(createTranslator("en")("notice.stalePreview")));
+    expect(document.activeElement).toBe(host.querySelector('[role="alert"]'));
     expect(confirm().disabled).toBe(true);
     expect(close).not.toHaveBeenCalled();
     expect(host.querySelectorAll(".number-suite-change")).toHaveLength(1);
@@ -175,8 +176,25 @@ describe("file-grouped heading preview", () => {
     pane.close();
     expect(close).toHaveBeenCalledOnce();
   });
+  it("leaves user focus in the other pane if an apply failure arrives in the background", async () => {
+    const host = document.body.createDiv();
+    const other = document.body.createEl("input");
+    let finish!: (result: boolean) => void;
+    const pane = new ChangePreviewPane({ app: {} as never, operation: "write",
+      documents: [documentPlan("fixed.md", 1)], translate: createTranslator("en"),
+      onConfirm: () => new Promise((resolve) => { finish = resolve; }) },
+    host, document.createElement("h3"), host, vi.fn());
+    pane.onOpen();
+    host.querySelector<HTMLButtonElement>(".number-suite-preview-actions button:last-child")!.click();
+    other.focus();
+    finish(false);
+    await vi.waitFor(() => expect(host.querySelector('[role="alert"]')).not.toBeNull());
+    expect(document.activeElement).toBe(other);
+    pane.onClose();
+  });
+
   it("keeps a retryable batch refusal in the dialog and closes after a successful retry", async () => {
-    const host = document.createElement("div");
+    const host = document.body.createDiv();
     const close = vi.fn();
     const translate = createTranslator("en");
     const message = translate("notice.batchBusy");
@@ -193,6 +211,7 @@ describe("file-grouped heading preview", () => {
     confirm().click();
     await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(message));
     expect(close).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(host.querySelector('[role="alert"]'));
     expect(confirm().disabled).toBe(false);
     confirm().click();
     await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
@@ -232,9 +251,11 @@ describe("file-grouped heading preview", () => {
     groups[1]!.open = true;
     groups[1]!.dispatchEvent(new Event("toggle"));
     expect(groups[1]!.querySelectorAll(".number-suite-change")).toHaveLength(500);
+    const firstCard = groups[1]!.querySelector(".number-suite-change");
     groups[1]!.querySelector<HTMLButtonElement>(".number-suite-preview-more")!.click();
     expect(groups[1]!.querySelectorAll(".number-suite-change")).toHaveLength(501);
-    expect(document.activeElement).toBe(groups[1]!.querySelector("summary"));
+    expect(groups[1]!.querySelector(".number-suite-change")).toBe(firstCard);
+    expect(document.activeElement).toBe(groups[1]!.querySelectorAll(".number-suite-change")[500]);
     groups[1]!.open = false;
     groups[1]!.dispatchEvent(new Event("toggle"));
     expect(groups[1]!.querySelectorAll(".number-suite-change")).toHaveLength(0);

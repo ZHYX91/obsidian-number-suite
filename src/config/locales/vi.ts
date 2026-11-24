@@ -89,6 +89,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "notice.editModeRequired": "Chuyển sang chế độ chỉnh sửa trước khi đổi nội dung tiêu đề.",
   "notice.noteDisabled": "Number Suite đã bị tắt cho ghi chú này.",
   "notice.invalidFrontmatter": "Properties YAML của ghi chú không hợp lệ. Không áp dụng thay đổi nào.",
+  "panel.readFailed": "Không thể đọc ghi chú này. Hãy thử lại để tải các thuộc tính.",
   "notice.invalidProperties": "Thuộc tính Number Suite trong ghi chú không hợp lệ hoặc xung đột. Không áp dụng thay đổi nào.",
   "notice.stalePreview": "Ghi chú đã thay đổi sau khi mở bản xem trước. Không có thay đổi nào được áp dụng.",
   "notice.applied": "Đã áp dụng {count} thay đổi tiêu đề.",
