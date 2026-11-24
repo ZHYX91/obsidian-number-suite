@@ -30,6 +30,7 @@ export class CaptionInsertionModal extends Modal {
     if (this.options.signal?.aborted) { this.close(); return; }
     this.options.signal?.addEventListener("abort", this.abort, { once: true });
     const { contentEl, titleEl } = this;
+    contentEl.classList.add("number-suite-caption-form");
     const { target, translate: t } = this.options;
     titleEl.setText(captionActionTitle(target, t));
     contentEl.createEl("p", {
