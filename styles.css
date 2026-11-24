@@ -328,6 +328,8 @@
 }
 
 .number-suite-settings-panel {
+  container: number-suite-settings-panel / inline-size;
+  min-inline-size: 0;
   margin-block-start: var(--size-4-5);
 }
 
@@ -1983,6 +1985,7 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   outline: 2px solid var(--interactive-accent); outline-offset: -2px;
 }
 .number-suite-settings-guide-exterior {
+  overflow-wrap: anywhere;
   color: var(--text-muted); font-size: var(--font-ui-small); margin-block: var(--size-4-2);
 }
 .number-suite-note-control-levels > summary {
@@ -2064,6 +2067,35 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   background: var(--background-secondary);
   border-color: var(--background-modifier-border);
   color: var(--text-muted);
+}
+
+/* Keep the host's intrinsic-width probe outside the scrollable inline end. */
+.number-suite-settings-panel select.dropdown.is-measuring {
+  inset-inline-start: auto;
+  inset-inline-end: 100%;
+  inset-block-start: 0;
+}
+.number-suite-settings-panel .setting-item-name,
+.number-suite-settings-panel .setting-item-description {
+  overflow-wrap: anywhere;
+}
+.number-suite-settings-panel .setting-item-info,
+.number-suite-settings-panel .setting-item-control {
+  min-inline-size: 0;
+}
+.number-suite-settings-panel .setting-item-control > :is(input, textarea, select:not(.is-measuring), button) {
+  max-inline-size: 100%;
+}
+@container number-suite-settings-panel (max-width: 30rem) {
+  .number-suite-settings-panel .setting-item-control {
+    flex-wrap: wrap;
+  }
+  .number-suite-settings-panel .setting-item-control button {
+    block-size: auto;
+    min-block-size: var(--input-height);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .number-suite-named-toggle:has(input:focus-visible) {

@@ -37,6 +37,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Check native settings row layout in Chrome
+        run: npm run test:settings-layout
+
       - name: Run the canonical local gate
         run: npm run check
 
