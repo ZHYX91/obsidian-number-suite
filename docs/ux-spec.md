@@ -180,7 +180,7 @@ images, math, and code are ineligible. Caption creation never creates an ID. Exi
 The default-on image/Figure hover setting applies the same structured tooltip to a bound image and
 caption: rendered caption title first, meaningful replacement/alt text second. Equal values collapse
 to one line; dimensions and filename-only fallbacks are omitted. Inline and cell images may expose
-replacement text only.
+replacement text only. The tooltip stays within the viewport. Scroll long descriptions with the pointer or, with the object focused, the arrow, Page Up/Down or Home/End keys. Escape dismisses it. Captions align to the object in either writing direction.
 
 An explicit semantic reference replaces its complete visual source with an interactive outline pill.
 The pill contains the alias or target title plus a visible target number when one exists; it remains

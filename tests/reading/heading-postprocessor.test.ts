@@ -738,7 +738,7 @@ describe("HeadingReadingProcessor", () => {
     expect(imageParagraph.classList.contains("number-suite-caption-object")).toBe(false);
   });
 
-  it("binds a Figure caption to a table carrier and restores its stable DOM origin", async () => {
+  it.each([["ltr", "270px"], ["rtl", "430px"]])("aligns a Figure with its table in %s and restores its DOM origin", async (direction, offset) => {
     const source = [
       "Figure: Comparison",
       "",
@@ -753,6 +753,7 @@ describe("HeadingReadingProcessor", () => {
     }));
     const caption = document.createElement("p");
     caption.textContent = "Figure: Comparison";
+    caption.style.direction = direction;
     const table = document.createElement("table");
     container.getBoundingClientRect = () => ({
       left: 100, right: 900, top: 0, bottom: 600, width: 800, height: 600, x: 100, y: 0,
@@ -776,7 +777,7 @@ describe("HeadingReadingProcessor", () => {
     expect(caption.classList.contains("number-suite-caption-centered")).toBe(true);
     expect(table.classList.contains("number-suite-caption-object")).toBe(true);
     expect(table.dataset.numberSuiteTooltipTitle).toBe("Figure 1: Comparison");
-    expect(caption.style.getPropertyValue("--number-suite-caption-inline-offset")).toBe("270px");
+    expect(caption.style.getPropertyValue("--number-suite-caption-inline-offset")).toBe(offset);
 
     table.replaceWith(document.createElement("div"));
     cleanupNumberSuiteReadingDom(container);

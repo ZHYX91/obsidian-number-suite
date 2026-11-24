@@ -21,6 +21,8 @@ apply only to the emulator. A normal drag release does not prove cancellation: r
 as unverified when it cannot be generated. Keep untouched scenarios untested, and never turn a
 scoped pass into a claim that every product scenario passed.
 
+Run `npm run test:reading-layout` to check caption alignment in both directions and long tooltip navigation in headless Chrome. Set `CHROME_BIN` to a local Chromium executable if needed. This fixture also runs in pull request CI.
+
 - [ ] Build with `npm ci && npm run check`.
 - [ ] Copy only `dist/main.js`, `dist/manifest.json`, and `dist/styles.css` into `.obsidian/plugins/number-suite/`.
 - [ ] Hash-verify the copied files.
