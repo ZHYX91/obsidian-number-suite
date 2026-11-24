@@ -35,7 +35,7 @@ import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { resolveNoteSettings } from "../config/frontmatter";
 import { uiTextDirection, type Translate } from "../config/i18n";
 import {
-  cleanupTemplateSources,
+  displayTemplateSources,
   outlineHeadingFormat,
   toNumberingOptions,
   type NumberSuiteSettings,
@@ -562,7 +562,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         return;
       }
       const numbering = toNumberingOptions(settings, effective);
-      const templateSources = cleanupTemplateSources(settings);
+      const templateSources = displayTemplateSources(settings);
       const headings = parseAtxHeadings(source);
       const displayPlan = effective.disabled ? [] : createDisplayPlan(headings, {
         showVirtualNumbers: effective.showVirtualNumbers,

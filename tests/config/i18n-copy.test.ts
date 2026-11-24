@@ -20,16 +20,16 @@ describe("localized UI copy", () => {
     expect(resolvedUiLocale("auto", host)).toBe(expected);
   });
 
-  it("keeps H1-H9 help and hide semantics aligned with the product", () => {
+  it("keeps H1-H9 help and scheme availability aligned with the product", () => {
     const en = createTranslator("en");
     const zh = createTranslator("zh");
 
     expect(en("settings.scheme.placeholder.formats")).toContain("1–9");
     expect(zh("settings.scheme.placeholder.formats")).toContain("1–9");
-    expect(en("settings.scheme.hide")).toBe("Hide");
-    expect(zh("settings.scheme.hide")).toBe("隐藏");
-    expect(en("settings.scheme.hidden")).toBe("Hidden built-in schemes");
-    expect(zh("settings.scheme.hidden")).toBe("已隐藏的内置方案");
+    expect(en("settings.scheme.disable")).toBe("Disable");
+    expect(zh("settings.scheme.disable")).toBe("禁用");
+    expect(en("settings.scheme.disabledList")).toBe("Disabled built-in schemes");
+    expect(zh("settings.scheme.disabledList")).toBe("已禁用的内置方案");
   });
 
   it("explains skipped headings, recovery limits, and document export", () => {

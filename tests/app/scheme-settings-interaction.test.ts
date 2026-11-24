@@ -46,6 +46,7 @@ vi.mock("obsidian", async (original) => ({
       const control = {
         buttonEl,
         setButtonText(value: string) { buttonEl.textContent = value; return control; },
+        setDisabled(value: boolean) { buttonEl.disabled = value; return control; },
         setCta() { return control; },
         setWarning() { return control; },
         onClick(callback: () => void) { buttonEl.addEventListener("click", callback); return control; },
@@ -70,11 +71,51 @@ describe("custom scheme editing", () => {
     });
   });
 
+  it("refreshes recognition when disabling and enabling a built-in scheme", () => {
+    const settings = cloneSettings({ ...DEFAULT_SETTINGS, selectedSchemeId: "chinese-official" });
+    const commit = vi.fn((update: (next: NumberSuiteSettings) => void) => update(settings));
+    const t = createTranslator("en");
+    const container = document.createElement("div");
+    const renderer = new SchemeSettingsRenderer(() => settings, commit, t);
+    renderer.renderSchemes(container);
+    const card = [...container.querySelectorAll("details")].find((item) =>
+      item.querySelector("summary")?.textContent?.includes(t("scheme.chinese-official")));
+    card!.querySelector<HTMLButtonElement>(".number-suite-scheme-remove")!.click();
+    expect(commit).toHaveBeenLastCalledWith(expect.any(Function), "display", true, true);
+    expect(settings.disabledBuiltInSchemeIds).toEqual(["chinese-official"]);
+    expect(settings.selectedSchemeId).not.toBe("chinese-official");
+
+    container.empty();
+    renderer.renderSchemes(container);
+    expect(container.querySelector('option[value="chinese-official"]')).toBeNull();
+    const row = [...container.querySelectorAll<HTMLElement>("[data-name]")].find((item) =>
+      item.dataset.name === t("scheme.chinese-official"));
+    row!.querySelector("button")!.click();
+    expect(commit).toHaveBeenLastCalledWith(expect.any(Function), "display", true, true);
+    expect(settings.disabledBuiltInSchemeIds).toEqual([]);
+    expect(settings.selectedSchemeId).not.toBe("chinese-official");
+  });
+
+  it("keeps the last available scheme enabled without re-enabling an unrelated one", () => {
+    const settings = cloneSettings({
+      ...DEFAULT_SETTINGS,
+      selectedSchemeId: "legal",
+      disabledBuiltInSchemeIds: BUILT_IN_SCHEME_IDS.filter((id) => id !== "legal"),
+    });
+    const commit = vi.fn();
+    const container = document.createElement("div");
+    new SchemeSettingsRenderer(() => settings, commit, createTranslator("en")).renderSchemes(container);
+    const disable = container.querySelector<HTMLButtonElement>(".number-suite-scheme-remove")!;
+    expect(disable.disabled).toBe(true);
+    disable.click();
+    expect(commit).not.toHaveBeenCalled();
+  });
+
   it.each(["en", "zh"] as const)("blocks invalid saves and commits a corrected draft in %s", language => {
     const settings = cloneSettings({
       ...DEFAULT_SETTINGS,
       selectedSchemeId: "custom-test",
-      hiddenBuiltInSchemeIds: [...BUILT_IN_SCHEME_IDS],
+      disabledBuiltInSchemeIds: [...BUILT_IN_SCHEME_IDS],
       customSchemes: [{
         id: "custom-test", name: "Test", revision: 1, baseLevel: 1,
         templates: ["{1.arabic}", "{2.arabic}", "", "", "", "", "", "", ""],

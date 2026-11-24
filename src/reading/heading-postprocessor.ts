@@ -21,7 +21,7 @@ import {
   captionLevelForDisplay,
   centeredCaptionKinds,
   captionPlacements,
-  cleanupTemplateSources,
+  displayTemplateSources,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
@@ -1101,6 +1101,7 @@ export class HeadingReadingProcessor {
     file: TFile,
   ): CachedReadingPlan {
     const headings = parseAtxHeadings(source);
+    const templateSources = displayTemplateSources(settings);
     const displayPlan = createDisplayPlan(headings, {
       showVirtualNumbers: effective.showVirtualNumbers,
       virtualNumberFormat: settings.bodyHeadingNumberFormat,
@@ -1109,13 +1110,12 @@ export class HeadingReadingProcessor {
       storedHeadingNumberStyleScope: settings.storedHeadingNumberStyleScope,
       numbering: toNumberingOptions(settings, effective),
       cleanupScope: effective.concealScope,
-      templateSources: cleanupTemplateSources(settings),
+      templateSources,
       revealOnActiveLine: false,
       selections: [],
       composing: false,
     });
     const numbering = toNumberingOptions(settings, effective);
-    const templateSources = cleanupTemplateSources(settings);
     return {
       headings,
       displayPlan,

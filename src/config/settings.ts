@@ -53,7 +53,7 @@ export interface NumberSuiteSettings {
   noteDisplayMode: "formatted" | "source";
   selectedSchemeId: string;
   customSchemes: CustomNumberingScheme[];
-  hiddenBuiltInSchemeIds: string[];
+  disabledBuiltInSchemeIds: string[];
   cleanupHistory: CleanupTemplateHistory[];
   missingLevelStrategy: MissingLevelStrategy;
   writeMarkers: boolean;
@@ -146,7 +146,7 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   noteDisplayMode: "formatted",
   selectedSchemeId: "hierarchical-h2",
   customSchemes: [],
-  hiddenBuiltInSchemeIds: [],
+  disabledBuiltInSchemeIds: [],
   cleanupHistory: [],
   missingLevelStrategy: "fill-one",
   writeMarkers: false,
@@ -284,8 +284,10 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     || customSchemes.some((scheme) => scheme.id === requestedScheme)
     ? requestedScheme
     : DEFAULT_SETTINGS.selectedSchemeId;
-  const hiddenBuiltInSchemeIds = Array.isArray(raw.hiddenBuiltInSchemeIds)
-    ? raw.hiddenBuiltInSchemeIds
+  // Before disabling a scheme also affected recognition, this list was named "hidden".
+  const disabledIds = raw.disabledBuiltInSchemeIds ?? raw.hiddenBuiltInSchemeIds;
+  const disabledBuiltInSchemeIds = Array.isArray(disabledIds)
+    ? disabledIds
       .filter((id): id is string => typeof id === "string" && isBuiltInSchemeId(id))
       .filter((id, index, all) => all.indexOf(id) === index && id !== selectedSchemeId)
     : [];
@@ -362,7 +364,7 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     ),
     selectedSchemeId,
     customSchemes,
-    hiddenBuiltInSchemeIds,
+    disabledBuiltInSchemeIds,
     cleanupHistory: sanitizeCleanupHistory(raw.cleanupHistory),
     missingLevelStrategy: oneOf(
       raw.missingLevelStrategy,
@@ -474,7 +476,7 @@ export function cloneSettings(settings: NumberSuiteSettings): NumberSuiteSetting
       templates: [...scheme.templates],
       exclusions: scheme.exclusions.map((rule) => ({ ...rule })),
     })),
-    hiddenBuiltInSchemeIds: [...settings.hiddenBuiltInSchemeIds],
+    disabledBuiltInSchemeIds: [...settings.disabledBuiltInSchemeIds],
     cleanupHistory: settings.cleanupHistory.map((entry) => ({
       ...entry,
       templates: [...entry.templates],
@@ -551,6 +553,14 @@ export function cleanupTemplateSources(settings: NumberSuiteSettings): CleanupTe
     seen.add(key);
     return true;
   });
+}
+
+/** Display respects disabled schemes; explicit previewed cleanup can still recognize old notes. */
+export function displayTemplateSources(settings: NumberSuiteSettings): CleanupTemplateSource[] {
+  const sources = cleanupTemplateSources(settings);
+  if (settings.disabledBuiltInSchemeIds.length === 0) return sources;
+  const disabled = new Set(settings.disabledBuiltInSchemeIds);
+  return sources.filter((source) => !disabled.has(source.schemeId));
 }
 
 export function isKnownConfidence(value: unknown): boolean {
