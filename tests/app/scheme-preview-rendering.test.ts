@@ -28,14 +28,14 @@ describe("scheme template previews use the first example counter", () => {
     ["{1.arabic}.{2.arabic}", "1.1", " "],
     ["{1.arabic}.{2.arabic}.{3.arabic}", "1.1.1", " "],
     ["{1.chinese_lower}、", "一、", ""],
-    ["{1.chinese_lower}、  ", "一、", "  "],
+    ...[" ", "   ", "\t", "\u00a0", "\u3000"].map(space => ["{1.chinese_lower}、" + space, "一、", space]),
   ])("shows %s as a heading-number badge %s, not a literal arrow", (template, number, separator) => {
     const host = preview(template);
     expect(host.querySelector(".number-suite-heading-number")?.textContent).toBe(number);
     expect(host.querySelector(".number-suite-scheme-example-heading")?.textContent).toBe("Heading");
-    expect(host.textContent).toBe(number + "Heading");
+    expect(host.querySelector(".number-suite-scheme-styled-preview")?.textContent).toBe(number! + "Heading");
     expect(host.textContent).not.toContain("→");
-    expect(host.title).toBe("Preview: " + number + separator + "Heading");
+    expect(host.querySelector(".number-suite-scheme-write-preview > code")?.textContent).toBe(number! + separator + "Heading");
   });
 
   it("localizes the example heading while keeping the rendered number unchanged", () => {
@@ -55,7 +55,7 @@ describe("scheme template previews use the first example counter", () => {
     const t = createTranslator("en");
     renderSchemeTemplatePreview(host, "{1.arabic}.{2.arabic}", t);
     expect(host.querySelectorAll(".number-suite-scheme-example-number")).toHaveLength(1);
-    expect(host.textContent).toBe("1.1Heading");
+    expect(host.querySelector(".number-suite-scheme-write-preview code")?.textContent).toBe("1.1 Heading");
 
     renderSchemeTemplatePreview(host, "", t);
     expect(host.textContent).toBe(t("settings.scheme.disabled"));
@@ -65,7 +65,7 @@ describe("scheme template previews use the first example counter", () => {
     expect(host.textContent).toBe("—");
     expect(host.classList.contains("number-suite-scheme-example")).toBe(false);
     renderSchemeTemplatePreview(host, "{1.chinese_lower}", t);
-    expect(host.textContent).toBe("一Heading");
+    expect(host.querySelector(".number-suite-scheme-write-preview code")?.textContent).toBe("一 Heading");
   });
 
   it("uses the same preview in built-in template rows and preserves unnumbered rows", () => {

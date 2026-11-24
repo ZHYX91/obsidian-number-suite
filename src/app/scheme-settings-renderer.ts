@@ -29,7 +29,6 @@ const PREVIEW_COUNTERS = [1, 1, 1, 1, 1, 1, 1, 1, 1] as Counters;
 /** Shared preview for built-in and editable H1–H9 templates. Never writes a note. */
 export function renderSchemeTemplatePreview(container: HTMLElement, template: string, t: Translate): void {
   container.empty();
-  container.removeAttribute("title");
   container.removeClass("number-suite-scheme-example");
   if (template.length === 0) {
     container.setText(t("settings.scheme.disabled"));
@@ -44,12 +43,18 @@ export function renderSchemeTemplatePreview(container: HTMLElement, template: st
   }
   const heading = t("settings.scheme.preview.heading");
   container.addClass("number-suite-scheme-example");
-  container.setAttribute("title", t("settings.scheme.preview", { value: value + separatorBeforeTitle(value, compiled.separator, heading) + heading }));
-  container.createSpan({
+  const styled = container.createSpan({ cls: "number-suite-scheme-styled-preview" });
+  styled.createSpan({
     cls: "number-suite-heading-number number-suite-scheme-example-number",
     text: value,
   });
-  container.createSpan({ cls: "number-suite-scheme-example-heading", text: heading });
+  styled.createSpan({ cls: "number-suite-scheme-example-heading", text: heading });
+  const written = container.createSpan({ cls: "number-suite-scheme-write-preview" });
+  written.createSpan({ text: t("settings.scheme.writeExample") });
+  written.createEl("code", {
+    text: value + separatorBeforeTitle(value, compiled.separator, heading) + heading,
+    attr: { dir: "auto" },
+  });
 }
 
 type EditableScheme = Omit<CustomNumberingScheme, "templates" | "exclusions"> & {

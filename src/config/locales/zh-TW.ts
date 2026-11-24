@@ -365,7 +365,7 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.scheme.name": "方案名稱",
   "settings.scheme.base": "起始標題層級",
   "settings.scheme.templates": "H1–H9 模板",
-  "settings.scheme.preview": "預覽：{value}",
+  "settings.scheme.writeExample": "寫入範例",
   "settings.scheme.preview.heading": "標題",
   "settings.scheme.disabled": "此層級不編號。",
   "settings.scheme.disabledList": "已停用的內建方案",

@@ -190,6 +190,26 @@ describe("HeadingReadingProcessor", () => {
     expect([...container.children].map((heading) => heading.textContent)).toEqual(titles);
   });
 
+  it.each(["一<!--split-->、标题", "<em>一</em>、标题"])(
+    "keeps one accessible prefix across rendered text boundaries in %s", async (html) => {
+      const { processor, context, container } = harness("# 一、标题", settings({}));
+      const heading = container.appendChild(document.createElement("h1"));
+      heading.innerHTML = html;
+      const original = heading.firstChild;
+      for (let render = 0; render < 2; render++) {
+        await processor.process(container, context);
+        const pills = heading.querySelectorAll(".number-suite-stored-heading-number");
+        expect(pills).toHaveLength(html.includes("<em>") ? 2 : 1);
+        expect(pills[0]?.getAttribute("aria-label")).toContain("一、");
+        expect(heading.querySelectorAll(".number-suite-stored-heading-number[role=img]")).toHaveLength(1);
+        if (pills.length > 1) expect(pills[1]?.getAttribute("aria-hidden")).toBe("true");
+      }
+      cleanupNumberSuiteReadingDom(container);
+      expect(heading.innerHTML).toBe(html);
+      expect(heading.firstChild).toBe(original);
+    },
+  );
+
   it("leaves an old marker's inner template spacing outside the outline", async () => {
     const title = "\u2060一、  \u2060 标题";
     const { processor, context, container } = harness("# " + title, settings({}));

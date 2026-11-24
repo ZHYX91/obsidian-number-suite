@@ -365,7 +365,7 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "settings.scheme.name": "方式名",
   "settings.scheme.base": "番号を付け始める見出しレベル",
   "settings.scheme.templates": "H1〜H9 のテンプレート",
-  "settings.scheme.preview": "プレビュー：{value}",
+  "settings.scheme.writeExample": "書き込み例",
   "settings.scheme.preview.heading": "見出し",
   "settings.scheme.disabled": "この階層には番号を付けません。",
   "settings.scheme.disabledList": "無効な組み込み方式",

@@ -365,7 +365,7 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "settings.scheme.name": "방식 이름",
   "settings.scheme.base": "번호 시작 제목 단계",
   "settings.scheme.templates": "H1~H9 템플릿",
-  "settings.scheme.preview": "미리보기: {value}",
+  "settings.scheme.writeExample": "기록 예시",
   "settings.scheme.preview.heading": "제목",
   "settings.scheme.disabled": "이 수준에는 번호가 없습니다.",
   "settings.scheme.disabledList": "비활성화된 내장 형식",

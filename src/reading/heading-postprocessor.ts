@@ -707,6 +707,7 @@ function markStoredNumber(
   const text = nodes.map((node) => node.data).join("");
   let remaining = text.startsWith(outlineText) ? outlineText.length : text.startsWith(core) ? core.length : 0;
   if (remaining === 0) return false;
+  const parts: HTMLElement[] = [];
   for (const node of nodes) {
     if (remaining <= 0) break;
     if (!node.data) continue;
@@ -714,12 +715,28 @@ function markStoredNumber(
     if (take < node.data.length) node.splitText(take);
     const parent = node.parentElement;
     if (parent == null) return false;
-    const span = parent.createSpan({ cls: `number-suite-stored-heading-number is-${kind}` });
-    identifyHeadingNumberPill(span, node.data.replace(/\u2060/gu, ""), hint);
-    parent.insertBefore(span, node);
+    let span = parts[parts.length - 1];
+    let previous = node.previousSibling;
+    while (previous?.nodeType === Node.COMMENT_NODE) previous = previous.previousSibling;
+    if (span == null || previous !== span) {
+      // Keep host formatting, links and their event handlers in their original parent.
+      span = parent.createSpan({ cls: `number-suite-stored-heading-number is-${kind}` });
+      parent.insertBefore(span, node);
+      parts.push(span);
+    } else {
+      while (span.nextSibling != null && span.nextSibling !== node) span.appendChild(span.nextSibling);
+    }
     span.appendChild(node);
     remaining -= take;
   }
+  parts.forEach((part, index) => {
+    if (index === 0) identifyHeadingNumberPill(part, core.replace(/\u2060/gu, ""), hint);
+    else part.setAttribute("aria-hidden", "true");
+    if (parts.length > 1) {
+      part.classList.toggle("number-suite-pill-continues", index < parts.length - 1);
+      part.classList.toggle("number-suite-pill-continuation", index > 0);
+    }
+  });
   return remaining === 0;
 }
 

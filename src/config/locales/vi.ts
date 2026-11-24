@@ -365,7 +365,7 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.scheme.name": "Tên kiểu đánh số",
   "settings.scheme.base": "Cấp tiêu đề bắt đầu",
   "settings.scheme.templates": "Mẫu H1–H9",
-  "settings.scheme.preview": "Xem trước: {value}",
+  "settings.scheme.writeExample": "Ví dụ khi ghi",
   "settings.scheme.preview.heading": "Tiêu đề",
   "settings.scheme.disabled": "Cấp này không được đánh số.",
   "settings.scheme.disabledList": "Kiểu có sẵn đã tắt",

@@ -365,7 +365,7 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "settings.scheme.name": "Название схемы",
   "settings.scheme.base": "Начальный уровень заголовка",
   "settings.scheme.templates": "Шаблоны H1–H9",
-  "settings.scheme.preview": "Предпросмотр: {value}",
+  "settings.scheme.writeExample": "Пример записи",
   "settings.scheme.preview.heading": "Заголовок",
   "settings.scheme.disabled": "Этот уровень не нумеруется.",
   "settings.scheme.disabledList": "Отключённые встроенные схемы",
