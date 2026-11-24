@@ -107,7 +107,12 @@ pill followed by a localized “Heading” label, with **all example counters se
 (`1`, `一`, `A`, `a`, `1.1` as their templates dictate); these samples never change
 real note counters or starting values. A separate written example shows the literal prefix, separator and heading, including repeated spaces and tabs, without requiring a hover. Placeholder help explains `{2.arabic}` without
 an unexplained “→ 3” marker. Empty templates display “This level is not numbered.” Invalid
-non-empty semantics block save with a comprehensible constraint message. Long heading numbers wrap in narrow panes. Reading View treats a stored number split by inline markup as one accessible number and preserves the original markup.
+non-empty semantics block save with a comprehensible constraint message. Each custom scheme
+keeps its own unsaved edits while changing tabs, language, or other schemes in the current
+session. Save or discard a draft on its card. Empty names and overlength fields show an inline
+error and keep the full input available for correction. The exclusion preview recalculates when
+a template or exclusion changes.
+Long heading numbers wrap in narrow panes. Reading View treats a stored number split by inline markup as one accessible number and preserves the original markup.
 
 Frequent changes may be coalesced, but the UI exposes saving, failure reason, and retry. It cannot
 present an unpersisted value as saved.

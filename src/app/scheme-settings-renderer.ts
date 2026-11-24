@@ -1,7 +1,7 @@
 import { Setting, setIcon } from "obsidian";
 
 import { type Translate } from "../config/i18n";
-import { type NumberSuiteSettings } from "../config/settings";
+import { SCHEME_TEMPLATE_LIMIT, type NumberSuiteSettings } from "../config/settings";
 import {
   BUILT_IN_SCHEMES,
   findMatchingBuiltInSchemeId,
@@ -10,14 +10,13 @@ import {
 import { compileTemplate, NUMBER_FORMATS, renderCompiledTemplate, separatorBeforeTitle } from "../core/template-compiler";
 import { resolvedUiLocale } from "../config/i18n";
 import { recommendedSchemeForLocale } from "../config/recommended-schemes";
-import { inspectSchemeTemplates, type SchemeTemplateIssue } from "../core/scheme-template-validation";
-import { matchHeadingExclusion, normalizeExclusionTitle } from "../core/heading-exclusions";
+import { editScheme, normalizedScheme, sameSchemeFields, schemeDraftError, type EditableScheme } from "./scheme-editor-draft";
+import { matchHeadingExclusion } from "../core/heading-exclusions";
 import {
   BUILT_IN_SCHEME_IDS,
   HEADING_LEVEL_COUNT,
   type Counters,
   type CustomNumberingScheme,
-  type HeadingExclusionRule,
   type ParsedHeading,
 } from "../core/types";
 import type { SettingsImpact } from "./settings-impact";
@@ -30,8 +29,12 @@ const PREVIEW_COUNTERS = [1, 1, 1, 1, 1, 1, 1, 1, 1] as Counters;
 export function renderSchemeTemplatePreview(container: HTMLElement, template: string, t: Translate): void {
   container.empty();
   container.removeClass("number-suite-scheme-example");
-  if (template.length === 0) {
+  if (template.trim().length === 0) {
     container.setText(t("settings.scheme.disabled"));
+    return;
+  }
+  if (template.length > SCHEME_TEMPLATE_LIMIT) {
+    container.setText("—");
     return;
   }
   const compiled = compileTemplate(template);
@@ -56,11 +59,6 @@ export function renderSchemeTemplatePreview(container: HTMLElement, template: st
     attr: { dir: "auto" },
   });
 }
-
-type EditableScheme = Omit<CustomNumberingScheme, "templates" | "exclusions"> & {
-  templates: string[];
-  exclusions: HeadingExclusionRule[];
-};
 
 type SchemeCommit = (
   update: (settings: NumberSuiteSettings) => void,
@@ -114,37 +112,26 @@ export function selectedSchemeName(settings: NumberSuiteSettings, t: Translate):
   return custom == null ? settings.selectedSchemeId : custom.name;
 }
 
-export function describeSchemeTemplateIssue(issue: SchemeTemplateIssue, t: Translate): string {
-  const level = `H${issue.headingLevel}`;
-  if (issue.code === "missing-current-level") {
-    return t("settings.scheme.issue.missingCurrentLevel", {
-      level,
-      example: `{${issue.headingLevel}.arabic}`,
-    });
-  }
-  if (issue.code === "descendant-level-reference") {
-    return t("settings.scheme.issue.descendantLevel", {
-      level,
-      referenced: `H${issue.referencedLevel}`,
-    });
-  }
-  return t("settings.scheme.issue.invalidPlaceholder", { level });
-}
-
 export class SchemeSettingsRenderer {
   constructor(
     private readonly getSettings: () => NumberSuiteSettings,
     private readonly commit: SchemeCommit,
     private readonly t: Translate,
     private readonly getActiveHeadings: () => readonly ParsedHeading[] = () => [],
+    private readonly drafts = new Map<string, EditableScheme>(),
   ) {}
 
   renderSchemes(container: HTMLElement): void {
     const t = this.t;
     new Setting(container).setName(t("settings.scheme")).setHeading();
     const settings = this.getSettings();
+    for (const id of this.drafts.keys()) {
+      if (!settings.customSchemes.some(scheme => scheme.id === id)) this.drafts.delete(id);
+    }
     const enabledBuiltIns = BUILT_IN_SCHEME_IDS.filter((id) => !settings.disabledBuiltInSchemeIds.includes(id));
-    new Setting(container)
+    const picker = new Setting(container);
+    picker.settingEl.addClass("number-suite-scheme-picker");
+    picker
       .setName(t("settings.scheme"))
       .setDesc(t("settings.scheme.desc"))
       .addDropdown((dropdown) => {
@@ -290,7 +277,7 @@ export class SchemeSettingsRenderer {
       const row = list.createDiv({ cls: "number-suite-readonly-template" });
       row.createSpan({ cls: "number-suite-readonly-level", text: `H${index + 1}` });
       const body = row.createDiv({ cls: "number-suite-readonly-template-body" });
-      if (template.length === 0) {
+      if (template.trim().length === 0) {
         body.createSpan({ cls: "number-suite-readonly-disabled", text: t("settings.scheme.disabled") });
       } else {
         body.createEl("code", { text: template });
@@ -300,10 +287,14 @@ export class SchemeSettingsRenderer {
     }
   }
 
-  private renderCustomScheme(container: HTMLElement, scheme: CustomNumberingScheme): void {
+  private renderCustomScheme(
+    container: HTMLElement,
+    scheme: CustomNumberingScheme,
+    details = container.createEl("details", { cls: "number-suite-scheme-card" }),
+  ): void {
     const t = this.t;
-    const details = container.createEl("details", { cls: "number-suite-scheme-card" });
-    details.open = this.getSettings().selectedSchemeId === scheme.id;
+    details.empty();
+    details.open = details.open || this.drafts.has(scheme.id) || this.getSettings().selectedSchemeId === scheme.id;
     const displayName = scheme.name;
     details.createEl("summary", { text: `${displayName} · ${t("settings.scheme.custom")}` });
     const matchingBuiltInId = findMatchingBuiltInSchemeId(scheme);
@@ -314,50 +305,57 @@ export class SchemeSettingsRenderer {
         text: t("settings.scheme.matchesBuiltin", { scheme: builtInName(matchingBuiltInId, t) }),
       });
     }
-    const draft: EditableScheme = {
-      ...scheme,
-      name: displayName,
-      templates: [...scheme.templates],
-      exclusions: scheme.exclusions.map((rule) => ({ ...rule })),
+    const draft = this.drafts.get(scheme.id) ?? editScheme(scheme);
+    const currentScheme = (): CustomNumberingScheme =>
+      this.getSettings().customSchemes.find(saved => saved.id === scheme.id) ?? scheme;
+    let saveButton: HTMLButtonElement;
+    let discardButton: HTMLButtonElement;
+    const updateValidation = (): boolean => {
+      const saved = currentScheme();
+      const dirty = !sameSchemeFields(draft, saved);
+      if (dirty) this.drafts.set(scheme.id, draft);
+      else {
+        this.drafts.delete(scheme.id);
+        draft.revision = saved.revision;
+      }
+      const message = schemeDraftError(draft, saved, t);
+      validation.hidden = message.length === 0;
+      validation.textContent = message;
+      saveButton.disabled = !dirty || message.length > 0;
+      discardButton.hidden = !dirty;
+      return !saveButton.disabled;
     };
     new Setting(details).setName(t("settings.scheme.name")).addText((text) => text
       .setValue(draft.name)
-      .onChange((value) => { draft.name = value.slice(0, 80); }));
+      .onChange((value) => {
+        draft.name = value;
+        updateValidation();
+      }));
     new Setting(details).setName(t("settings.scheme.base")).addDropdown((dropdown) => {
       for (let level = 1; level <= HEADING_LEVEL_COUNT; level += 1) {
         dropdown.addOption(String(level), `H${level}`);
       }
       return dropdown.setValue(String(draft.baseLevel)).onChange((value) => {
         draft.baseLevel = Number(value);
+        updateValidation();
       });
     });
     const validation = details.createDiv({ cls: "number-suite-template-validation" });
     validation.setAttribute("role", "alert");
-    const previewElements: HTMLElement[] = [];
-    const updateValidation = (): boolean => {
-      const templateIssue = inspectSchemeTemplates(draft.templates)[0];
-      const invalidTemplate = templateIssue != null;
-      const normalizedTitles = draft.exclusions.map((rule) => normalizeExclusionTitle(rule.title));
-      const invalidExclusions = normalizedTitles.some((title) => title.length === 0)
-        || new Set(normalizedTitles).size !== normalizedTitles.length;
-      validation.hidden = !invalidTemplate && !invalidExclusions;
-      validation.textContent = templateIssue != null
-        ? describeSchemeTemplateIssue(templateIssue, t)
-        : invalidExclusions ? t("settings.scheme.exclusions.invalid") : "";
-      draft.templates.forEach((template, index) => {
-        const preview = previewElements[index];
-        if (preview != null) renderSchemeTemplatePreview(preview, template, t);
-      });
-      return !invalidTemplate && !invalidExclusions && draft.name.trim().length > 0;
-    };
     for (let index = 0; index < HEADING_LEVEL_COUNT; index += 1) {
+      const row = new Setting(details).setName(`H${index + 1}`);
       const preview = details.createDiv({ cls: "number-suite-template-preview" });
-      previewElements.push(preview);
-      new Setting(details).setName(`H${index + 1}`).addText((text) => text
+      renderSchemeTemplatePreview(preview, draft.templates[index] ?? "", t);
+      row.addText((text) => text
         .setValue(draft.templates[index] ?? "")
         .onChange((value) => {
-          draft.templates[index] = value.slice(0, 300);
+          // The prefix matcher caches compiled patterns by immutable template-list identity.
+          const templates = [...draft.templates];
+          templates[index] = value;
+          draft.templates = templates;
+          renderSchemeTemplatePreview(preview, value, t);
           updateValidation();
+          updateExclusionPreview();
         }));
     }
     new Setting(details)
@@ -369,7 +367,10 @@ export class SchemeSettingsRenderer {
       cls: "setting-item-description number-suite-exclusion-preview",
     });
     const updateExclusionPreview = (): void => {
-      const matches = this.getActiveHeadings().filter((heading) => matchHeadingExclusion(heading, draft) != null);
+      exclusionPreview.hidden = draft.templates.some(template => template.length > SCHEME_TEMPLATE_LIMIT);
+      if (exclusionPreview.hidden) return;
+      const matches = draft.exclusions.length === 0 ? []
+        : this.getActiveHeadings().filter((heading) => matchHeadingExclusion(heading, draft) != null);
       exclusionPreview.textContent = matches.length === 0
         ? t("settings.scheme.exclusions.noMatches")
         : t("settings.scheme.exclusions.matches", {
@@ -386,7 +387,7 @@ export class SchemeSettingsRenderer {
             .setValue(rule.title)
             .onChange((value) => {
               const currentRule = draft.exclusions[index] ?? rule;
-              draft.exclusions[index] = { ...currentRule, title: value.slice(0, 200) };
+              draft.exclusions[index] = { ...currentRule, title: value };
               updateValidation();
               updateExclusionPreview();
             }))
@@ -424,40 +425,43 @@ export class SchemeSettingsRenderer {
       }));
     renderExclusions();
     updateExclusionPreview();
-    updateValidation();
-    new Setting(details)
-      .addButton((button) => button.setButtonText(t("settings.scheme.save")).setCta().onClick(() => {
-        if (!updateValidation()) return;
-        this.commit((settings) => {
-          const current = settings.customSchemes.find((item) => item.id === scheme.id);
-          if (current == null) return;
-          const changed = current.name !== draft.name.trim()
-            || current.baseLevel !== draft.baseLevel
-            || current.templates.some((template, index) => template !== draft.templates[index])
-            || JSON.stringify(current.exclusions) !== JSON.stringify(draft.exclusions);
-          if (!changed) return;
-          archiveScheme(settings, current);
-          Object.assign(current, {
-            name: draft.name.trim(),
-            baseLevel: draft.baseLevel,
-            templates: [...draft.templates],
-            exclusions: draft.exclusions.map((rule) => ({
-              title: normalizeExclusionTitle(rule.title),
-              scope: rule.scope,
-            })),
-            revision: current.revision + 1,
-          });
-        }, "display", true, true);
-      }))
+    const actions = new Setting(details);
+    actions.settingEl.addClass("number-suite-scheme-actions");
+    actions
+      .addButton((button) => {
+        saveButton = button.buttonEl;
+        return button.setButtonText(t("settings.scheme.save")).setCta().onClick(() => {
+          if (!updateValidation()) return;
+          this.commit((settings) => {
+            const current = settings.customSchemes.find((item) => item.id === scheme.id);
+            if (current == null || current.revision !== draft.revision) return;
+            const next = normalizedScheme(draft);
+            this.drafts.delete(scheme.id);
+            if (sameSchemeFields(current, next)) return;
+            archiveScheme(settings, current);
+            Object.assign(current, next, { revision: current.revision + 1 });
+          }, "display", true, true);
+        });
+      })
+      .addButton((button) => {
+        discardButton = button.buttonEl;
+        return button.setButtonText(t("settings.scheme.discard")).onClick(() => {
+          this.drafts.delete(scheme.id);
+          this.renderCustomScheme(container, currentScheme(), details);
+          details.querySelector<HTMLInputElement>("input")?.focus();
+        });
+      })
       .addButton((button) => button.setButtonText(t("settings.scheme.delete")).setWarning().onClick(() => {
         this.commit((settings) => {
           const current = settings.customSchemes.find((item) => item.id === scheme.id);
           if (current != null) archiveScheme(settings, current);
+          this.drafts.delete(scheme.id);
           settings.customSchemes = settings.customSchemes.filter((item) => item.id !== scheme.id);
           if (settings.selectedSchemeId === scheme.id) {
             settings.selectedSchemeId = firstAvailableScheme(settings, scheme.id);
           }
         }, "display", true, true);
       }));
+    updateValidation();
   }
 }

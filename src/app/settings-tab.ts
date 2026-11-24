@@ -32,6 +32,7 @@ import {
   renderHeadingDisplayGuide,
 } from "../ui/settings/usage-guides";
 import type NumberSuitePlugin from "./plugin";
+import type { EditableScheme } from "./scheme-editor-draft";
 import { SchemeSettingsRenderer, selectedSchemeName } from "./scheme-settings-renderer";
 import { HEADING_LEVELS } from "../core/types";
 import { parseAtxHeadings } from "../core/heading-parser";
@@ -77,6 +78,7 @@ class ResetSettingsModal extends Modal {
 
 export class NumberSuiteSettingTab extends PluginSettingTab {
   private activeTab: SettingsTabId = "general";
+  private readonly schemeDrafts = new Map<string, EditableScheme>();
   private readonly openedGuides = new Set<string>();
   private cleanup: (() => void) | null = null;
   private imperativeVisible = false;
@@ -141,6 +143,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         return view == null ? [] : parseAtxHeadings(view.editor.getValue());
       },
+      this.schemeDrafts,
     );
   }
 
@@ -198,7 +201,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
   private openResetModal(t: Translate): void {
     new ResetSettingsModal(this.app, t, () => {
       void this.plugin.saveSettings(cloneSettings(DEFAULT_SETTINGS), "all")
-        .then(() => this.refreshSurface())
+        .then(() => {
+          this.schemeDrafts.clear();
+          this.refreshSurface();
+        })
         .catch((error: unknown) => {
           console.error("Number Suite: failed to reset settings", error);
         });

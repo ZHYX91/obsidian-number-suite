@@ -18,6 +18,10 @@ import { inspectSchemeTemplates } from "../core/scheme-template-validation";
 import { BUILT_IN_SCHEMES, isBuiltInSchemeId, resolveScheme } from "../core/schemes";
 import type { CaptionKind } from "../core/document-semantics";
 
+export const SCHEME_NAME_LIMIT = 80;
+export const SCHEME_TEMPLATE_LIMIT = 300;
+export const SCHEME_EXCLUSION_LIMIT = 200;
+
 export type VirtualHeadingNumberFormat = "scheme" | "current-only";
 
 export type StoredHeadingNumberStyleScope = "off" | "templates" | "common";
@@ -197,7 +201,7 @@ function templates(value: unknown, fallback: readonly string[]): string[] {
   return Array.from({ length: HEADING_LEVEL_COUNT }, (_unused, index) => {
     const template = source[index];
     const bounded = typeof template === "string"
-      ? template.slice(0, 300)
+      ? template.slice(0, SCHEME_TEMPLATE_LIMIT)
       : supplied ? "" : fallback[index] ?? "";
     return bounded.trim().length === 0 ? "" : bounded;
   });
@@ -215,7 +219,7 @@ function sanitizeExclusions(value: unknown): HeadingExclusionRule[] {
   const output: HeadingExclusionRule[] = [];
   for (const item of value) {
     if (!isRecord(item) || typeof item.title !== "string") continue;
-    const title = item.title.normalize("NFC").trim().replace(/[ \t]+/gu, " ").slice(0, 200);
+    const title = item.title.normalize("NFC").trim().replace(/[ \t]+/gu, " ").slice(0, SCHEME_EXCLUSION_LIMIT);
     if (title.length === 0 || seen.has(title)) continue;
     seen.add(title);
     output.push({
@@ -239,7 +243,7 @@ function sanitizeCustomSchemes(value: unknown): CustomNumberingScheme[] {
     output.push({
       id: item.id,
       name: typeof item.name === "string" && item.name.trim().length > 0
-        ? item.name.trim().slice(0, 80)
+        ? item.name.trim().slice(0, SCHEME_NAME_LIMIT)
         : "Custom scheme",
       revision: Math.max(1, Math.trunc(boundedNumber(item.revision, 1, 1, Number.MAX_SAFE_INTEGER))),
       baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, HEADING_LEVEL_COUNT)),
@@ -265,7 +269,7 @@ function sanitizeCleanupHistory(value: unknown): CleanupTemplateHistory[] {
     seen.add(key);
     output.push({
       schemeId: item.schemeId.slice(0, 64),
-      schemeName: typeof item.schemeName === "string" ? item.schemeName.slice(0, 80) : item.schemeId,
+      schemeName: typeof item.schemeName === "string" ? item.schemeName.slice(0, SCHEME_NAME_LIMIT) : item.schemeId,
       revision,
       baseLevel: Math.trunc(boundedNumber(item.baseLevel, 1, 1, HEADING_LEVEL_COUNT)),
       templates: nextTemplates,
