@@ -53,7 +53,7 @@ describe("semantic tooltip policy", () => {
   });
 
   it("keeps a long tooltip readable while scrolling by pointer or keyboard and dismisses on Escape", () => {
-    const app = { workspace: { on: () => ({}) } } as unknown as App;
+    const app = { workspace: { iterateAllLeaves: () => undefined, on: () => ({}) } } as unknown as App;
     const component = new Component();
     component.load();
     const controller = new SemanticTooltipController(app);
@@ -114,7 +114,7 @@ describe("semantic tooltip policy", () => {
 describe("semantic tooltip document lifetime", () => {
   it("releases each closed popout while retaining the main document and permitting reopen", () => {
     const handlers = new Map<string, (...args: unknown[]) => void>();
-    const app = { workspace: { on: (name: string, callback: (...args: unknown[]) => void) => {
+    const app = { workspace: { iterateAllLeaves: () => undefined, on: (name: string, callback: (...args: unknown[]) => void) => {
       handlers.set(name, callback); return {};
     } } } as unknown as App;
     const component = new Component(); component.load();

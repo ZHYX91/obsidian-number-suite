@@ -1,3 +1,4 @@
+import { workspaceDocuments } from "../adapters/obsidian/workspace-documents";
 import { Component, type App } from "obsidian";
 
 import {
@@ -92,7 +93,9 @@ export class SemanticTooltipController {
   ) {}
 
   register(component: Component): void {
-    this.registerDocument(component, document);
+    for (const ownerDocument of workspaceDocuments(this.app.workspace)) {
+      this.registerDocument(component, ownerDocument);
+    }
     component.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
       this.registerDocument(component, window.document);
     }));

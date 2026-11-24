@@ -2,7 +2,7 @@ import { Component, TFile } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { cleanupNumberSuiteReadingDom, HeadingReadingProcessor } from "../../src/reading/heading-postprocessor";
 import { applySemanticTooltip, SemanticTooltipController } from "../../src/ui/semantic-tooltip";
-import { installDomFixture } from "../../tests/ui/dom-fixture";
+import { installDomFixture, installDomFixtureIn } from "../../tests/ui/dom-fixture";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -15,9 +15,13 @@ window.verifyReadingLayout = async () => {
   DocumentFragment.prototype.createSpan = HTMLElement.prototype.createSpan;
   const source = "Figure: Test\n\n| Before |\n| --- |\n| After |";
   const file = new TFile("layout.md");
+  const popout = window.open("about:blank");
+  assert(popout != null, "Could not open a second browser window");
+  installDomFixtureIn(popout.HTMLElement);
+  const popoutBody = popout.document.body;
   const app = {
     vault: { getAbstractFileByPath: () => file, cachedRead: async () => source },
-    workspace: { on: () => ({}) },
+    workspace: { on: () => ({}), iterateAllLeaves: (visit) => visit({ view: { containerEl: popoutBody } }) },
   };
   const processor = new HeadingReadingProcessor(app, () => DEFAULT_SETTINGS);
   const context = { sourcePath: file.path, frontmatter: null,
@@ -40,6 +44,8 @@ window.verifyReadingLayout = async () => {
 
   const image = root.createEl("img");
   applySemanticTooltip(image, "Figure", "Long image description. ".repeat(400));
+  const popoutImage = popoutBody.createEl("img");
+  applySemanticTooltip(popoutImage, "Figure 2", "Already-open popout");
   const component = new Component();
   const controller = new SemanticTooltipController(app);
   controller.register(component);
@@ -57,7 +63,13 @@ window.verifyReadingLayout = async () => {
     assert(popup.isConnected, "Scrolling dismissed tooltip");
     image.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     assert(!popup.isConnected && document.activeElement === image, "Escape must retain focus on the object");
+    popoutImage.focus();
+    const secondTooltip = popoutBody.querySelector('[role="tooltip"]');
+    assert(secondTooltip?.textContent.includes("Already-open popout"), "Pre-existing popout did not show its tooltip");
+    component.unload();
+    assert(!secondTooltip.isConnected, "Plugin unload retained the popout tooltip");
   } finally {
     component.unload();
+    popout.close();
   }
 };

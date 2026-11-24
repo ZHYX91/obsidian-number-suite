@@ -93,15 +93,15 @@ function component(): Component {
   return owner;
 }
 
-function fixture(testCase: CarrierCase): {
+function fixture(testCase: CarrierCase, ownerDocument = document): {
   readonly app: App;
   readonly editor: Editor;
   readonly markdownView: MarkdownView;
   readonly target: HTMLElement;
   readonly content: HTMLElement;
 } {
-  document.body.innerHTML = `<div class="markdown-view"><div class="cm-content">${testCase.markup}</div></div>`;
-  const container = document.querySelector<HTMLElement>(".markdown-view")!;
+  ownerDocument.body.innerHTML = `<div class="markdown-view"><div class="cm-content">${testCase.markup}</div></div>`;
+  const container = ownerDocument.querySelector<HTMLElement>(".markdown-view")!;
   const content = container.querySelector<HTMLElement>(".cm-content")!;
   const target = container.querySelector<HTMLElement>(testCase.targetSelector)!;
   const editor = {
@@ -136,6 +136,18 @@ afterEach(() => {
 });
 
 describe("caption carrier menu bridge", () => {
+  it("attaches the caption action when a note was already in another window at startup", () => {
+    const popout = document.implementation.createHTMLDocument("Detached workspace");
+    const { app, target, content } = fixture(CARRIER_CASES[0]!, popout);
+    vi.spyOn(EditorView, "findFromDOM").mockReturnValue({
+      contentDOM: content, posAtCoords: () => 3, posAtDOM: () => 3,
+    } as unknown as EditorView);
+    new CaptionCarrierMenuBridge(app, () => translate, () => undefined).register(component());
+    const event = new MouseEvent("contextmenu", { bubbles: true, button: 2 });
+    target.dispatchEvent(event);
+    expect(menuItems(Menu.forEvent(event)).map((item) => item.title)).toEqual(["caption.menu.figure.insert"]);
+  });
+
   it("releases removed render targets before plugin unload and can bind a reinserted node", async () => {
     const { app, target, content, markdownView } = fixture(CARRIER_CASES[0]!);
     vi.spyOn(EditorView, "findFromDOM").mockReturnValue({
