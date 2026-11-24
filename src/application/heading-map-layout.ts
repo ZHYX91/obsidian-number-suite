@@ -27,6 +27,7 @@ export interface HeadingMapLayoutEdge {
 }
 
 export interface HeadingMapLayout {
+  readonly cardHeight: number;
   readonly width: number;
   readonly height: number;
   readonly nodes: readonly HeadingMapLayoutNode[];
@@ -43,15 +44,17 @@ export function layoutHeadingMap(
   roots: readonly HeadingMapTreeNode[],
   collapsed: ReadonlySet<string>,
   direction: HeadingMapLayoutDirection = "left-to-right",
+  cardHeight = HEADING_MAP_CARD_HEIGHT,
 ): HeadingMapLayout {
   return direction === "top-to-bottom"
-    ? layoutTopToBottom(roots, collapsed)
-    : layoutLeftToRight(roots, collapsed);
+    ? layoutTopToBottom(roots, collapsed, cardHeight)
+    : layoutLeftToRight(roots, collapsed, cardHeight);
 }
 
 function layoutLeftToRight(
   roots: readonly HeadingMapTreeNode[],
   collapsed: ReadonlySet<string>,
+  cardHeight: number,
 ): HeadingMapLayout {
   const positioned: PositionedNode[] = [];
   let cursorY = PADDING;
@@ -65,14 +68,14 @@ function layoutLeftToRight(
     const children = collapsed.has(node.id) ? [] : node.children;
     let centerY: number;
     if (children.length === 0) {
-      centerY = cursorY + HEADING_MAP_CARD_HEIGHT / 2;
-      cursorY += HEADING_MAP_CARD_HEIGHT + ROW_GAP;
+      centerY = cursorY + cardHeight / 2;
+      cursorY += cardHeight + ROW_GAP;
     } else {
       const centers = children.map((child) => visit(child, depth + 1, node.id));
       centerY = ((centers[0] ?? cursorY) + (centers[centers.length - 1] ?? cursorY)) / 2;
     }
     positioned[index] = {
-      item: { node, x, y: centerY - HEADING_MAP_CARD_HEIGHT / 2 },
+      item: { node, x, y: centerY - cardHeight / 2 },
       parentId,
     };
     return centerY;
@@ -85,20 +88,22 @@ function layoutLeftToRight(
 
   const nodes = positioned.map(({ item }) => item);
   return {
+    cardHeight,
     width: roots.length === 0
       ? 0
       : PADDING * 2 + (maxDepth + 1) * HEADING_MAP_CARD_WIDTH + maxDepth * COLUMN_GAP,
     height: roots.length === 0
       ? 0
-      : Math.max(PADDING * 2 + HEADING_MAP_CARD_HEIGHT, cursorY - ROW_GAP - ROOT_GAP + PADDING),
+      : Math.max(PADDING * 2 + cardHeight, cursorY - ROW_GAP - ROOT_GAP + PADDING),
     nodes,
-    edges: layoutEdges(positioned, "left-to-right"),
+    edges: layoutEdges(positioned, "left-to-right", cardHeight),
   };
 }
 
 function layoutTopToBottom(
   roots: readonly HeadingMapTreeNode[],
   collapsed: ReadonlySet<string>,
+  cardHeight: number,
 ): HeadingMapLayout {
   const positioned: PositionedNode[] = [];
   let cursorX = PADDING;
@@ -107,7 +112,7 @@ function layoutTopToBottom(
   const visit = (node: HeadingMapTreeNode, depth: number, parentId: string | null): number => {
     maxDepth = Math.max(maxDepth, depth);
     const index = positioned.length;
-    const y = PADDING + depth * (HEADING_MAP_CARD_HEIGHT + VERTICAL_ROW_GAP);
+    const y = PADDING + depth * (cardHeight + VERTICAL_ROW_GAP);
     positioned.push({ item: { node, x: 0, y }, parentId });
     const children = collapsed.has(node.id) ? [] : node.children;
     let centerX: number;
@@ -132,20 +137,22 @@ function layoutTopToBottom(
 
   const nodes = positioned.map(({ item }) => item);
   return {
+    cardHeight,
     width: roots.length === 0
       ? 0
       : Math.max(PADDING * 2 + HEADING_MAP_CARD_WIDTH, cursorX - VERTICAL_COLUMN_GAP - ROOT_GAP + PADDING),
     height: roots.length === 0
       ? 0
-      : PADDING * 2 + (maxDepth + 1) * HEADING_MAP_CARD_HEIGHT + maxDepth * VERTICAL_ROW_GAP,
+      : PADDING * 2 + (maxDepth + 1) * cardHeight + maxDepth * VERTICAL_ROW_GAP,
     nodes,
-    edges: layoutEdges(positioned, "top-to-bottom"),
+    edges: layoutEdges(positioned, "top-to-bottom", cardHeight),
   };
 }
 
 function layoutEdges(
   positioned: readonly PositionedNode[],
   direction: HeadingMapLayoutDirection,
+  cardHeight: number,
 ): HeadingMapLayoutEdge[] {
   const byId = new Map(positioned.map(({ item }) => [item.node.id, item]));
   const edges: HeadingMapLayoutEdge[] = [];
@@ -158,7 +165,7 @@ function layoutEdges(
         parentId,
         childId: item.node.id,
         fromX: parent.x + HEADING_MAP_CARD_WIDTH / 2,
-        fromY: parent.y + HEADING_MAP_CARD_HEIGHT,
+        fromY: parent.y + cardHeight,
         toX: item.x + HEADING_MAP_CARD_WIDTH / 2,
         toY: item.y,
       }
@@ -166,9 +173,9 @@ function layoutEdges(
         parentId,
         childId: item.node.id,
         fromX: parent.x + HEADING_MAP_CARD_WIDTH,
-        fromY: parent.y + HEADING_MAP_CARD_HEIGHT / 2,
+        fromY: parent.y + cardHeight / 2,
         toX: item.x,
-        toY: item.y + HEADING_MAP_CARD_HEIGHT / 2,
+        toY: item.y + cardHeight / 2,
       });
   }
   return edges;

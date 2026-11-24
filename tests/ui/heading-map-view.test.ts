@@ -14,10 +14,12 @@ vi.mock("obsidian", async (original) => ({
     load(): void { this.titleEl.setText(this.getDisplayText()); }
 
     registerEvent(_event: unknown): void {}
+    register(_cleanup: () => void): void {}
   },
 }));
 
 import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
+import { createTranslator } from "../../src/config/i18n";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { findHeadingMapNode, HEADING_MAP_DOCUMENT_ID, type HeadingMapNode } from "../../src/application/heading-map";
 import { installDomFixture } from "./dom-fixture";
@@ -153,6 +155,19 @@ describe("heading map touch targets", () => {
     expect(view.scale).toBeGreaterThan(1);
   });
 
+  it.each(["left-to-right", "top-to-bottom"] as const)("uses the touch card height for %s connectors", async (direction) => {
+    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
+    const view = makeView();
+    view.rearranging = true;
+    view.layoutDirection = direction;
+    await view.refreshMap("# A\n# B");
+    const layout = view.lastLayout;
+    expect(layout.cardHeight).toBeGreaterThanOrEqual(2 * 44 + 2);
+    const root = layout.nodes[0]!;
+    const edge = layout.edges[0]!;
+    expect(edge.fromY).toBe(root.y + (direction === "left-to-right" ? layout.cardHeight / 2 : layout.cardHeight));
+    expect(view.sceneHost.querySelector<HTMLElement>(".number-suite-heading-map-card")!.style.height).toBe(`${layout.cardHeight}px`);
+  });
   it("keeps a single-finger card tap from starting a pan", async () => {
     const { view, touch } = await openTouchMap("# Root");
     const card = view.sceneHost.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
@@ -241,6 +256,21 @@ describe("heading map write identity", () => {
     const drag = { id: "a", line: 1, source, path: file.path, file };
     return { view, markdown, file, replacement, drag, transaction, replace: () => { registered = Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path, extension: "md", basename: "Same" }); } };
   }
+  it("keeps focus on the moved heading when its move button becomes disabled", async () => {
+    const { view, drag, transaction } = writeHarness();
+    vi.spyOn(view, "scheduleRefresh").mockImplementation(() => undefined);
+    document.body.append(view.viewport);
+    onTestFinished(() => view.viewport.remove());
+    await view.refreshMap(source);
+    const moved = view.roots[0]!.children[0]!;
+    const card = () => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${moved.id}"]`)!;
+    card().querySelector<HTMLButtonElement>("[data-map-action=down]")!.focus();
+    await view.applyMove({ ...drag, id: moved.id }, 3, "after");
+    expect(transaction).toHaveBeenCalledOnce();
+    await view.refreshMap("# Root\n## B\n## A\nbody\n");
+    expect(view.roots[0]!.children[1]?.id).toBe(moved.id);
+    expect(document.activeElement).toBe(card().querySelector("[data-map-action=body]"));
+  });
   it("reports missing source editor separately without writing", async () => {
     const h = writeHarness();
     h.view.moveStatusEl = document.createElement("div");
@@ -613,6 +643,46 @@ describe("heading map interactions", () => {
     expect(view.selectedId).not.toBe(first);
     view.cycleSearch(true);
     expect(view.selectedId).toBe(first);
+  });
+
+  it("retains the same card control across refreshes without stealing focus from the search field", async () => {
+    const view = await openMap("# Root\n## A");
+    document.body.append(view.contentEl);
+    onTestFinished(() => view.contentEl.remove());
+    const subject = view as unknown as Subject;
+    const control = () => view.contentEl.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
+    control().focus();
+    await subject.refreshMap("# Root\n## A\nbody");
+    expect(document.activeElement).toBe(control());
+    const search = view.contentEl.querySelector("input")!;
+    search.focus();
+    await subject.refreshMap("# Root\n## A\nmore");
+    expect(document.activeElement).toBe(search);
+    control().focus();
+    subject.setFile({ path: "Other.md", extension: "md" }, false);
+    await subject.refreshMap("# Root");
+    expect(document.activeElement).not.toBe(control());
+  });
+
+  it("searches either visible number and announces zero results", async () => {
+    const settings = { ...DEFAULT_SETTINGS, showVirtualNumbers: true, selectedSchemeId: "hierarchical", storedHeadingNumberStyleScope: "common" as const };
+    const view = makeView(settings);
+    const status = document.createElement("span");
+    Object.assign(view, { searchStatusEl: status, actions: { getSettings: () => settings, getTranslate: () => createTranslator("en") } });
+    await view.refreshMap("# 2.1 Design");
+    expect(view.roots[0]?.storedNumber?.label).toBe("2.1");
+    for (const query of ["2.1", "1 Design", "2.1 Design"]) {
+      view.searchQuery = query;
+      view.render();
+      expect(view.searchMatches).toEqual([view.roots[0]!.id]);
+      expect(status.textContent).toBe("1 / 1");
+    }
+    view.searchQuery = "absent";
+    view.render();
+    expect(status.textContent).toBe("0 / 0");
+    view.searchQuery = "";
+    view.render();
+    expect(status.textContent).toBe("");
   });
 
   it("supports plus, minus, and zero keyboard viewport controls", async () => {
