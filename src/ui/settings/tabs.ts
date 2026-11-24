@@ -21,6 +21,9 @@ export function createSettingsTabs(
   list.setAttribute("aria-label", ariaLabel);
   list.setAttribute("aria-orientation", "horizontal");
   const listeners: Array<() => void> = [];
+  const select = (id: SettingsTabId): void => {
+    if (id !== activeId) onSelect(id);
+  };
   const buttons = definitions.map((definition, index) => {
     const button = list.createEl("button");
     const active = definition.id === activeId;
@@ -32,7 +35,7 @@ export function createSettingsTabs(
     button.setAttribute("aria-selected", String(active));
     button.setAttribute("aria-controls", panelId);
     button.tabIndex = active ? 0 : -1;
-    const click = (): void => onSelect(definition.id);
+    const click = (): void => select(definition.id);
     const keydown = (event: KeyboardEvent): void => {
       let target = index;
       const inlineDirection = isRightToLeft(button) ? -1 : 1;
@@ -45,7 +48,7 @@ export function createSettingsTabs(
       else return;
       event.preventDefault();
       const next = definitions[target];
-      if (next != null) onSelect(next.id);
+      if (next != null) select(next.id);
     };
     button.addEventListener("click", click);
     button.addEventListener("keydown", keydown);

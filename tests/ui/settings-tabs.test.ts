@@ -145,7 +145,6 @@ describe("settings tabs", () => {
   it.each([
     ["ArrowRight", "headings"],
     ["ArrowLeft", "views"],
-    ["Home", "general"],
     ["End", "views"],
   ] as const)("maps %s in left-to-right layouts", (key, expected) => {
     const container = document.createElement("div");
@@ -158,6 +157,28 @@ describe("settings tabs", () => {
     activeTab?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
     expect(select).toHaveBeenCalledWith(expected);
   });
+
+  it.each([["general", "Home"], ["views", "End"]] as const)(
+    "keeps the mounted %s panel when activating its current tab", (active, key) => {
+      const container = document.body.appendChild(document.createElement("div"));
+      installHelpers(container);
+      const select = vi.fn(() => container.replaceChildren());
+      const layout = createSettingsTabs(container, definitions, active, "Settings", scrollLabels, select);
+      const button = container.querySelector<HTMLButtonElement>('[aria-selected="true"]')!;
+      const draft = layout.panel.appendChild(document.createElement("textarea"));
+      draft.value = "Unsubmitted";
+      button.focus();
+      button.click();
+      button.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      expect(draft.isConnected).toBe(true);
+      expect(draft.value).toBe("Unsubmitted");
+      expect(document.activeElement).toBe(button);
+      expect(select).not.toHaveBeenCalled();
+      button.dispatchEvent(new KeyboardEvent("keydown", { key: key === "Home" ? "End" : "Home", bubbles: true }));
+      expect(select).toHaveBeenCalledExactlyOnceWith(active === "general" ? "views" : "general");
+      layout.cleanup();
+    },
+  );
 
   it("reverses left and right arrow navigation in right-to-left layouts", () => {
     const container = document.createElement("div");
