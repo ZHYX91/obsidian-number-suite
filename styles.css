@@ -360,11 +360,21 @@
   font-family: inherit !important;
   font-size: var(--font-ui-small) !important;
   font-weight: inherit;
-  margin: 0 0 -1px !important;
+  margin: 0 !important;
   block-size: auto;
   min-block-size: 34px;
   padding: 7px 12px !important;
   white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+  .number-suite-settings-tabs {
+    --interactive-accent: Highlight;
+  }
+
+  .number-suite-settings-tabs > button.number-suite-settings-tab[aria-selected="false"] {
+    border-block-end-color: Canvas !important;
+  }
 }
 
 .number-suite-settings-tabs > button.number-suite-settings-tab:focus-visible {
