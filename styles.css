@@ -2090,12 +2090,12 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   .number-suite-settings-panel .setting-item-control {
     flex-wrap: wrap;
   }
-  .number-suite-settings-panel .setting-item-control button {
-    block-size: auto;
-    min-block-size: var(--input-height);
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
+}
+.number-suite-settings-panel .setting-item-control button {
+  block-size: auto;
+  min-block-size: var(--input-height);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .number-suite-named-toggle:has(input:focus-visible) {

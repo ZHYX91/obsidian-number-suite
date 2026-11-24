@@ -238,6 +238,7 @@ Source markers are disabled by default. Before enabling them for a release claim
   and confirm the same numbering model.
 - [ ] Preview and apply a current-note write, then undo and redo once. Run cleanup and confirm the
   original Markdown is restored without changing unrelated content.
+- [ ] At the default desktop settings width, select German and open General. Check that the full reset button label stays inside its button and the panel does not scroll horizontally. Repeat with enlarged interface text.
 - [ ] Open all seven settings tabs at phone width, change one setting, reload the plugin, and confirm
   persistence without clipped controls or hover-only actions.
 - [ ] Background and foreground Obsidian, switch notes, disable and re-enable the plugin, and confirm
