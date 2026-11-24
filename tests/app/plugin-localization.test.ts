@@ -133,11 +133,11 @@ describe("plugin localization lifecycle", () => {
   });
 });
 
-it("opens the heading map in the originating pane when a file has two editors", async () => {
+it.each(["Note.md", "file:/outside/Note.md"])("opens %s from its originating editor when two panes are open", async (path) => {
   const { NumberSuiteHeadingMapView } = await import("../../src/ui/heading-map-view");
-  const file = new (TFile as unknown as new (path: string) => TFile)("Note.md");
+  const file = new (TFile as unknown as new (path: string) => TFile)(path);
   const pane = () => {
-    const view = Object.assign(new MarkdownView({} as never), { file });
+    const view = Object.assign(new MarkdownView({} as never), { file, getState: () => ({ file: path }) });
     const leaf = { view };
     Object.assign(view, { leaf });
     return leaf;
@@ -146,7 +146,7 @@ it("opens the heading map in the originating pane when a file has two editors", 
   const active = pane();
   const showFile = vi.fn();
   const map = Object.assign(Object.create(NumberSuiteHeadingMapView.prototype) as InstanceType<typeof NumberSuiteHeadingMapView>, { showFile });
-  const app = { vault: { getAbstractFileByPath: () => file }, workspace: {
+  const app = { vault: { getAbstractFileByPath: () => path.startsWith("file:") ? null : file }, workspace: {
     getActiveFile: () => file, getActiveViewOfType: () => active.view,
     getLeavesOfType: (type: string) => type === "markdown" ? [first, active] : [{ view: map }],
     revealLeaf: async () => {},

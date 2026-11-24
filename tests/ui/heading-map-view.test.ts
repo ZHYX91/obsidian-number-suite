@@ -41,6 +41,8 @@ type Subject = {
   needsInitialFit: boolean;
   rearranging: boolean;
   moveStatusEl: HTMLElement;
+  rearrangeButton: HTMLButtonElement;
+  navigate(node: HeadingMapNode): Promise<void>;
   moveStatusError: boolean;
   dragSource: unknown;
   applyMove: (...args: unknown[]) => Promise<void>;
@@ -561,6 +563,46 @@ describe("heading map interactions", () => {
     view.showFile(replacement, null, true);
     expect(view.currentFile).toBe(replacement);
     expect(view.rearranging).toBe(false);
+  });
+
+  it("reads and navigates external Markdown only in its live source pane", async () => {
+    const view = makeView();
+    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+      path: "file:/external/Note.md", basename: "Note", extension: "md",
+    });
+    let source = "# External";
+    const getViewData = () => source;
+    const markdown = Object.assign(Object.create(MarkdownView.prototype) as MarkdownView, {
+      file, getState: () => ({ file: file.path }), getViewData, getMode: () => "preview",
+    });
+    const leaf = { view: markdown, setEphemeralState: vi.fn() };
+    Object.assign(markdown, { leaf });
+    let leaves = [leaf];
+    const getLeaf = vi.fn();
+    const cachedRead = vi.fn();
+    const workspace = {
+      getLeavesOfType: () => leaves,
+      iterateAllLeaves: (visit: (item: typeof leaf) => void) => leaves.forEach(visit),
+      getActiveViewOfType: () => null, getMostRecentLeaf: () => null, getLeaf, revealLeaf: vi.fn(),
+    };
+    Object.assign(view, { app: { workspace, vault: { cachedRead } }, rearrangeButton: document.createElement("button") });
+    view.showFile(file, leaf as unknown as WorkspaceLeaf, true);
+    await view.refreshMap();
+    expect(view.roots[0]?.title).toBe("External");
+    expect(view.rearrangeButton.hidden).toBe(true);
+    await view.navigate(view.roots[0]!);
+    expect(leaf.setEphemeralState).toHaveBeenCalledExactlyOnceWith({ line: 0 });
+    source = "preface\n# Updated";
+    await view.navigate(view.roots[0]!);
+    expect(view.roots[0]?.title).toBe("Updated");
+    expect(leaf.setEphemeralState).toHaveBeenCalledTimes(1);
+
+    leaves = [];
+    await view.navigate(view.roots[0]!);
+    expect(view.roots).toEqual([]);
+    expect(view.sceneHost.textContent).toContain("headingMap.readFailed");
+    expect(getLeaf).not.toHaveBeenCalled();
+    expect(cachedRead).not.toHaveBeenCalled();
   });
 
   it("keeps a map opened from another pane bound to that pane's document", () => {

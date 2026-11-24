@@ -1,5 +1,24 @@
 import { MarkdownView, type App, type TFile, type WorkspaceLeaf } from "obsidian";
 
+export function isExternalMarkdownPath(path?: string | null): boolean {
+  return path?.startsWith("file:") === true;
+}
+
+/** External Markdown belongs to a live editor. A URI alone does not identify its buffer. */
+export function externalMarkdownView(
+  app: App, path: string, preferred?: WorkspaceLeaf | null,
+): MarkdownView | undefined {
+  const workspace = app.workspace;
+  const matches = workspace.getLeavesOfType("markdown").map((leaf) => leaf.view)
+    .filter((view): view is MarkdownView => view instanceof MarkdownView
+      && view.file?.path === path && view.getState().file === path);
+  if (preferred != null) return matches.find((view) => view === preferred.view);
+  const active = workspace.getActiveViewOfType(MarkdownView);
+  if (active != null && matches.includes(active)) return active;
+  const recent = workspace.getMostRecentLeaf()?.view;
+  return matches.find((view) => view === recent) ?? (matches.length === 1 ? matches[0] : undefined);
+}
+
 export interface BoundMarkdownSource {
   readonly leaf: WorkspaceLeaf | null;
   readonly source: string;

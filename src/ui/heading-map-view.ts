@@ -8,7 +8,7 @@ import {
 } from "obsidian";
 
 import { navigateToLine } from "../adapters/navigate-to-line";
-import { readBoundMarkdownSource } from "../adapters/markdown-source-binding";
+import { externalMarkdownView, isExternalMarkdownPath, readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import { createDisplayPlan } from "../application/display-plan";
 import { HeadingMapIdentity } from "../application/heading-map-identity";
 import { assessSameParentHeadingMove, planSameParentHeadingMove } from "../application/heading-map-reorder";
@@ -185,8 +185,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
       if (!this.pinnedToEntry) this.setFile(file);
     }));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onActiveLeafChange(leaf)));
+    this.registerEvent(this.app.workspace.on("layout-change", () => {
+      if (isExternalMarkdownPath(this.currentFile?.path)) this.scheduleRefresh();
+    }));
     this.registerEvent(this.app.workspace.on("editor-change", (_editor, info) => {
-      if (info.file?.path === this.currentFile?.path) {
+      if (info.file != null && info.file === this.currentFile) {
         // Resolve the currently bound pane when the debounce fires, not an arbitrary pane's buffer.
         this.scheduleRefresh();
       }
@@ -340,7 +343,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.rearrangeButton = secondary.createEl("button", { cls: "number-suite-heading-map-rearrange" });
     this.rearrangeButton.type = "button";
     this.rearrangeButton.addEventListener("click", () => {
-      if (this.moving) return;
+      if (this.moving || isExternalMarkdownPath(this.currentFile?.path)) return;
       this.rearranging = !this.rearranging;
       this.dragSource = null;
       this.setMoveStatus();
@@ -416,6 +419,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private updateToolbarState(): void {
+    if (this.rearrangeButton != null) this.rearrangeButton.hidden = isExternalMarkdownPath(this.currentFile?.path);
     if (this.fileLabelEl != null) {
       this.fileLabelEl.setText(this.currentFile?.basename ?? this.actions.getTranslate()("headingMap.title"));
       this.fileLabelEl.title = this.currentFile?.path ?? "";
@@ -465,6 +469,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.clearRefreshTimer();
     this.request += 1;
     this.currentFile = markdown;
+    this.sourceLeaf = null;
     this.rearranging = false;
     this.dragSource = null;
     this.cancelTouchReorder();
@@ -495,10 +500,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (this.pinnedToEntry || !(leaf?.view instanceof MarkdownView)) return;
     this.clearRefreshTimer();
     this.request += 1;
-    this.sourceLeaf = leaf;
     const path = leaf.view.file?.path ?? null;
     this.setFile(leaf.view.file, false);
-    void this.refreshMap(leaf.view.editor.getValue(), path);
+    this.sourceLeaf = leaf;
+    void this.refreshMap(isExternalMarkdownPath(path) ? undefined : leaf.view.editor.getValue(), path);
   }
 
   private clearRefreshTimer(): void {
@@ -526,7 +531,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.refreshTimer = timerWindow.setTimeout(run, 120);
   }
 
-  private async sourceForFile(file: TFile): Promise<string> {
+  private async sourceForFile(file: TFile): Promise<string | null> {
+    if (isExternalMarkdownPath(file.path)) {
+      const view = externalMarkdownView(this.app, file.path, this.sourceLeaf);
+      if (view?.file !== file) return null;
+      this.sourceLeaf = view.leaf;
+      return view.getViewData();
+    }
     const request = this.request;
     const bound = await readBoundMarkdownSource(this.app, file, this.sourceLeaf);
     if (request === this.request && this.currentFile === file && bound.leaf != null) this.sourceLeaf = bound.leaf;
@@ -549,6 +560,11 @@ export class NumberSuiteHeadingMapView extends ItemView {
     try {
       const source = sourceOverride ?? await this.sourceForFile(file);
       if (request !== this.request || expectedPath !== this.currentFile?.path) return;
+      if (source == null) {
+        this.lastSource = null;
+        this.renderStatus(this.actions.getTranslate()("headingMap.readFailed"));
+        return;
+      }
       this.lastSource = source;
       const overrides = parseNoteOverridesFromSource(source);
       if (overrides == null) {
@@ -970,7 +986,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     targetLine: number,
     placement: "before" | "after",
   ): Promise<void> {
-    if (this.moving || !this.rearranging) return;
+    if (this.moving || !this.rearranging || isExternalMarkdownPath(drag.path)) return;
     if (this.lastSource !== drag.source
       || this.currentFile !== drag.file || this.currentFile.path !== drag.path
       || this.app.vault.getAbstractFileByPath(drag.path) !== drag.file) {
@@ -1117,7 +1133,15 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private async navigate(node: HeadingMapTreeNode): Promise<void> {
     const file = this.currentFile;
     if (file == null) return;
-    await navigateToLine(this.app, file, node.line, this.sourceLeaf);
+    const external = isExternalMarkdownPath(file.path);
+    if (external) {
+      const view = externalMarkdownView(this.app, file.path, this.sourceLeaf);
+      if (view?.file !== file || view.getViewData() !== this.lastSource) {
+        await this.refreshMap();
+        return;
+      }
+    }
+    await navigateToLine(this.app, file, node.line, this.sourceLeaf, { existingOnly: external });
   }
 
   private setScaleAt(next: number, pointerX?: number, pointerY?: number): void {

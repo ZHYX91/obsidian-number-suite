@@ -1,3 +1,4 @@
+import { externalMarkdownView, isExternalMarkdownPath } from "../adapters/markdown-source-binding";
 import { navigateToLine } from "../adapters/navigate-to-line";
 import { nativeHeadingsInSource, rebaseNativeHeadings, updateOutlineStructure, syntheticRowIsCurrent, type OutlineStructure } from "./native-outline-source";
 import type { HeadingNumberPillKind } from "../application/display-plan";
@@ -144,9 +145,6 @@ function pathFor(view: OutlineInternal): string | null {
   const path = view.getState().file;
   return typeof path === "string" ? path : null;
 }
-function isExternalPath(path: string | null): boolean {
-  return path?.startsWith("file:") === true;
-}
 
 /** Scoped, reversible native Outline enhancement. No shared metadata cache writes. */
 export class NativeOutlineEnhancer {
@@ -175,13 +173,13 @@ export class NativeOutlineEnhancer {
     this.plugin.registerEvent(app.workspace.on("active-leaf-change", (leaf) => {
       const view = leaf?.view;
       const path = view instanceof MarkdownView ? view.file?.path : null;
-      if (path != null && isExternalPath(path)) void this.loadSource(path, true);
+      if (path != null && isExternalMarkdownPath(path)) void this.loadSource(path, true);
     }));
     this.plugin.registerEvent(app.workspace.on("editor-change", (editor, info) => {
       const path = info.file?.path;
       if (path == null || !this.usesSource(path)) return;
-      if (isExternalPath(path)) {
-        const view = this.externalView(path);
+      if (isExternalMarkdownPath(path)) {
+        const view = externalMarkdownView(this.plugin.app, path);
         if (view?.file !== info.file || view?.editor !== editor) return;
       } else if (app.vault.getAbstractFileByPath(path) !== info.file) return;
       this.pendingReads.delete(path);
@@ -246,17 +244,6 @@ export class NativeOutlineEnhancer {
   private usesSource(path: string): boolean {
     return !this.stopped && this.settings().enhanceNativeOutline
       && [...this.observed.values()].some((entry) => pathFor(entry.view) === path);
-  }
-
-  private externalView(path: string): MarkdownView | undefined {
-    const workspace = this.plugin.app.workspace;
-    const matching = workspace.getLeavesOfType("markdown").map((leaf) => leaf.view)
-      .filter((view): view is MarkdownView => view instanceof MarkdownView
-        && view.file?.path === path && view.getState().file === path);
-    const active = workspace.getActiveViewOfType(MarkdownView);
-    if (active != null && matching.includes(active)) return active;
-    const recent = workspace.getMostRecentLeaf()?.view;
-    return matching.find((view) => view === recent) ?? (matching.length === 1 ? matching[0] : undefined);
   }
 
   private forgetSource(path: string): void {
@@ -444,7 +431,7 @@ export class NativeOutlineEnhancer {
 
   private beginMove(entry: ObservedOutline, item: ExtraOutlineHeading): boolean {
     const path = pathFor(entry.view);
-    if (path == null || isExternalPath(path) || item.__numberSuiteExtra !== "extended") return false;
+    if (path == null || isExternalMarkdownPath(path) || item.__numberSuiteExtra !== "extended") return false;
     const source = this.sources.get(path);
     if (source == null) return false;
     const heading = parseAtxHeadings(source).find((value) => value.line === item.position.start.line);
@@ -550,7 +537,7 @@ export class NativeOutlineEnhancer {
     const down = (event: PointerEvent): void => {
       if (!event.isPrimary) { finish(); return; }
       if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (isExternalPath(pathFor(entry.view))) return;
+      if (isExternalMarkdownPath(pathFor(entry.view))) return;
       const row = this.rowAt(entry, event.target);
       if (row?.item.__numberSuiteExtra !== "extended") return;
       cancelTimer();
@@ -598,7 +585,7 @@ export class NativeOutlineEnhancer {
       const path = pathFor(entry.view);
       if (row == null || path == null) return;
       const current = this.structures.get(path);
-      const external = isExternalPath(path);
+      const external = isExternalMarkdownPath(path);
       const plainClick = event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
       if (current == null || syntheticRowIsCurrent(current, row.item)) {
         if (external && plainClick && (entry.enhanced || row.item.__numberSuiteExtra != null)) {
@@ -822,7 +809,7 @@ export class NativeOutlineEnhancer {
   }
 
   private navigateExternal(path: string, line: number): void {
-    const view = this.externalView(path);
+    const view = externalMarkdownView(this.plugin.app, path);
     if (view?.file == null || view.getViewData() !== this.sources.get(path)) return;
     void navigateToLine(this.plugin.app, view.file, line, view.leaf, { existingOnly: true });
   }
@@ -833,8 +820,8 @@ export class NativeOutlineEnhancer {
     this.pendingReads.set(path, request);
     try {
       let source: string;
-      if (isExternalPath(path)) {
-        const view = this.externalView(path);
+      if (isExternalMarkdownPath(path)) {
+        const view = externalMarkdownView(this.plugin.app, path);
         if (view == null) {
           const hadSource = this.sources.has(path);
           this.forgetSource(path);
