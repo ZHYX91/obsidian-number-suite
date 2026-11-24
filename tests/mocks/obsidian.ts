@@ -152,9 +152,11 @@ export class FuzzySuggestModal<T> extends Modal {
 
 export class Setting {
   settingEl: HTMLElement;
+  controlEl: HTMLElement;
 
   constructor(containerEl: HTMLElement) {
     this.settingEl = containerEl;
+    this.controlEl = containerEl;
   }
 
   setName(_name: string): this { return this; }
@@ -164,6 +166,10 @@ export class Setting {
   setHeading(): this { return this; }
 
   addButton(_callback: (button: unknown) => void): this { return this; }
+
+  addToggle(_callback: (toggle: unknown) => void): this { return this; }
+
+  addDropdown(_callback: (dropdown: unknown) => void): this { return this; }
 }
 
 export class TFile {

@@ -16,11 +16,13 @@ describe("Number Suite modal direction", () => {
     document.body.append(modal, sibling);
     try {
       applyModalDirection(modal, createTranslator("ar"));
+      expect(modal.lang).toBe("ar");
       expect(modal.dir).toBe("rtl");
       expect(code.dir).toBe("auto");
       expect(input.dir).toBe("auto");
       expect(sibling.hasAttribute("dir")).toBe(false);
       applyModalDirection(modal, createTranslator("en"));
+      expect(modal.lang).toBe("en");
       expect(modal.dir).toBe("ltr");
     } finally {
       modal.remove();

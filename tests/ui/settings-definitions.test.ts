@@ -8,6 +8,7 @@ import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
 import { createTranslator } from "../../src/config/i18n";
 import type { SettingsSaveStatus } from "../../src/config/settings-save-coordinator";
 import { cloneSettings, DEFAULT_SETTINGS, sanitizeSettings } from "../../src/config/settings";
+import { installDomFixture } from "./dom-fixture";
 
 function createHost(
   status: SettingsSaveStatus = { state: "saved", error: null },
@@ -31,6 +32,29 @@ function createHost(
 }
 
 describe("Obsidian 1.13 settings definitions", () => {
+  it("marks the settings language independently of the host and removes it on close", () => {
+    installDomFixture();
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    const owner = document.createElement("div");
+    owner.lang = "en";
+    owner.append(tab.containerEl);
+    for (const [language, tag, direction] of [
+      ["ar", "ar", "rtl"], ["zh", "zh-CN", "ltr"], ["auto", "en", "ltr"],
+    ] as const) {
+      host.settings = { ...host.settings, language };
+      tab.display();
+      expect(tab.containerEl.lang).toBe(tag);
+      expect(tab.containerEl.dir).toBe(direction);
+      expect(tab.containerEl.querySelector('[role="tab"][aria-selected="true"]')?.textContent)
+        .toBe(createTranslator(language)("settings.tab.general"));
+      expect(owner.lang).toBe("en");
+    }
+    tab.hide();
+    expect(tab.containerEl.hasAttribute("lang")).toBe(false);
+    expect(tab.containerEl.hasAttribute("dir")).toBe(false);
+  });
+
   it("retains the Outline settings page while the host uses custom global tabs", () => {
     const host = createHost();
     const tab = new NumberSuiteSettingTab(new App(), host as never);

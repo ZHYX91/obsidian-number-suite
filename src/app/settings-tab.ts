@@ -9,7 +9,7 @@ import {
   type SettingDefinitionItem,
 } from "obsidian";
 
-import { createTranslator, resolvedUiLocale, uiTextDirection, type Translate } from "../config/i18n";
+import { createTranslator, resolvedUiLocale, uiLocaleAttributes, type Translate } from "../config/i18n";
 import { languageOptions } from "../config/language-options";
 import {
   DEFAULT_SETTINGS,
@@ -160,7 +160,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     const t = createTranslator(settings.language);
     containerEl.empty();
     containerEl.addClass("number-suite-settings");
-    containerEl.dir = uiTextDirection(settings.language);
+    Object.assign(containerEl, uiLocaleAttributes(settings.language));
     const tabs = [
       { id: "general", label: t("settings.tab.general") },
       { id: "headings", label: t("settings.tab.headings") },
@@ -192,6 +192,7 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
       statusCleanup();
       containerEl.removeClass("number-suite-settings");
       containerEl.removeAttribute("dir");
+      containerEl.removeAttribute("lang");
     };
   }
 

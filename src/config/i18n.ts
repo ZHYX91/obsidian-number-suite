@@ -1119,7 +1119,7 @@ const ZH: Record<MessageKey, string> = {
 };
 
 export type Translate = ((key: MessageKey, variables?: Readonly<Record<string, string | number>>) => string)
-  & { readonly direction?: "rtl" | "ltr" };
+  & { readonly languageTag?: string; readonly direction?: "rtl" | "ltr" };
 
 export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguage()): UiLocale {
   if (language !== "auto") return language;
@@ -1136,8 +1136,13 @@ export function resolvedUiLocale(language: UiLanguage, hostLanguage = getLanguag
   return isUiLanguage(primary) && primary !== "auto" ? primary : "en";
 }
 
+export function uiLocaleAttributes(language: UiLanguage): { lang: string; dir: "rtl" | "ltr" } {
+  const locale = resolvedUiLocale(language);
+  return { lang: locale === "zh" ? "zh-CN" : locale, dir: locale === "ar" ? "rtl" : "ltr" };
+}
+
 export function uiTextDirection(language: UiLanguage): "rtl" | "ltr" {
-  return resolvedUiLocale(language) === "ar" ? "rtl" : "ltr";
+  return uiLocaleAttributes(language).dir;
 }
 
 export function createTranslator(language: UiLanguage): Translate {
@@ -1150,6 +1155,6 @@ export function createTranslator(language: UiLanguage): Translate {
     }
     return message;
   };
-  const direction: "rtl" | "ltr" = locale === "ar" ? "rtl" : "ltr";
-  return Object.assign(translate, { direction });
+  const { lang: languageTag, dir: direction } = uiLocaleAttributes(locale);
+  return Object.assign(translate, { languageTag, direction });
 }
