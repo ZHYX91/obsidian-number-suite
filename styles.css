@@ -467,6 +467,7 @@
 
 @media (pointer: coarse) {
   .number-suite-settings-tabs > button.number-suite-settings-tab {
+    min-inline-size: 44px;
     min-block-size: 44px;
   }
 }

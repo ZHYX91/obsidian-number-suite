@@ -63,10 +63,6 @@ export function createSettingsTabs(
   const activeButton = buttons.find((button) => button.classList.contains("is-active"));
   if (activeButton) {
     listeners.push(installTabOverflow(strip, list, buttons, activeButton, scrollLabels));
-    const viewport = list.getBoundingClientRect();
-    const selected = activeButton.getBoundingClientRect();
-    if (selected.left < viewport.left) list.scrollLeft += selected.left - viewport.left;
-    else if (selected.right > viewport.right) list.scrollLeft += selected.right - viewport.right;
   }
   return { panel, cleanup: () => listeners.reverse().forEach((cleanup) => cleanup()) };
 }
@@ -160,19 +156,46 @@ function installTabOverflow(
     refresh();
   }
 
+  let followSelectedTab = true;
+  function onScroll(): void {
+    refresh();
+    const viewport = list.getBoundingClientRect();
+    const selected = active.getBoundingClientRect();
+    if (!viewport.width) return;
+    // Keep following a visible selection on resize. Preserve a different page
+    // when the user has scrolled the selection out of view.
+    const visible = Math.min(selected.right, viewport.right) - Math.max(selected.left, viewport.left);
+    followSelectedTab = visible >= Math.min(selected.width, viewport.width) - 1;
+  }
+
+  function measure(): void {
+    refresh();
+    if (!list.clientWidth) return;
+    if (!strip.classList.contains("has-overflow")) {
+      followSelectedTab = true;
+      return;
+    }
+    if (!followSelectedTab) return;
+    const viewport = list.getBoundingClientRect();
+    const selected = active.getBoundingClientRect();
+    if (selected.left < viewport.left && selected.right < viewport.right) list.scrollLeft += selected.left - viewport.left;
+    else if (selected.right > viewport.right && selected.left > viewport.left) list.scrollLeft += selected.right - viewport.right;
+    refresh();
+  }
+
   earlier.addEventListener("click", scroll);
   later.addEventListener("click", scroll);
-  list.addEventListener("scroll", refresh, { passive: true });
-  view?.addEventListener("resize", refresh);
-  const observer = view?.ResizeObserver && new view.ResizeObserver(refresh);
+  list.addEventListener("scroll", onScroll, { passive: true });
+  view?.addEventListener("resize", measure);
+  const observer = view?.ResizeObserver && new view.ResizeObserver(measure);
   observer?.observe(strip);
   for (const tab of tabs) observer?.observe(tab);
-  refresh();
+  measure();
   return () => {
     earlier.removeEventListener("click", scroll);
     later.removeEventListener("click", scroll);
-    list.removeEventListener("scroll", refresh);
-    view?.removeEventListener("resize", refresh);
+    list.removeEventListener("scroll", onScroll);
+    view?.removeEventListener("resize", measure);
     observer?.disconnect();
   };
 }

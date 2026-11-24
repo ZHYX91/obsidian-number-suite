@@ -9,6 +9,8 @@ last_synced: 2026-11-17
 
 # Number Suite — 交互规范
 
+跨插件的交互与外观约定见[插件共同界面规范](https://github.com/ZHYX91/obsidian-property-order/blob/main/docs/shared-ui.zh-CN.md)。
+
 [English synced translation](ux-spec.md)
 
 <!-- section: authority -->

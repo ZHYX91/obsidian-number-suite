@@ -10,6 +10,8 @@ last_synced: 2026-11-17
 
 # Number Suite — UX specification
 
+See the [shared plugin interface](https://github.com/ZHYX91/obsidian-property-order/blob/main/docs/shared-ui.md) for cross-plugin interaction and visual conventions.
+
 [中文规范源](ux-spec.zh-CN.md)
 
 <!-- section: authority -->
