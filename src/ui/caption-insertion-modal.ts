@@ -1,10 +1,10 @@
 import { App, Modal, Setting, type ButtonComponent } from "obsidian";
 
+import { captionActionTitle } from "../config/caption-action-label";
 import type { Translate } from "../config/i18n";
 import { applyModalDirection } from "./modal-direction";
 import {
   formatCaptionInsertionSource,
-  type CaptionInsertionAction,
   type CaptionInsertionTarget,
 } from "../core/caption-insertion";
 
@@ -15,16 +15,6 @@ export interface CaptionInsertionModalOptions {
   readonly translate: Translate;
   readonly onConfirm: (title: string) => Promise<boolean | void>;
   readonly onApplied?: () => void;
-}
-
-function kindLabel(target: CaptionInsertionTarget, t: Translate): string {
-  return t(`caption.kind.${target.kind.toLowerCase()}` as Parameters<Translate>[0]);
-}
-
-function titleKey(action: CaptionInsertionAction):
-"caption.modal.title.insert" | "caption.modal.title.normalize" | "caption.modal.title.relocate" {
-  if (action === "insert") return "caption.modal.title.insert";
-  return action === "relocate" ? "caption.modal.title.relocate" : "caption.modal.title.normalize";
 }
 
 export class CaptionInsertionModal extends Modal {
@@ -41,9 +31,11 @@ export class CaptionInsertionModal extends Modal {
     this.options.signal?.addEventListener("abort", this.abort, { once: true });
     const { contentEl, titleEl } = this;
     const { target, translate: t } = this.options;
-    titleEl.setText(t(titleKey(target.action), { kind: kindLabel(target, t) }));
+    titleEl.setText(captionActionTitle(target, t));
     contentEl.createEl("p", {
-      text: t(`caption.modal.description.${target.kind.toLowerCase()}` as Parameters<Translate>[0]),
+      text: target.action === "insert"
+        ? t(`caption.modal.description.${target.kind.toLowerCase()}` as Parameters<Translate>[0])
+        : t(`caption.modal.description.${target.action}`),
     });
 
     let value = target.suggestedTitle;

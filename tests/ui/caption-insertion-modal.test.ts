@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { App } from "obsidian";
 
 import { installDomFixture } from "./dom-fixture";
+import { UI_LOCALES } from "../../src/config/language-options";
 import { createTranslator } from "../../src/config/i18n";
 import { createCaptionInsertionPlanForTarget, findCaptionInsertionTarget } from "../../src/core/caption-insertion";
 import { CaptionInsertionModal } from "../../src/ui/caption-insertion-modal";
@@ -49,6 +50,30 @@ vi.mock("obsidian", async (importOriginal) => ({
 }));
 
 beforeEach(() => { installDomFixture(); });
+
+it.each(UI_LOCALES)("describes the actual caption operation in %s", (language) => {
+  const t = createTranslator(language);
+  const cases = [
+    ["insert", "![[cat.png]]", "caption.modal.description.figure"],
+    ["normalize", "figure: Cat\n\n![[cat.png]]", "caption.modal.description.normalize"],
+    ["relocate", "![[cat.png]]\n\nFigure: Cat ^cat", "caption.modal.description.relocate"],
+  ] as const;
+  const descriptions = new Set<string>();
+  for (const [action, source, descriptionKey] of cases) {
+    const target = findCaptionInsertionTarget(source, source.indexOf("cat.png"));
+    if (target === null) throw new Error("Expected a caption target");
+    expect(target.action).toBe(action);
+    const modal = new CaptionInsertionModal({ app: new App(), target, translate: t, onConfirm: vi.fn() });
+    modal.onOpen();
+    expect(modal.titleEl.textContent).toBe(t(`caption.menu.figure.${action}`));
+    const description = modal.contentEl.querySelector("p")!.textContent;
+    expect(description).toBe(t(descriptionKey));
+    descriptions.add(description);
+    if (action === "relocate") expect(modal.contentEl.querySelector("code")?.textContent).toContain("^cat");
+    modal.onClose();
+  }
+  expect(descriptions.size).toBe(3);
+});
 
 it.each([true, false])("runs the applied callback after close only for a successful write: %s", async (applied) => {
   const target = findCaptionInsertionTarget("![[cat.png]]", 4);
