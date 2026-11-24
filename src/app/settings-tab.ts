@@ -1,9 +1,9 @@
+import { AccessibleSetting as Setting } from "../ui/accessible-setting";
 import {
   App,
   Modal,
   MarkdownView,
   PluginSettingTab,
-  Setting,
   setIcon,
   setTooltip,
   type SettingDefinitionItem,

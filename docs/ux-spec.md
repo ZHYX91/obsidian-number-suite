@@ -96,6 +96,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 <!-- section: settings-experience -->
 ## Global settings experience
 
+Native settings fields use their visible names and descriptions. Each toggle has one keyboard stop and exposes its current checked and disabled states.
+
 The Links & references tab keeps a short explanation beside the ordinary Wiki link toggle. Its reference guide covers eligible targets, native link behavior and exclusions.
 
 Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,

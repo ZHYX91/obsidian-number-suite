@@ -2065,3 +2065,8 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   border-color: var(--background-modifier-border);
   color: var(--text-muted);
 }
+
+.number-suite-named-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--background-modifier-border-focus);
+  outline-offset: 2px;
+}
