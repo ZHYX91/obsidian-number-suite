@@ -83,7 +83,11 @@ and 0 for Fit. Canvas translation is independent of
 scroll boundaries, and collapsing a branch preserves the clicked parent's screen position. Fit
 centers the visible tree. Search handles describe the effective visible state; toggles on a
 search-revealed ancestor last only for that query and leave the saved collapse intent unchanged.
-Narrow toolbars wrap, and keyboard focus reveals off-screen cards. Touch supports blank-canvas
+In a narrow pane the translated View options menu stays within the toolbar in either text direction.
+Search accepts the title and either visible number, and reports zero matches for an unmatched query.
+Keyboard focus reveals off-screen cards and follows a heading across refreshes and confirmed moves. If its move button becomes
+disabled, focus returns to the heading body. On touch devices at 100% zoom each card control has a
+44 by 44 CSS pixel target. The layout reserves room for both stacked move buttons. Touch supports blank-canvas
 panning, zoom buttons, and two-finger pinch zoom.
 
 The compact Current note panel shows the note name (full path in its tooltip) with automatic Following global / Customized N settings / Disabled for this note status. Virtual numbers, stored-number visibility and scheme each inherit or override independently; inherited choices show the global value. Choosing **Hide** for **Stored numbers** reveals **Hide scope** immediately below it, with **Follow global** selected by default. A saved scope counts as a customization only while explicit **Hide** is selected. Display & numbering starts selected and the sidebar remembers the selected tab for its open session. The header menu disables the note while retaining choices, or restores all Number Suite overrides to global settings. Under Starts & skips, add rules for H1–H9 as needed. Each card names its level. H1 shows Starting number and Sections to skip in the note. H2–H9 also show Sections to skip per parent. Help explains both counts and that either one skips the whole section. Remove rule clears all overrides for that level and removes its card. Edit note text contains write, renumber and clean-up actions, with source marker and multi-file actions below. Global settings have a separate footer entry. Normal saved status takes no extra space; pending saves, invalid YAML, conflicts and save failures remain visible. Secondary descriptions use help tooltips, and narrow controls wrap without horizontal overflow. File actions require one matching editor and fail closed for zero or multiple matches.

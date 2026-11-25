@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { MarkdownView, TFile, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
@@ -14,10 +14,12 @@ vi.mock("obsidian", async (original) => ({
     load(): void { this.titleEl.setText(this.getDisplayText()); }
 
     registerEvent(_event: unknown): void {}
+    register(_cleanup: () => void): void {}
   },
 }));
 
 import { NumberSuiteHeadingMapView } from "../../src/ui/heading-map-view";
+import { createTranslator } from "../../src/config/i18n";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { findHeadingMapNode, HEADING_MAP_DOCUMENT_ID, type HeadingMapNode } from "../../src/application/heading-map";
 import { installDomFixture } from "./dom-fixture";
@@ -86,6 +88,31 @@ function makeView(settings = DEFAULT_SETTINGS): Subject {
   return view as unknown as Subject;
 }
 
+async function openMap(source: string): Promise<NumberSuiteHeadingMapView> {
+  const file = Object.assign(Object.create(TFile.prototype) as TFile, {
+    path: "Map.md", basename: "Map", extension: "md",
+  });
+  const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
+    getSettings: () => DEFAULT_SETTINGS,
+    getTranslate: () => ((key: string) => key),
+  });
+  Object.assign(view, {
+    app: {
+      workspace: {
+        on: vi.fn(),
+        getActiveFile: () => file,
+        getActiveViewOfType: () => null,
+        iterateAllLeaves: vi.fn(),
+      },
+      vault: { on: vi.fn(), cachedRead: async () => source },
+    },
+  });
+  view.load();
+  await view.onOpen();
+  onTestFinished(() => view.onClose());
+  return view;
+}
+
 beforeEach(installDomFixture);
 afterEach(() => { vi.useRealTimers(); });
 
@@ -103,44 +130,58 @@ it.each([
 describe("heading map touch targets", () => {
   afterEach(() => { vi.restoreAllMocks(); });
 
-  it("zooms when one finger starts on a heading card", async () => {
-    const view = makeView();
-    await view.refreshMap("# Root\n## Child");
+  async function openTouchMap(source: string) {
+    const opened = await openMap(source);
+    const view = opened as unknown as Subject;
+    const viewport = view.viewport;
     const captured = new Set<number>();
-    view.viewport.setPointerCapture = (id: number) => { captured.add(id); };
-    view.viewport.hasPointerCapture = (id: number) => captured.has(id);
-    view.viewport.releasePointerCapture = (id: number) => { captured.delete(id); };
-    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
-    view.viewport.addEventListener("pointermove", (event) => view.movePan(event));
-    const pointer = (type: string, id: number, x: number) => new PointerEvent(type, {
-      bubbles: true, pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: 100,
-    });
+    viewport.setPointerCapture = (id: number) => { captured.add(id); };
+    viewport.hasPointerCapture = (id: number) => captured.has(id);
+    viewport.releasePointerCapture = (id: number) => { captured.delete(id); };
+    const touch = (type: string, target: HTMLElement, y: number, pointerId = 1, x = 100) => {
+      const event = new PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerType: "touch", pointerId, button: 0, clientX: x, clientY: y,
+      });
+      target.dispatchEvent(event);
+      return event;
+    };
+    return { opened, view, captured, touch };
+  }
+
+  it("zooms when one finger starts on a heading card", async () => {
+    const { view, touch } = await openTouchMap("# Root\n## Child");
     const card = view.sceneHost.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
-    view.viewport.dispatchEvent(pointer("pointerdown", 1, 100));
-    card.dispatchEvent(pointer("pointerdown", 2, 300));
-    view.viewport.dispatchEvent(pointer("pointermove", 2, 400));
+    touch("pointerdown", view.viewport, 100);
+    touch("pointerdown", card, 100, 2, 300);
+    touch("pointermove", view.viewport, 100, 2, 400);
     expect(view.scale).toBeGreaterThan(1);
   });
 
-  it("keeps a single-finger card tap from starting a pan", async () => {
+  it.each(["left-to-right", "top-to-bottom"] as const)("uses the touch card height for %s connectors", async (direction) => {
+    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
     const view = makeView();
-    await view.refreshMap("# Root");
+    view.rearranging = true;
+    view.layoutDirection = direction;
+    await view.refreshMap("# A\n# B");
+    const layout = view.lastLayout;
+    expect(layout.cardHeight).toBeGreaterThanOrEqual(2 * 44 + 2);
+    const root = layout.nodes[0]!;
+    const edge = layout.edges[0]!;
+    expect(edge.fromY).toBe(root.y + (direction === "left-to-right" ? layout.cardHeight / 2 : layout.cardHeight));
+    expect(view.sceneHost.querySelector<HTMLElement>(".number-suite-heading-map-card")!.style.height).toBe(`${layout.cardHeight}px`);
+  });
+  it("keeps a single-finger card tap from starting a pan", async () => {
+    const { view, touch } = await openTouchMap("# Root");
     const card = view.sceneHost.querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
-    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
-    card.dispatchEvent(new PointerEvent("pointerdown", {
-      bubbles: true, pointerId: 1, pointerType: "touch", button: 0, clientX: 100, clientY: 100,
-    }));
+    touch("pointerdown", card, 100);
     expect(view.viewport.classList.contains("is-panning")).toBe(false);
     expect(view.scale).toBe(1);
   });
 
   async function reorderHarness() {
-    const view = makeView();
-    view.moveStatusEl = document.createElement("div");
-    await view.refreshMap("# Root\n## A\n### Child\n## B");
+    const { opened, view, captured, touch } = await openTouchMap("# Root\n## A\n### Child\n## B");
     view.collapsed.clear();
-    view.rearranging = true;
-    view.render();
+    opened.contentEl.querySelector<HTMLButtonElement>(".number-suite-heading-map-rearrange")!.click();
     const [a, b] = view.roots[0]!.children;
     const card = (node: HeadingMapNode) => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${node.id}"]`)!;
     const body = card(a!).querySelector<HTMLButtonElement>(".number-suite-heading-map-body")!;
@@ -148,21 +189,6 @@ describe("heading map touch targets", () => {
     const target = card(b!);
     const hitTest = vi.spyOn(document, "elementFromPoint").mockReturnValue(target);
     const write = vi.spyOn(view, "applyMove").mockResolvedValue(undefined);
-    const captured = new Set<number>();
-    view.viewport.setPointerCapture = (id: number) => { captured.add(id); };
-    view.viewport.hasPointerCapture = (id: number) => captured.has(id);
-    view.viewport.releasePointerCapture = (id: number) => { captured.delete(id); };
-    view.viewport.addEventListener("pointerdown", (event) => view.beginPan(event));
-    view.viewport.addEventListener("pointermove", (event) => view.movePan(event));
-    view.viewport.addEventListener("pointerup", (event) => view.endPan(event));
-    view.viewport.addEventListener("pointercancel", (event) => view.endPan(event));
-    const touch = (type: string, element: HTMLElement, y: number, pointerId = 1) => {
-      const event = new PointerEvent(type, {
-        bubbles: true, cancelable: true, pointerType: "touch", pointerId, clientX: 100, clientY: y,
-      });
-      element.dispatchEvent(event);
-      return event;
-    };
     return { view, a: a!, b: b!, body, child, target, hitTest, write, touch, captured };
   }
 
@@ -176,7 +202,7 @@ describe("heading map touch targets", () => {
     expect(target.classList.contains("is-drop-after")).toBe(true);
     touch("pointerup", view.viewport, 30);
     expect(write).toHaveBeenCalledExactlyOnceWith(
-      { id: a.id, line: a.line, source: "# Root\n## A\n### Child\n## B", path: "Same.md", file: view.currentFile },
+      { id: a.id, line: a.line, source: "# Root\n## A\n### Child\n## B", path: "Map.md", file: view.currentFile },
       b.line, "after",
     );
     expect(target.classList.contains("is-drop-after")).toBe(false);
@@ -232,6 +258,21 @@ describe("heading map write identity", () => {
     const drag = { id: "a", line: 1, source, path: file.path, file };
     return { view, markdown, file, replacement, drag, transaction, replace: () => { registered = Object.assign(Object.create(TFile.prototype) as TFile, { path: file.path, extension: "md", basename: "Same" }); } };
   }
+  it("keeps focus on the moved heading when its move button becomes disabled", async () => {
+    const { view, drag, transaction } = writeHarness();
+    vi.spyOn(view, "scheduleRefresh").mockImplementation(() => undefined);
+    document.body.append(view.viewport);
+    onTestFinished(() => view.viewport.remove());
+    await view.refreshMap(source);
+    const moved = view.roots[0]!.children[0]!;
+    const card = () => view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${moved.id}"]`)!;
+    card().querySelector<HTMLButtonElement>("[data-map-action=down]")!.focus();
+    await view.applyMove({ ...drag, id: moved.id }, 3, "after");
+    expect(transaction).toHaveBeenCalledOnce();
+    await view.refreshMap("# Root\n## B\n## A\nbody\n");
+    expect(view.roots[0]!.children[1]?.id).toBe(moved.id);
+    expect(document.activeElement).toBe(card().querySelector("[data-map-action=body]"));
+  });
   it("reports missing source editor separately without writing", async () => {
     const h = writeHarness();
     h.view.moveStatusEl = document.createElement("div");
@@ -417,26 +458,7 @@ describe("heading map interactions", () => {
   });
 
   it("loads through the host lifecycle without overwriting the ItemView header", async () => {
-    const file = Object.assign(Object.create(TFile.prototype) as TFile, {
-      path: "Map.md", basename: "Map", extension: "md",
-    });
-    const view = new NumberSuiteHeadingMapView({} as WorkspaceLeaf, {
-      getSettings: () => DEFAULT_SETTINGS,
-      getTranslate: () => ((key: string) => key),
-    });
-    Object.assign(view, {
-      app: {
-        workspace: {
-          on: vi.fn(),
-          getActiveFile: () => file,
-          getActiveViewOfType: () => null,
-          iterateAllLeaves: vi.fn(),
-        },
-        vault: { on: vi.fn(), cachedRead: async () => "# Root\n## Child" },
-      },
-    });
-    view.load();
-    await view.onOpen();
+    const view = await openMap("# Root\n## Child");
     const header = (view as unknown as { titleEl: HTMLElement }).titleEl;
     expect(header.textContent).toBe("headingMap.title");
     expect(view.contentEl.querySelector(".number-suite-heading-map-file")?.textContent).toBe("Map");
@@ -476,7 +498,6 @@ describe("heading map interactions", () => {
     expect(body.parentElement?.classList.contains("is-selected")).toBe(true);
     expect(hostSwipe).not.toHaveBeenCalled();
     expect(hostPointer).not.toHaveBeenCalled();
-    await view.onClose();
   });
 
   it("defers an empty document's initial fit until a hidden tab is revealed without resetting later panning", async () => {
@@ -664,6 +685,46 @@ describe("heading map interactions", () => {
     expect(view.selectedId).not.toBe(first);
     view.cycleSearch(true);
     expect(view.selectedId).toBe(first);
+  });
+
+  it("retains the same card control across refreshes without stealing focus from the search field", async () => {
+    const view = await openMap("# Root\n## A");
+    document.body.append(view.contentEl);
+    onTestFinished(() => view.contentEl.remove());
+    const subject = view as unknown as Subject;
+    const control = () => view.contentEl.querySelector<HTMLButtonElement>(".number-suite-heading-map-children")!;
+    control().focus();
+    await subject.refreshMap("# Root\n## A\nbody");
+    expect(document.activeElement).toBe(control());
+    const search = view.contentEl.querySelector("input")!;
+    search.focus();
+    await subject.refreshMap("# Root\n## A\nmore");
+    expect(document.activeElement).toBe(search);
+    control().focus();
+    subject.setFile({ path: "Other.md", extension: "md" }, false);
+    await subject.refreshMap("# Root");
+    expect(document.activeElement).not.toBe(control());
+  });
+
+  it("searches either visible number and announces zero results", async () => {
+    const settings = { ...DEFAULT_SETTINGS, showVirtualNumbers: true, selectedSchemeId: "hierarchical", storedHeadingNumberStyleScope: "common" as const };
+    const view = makeView(settings);
+    const status = document.createElement("span");
+    Object.assign(view, { searchStatusEl: status, actions: { getSettings: () => settings, getTranslate: () => createTranslator("en") } });
+    await view.refreshMap("# 2.1 Design");
+    expect(view.roots[0]?.storedNumber?.label).toBe("2.1");
+    for (const query of ["2.1", "1 Design", "2.1 Design"]) {
+      view.searchQuery = query;
+      view.render();
+      expect(view.searchMatches).toEqual([view.roots[0]!.id]);
+      expect(status.textContent).toBe("1 / 1");
+    }
+    view.searchQuery = "absent";
+    view.render();
+    expect(status.textContent).toBe("0 / 0");
+    view.searchQuery = "";
+    view.render();
+    expect(status.textContent).toBe("");
   });
 
   it("supports plus, minus, and zero keyboard viewport controls", async () => {

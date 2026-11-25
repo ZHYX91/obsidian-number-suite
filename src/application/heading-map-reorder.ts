@@ -8,6 +8,8 @@ export interface SameParentHeadingMove {
   readonly to: number;
   readonly original: string;
   readonly replacement: string;
+  readonly resultSource: string;
+  readonly nextHeadingLines: ReadonlyMap<number, number>;
 }
 
 /**
@@ -110,13 +112,15 @@ export function assessSameParentHeadingMove(
     if (offset >= pivot) return offset - before.length;
     return offset + after.length + transferredEolLength;
   };
+  const nextHeadingLines = new Map<number, number>();
   for (const heading of atx) {
     const current = resultAtx.get(relocatedOffset(heading.lineFrom));
     if (current?.level !== heading.level || current.content !== heading.content) return null;
+    nextHeadingLines.set(heading.line, current.line);
   }
   for (const heading of setext) {
     // lineFrom may include a preceding blank line; verify the actual title.
     if (resultSetext.get(relocatedOffset(lines[heading.line]!.from)) !== heading.level) return null;
   }
-  return Object.freeze({ expectedSource: source, from, to, original, replacement });
+  return Object.freeze({ expectedSource: source, from, to, original, replacement, resultSource: result, nextHeadingLines });
 }

@@ -63,15 +63,31 @@ function sourceLineMatches(before: readonly string[], after: readonly string[]):
   return matches;
 }
 
+function sourceLines(source: string): string[] {
+  const lines = source.split(/\r\n|\r|\n/u);
+  if (lines[lines.length - 1] === "") lines.pop();
+  return lines;
+}
+
 /** One document session owns monotonically allocated IDs, reconciled across source snapshots. */
 export class HeadingMapIdentity {
   private lines: readonly string[] = [];
   private ids = new Map<number, string>();
   private nextId = 1;
 
+  /** An accepted move already knows the positions of all headings, including duplicate titles. */
+  applyMove(source: string, nextHeadingLines: ReadonlyMap<number, number>): void {
+    const ids = new Map<number, string>();
+    for (const [oldLine, newLine] of nextHeadingLines) {
+      const id = this.ids.get(oldLine);
+      if (id != null) ids.set(newLine, id);
+    }
+    this.ids = ids;
+    this.lines = sourceLines(source);
+  }
+
   update(source: string, headings: readonly ParsedHeading[]): ReadonlyMap<number, string> {
-    const lines = source.split(/\r\n|\r|\n/u);
-    if (lines[lines.length - 1] === "") lines.pop();
+    const lines = sourceLines(source);
     const matches = sourceLineMatches(this.lines, lines);
     const ids = new Map<number, string>();
     for (const heading of headings) {

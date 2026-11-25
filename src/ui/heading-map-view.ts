@@ -80,6 +80,9 @@ interface TouchReorder {
 const MIN_SCALE = 0.38;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 1.2;
+// Two 44px targets plus the card borders.
+const TOUCH_REORDER_CARD_HEIGHT = 90;
+const TOUCH_INPUT_QUERY = "(any-pointer: coarse)";
 const TOUCH_REORDER_THRESHOLD = 8;
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -155,6 +158,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.contentEl.addClass("number-suite-heading-map-view");
     this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
     this.buildToolbar();
+    const touch = this.contentEl.ownerDocument.defaultView?.matchMedia?.(TOUCH_INPUT_QUERY);
+    if (touch != null) {
+      const onPointerChange = (): void => { if (this.rearranging) this.render(); };
+      touch.addEventListener("change", onPointerChange);
+      this.register(() => touch.removeEventListener("change", onPointerChange));
+    }
     this.viewport = this.contentEl.createDiv({ cls: "number-suite-heading-map-viewport" });
     this.viewport.tabIndex = 0;
     this.viewport.setAttribute("aria-label", this.actions.getTranslate()("headingMap.canvas"));
@@ -337,7 +346,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.cycleSearch(event.shiftKey);
     });
     this.searchInput = search;
-    this.searchStatusEl = primary.createSpan({ cls: "number-suite-heading-map-search-status" });
+    this.searchStatusEl = primary.createSpan({
+      cls: "number-suite-heading-map-search-status", attr: { role: "status" },
+    });
 
     const secondary = toolbar.createDiv({ cls: "number-suite-heading-map-toolbar-secondary" });
     this.rearrangeButton = secondary.createEl("button", { cls: "number-suite-heading-map-rearrange" });
@@ -437,12 +448,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
     }
     if (this.scaleLabel != null) this.scaleLabel.setText(`${Math.round(this.scale * 100)}%`);
     if (this.searchStatusEl != null) {
-      this.searchStatusEl.setText(this.searchQuery.length === 0 || this.searchMatches.length === 0
+      const result = this.searchQuery.length === 0
         ? ""
         : this.actions.getTranslate()("headingMap.searchResult", {
           current: Math.min(this.searchIndex + 1, this.searchMatches.length),
           total: this.searchMatches.length,
-        }));
+        });
+      if (this.searchStatusEl.textContent !== result) this.searchStatusEl.setText(result);
     }
     if (this.directionButton != null) {
       const vertical = this.layoutDirection === "top-to-bottom";
@@ -647,6 +659,10 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (host == null) return;
     this.cancelTouchReorder();
     const previousAnchor = this.lastLayout?.nodes.find(({ node }) => node.id === this.selectedId);
+    const active = host.ownerDocument.activeElement;
+    const focused = this.lastLayout != null && host.contains(active) ? active : null;
+    const focusedId = focused?.closest<HTMLElement>("[data-node-id]")?.dataset.nodeId;
+    const focusedAction = focused?.getAttribute("data-map-action");
     host.empty();
     if (this.currentFile == null) {
       host.createDiv({
@@ -673,7 +689,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     if (this.searchQuery.length > 0) {
       for (const id of this.searchCollapsed) effectiveCollapsed.add(id);
     }
-    const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed, this.layoutDirection);
+    const touchEditing = this.rearranging && host.ownerDocument.defaultView?.matchMedia?.(TOUCH_INPUT_QUERY).matches;
+    const layout = layoutHeadingMap(visibleRoots, effectiveCollapsed, this.layoutDirection,
+      touchEditing ? TOUCH_REORDER_CARD_HEIGHT : HEADING_MAP_CARD_HEIGHT);
     if (this.selectedId != null && !layout.nodes.some(({ node }) => node.id === this.selectedId)) {
       // Clearing search can hide the selected match again. Keep its nearest visible ancestor
       // at the match's screen position instead of leaving the user over an empty canvas.
@@ -740,7 +758,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       card.style.left = `${item.x}px`;
       card.style.top = `${item.y}px`;
       card.style.width = `${HEADING_MAP_CARD_WIDTH}px`;
-      card.style.height = `${HEADING_MAP_CARD_HEIGHT}px`;
+      card.style.height = `${layout.cardHeight}px`;
       card.classList.toggle("is-selected", node.id === this.selectedId);
       card.classList.toggle("is-match", matches.has(node.id));
       const documentRoot = node.id === HEADING_MAP_DOCUMENT_ID;
@@ -799,6 +817,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       }
       const number = card.createEl("button", { cls: "number-suite-heading-map-number" });
       number.type = "button";
+      number.dataset.mapAction = "number";
       if (documentRoot) setIcon(number, "file-text");
       else number.setText(node.numberLabel ?? `H${node.level}`);
       number.classList.toggle("is-level", !documentRoot && node.numberLabel == null);
@@ -825,6 +844,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
       const body = card.createEl("button", { cls: "number-suite-heading-map-body" });
       body.type = "button";
+      body.dataset.mapAction = "body";
       body.setText(node.title || this.actions.getTranslate()("headingMap.untitled"));
       body.title = node.title || this.actions.getTranslate()("headingMap.untitled");
       body.addEventListener("click", () => this.setSelection(node.id));
@@ -844,7 +864,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
             ? "headingMap.rearrange.up" : "headingMap.rearrange.down");
           const button = controls.createEl("button", {
             cls: "number-suite-heading-map-order-action",
-            attr: { type: "button", "aria-label": label, title: label },
+            attr: { type: "button", "data-map-action": direction, "aria-label": label, title: label },
           });
           setIcon(button, direction === "up" ? "chevron-up" : "chevron-down");
           button.disabled = neighbor == null || this.lastSource == null || this.moving;
@@ -869,7 +889,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       const handle = card.createEl("button", {
         cls: "number-suite-heading-map-children",
         text: String(childCount),
-        attr: { "data-node-control": node.id },
+        attr: { "data-node-control": node.id, "data-map-action": "children" },
       });
       handle.type = "button";
       handle.addEventListener("focus", () => this.revealNode(node.id));
@@ -891,12 +911,18 @@ export class NumberSuiteHeadingMapView extends ItemView {
           if (collapsed) collection.delete(node.id);
           else collection.add(node.id);
           this.render();
-          this.focusControl(node.id);
         });
       }
     }
 
     this.applyScale();
+    if (focusedId != null && focusedAction != null) {
+      const card = canvas.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(focusedId)}"]`);
+      const control = card?.querySelector<HTMLButtonElement>(`[data-map-action="${CSS.escape(focusedAction)}"]`);
+      const target = control != null && !control.disabled
+        ? control : card?.querySelector<HTMLButtonElement>("[data-map-action=body]") ?? this.viewport;
+      target?.focus({ preventScroll: true });
+    }
     this.updateToolbarState();
     if (this.needsInitialFit) {
       this.requestFrame(() => this.fitInitialView());
@@ -1025,6 +1051,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         to: editor.offsetToPos(plan.to),
         text: plan.replacement,
       }] });
+      this.identities.applyMove(plan.resultSource, plan.nextHeadingLines);
       this.setMoveStatus();
       this.sourceLeaf = bound.leaf;
       this.scheduleRefresh();
@@ -1049,7 +1076,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
     const visit = (node: HeadingMapTreeNode, path: readonly string[]): void => {
       const searchable = `${node.numberLabel ?? ""} ${node.title}`.toLocaleLowerCase();
-      if (searchable.includes(query)) {
+      const stored = node.storedNumber;
+      if (searchable.includes(query)
+        || (stored != null && `${stored.label} ${node.title}`.toLocaleLowerCase().includes(query))) {
         matches.add(node.id);
         ordered.push(node.id);
         for (const id of path) ancestors.add(id);
@@ -1095,18 +1124,6 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.updateToolbarState();
   }
 
-  private focusControl(id: string): void {
-    this.requestFrame(() => {
-      const controls = this.sceneHost?.querySelectorAll<HTMLButtonElement>("[data-node-control]") ?? [];
-      for (const control of controls) {
-        if (control.dataset.nodeControl === id) {
-          control.focus({ preventScroll: true });
-          break;
-        }
-      }
-    });
-  }
-
   private centerNode(id: string): void {
     const viewport = this.viewport;
     const layout = this.lastLayout;
@@ -1114,7 +1131,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     const item = layout.nodes.find(({ node }) => node.id === id);
     if (item == null) return;
     const centerX = (item.x + HEADING_MAP_CARD_WIDTH / 2) * this.scale;
-    const centerY = (item.y + HEADING_MAP_CARD_HEIGHT / 2) * this.scale;
+    const centerY = (item.y + layout.cardHeight / 2) * this.scale;
     this.offsetX = viewport.clientWidth / 2 - centerX;
     this.offsetY = viewport.clientHeight / 2 - centerY;
     this.applyScale();
@@ -1122,12 +1139,13 @@ export class NumberSuiteHeadingMapView extends ItemView {
 
   private revealNode(id: string): void {
     const viewport = this.viewport;
-    const item = this.lastLayout?.nodes.find(({ node }) => node.id === id);
-    if (viewport == null || item == null) return;
+    const layout = this.lastLayout;
+    const item = layout?.nodes.find(({ node }) => node.id === id);
+    if (viewport == null || layout == null || item == null) return;
     const left = item.x * this.scale + this.offsetX;
     const top = item.y * this.scale + this.offsetY;
     if (left < 0 || top < 0 || left + HEADING_MAP_CARD_WIDTH * this.scale > viewport.clientWidth
-      || top + HEADING_MAP_CARD_HEIGHT * this.scale > viewport.clientHeight) this.centerNode(id);
+      || top + layout.cardHeight * this.scale > viewport.clientHeight) this.centerNode(id);
   }
 
   private async navigate(node: HeadingMapTreeNode): Promise<void> {
@@ -1196,7 +1214,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
       const root = layout.nodes.find(({ node }) => node.id === (this.scopeId ?? HEADING_MAP_DOCUMENT_ID));
       if (root != null) {
         this.offsetX = 24 - root.x * this.scale;
-        this.offsetY = viewport.clientHeight / 2 - (root.y + HEADING_MAP_CARD_HEIGHT / 2) * this.scale;
+        this.offsetY = viewport.clientHeight / 2 - (root.y + layout.cardHeight / 2) * this.scale;
       }
     }
     this.applyScale();
