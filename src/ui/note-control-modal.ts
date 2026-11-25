@@ -87,6 +87,13 @@ export class NoteControlPane {
   private frontmatter: Record<string, unknown> | null = null;
   private file: TFile | null = null;
   private request = 0;
+  private destroyed = false;
+  private reloadDeferred = false;
+  private readFailed = false;
+  private readonly scheduleDeferredReload = (): void => {
+    // Check the final focus destination and let synchronous save notifications finish.
+    if (this.reloadDeferred) queueMicrotask(() => this.resumeDeferredReload());
+  };
   private readonly addedLevels = new Set<ReturnType<typeof headingLevels>[number]>();
 
   constructor(
@@ -98,7 +105,7 @@ export class NoteControlPane {
   ) {
     this.coordinators = sessionsFor(app);
     this.header = contentEl.createDiv({ cls: "number-suite-note-control-header" });
-    this.descriptions = contentEl.createDiv();
+    this.descriptions = contentEl.createDiv({ cls: "number-suite-note-messages" });
     this.tabList = contentEl.createDiv({
       cls: "number-suite-sidebar-tabs", attr: { role: "tablist", "aria-orientation": "horizontal" },
     });
@@ -126,6 +133,7 @@ export class NoteControlPane {
         "aria-labelledby": this.tabs[tab].id, tabindex: "0" },
     });
     this.panels = { display: makePanel("display"), edit: makePanel("edit") };
+    this.panels.display.addEventListener("focusout", this.scheduleDeferredReload);
     this.editActions = this.panels.edit.createDiv({ cls: "number-suite-sidebar-edit-actions" });
     const footer = contentEl.createDiv({ cls: "number-suite-sidebar-footer" });
     this.settingsButton = footer.createEl("button", { attr: { type: "button" } });
@@ -152,6 +160,7 @@ export class NoteControlPane {
       this.tabs[id].tabIndex = selected ? 0 : -1;
       this.panels[id].hidden = !selected;
     }
+    this.resumeDeferredReload();
   }
 
   mountPreview(): HTMLElement {
@@ -176,6 +185,7 @@ export class NoteControlPane {
       if (reload) void this.reload();
       return;
     }
+    this.reloadDeferred = false;
     const previousFile = this.file;
     const previousCoordinator = this.coordinator;
     this.flushDraft();
@@ -203,11 +213,20 @@ export class NoteControlPane {
     void this.reload();
   }
 
+  private resumeDeferredReload(): void {
+    if (this.reloadDeferred) void this.reload();
+  }
+
   private async reload(): Promise<void> {
-    if (
-      this.coordinator != null
-      && (this.coordinator.pending || this.numberDrafts.size > 0 || this.panels.display.contains(this.contentEl.ownerDocument.activeElement))
-    ) return;
+    if (this.destroyed) return;
+    if (this.coordinator != null && (
+      this.coordinator.pending || this.coordinator.state === "saving" || this.numberDrafts.size > 0
+      || (!this.panels.display.hidden && this.panels.display.contains(this.contentEl.ownerDocument.activeElement))
+    )) {
+      this.reloadDeferred = true;
+      return;
+    }
+    this.reloadDeferred = false;
     const file = this.file;
     const request = this.request + 1;
     this.request = request;
@@ -225,17 +244,20 @@ export class NoteControlPane {
     }
     if (retained != null) this.coordinators.delete(file);
 
+    this.detachCoordinator();
+    this.frontmatter = null;
+    this.readFailed = false;
     this.busy = true;
     this.renderLoading();
     try {
       const source = await this.app.vault.cachedRead(file);
-      if (request !== this.request || file.path !== this.file?.path) return;
+      if (request !== this.request || file !== this.file) return;
       this.frontmatter = parseFrontmatterRecordFromSource(source);
       this.createCoordinator(file);
     } catch (error: unknown) {
       console.error("Number Suite: failed to read current note Properties", error);
-      if (request !== this.request || file.path !== this.file?.path) return;
-      this.frontmatter = null;
+      if (request !== this.request || file !== this.file) return;
+      this.readFailed = true;
     }
     this.busy = false;
     this.render();
@@ -335,10 +357,13 @@ export class NoteControlPane {
     if (this.frontmatter == null) {
       const error = this.descriptions.createDiv({ cls: "number-suite-note-control-error" });
       error.setAttribute("role", "alert");
-      error.setText(this.t("notice.invalidFrontmatter"));
+      error.setText(this.t(this.readFailed ? "panel.readFailed" : "notice.invalidFrontmatter"));
       new Setting(this.descriptions).addButton((button) => button
         .setButtonText(this.t("panel.retry"))
-        .onClick(() => void this.reload()));
+        .onClick(() => {
+          this.tabs[this.activeTab].focus();
+          void this.reload();
+        }));
       return;
     }
 
@@ -347,6 +372,7 @@ export class NoteControlPane {
     if (!snapshot.valid) {
       const error = this.descriptions.createDiv({ cls: "number-suite-note-control-error" });
       error.setAttribute("role", "alert");
+      error.tabIndex = 0;
       error.createEl("strong", { text: this.t("panel.properties.invalid") });
       const list = error.createEl("ul");
       for (const entry of snapshot.issues) list.createEl("li", { text: notePropertyIssueText(entry, this.t) });
@@ -636,6 +662,7 @@ export class NoteControlPane {
     this.coordinatorUnsubscribe = coordinator.subscribe((state) => {
       if (this.coordinator !== coordinator || this.file !== file) return;
       this.saveState = state;
+      if (state === "saved") this.scheduleDeferredReload();
       this.frontmatter = coordinator.snapshot;
       this.renderSaveStatus();
       const settings = this.getSettings();
@@ -727,6 +754,9 @@ export class NoteControlPane {
   }
 
   destroy(): void {
+    this.destroyed = true;
+    this.reloadDeferred = false;
+    this.panels.display.removeEventListener("focusout", this.scheduleDeferredReload);
     void this.coordinator?.flush();
     this.detachCoordinator();
     this.request += 1;

@@ -277,6 +277,30 @@ describe("BatchController preview", () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
+  it("reports a stale disk revision to the open preview without applying", async () => {
+    const test = harness({ "a.md": "# Alpha" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    test.contents.set("a.md", "# New revision");
+    expect(await shown.onConfirm(shown.documents)).toBe(false);
+    expect(test.processCalls()).toBe(0);
+    expect(test.getStored()).toBeNull();
+  });
+
+  it("retains a retryable failure when recovery storage cannot be written", async () => {
+    const test = harness({ "a.md": "# Alpha" });
+    await preview(test.controller);
+    const shown = currentPreview();
+    test.setPersistenceHook((snapshot) => {
+      if (snapshot?.status === "pending") throw new Error("Storage temporarily unavailable");
+    });
+    expect(await shown.onConfirm(shown.documents)).toEqual({ message: "notice.batchFailed", stale: false });
+    expect(test.processCalls()).toBe(0);
+    test.setPersistenceHook(null);
+    await shown.onConfirm(shown.documents);
+    expect(test.getStored()?.status).toBe("applied");
+  });
+
   it("applies the production plan to the original file after preview", async () => {
     const test = harness({ "a.md": "# Alpha" });
     await preview(test.controller);

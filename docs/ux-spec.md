@@ -96,8 +96,7 @@ Layout and expansion depth use secondary View options; range, search and zoom st
 
 Follow global deletes the relevant Property. Restore all deletes every plugin override while
 preserving unrelated Properties. After a successful Property write, the tab exits its busy state,
-rereads Properties, and immediately refreshes Live Preview, Reading View, and the outline. Read
-failure blocks blind writes and offers retry. Single-note Markdown actions, including commands, open an itemized preview within Edit note text. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The target and action area stay visible while differences scroll independently. Switching the active note or the sidebar tab retains the preview and its original target; a stale refusal disables Apply until a fresh preview is built. Back, Cancel and successful Apply restore the Edit note text action list. Batch selection and previews remain wide modals; scheme editing stays in global settings.
+rereads Properties, and immediately refreshes Live Preview, Reading View, and the outline. External changes received while a display control has focus, a numeric field has an uncommitted value, or a save is pending are reread when editing finishes. A file-read failure and invalid Properties YAML have distinct messages and both offer retry. Long diagnostics scroll within a bounded area so the tabs remain usable. Single-note Markdown actions, including commands, open an itemized preview within Edit note text. It fixes the target filename and change count, provides Back/Cancel/Apply, and retains warnings and incremental loading. The edit tab scrolls the entire preview, including long warnings and recognition settings. The target sticks to the top and actions to the bottom while space permits. In very short docks they return to the scrollable content. Switching the active note or the sidebar tab retains the preview and its original target; a stale refusal disables Apply until a fresh preview is built. Back, Cancel and successful Apply restore the Edit note text action list. Batch selection and previews remain wide modals; scheme editing stays in global settings.
 
 <!-- section: settings-experience -->
 ## Global settings experience
@@ -129,18 +128,22 @@ Discard and reload remains available even when external Properties are invalid.
 <!-- section: previews-and-warnings -->
 ## Previews and warnings
 
+Apply is disabled while the cleanup scope refreshes. A failed refresh keeps the previous scope and preview and shows an error. Refreshing preserves focus in the current control or another pane.
+
+Caption and stable-reference dialogs keep their preview open after an unexpected edit failure. They show the error and restore the controls for another attempt.
+
 Batch editing uses one dialog. Choose a folder or the entire vault and an operation, then open the preview.
 Both choices start empty. The confirmation shows the selected scope and operation, Markdown notes checked
 after folder exclusions, notes whose source will change, individual changes and warnings. Apply names the
 number of notes it will edit and is disabled at zero. Back keeps both choices and the next preview reads
-the current notes again. At narrow widths the scope and operation controls stack.
+the current notes again. A refused or failed apply keeps the preview and its explanation visible. A stale source or an incomplete rollback requires a fresh preview. A temporary failure with intact originals can be retried. At narrow widths the scope and operation controls stack.
 
 Current-note and batch previews identify file, line, before/after text, and
 warnings. A stale preview cancels as a whole. Ambiguous or multiple prefixes, empty headings,
 missing parents, and unsupported prefixes explain why no modification occurs. Stored operations
 warn about heading-link risk.
 
-Each file has a native disclosure summary with its change and warning counts. The first file opens initially; other bodies render on expansion. Pagination belongs to each file. Only the changed numbering substring is emphasized; unchanged heading text stays neutral and Before/After labels remain visible.
+Each file has a native disclosure summary with its change and warning counts. The first file opens initially; other bodies render on expansion. Pagination belongs to each file. Loading a page retains existing rows and moves focus to the first new change or warning. A refused Apply moves focus to its explanation. Only the changed numbering substring is emphasized; unchanged heading text stays neutral and Before/After labels remain visible.
 
 Warning-only files appear in the preview but never enter the write or recovery set. Changes and
 warnings can be expanded until every result is visible. Normal diagnostics use localized reasons,

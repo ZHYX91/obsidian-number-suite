@@ -14,7 +14,7 @@ export function changedTextParts(before: string, after: string): {
 }
 
 export function renderPreviewDifference(container: HTMLElement, prefix: string, changed: string, suffix: string): void {
-  const code = container.createEl("code");
+  const code = container.createEl("code", { attr: { dir: "auto" } });
   code.appendText(prefix);
   if (changed !== "") code.createEl("mark", { text: changed, cls: "number-suite-diff-changed" });
   code.appendText(suffix);

@@ -53,6 +53,7 @@ vi.mock("obsidian", async (importOriginal) => {
 });
 
 import { TFile, type App, type WorkspaceLeaf } from "obsidian";
+import * as frontmatterSource from "../../src/config/frontmatter-source";
 import { createTranslator } from "../../src/config/i18n";
 import { DEFAULT_SETTINGS } from "../../src/config/settings";
 import { NoteControlPane } from "../../src/ui/note-control-modal";
@@ -144,6 +145,52 @@ describe("simplified current-note controls", () => {
     change(scope()!, "");
     await vi.waitFor(() => expect(stored["number-suite"]).toEqual(["heading.hide-stored=true"]));
     pane.destroy();
+  });
+
+  it("updates saved note status after an external change and a switch to Edit note text", async () => {
+    const read = vi.fn().mockResolvedValue("---\nnumber-suite:\n  - disabled=true\n---\n# Note");
+    const { host, pane } = render({}, { vault: { cachedRead: read } } as unknown as App);
+    document.body.append(host);
+    const parse = vi.spyOn(frontmatterSource, "parseFrontmatterRecordFromSource")
+      .mockReturnValueOnce({ "number-suite": ["disabled=true"] });
+    try {
+      host.querySelector("select")!.focus();
+      pane.refresh();
+      expect(read).not.toHaveBeenCalled();
+      host.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1]!.click();
+      await vi.waitFor(() => expect(host.querySelector(".number-suite-note-control-state")?.textContent).toBe(translate("panel.status.disabled")));
+      expect(read).toHaveBeenCalledOnce();
+      expect(host.querySelector<HTMLButtonElement>(".number-suite-note-control-actions button")?.disabled).toBe(true);
+    } finally {
+      parse.mockRestore();
+      pane.destroy();
+    }
+  });
+
+  it("shows separate read and YAML errors, blocks editing, and recovers by retrying", async () => {
+    const read = vi.fn().mockRejectedValueOnce(new Error("file unavailable")).mockResolvedValue("# Restored");
+    const { host, pane } = render({}, { vault: { cachedRead: read } } as unknown as App);
+    const parse = vi.spyOn(frontmatterSource, "parseFrontmatterRecordFromSource").mockReturnValueOnce(null);
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const retry = (): void => {
+        [...host.querySelectorAll("button")].find((button) => button.textContent === translate("panel.retry"))!.click();
+      };
+      pane.refresh();
+      await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(translate("panel.readFailed")));
+      expect(host.querySelector(".number-suite-note-control-section")).toBeNull();
+      retry();
+      await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(translate("notice.invalidFrontmatter")));
+      expect(host.querySelector(".number-suite-note-control-actions")).toBeNull();
+      retry();
+      await vi.waitFor(() => expect(host.querySelector(".number-suite-note-control-state")?.textContent).toBe(translate("panel.status.inherit")));
+      expect(read).toHaveBeenCalledTimes(3);
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+    } finally {
+      parse.mockRestore();
+      error.mockRestore();
+      pane.destroy();
+    }
   });
 
   it("shows existing H9 overrides immediately and keeps disabled-note preferences", () => {
@@ -336,6 +383,7 @@ describe("sidebar tabs and shared preview", () => {
       h.show(confirm);
       const preview = h.panel(h.edit).querySelector(".number-suite-sidebar-preview");
       expect(preview?.querySelector(".number-suite-preview-target")?.textContent).toContain("Original.md");
+      expect(document.activeElement).toBe(preview?.querySelector("h3"));
       h.display.click();
       h.openFile(h.next);
       await vi.waitFor(() => expect(h.host.querySelector(".number-suite-note-control-header h3")?.textContent).toBe("Next"));

@@ -21,6 +21,7 @@ describe("large preview feedback", () => {
       documents: [{ path: "Changes.md", plan }, { path: "Warnings.md", plan: { ...plan, source: "# 3.14 Pi", result: "# 3.14 Pi", changes: [], warnings } }],
       onConfirm: async () => undefined });
     Object.assign(modal, { titleEl: document.createElement("h2"), modalEl: document.createElement("div") });
+    document.body.appendChild(modal.contentEl);
     modal.onOpen();
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(500);
     expect(modal.contentEl.querySelectorAll("li")).toHaveLength(0);
@@ -33,7 +34,9 @@ describe("large preview feedback", () => {
     expect(modal.contentEl.querySelectorAll(".number-suite-change")).toHaveLength(501);
     [...modal.contentEl.querySelectorAll("button")].find((button) => button.textContent?.includes("继续查看警告"))?.click();
     expect(modal.contentEl.querySelectorAll("li")).toHaveLength(201);
+    expect(document.activeElement).toBe(warningGroup.querySelectorAll("li")[200]);
     expect(modal.contentEl.textContent).toContain("插件已保留原文");
     expect(modal.contentEl.textContent).not.toContain("INTERNAL RULE");
+    modal.onClose();
   });
 });

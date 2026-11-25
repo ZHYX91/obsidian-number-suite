@@ -1,4 +1,4 @@
-import { App, Modal, Setting, type ButtonComponent } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { applyModalDirection } from "./modal-direction";
@@ -40,23 +40,26 @@ export class StableReferenceModal extends Modal {
     link.createEl("strong", { text: `${t("reference.modal.link")}: ` });
     link.createEl("code", { text: plan.link });
 
-    let confirmButton: ButtonComponent | null = null;
+    const errorMessage = contentEl.createDiv({ cls: "number-suite-note-control-error", attr: { role: "alert" } });
+    errorMessage.hidden = true;
     const actions = new Setting(contentEl);
     actions.addButton((button) => button
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));
     actions.addButton((button) => {
-      confirmButton = button;
       button.setButtonText(t("reference.modal.confirm")).setCta().onClick(() => {
         if (this.closed || this.options.signal?.aborted || this.applying) return;
         this.applying = true;
-        confirmButton?.setDisabled(true);
+        button.setDisabled(true);
+        errorMessage.hidden = true;
         void this.options.onConfirm(this.contentEl.ownerDocument.defaultView)
-          .then(() => this.close())
+          .then(() => { if (!this.closed) this.close(); })
           .catch((error: unknown) => {
             this.applying = false;
             if (this.closed) return;
-            confirmButton?.setDisabled(false);
+            button.setDisabled(false);
+            errorMessage.hidden = false;
+            errorMessage.setText(t("preview.applyFailed"));
             console.error("Number Suite stable-reference creation failed", error);
           });
       });

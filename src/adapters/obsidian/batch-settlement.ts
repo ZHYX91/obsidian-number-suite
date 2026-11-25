@@ -7,7 +7,7 @@ interface SettlementState { pending: Promise<void> | null }
 type SettlementHost = App & { [SETTLEMENT]?: SettlementState };
 
 /** Hold the recovery owner until dispatched writes and compensation have settled. */
-export async function withBatchSettlement(app: App, operation: () => Promise<void>): Promise<void> {
+export async function withBatchSettlement<T>(app: App, operation: () => Promise<T>): Promise<T> {
   const host = app as SettlementHost;
   let state = host[SETTLEMENT];
   if (state === undefined) {
@@ -20,7 +20,7 @@ export async function withBatchSettlement(app: App, operation: () => Promise<voi
   state.pending = current;
   try {
     if (previous !== null) await previous;
-    await operation();
+    return await operation();
   } finally {
     if (state.pending === current) state.pending = null;
     release();

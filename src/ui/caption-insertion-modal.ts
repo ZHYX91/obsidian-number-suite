@@ -52,10 +52,13 @@ export class CaptionInsertionModal extends Modal {
     preview.createEl("strong", { text: `${t("caption.modal.preview")}: ` });
     const previewCode = preview.createEl("code");
 
+    const errorMessage = contentEl.createDiv({ cls: "number-suite-note-control-error", attr: { role: "alert" } });
+    errorMessage.hidden = true;
+    let titleInput: HTMLInputElement;
     const update = (): void => {
       const caption = formatCaptionInsertionSource(target, value);
       previewCode.setText(caption ?? "");
-      confirmButton?.setDisabled(caption === null);
+      confirmButton?.setDisabled(this.applying || caption === null);
     };
 
     new Setting(contentEl)
@@ -67,6 +70,7 @@ export class CaptionInsertionModal extends Modal {
             value = next;
             update();
           });
+        titleInput = text.inputEl;
         text.inputEl.focus();
         text.inputEl.select();
       });
@@ -87,7 +91,9 @@ export class CaptionInsertionModal extends Modal {
         .onClick(() => {
           if (this.closed || this.options.signal?.aborted || this.applying || formatCaptionInsertionSource(target, value) === null) return;
           this.applying = true;
+          titleInput.disabled = true;
           button.setDisabled(true);
+          errorMessage.hidden = true;
           void this.options.onConfirm(value.trim())
             .then((applied) => {
               if (this.closed || this.options.signal?.aborted) return;
@@ -97,7 +103,10 @@ export class CaptionInsertionModal extends Modal {
             .catch((error: unknown) => {
               this.applying = false;
               if (this.closed) return;
-              button.setDisabled(false);
+              titleInput.disabled = false;
+              update();
+              errorMessage.hidden = false;
+              errorMessage.setText(t("preview.applyFailed"));
               console.error("Number Suite caption insertion failed", error);
             });
         });
