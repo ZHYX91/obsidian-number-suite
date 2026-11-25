@@ -12,8 +12,12 @@
   background: color-mix(in srgb, var(--interactive-accent) 16%, var(--background-secondary));
   border: 1px solid color-mix(in srgb, var(--interactive-accent) 34%, transparent);
   border-radius: 999px;
-  color: var(--text-accent);
+  box-sizing: border-box;
+  color: color-mix(in srgb, var(--text-normal) 80%, var(--text-accent));
   display: inline-block;
+  max-inline-size: calc(100% - var(--number-suite-virtual-gap, 0.32em));
+  overflow-wrap: anywhere;
+  white-space: normal;
   font-size: 0.65em;
   line-height: 1.35;
   padding: 0.08em 0.48em;
@@ -546,6 +550,14 @@
 /* Show a real heading-number badge plus a localized heading label, without
    the misleading "→ 2/3/4" shorthand used by the old fixed counter samples. */
 .number-suite-scheme-example {
+  display: inline-grid;
+  gap: 3px;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.number-suite-scheme-styled-preview,
+.number-suite-scheme-write-preview {
   align-items: center;
   color: var(--text-normal);
   display: inline-flex;
@@ -553,6 +565,17 @@
   gap: 3px var(--size-4-2);
   max-inline-size: 100%;
 }
+.number-suite-scheme-write-preview {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.number-suite-scheme-write-preview > code {
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+  white-space: break-spaces;
+}
+
 .number-suite-scheme-example-number {
   font-size: var(--font-ui-small);
   line-height: 1.35;
@@ -2120,7 +2143,20 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   line-height: 1.35;
   padding: 0.08em 0.48em;
   vertical-align: 0.22em;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.number-suite-stored-heading-number.number-suite-pill-continues {
+  border-inline-end: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  padding-inline-end: 0;
+}
+.number-suite-stored-heading-number.number-suite-pill-continuation {
+  border-inline-start: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  padding-inline-start: 0;
 }
 .number-suite-native-wiki-number {
   background: var(--background-secondary);

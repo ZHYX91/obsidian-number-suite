@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { WORD_JOINER } from "../../src/core/markers";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+import type { NumberingScheme } from "../../src/core/types";
 import { applyTextChanges, planHeadingTransform, type TransformOptions } from "../../src/core/transform";
 
 function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
@@ -25,6 +26,14 @@ function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
   };
 }
 
+function withScheme(scheme: NumberingScheme, overrides: Partial<TransformOptions> = {}): TransformOptions {
+  return options({
+    numbering: { ...options().numbering, scheme },
+    templateSources: [{ schemeId: scheme.id, schemeName: scheme.id, revision: 1, templates: scheme.templates }],
+    ...overrides,
+  });
+}
+
 describe("heading transforms", () => {
   it.each(["\u2028", "\u2029"])("preserves Unicode separators inside headings, fences and HTML (%j)", separator => {
     const source = [`# First${separator}part ###`, `\`\`\`lang${separator}format`, "# Example", "```",
@@ -42,6 +51,19 @@ describe("heading transforms", () => {
     expect(() => applyTextChanges("abc", [{ from: 1, to: 3, insert: "" }, { from: 2, to: 2, insert: "x" }]))
       .toThrow("overlap");
     expect(() => applyTextChanges("abc", [{ from: 2, to: 4, insert: "" }])).toThrow("Invalid heading change range");
+  });
+
+  it("preserves an incomplete marked prefix chain through all source operations", () => {
+    const m = WORD_JOINER;
+    for (const text of [`${m}1${m}\u3000${m}dangling`, `${m}1${m}${m}${m} Title`, `${m}${m} Title`]) {
+      const source = `# ${text}`;
+      for (const operation of ["write", "renumber", "remove", "strip-markers"] as const) {
+        expect(planHeadingTransform(source, operation, options()).changes).toEqual([]);
+      }
+    }
+    for (const prefix of [`${m}1${m}`, `${m}1${m}\u3000${m}2${m}`]) {
+      expect(planHeadingTransform(`# ${prefix} Title${m}`, "remove", options()).result).toBe(`# Title${m}`);
+    }
   });
 
   it("ends a subtree exclusion at an empty sibling without stripping its descendants' numbers", () => {
@@ -129,6 +151,85 @@ describe("heading transforms", () => {
       expect(second.result).toBe(first.result);
       expect(second.changes).toEqual([]);
     }
+  });
+
+  it.each([false, true])("writes compact official H1–H4 and spaced H5 with markers=%s", (writeMarkers) => {
+    const opts = withScheme(BUILT_IN_SCHEMES["chinese-official"], { writeMarkers });
+    const source = "# 总体要求\r\n## 指导思想\r\n### 工作目标\r\n#### 具体措施\r\n##### 扩展";
+    const written = planHeadingTransform(source, "write", opts);
+    const marker = writeMarkers ? WORD_JOINER : "";
+    expect(written.result).toBe([
+      `# ${marker}一、${marker}总体要求`,
+      `## ${marker}（一）${marker}指导思想`,
+      `### ${marker}1.${marker}工作目标`,
+      `#### ${marker}（1）${marker}具体措施`,
+      `##### ${marker}①${marker} 扩展`,
+    ].join("\r\n"));
+    for (const operation of ["write", "renumber"] as const) {
+      const repeated = planHeadingTransform(written.result, operation, opts);
+      expect(repeated.changes).toEqual([]);
+      expect(repeated.warnings).toEqual([]);
+    }
+    expect(planHeadingTransform(written.result, "remove", opts).result).toBe(source);
+  });
+
+  it("reads old spaced official headings and only normalizes them on an explicit renumber", () => {
+    const opts = withScheme(BUILT_IN_SCHEMES["chinese-official"]);
+    const legacy = "# 一、 总体要求\n## （一）  指导思想";
+    expect(planHeadingTransform(legacy, "write", opts).result).toBe(legacy);
+    const normalized = planHeadingTransform(legacy, "renumber", opts);
+    expect(normalized.result).toBe("# 一、总体要求\n## （一）指导思想");
+    expect(planHeadingTransform(normalized.result, "renumber", opts).changes).toEqual([]);
+  });
+
+  it.each([" ", "  ", "　", " \t　"])("writes exactly the explicit custom separator %j outside source markers", (separator) => {
+    const scheme = { ...BUILT_IN_SCHEMES["chinese-official"], id: "custom-spaced", templates: ["{1.chinese_lower}、" + separator] };
+    for (const writeMarkers of [false, true]) {
+      const opts = withScheme(scheme, { writeMarkers });
+      const written = planHeadingTransform("# 你好", "write", opts);
+      const marker = writeMarkers ? WORD_JOINER : "";
+      expect(written.result).toBe(`# ${marker}一、${marker}${separator}你好`);
+      expect(planHeadingTransform(written.result, "write", opts).warnings).toEqual([]);
+      expect(planHeadingTransform(written.result, "renumber", opts).changes).toEqual([]);
+      expect(planHeadingTransform(written.result, "remove", opts).result).toBe("# 你好");
+      if (writeMarkers) {
+        const legacy = `# ${marker}一、${separator}${marker} 你好`;
+        expect(planHeadingTransform(legacy, "renumber", opts).result).toBe(written.result);
+        expect(planHeadingTransform(legacy, "strip-markers", opts).result).toBe(`# 一、${separator} 你好`);
+      }
+    }
+    const strict = withScheme(scheme);
+    expect(planHeadingTransform("# 一、二、三", "remove", strict).changes).toEqual([]);
+  });
+
+  it("separates a compact dot from a digit-leading title through write, strip, and cleanup", () => {
+    const opts = withScheme(BUILT_IN_SCHEMES["chinese-official"]);
+    const source = "### 2项措施";
+    const expected = "### 1. 2项措施";
+    for (const operation of ["write", "renumber"] as const) {
+      const plan = planHeadingTransform(source, operation, opts);
+      expect(plan.result).toBe(expected);
+      expect(planHeadingTransform(plan.result, operation, opts).changes).toEqual([]);
+      const markedOpts = { ...opts, writeMarkers: true };
+      const marked = planHeadingTransform(source, operation, markedOpts);
+      expect(marked.result).toBe(`### ${WORD_JOINER}1.${WORD_JOINER} 2项措施`);
+      expect(planHeadingTransform(marked.result, "strip-markers", opts).result).toBe(expected);
+      expect(planHeadingTransform(expected, "remove", opts).result).toBe(source);
+    }
+    const oldCompact = `### ${WORD_JOINER}1.${WORD_JOINER}2项措施`;
+    expect(planHeadingTransform(oldCompact, "strip-markers", opts).result).toBe("### 1.2项措施");
+  });
+
+  it.each([
+    ["chinese_lower", "一 你好"],
+    ["arabic", "1 你好"],
+    ["circled", "①你好"],
+  ])("uses the boundary of the %s counter when current-only drops the final punctuation", (format, expected) => {
+    const scheme = { ...BUILT_IN_SCHEMES.hierarchical, templates: ["", `{1.arabic}.{2.${format}}、`] };
+    const opts = withScheme(scheme, { numbering: { scheme, missingLevelStrategy: "current-only", starts: {} } });
+    const written = planHeadingTransform("## 你好", "write", opts);
+    expect(written.result).toBe("## " + expected);
+    expect(planHeadingTransform(written.result, "write", opts).changes).toEqual([]);
   });
 
   it("uses skip-first and first-number together for stored writes", () => {

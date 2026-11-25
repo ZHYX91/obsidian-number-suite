@@ -1,4 +1,5 @@
 import type { StoredHeadingNumberStyleScope, VirtualHeadingNumberFormat } from "../config/settings";
+import { WORD_JOINER } from "../core/markers";
 import { meetsCleanupScope } from "../core/number-parser";
 import { sourceOffsetForHeadingContent } from "../core/heading-parser";
 import { compileTemplate, renderCurrentLevel } from "../core/template-compiler";
@@ -29,7 +30,7 @@ interface DisplayDecorationBase {
 export type DisplayDecorationPlan = DisplayDecorationBase & (
   | { kind: "virtual"; referenceLabel?: string }
   | { kind: "conceal"; sourceText?: string }
-  | { kind: "stored"; pillKind: StoredHeadingNumberPillKind; sourceText: string }
+  | { kind: "stored"; pillKind: StoredHeadingNumberPillKind; sourceText: string; outlineText: string }
 );
 
 export interface DisplayPlanOptions {
@@ -80,7 +81,7 @@ export function createDisplayPlan(
     if (heading.content.trim().length === 0) {
       continue;
     }
-    const analysis = analyzeHeadingPrefix(heading, item.label, options.templateSources);
+    const analysis = analyzeHeadingPrefix(heading, item.label, options.templateSources, "display");
     const { matches } = analysis;
     const first = matches[0];
     const concealStored = options.concealStoredNumbers && !(options.revealOnActiveLine && active);
@@ -113,10 +114,12 @@ export function createDisplayPlan(
     if (concealTo === 0 && !active && styleScope !== "off" && first != null
       && first.from === 0 && !analysis.suspicious && meetsCleanupScope(first, styleScope)) {
       // Leave separating whitespace outside the outlined pill.
-      const prefix = first.fullPrefix.trimEnd();
-      const label = prefix.replace(/\u2060/gu, "");
+      const label = first.numberCore.trimEnd();
+      // Older writers could place an explicit separator inside the closing marker.
+      const outlineText = first.provenance === "plugin" && label.length < first.numberCore.length
+        ? WORD_JOINER + label : first.fullPrefix.slice(0, first.fullPrefix.length - first.separator.length);
       const from = sourceOffsetForHeadingContent(heading, first.from);
-      const to = sourceOffsetForHeadingContent(heading, first.from + prefix.length);
+      const to = sourceOffsetForHeadingContent(heading, first.from + outlineText.length);
       if (label.length > 0 && to > from) {
         decorations.push({
           kind: "stored",
@@ -126,6 +129,7 @@ export function createDisplayPlan(
           label,
           line: heading.line,
           sourceText: first.fullPrefix,
+          outlineText,
         });
       }
     }

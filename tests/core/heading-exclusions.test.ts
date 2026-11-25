@@ -35,6 +35,10 @@ describe("heading exclusions", () => {
       ...scheme,
       exclusions: [{ title: "References", scope: "heading" }],
     })).toBeNull();
+    expect(matchHeadingExclusion(parseAtxHeadings("# 2026 参考文献")[0]!, scheme)).toBeNull();
+    expect(matchHeadingExclusion(parseAtxHeadings("### 2026.参考文献")[0]!, {
+      ...BUILT_IN_SCHEMES["chinese-official"], exclusions: scheme.exclusions,
+    })).toBeNull();
     expect(matchHeadingExclusion(parseAtxHeadings("# 2026. 参考文献")[0]!, scheme)).toBeNull();
   });
 });

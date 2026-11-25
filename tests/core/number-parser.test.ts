@@ -125,4 +125,90 @@ describe("number parser", () => {
       expect(match && meetsCleanupScope(match, "templates")).toBe(false);
     }
   });
+  it("uses explicit separators, including mixed horizontal whitespace, and returns exact ranges", () => {
+    const context = {
+      headingLevel: 1,
+      templateSources: [{ schemeId: "custom", schemeName: "Custom", revision: 3, templates: ["{1.chinese_lower}、  "] }],
+    };
+    for (const separator of [" ", "  ", "\t　 ", "\u00a0"]) {
+      expect(parseHeadingNumber(`一、${separator}你好`, context)).toMatchObject({
+        provenance: "template", numberCore: "一、", separator, from: 0, to: 2 + separator.length,
+      });
+    }
+    expect(parseHeadingNumber("一、二、三", context)).toMatchObject({ provenance: "manual", numberCore: "一、" });
+    expect(parseHeadingNumber("一、\n下一行", context)).toBeNull();
+  });
+
+  it("permits other template levels only for callers that request them and prefers matching-level provenance", () => {
+    const context = {
+      headingLevel: 2,
+      templateSources: [{ schemeId: "official", schemeName: "Official", revision: 1, templates: BUILT_IN_SCHEMES["chinese-official"].templates }],
+    };
+    expect(parseHeadingNumber("一、你好", context)?.provenance).toBe("manual");
+    for (const text of ["一、你好", "一、 你好", "一、　　你好"]) {
+      expect(parseHeadingNumber(text, { ...context, matchOtherLevels: true })).toMatchObject({
+        provenance: "template", templateLevel: 1, schemeId: "official", numberCore: "一、",
+      });
+    }
+    const sameLevel = { schemeId: "custom", schemeName: "Custom", revision: 2, templates: ["", "{2.chinese_lower}、"] };
+    expect(parseHeadingNumber("一、你好", {
+      ...context, matchOtherLevels: true, templateSources: [...context.templateSources, sameLevel],
+    })).toMatchObject({ templateLevel: 2, schemeId: "custom" });
+  });
+
+  it("retains numeric safeguards through H9 even when a shorter heading uses this template", () => {
+    const context = { headingLevel: 1, matchOtherLevels: true, templateSources: HIERARCHICAL_SOURCE };
+    for (const text of ["1.2.3.4.5.6.7.8.9 Version notes", "1.2.3.4.5.6.7.8.9 kg load", "2026.2.3.4.5.6.7.8.9 Date"]) {
+      const match = parseHeadingNumber(text, context);
+      expect(match).toMatchObject({ confidence: "low", templateLevel: 9 });
+      expect(match && meetsCleanupScope(match, "templates")).toBe(false);
+    }
+    expect(parseHeadingNumber("1.2.3.4.5.6.7.8.9 Chapter", context)?.confidence).toBe("high");
+  });
+
+  it("does not hide title text when two valid templates disagree about the boundary", () => {
+    const context = {
+      headingLevel: 2,
+      matchOtherLevels: true,
+      templateSources: [{ schemeId: "custom", schemeName: "Custom", revision: 1, templates: ["{1.arabic}.", "{2.arabic}.示"] }],
+    };
+    for (const headingLevel of [1, 2]) {
+      const match = parseHeadingNumber("1.示例", { ...context, headingLevel });
+      expect(match).toMatchObject({ confidence: "low", templateLevel: headingLevel });
+      expect(match && meetsCleanupScope(match, "common")).toBe(false);
+    }
+  });
+
+  it("keeps dotted template prefixes distinct from decimals, versions, years, units, and abbreviations", () => {
+    const context = {
+      headingLevel: 1,
+      matchOtherLevels: true,
+      templateSources: [{ schemeId: "custom", schemeName: "Custom", revision: 1, templates: ["{1.arabic}.", "{2.letter_upper}."] }],
+    };
+    expect(parseHeadingNumber("1.工作目标", context)).toMatchObject({ numberCore: "1.", confidence: "high" });
+    for (const title of ["1.项目管理", "1.Goals"]) {
+      expect(parseHeadingNumber(title, context)).toMatchObject({ numberCore: "1.", confidence: "high" });
+    }
+    expect(parseHeadingNumber("1. Medium")).toMatchObject({ provenance: "manual", confidence: "low" });
+    for (const title of ["3.14倍", "1.2.3", "1.２项", "U.S. policies", "A.B"]) {
+      expect(parseHeadingNumber(title, context)).toBeNull();
+    }
+    for (const title of ["2026.年度总结", "1.版本说明", "1.kg load", "1.米", "1.项（估算）"]) {
+      expect(parseHeadingNumber(title, context)).toMatchObject({ confidence: "low" });
+    }
+  });
+
+  it.each([
+    ["一、　范围", "一、", "　"],
+    ["貳、条款", "貳、", ""],
+    ["1.2)\tHeading", "1.2)", "\t"],
+    ["1.  总则", "1.", "  "],
+    ["IV) Heading", "IV)", " "],
+    ["A.　Heading", "A.", "　"],
+  ])("keeps all handwritten punctuation inside the number core in %s", (text, numberCore, separator) => {
+    expect(parseHeadingNumber(text)).toMatchObject({
+      provenance: "manual", numberCore, separator, fullPrefix: numberCore + separator,
+    });
+  });
+
 });

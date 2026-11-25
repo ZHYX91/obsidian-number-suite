@@ -55,4 +55,18 @@ describe("template compiler", () => {
       expect(templatePrefixPattern(source)).not.toBeNull();
     },
   );
+  it.each([
+    ["{1.chinese_lower}、", "二、", ""],
+    ["{1.chinese_lower}、  ", "二、", "  "],
+    ["条 {1.arabic})\t　", "条 2)", "\t　"],
+    ["{1.arabic}.{2.arabic}", "2.3", " "],
+    ["{2.circled}", "③", ""],
+  ])("compiles the exact source separator separately from the label for %s", (source, core, separator) => {
+    expect(compileTemplate(source).separator).toBe(separator);
+    expect(renderTemplate(source, [...counters])).toBe(core);
+    const pattern = templatePrefixPattern(source);
+    expect(pattern?.exec(core + "　\tTitle")?.slice(1)).toEqual([core, "　\t"]);
+    expect(pattern?.test(core + "Title")).toBe(separator === "");
+  });
+
 });

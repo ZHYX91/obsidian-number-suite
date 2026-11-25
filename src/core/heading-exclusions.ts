@@ -1,5 +1,5 @@
 import { withoutTrailingBlockId } from "./document-semantics";
-import { parseHeadingNumberPrefixes } from "./number-parser";
+import { meetsCleanupScope, parseHeadingNumberPrefixes } from "./number-parser";
 import type {
   HeadingExclusionRule,
   NumberingScheme,
@@ -28,14 +28,7 @@ function titleCandidates(
       templates: scheme.templates,
     }],
   });
-  if (
-    prefix != null
-    && (prefix.provenance === "plugin"
-      || prefix.provenance === "template"
-      || prefix.confidence === "medium"
-      || prefix.confidence === "high"
-      || prefix.confidence === "certain")
-  ) {
+  if (prefix != null && meetsCleanupScope(prefix, "common")) {
     for (const content of [heading.content, title]) {
       const withoutPrefix = normalizeExclusionTitle(content.slice(prefix.to));
       if (withoutPrefix.length > 0 && !candidates.includes(withoutPrefix)) candidates.push(withoutPrefix);

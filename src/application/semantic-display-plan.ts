@@ -1,7 +1,6 @@
 import { createSemanticSnapshot, displayCaptionNumbers, type SemanticSnapshot } from "./semantic-snapshot";
 import type { DisplayDecorationPlan, SelectionSpan } from "./display-plan";
 import { analyzeHeadingPrefix } from "../core/prefix-analysis";
-import { numberHeadings } from "../core/numbering-engine";
 import {
   blockTargetKey,
   createSemanticTitleIndex,
@@ -93,53 +92,27 @@ function selectionTouchesRange(
   });
 }
 
-function visibleHeadingLabels(
-  headings: readonly ParsedHeading[],
-  options: SemanticDisplayPlanOptions,
-  virtualByLine: ReadonlyMap<number, string>,
-  concealedByLine: ReadonlyMap<number, string>,
-): ReadonlyMap<number, string> {
-  const numbered = numberHeadings(headings, options.numbering);
-  const labels = new Map<number, string>();
-  for (const item of numbered) {
-    const line = item.heading.line;
-    const virtual = virtualByLine.get(line);
-    if (virtual != null) {
-      labels.set(line, virtual);
-      continue;
-    }
-    const concealed = concealedByLine.has(line);
-    const analysis = analyzeHeadingPrefix(item.heading, item.label, options.templateSources);
-    const first = analysis.first;
-    if (
-      !concealed
-      && first != null
-      && first.from === 0
-      && first.confidence !== "low"
-      && !analysis.suspicious
-    ) {
-      labels.set(line, first.numberCore);
-    }
-  }
-  return labels;
+interface HeadingReferenceText {
+  readonly separator: string;
+  readonly number: string | null;
+  readonly title: string;
 }
 
-function headingTitle(
+function headingReferenceText(
   heading: ParsedHeading,
-  visibleLabel: string | null,
-  templateSources: readonly CleanupTemplateSource[],
+  virtualLabel: string | undefined,
   concealedPrefix: string | undefined,
-): string {
+  templateSources: readonly CleanupTemplateSource[],
+): HeadingReferenceText {
   if (concealedPrefix && heading.content.startsWith(concealedPrefix)) {
-    return withoutTrailingBlockId(heading.content.slice(concealedPrefix.length));
+    return { number: virtualLabel ?? null, separator: " ", title: withoutTrailingBlockId(heading.content.slice(concealedPrefix.length)) };
   }
-  const content = withoutTrailingBlockId(heading.content);
-  if (visibleLabel == null) return content;
-  const first = analyzeHeadingPrefix(heading, visibleLabel, templateSources).first;
-  if (first?.from === 0 && first.numberCore === visibleLabel) {
-    return withoutTrailingBlockId(heading.content.slice(first.to));
-  }
-  return content;
+  const { first, suspicious } = analyzeHeadingPrefix(heading, null, templateSources, "display");
+  const stored = first?.from === 0 && !suspicious ? first : null;
+  const number = virtualLabel ?? stored?.numberCore ?? null;
+  const title = stored != null && stored.numberCore === number ? heading.content.slice(stored.to) : heading.content;
+  const separator = virtualLabel == null && stored != null ? stored.separator : " ";
+  return { number, separator, title: withoutTrailingBlockId(title) };
 }
 
 function captionReferenceLabel(
@@ -340,9 +313,7 @@ export function createSemanticDisplayPlan(
     if (item.kind === "virtual") virtualByLine.set(item.line, item.referenceLabel ?? item.label);
     else if (item.kind === "conceal") concealedByLine.set(item.line, item.sourceText ?? "");
   }
-  const visibleHeadings = options.showCrossReferences && semantics.references.length > 0
-    ? visibleHeadingLabels(headings, options, virtualByLine, concealedByLine)
-    : null;
+  const headingReferences = new Map<number, HeadingReferenceText>();
   const headingsByLine = new Map(headings.map((heading) => [heading.line, heading] as const));
   const captionsByLine = new Map(numberedCaptions.map((caption) => [caption.line, caption] as const));
   const titleTargets = headings === snapshot.headings ? snapshot.titleTargets : createSemanticTitleIndex(headings, semantics.captions);
@@ -399,11 +370,16 @@ export function createSemanticDisplayPlan(
     if (targetKind === "caption" && caption != null) {
       label = captionReferenceLabel(caption, reference.alias, options.showCaptionNumbers);
     } else if (targetKind === "heading" && heading != null) {
-      const number = visibleHeadings?.get(targetLine) ?? null;
-      const title = reference.alias ?? headingTitle(heading, number, options.templateSources, concealedByLine.get(targetLine));
+      let target = headingReferences.get(targetLine);
+      if (target == null) {
+        target = headingReferenceText(heading, virtualByLine.get(targetLine), concealedByLine.get(targetLine), options.templateSources);
+        headingReferences.set(targetLine, target);
+      }
+      const number = target.number;
+      const title = reference.alias ?? target.title;
       label = number == null || title === number || title.startsWith(`${number} `)
         ? title
-        : `${number} ${title}`;
+        : `${number}${reference.alias == null ? target.separator : " "}${title}`;
     } else {
       continue;
     }

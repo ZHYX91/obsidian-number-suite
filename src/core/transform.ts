@@ -3,6 +3,7 @@ import { wrapPluginNumber } from "./markers";
 import { meetsCleanupScope } from "./number-parser";
 import { numberHeadings } from "./numbering-engine";
 import { analyzeHeadingPrefix } from "./prefix-analysis";
+import { separatorBeforeTitle } from "./template-compiler";
 import type {
   CleanupScope,
   CleanupTemplateSource,
@@ -24,10 +25,6 @@ export interface TransformOptions {
 
 export function planChangesSource(plan: Pick<TransformPlan, "source" | "result">): boolean {
   return plan.result !== plan.source;
-}
-
-function replacementPrefix(label: string, writeMarkers: boolean): string {
-  return `${writeMarkers ? wrapPluginNumber(label) : label} `;
 }
 
 export function applyTextChanges(source: string, changes: readonly Pick<PlannedChange, "from" | "to" | "insert">[]): string {
@@ -251,10 +248,9 @@ export function planHeadingTransform(
       continue;
     }
 
-    if (item.label == null) {
-      continue;
-    }
-    const insert = replacementPrefix(item.label, options.writeMarkers);
+    if (item.label == null || item.separator == null) continue;
+    const separator = separatorBeforeTitle(item.label, item.separator, content.slice(first?.to ?? 0));
+    const insert = (options.writeMarkers ? wrapPluginNumber(item.label) : item.label) + separator;
 
     if (first == null) {
       if (analysis.suspicious) {
@@ -266,6 +262,8 @@ export function planHeadingTransform(
         });
         continue;
       }
+      // A shortened current-only label can lack a matching full template. Repeated writes must not stack it.
+      if (!options.writeMarkers && item.separator.length > 0 && content.startsWith(insert)) continue;
       changes.push({
         from: heading.contentFrom,
         to: heading.contentFrom,
@@ -291,15 +289,11 @@ export function planHeadingTransform(
       continue;
     }
 
-
-    if (expectedUnmarked) {
+    if (expectedUnmarked || (first.confidence !== "low" && first.fullPrefix === insert)) {
       continue;
     }
 
     if (first.provenance === "plugin") {
-      if (content.slice(0, first.to) === insert) {
-        continue;
-      }
       changes.push({
         ...sourcePrefixReplacement(source, heading, first.to, insert),
         line: heading.line,
@@ -319,9 +313,6 @@ export function planHeadingTransform(
       && first.confidence === "high"
       && meetsCleanupScope(first, options.cleanupScope)
     ) {
-      if (content.slice(0, first.to) === insert) {
-        continue;
-      }
       changes.push({
         ...sourcePrefixReplacement(source, heading, first.to, insert),
         line: heading.line,

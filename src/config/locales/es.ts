@@ -369,7 +369,7 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "settings.scheme.name": "Nombre del esquema",
   "settings.scheme.base": "Nivel inicial de título",
   "settings.scheme.templates": "Plantillas H1–H9",
-  "settings.scheme.preview": "Vista previa: {value}",
+  "settings.scheme.writeExample": "Ejemplo de escritura",
   "settings.scheme.preview.heading": "Título",
   "settings.scheme.disabled": "Este nivel no se numera.",
   "settings.scheme.disabledList": "Estilos integrados desactivados",

@@ -369,7 +369,7 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "settings.scheme.name": "Schema-Name",
   "settings.scheme.base": "Start-Überschriftenebene",
   "settings.scheme.templates": "Vorlagen für H1–H9",
-  "settings.scheme.preview": "Vorschau: {value}",
+  "settings.scheme.writeExample": "Schreibbeispiel",
   "settings.scheme.preview.heading": "Überschrift",
   "settings.scheme.disabled": "Diese Ebene wird nicht nummeriert.",
   "settings.scheme.disabledList": "Deaktivierte integrierte Schemata",

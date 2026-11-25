@@ -167,7 +167,7 @@ describe("HeadingReadingProcessor", () => {
   });
 
   it("styles visible manual and marked prefixes with readable types and preserves authored text", async () => {
-    const titles = ["7 Lantern archive", "3. Paper patterns", "\u2060Box 3\u2060 Forest lights"];
+    const titles = ["7 Lantern archive", "3) Paper patterns", "\u2060Box 3\u2060 Forest lights"];
     const { processor, context, container } = harness(
       titles.map((title, index) => `${index === 1 ? "##" : "#"} ${title}`).join("\n"),
       settings({ showVirtualNumbers: true, selectedSchemeId: "hierarchical", storedHeadingNumberStyleScope: "common" }),
@@ -181,13 +181,46 @@ describe("HeadingReadingProcessor", () => {
       await processor.process(container, context);
       const pills = [...container.querySelectorAll(".number-suite-stored-heading-number")];
       expect(pills.map((pill) => pill.classList.contains("is-manual"))).toEqual([false, true, false]);
-      expect(pills[1]?.getAttribute("aria-label")).toBe("3. — Common handwritten heading number");
+      expect(pills[1]?.getAttribute("aria-label")).toBe("3) — Common handwritten heading number");
       expect(pills[2]?.getAttribute("aria-label")).toBe("Box 3 — Stored heading number matching a scheme or plugin marker");
       expect(container.querySelector(".number-suite-heading-number")?.getAttribute("aria-label"))
         .toBe("1 — Virtual heading number");
     }
     cleanupNumberSuiteReadingDom(container);
     expect([...container.children].map((heading) => heading.textContent)).toEqual(titles);
+  });
+
+  it.each(["一<!--split-->、标题", "<em>一</em>、标题"])(
+    "keeps one accessible prefix across rendered text boundaries in %s", async (html) => {
+      const { processor, context, container } = harness("# 一、标题", settings({}));
+      const heading = container.appendChild(document.createElement("h1"));
+      heading.innerHTML = html;
+      const original = heading.firstChild;
+      for (let render = 0; render < 2; render++) {
+        await processor.process(container, context);
+        const pills = heading.querySelectorAll(".number-suite-stored-heading-number");
+        expect(pills).toHaveLength(html.includes("<em>") ? 2 : 1);
+        expect(pills[0]?.getAttribute("aria-label")).toContain("一、");
+        expect(heading.querySelectorAll(".number-suite-stored-heading-number[role=img]")).toHaveLength(1);
+        if (pills.length > 1) expect(pills[1]?.getAttribute("aria-hidden")).toBe("true");
+      }
+      cleanupNumberSuiteReadingDom(container);
+      expect(heading.innerHTML).toBe(html);
+      expect(heading.firstChild).toBe(original);
+    },
+  );
+
+  it("leaves an old marker's inner template spacing outside the outline", async () => {
+    const title = "\u2060一、  \u2060 标题";
+    const { processor, context, container } = harness("# " + title, settings({}));
+    const heading = document.createElement("h1");
+    heading.textContent = title;
+    container.append(heading);
+    await processor.process(container, context);
+    expect(heading.querySelector(".number-suite-stored-heading-number")?.textContent).toBe("\u2060一、");
+    expect(heading.textContent).toBe(title);
+    cleanupNumberSuiteReadingDom(container);
+    expect(heading.textContent).toBe(title);
   });
 
   it("adds virtual numbers using the full document counter plan", async () => {
@@ -584,7 +617,7 @@ describe("HeadingReadingProcessor", () => {
     "shows a computed H2 badge independently of manual concealment in %s scope",
     async (concealScope) => {
       const { processor, context, container } = harness(
-        "## 1. Sample heading",
+        "## 1) Sample heading",
         settings({
           showVirtualNumbers: true,
           concealStoredNumbers: true,
@@ -593,14 +626,14 @@ describe("HeadingReadingProcessor", () => {
         }),
       );
       const heading = document.createElement("h2");
-      heading.textContent = "1. Sample heading";
+      heading.textContent = "1) Sample heading";
       container.appendChild(heading);
 
       await processor.process(container, context);
 
       expect(heading.querySelector(".number-suite-virtual")?.textContent).toBe("1.1 ");
       const concealed = heading.querySelector(".number-suite-concealed");
-      expect(concealed?.textContent).toBe(concealScope === "common" ? "1. " : undefined);
+      expect(concealed?.textContent).toBe(concealScope === "common" ? "1) " : undefined);
     },
   );
 
