@@ -487,6 +487,7 @@
 }
 
 .number-suite-scheme-card {
+  min-inline-size: 0;
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   margin-block: var(--size-4-2);
@@ -494,6 +495,7 @@
 }
 
 .number-suite-scheme-card > summary {
+  overflow-wrap: anywhere;
   cursor: var(--cursor, default);
   font-weight: var(--font-semibold);
 }
@@ -601,6 +603,23 @@
 }
 
 .number-suite-scheme-actions .setting-item-info {
+  display: none;
+}
+
+.number-suite-scheme-picker,
+.number-suite-scheme-picker .setting-item-control,
+.number-suite-scheme-actions .setting-item-control {
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.number-suite-scheme-picker select {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.number-suite-scheme-actions button[hidden] {
   display: none;
 }
 

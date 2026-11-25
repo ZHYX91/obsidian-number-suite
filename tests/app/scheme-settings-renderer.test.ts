@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { describeSchemeTemplateIssue, firstAvailableScheme } from "../../src/app/scheme-settings-renderer";
+import { describeSchemeTemplateIssue } from "../../src/app/scheme-editor-draft";
+import { firstAvailableScheme } from "../../src/app/scheme-settings-renderer";
 import { createTranslator } from "../../src/config/i18n";
 import { cloneSettings, DEFAULT_SETTINGS } from "../../src/config/settings";
 import { BUILT_IN_SCHEME_IDS } from "../../src/core/types";
