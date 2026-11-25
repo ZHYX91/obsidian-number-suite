@@ -1,9 +1,10 @@
+import { AccessibleSetting as Setting } from "./accessible-setting";
 import {
   NoteSaveConflictError,
   NoteSaveCoordinator,
   type NoteSaveState,
 } from "../application/note-save-coordinator";
-import { App, Menu, Notice, Setting, setIcon, type DropdownComponent, type TFile } from "obsidian";
+import { App, Menu, Notice, setIcon, type DropdownComponent, type TFile } from "obsidian";
 
 import {
   headingLevels,

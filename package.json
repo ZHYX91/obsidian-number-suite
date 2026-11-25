@@ -17,6 +17,7 @@
     "lint": "eslint main.ts src tests scripts esbuild.config.mjs eslint.config.mjs vitest.config.mts --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:settings-layout": "node scripts/test-settings-layout.mjs",
     "test:coverage": "vitest run --coverage",
     "check:production": "node scripts/check-production-bundle.mjs",
     "release:validate": "node scripts/release.mjs validate",

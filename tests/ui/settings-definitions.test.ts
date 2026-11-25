@@ -2,12 +2,13 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { App } from "obsidian";
+import { App, Setting, type DropdownComponent } from "obsidian";
 
 import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
 import { createTranslator } from "../../src/config/i18n";
 import type { SettingsSaveStatus } from "../../src/config/settings-save-coordinator";
 import { cloneSettings, DEFAULT_SETTINGS, sanitizeSettings } from "../../src/config/settings";
+import { installDomFixture } from "./dom-fixture";
 
 function createHost(
   status: SettingsSaveStatus = { state: "saved", error: null },
@@ -31,6 +32,61 @@ function createHost(
 }
 
 describe("Obsidian 1.13 settings definitions", () => {
+  it("returns focus to the language dropdown after switching direction", async () => {
+    installDomFixture();
+    const dropdowns = vi.spyOn(Setting.prototype, "addDropdown").mockImplementation(function (this: Setting, configure) {
+      const selectEl = this.controlEl.appendChild(document.createElement("select"));
+      configure({
+        selectEl,
+        addOptions() { return this; },
+        setValue() { return this; },
+        onChange() { return this; },
+      } as unknown as DropdownComponent);
+      return this;
+    });
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    document.body.append(tab.containerEl);
+    try {
+      tab.display();
+      const original = tab.containerEl.querySelector("select")!;
+      original.focus();
+      tab.containerEl.scrollTop = 120;
+      await tab.setControlValue("general.language", "ar");
+      expect(original.isConnected).toBe(false);
+      expect(tab.containerEl.dir).toBe("rtl");
+      expect(document.activeElement).toBe(tab.containerEl.querySelector("select"));
+      expect(tab.containerEl.scrollTop).toBe(120);
+    } finally {
+      tab.hide();
+      tab.containerEl.remove();
+      dropdowns.mockRestore();
+    }
+  });
+
+  it("marks the settings language independently of the host and removes it on close", () => {
+    installDomFixture();
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    const owner = document.createElement("div");
+    owner.lang = "en";
+    owner.append(tab.containerEl);
+    for (const [language, tag, direction] of [
+      ["ar", "ar", "rtl"], ["zh", "zh-CN", "ltr"], ["auto", "en", "ltr"],
+    ] as const) {
+      host.settings = { ...host.settings, language };
+      tab.display();
+      expect(tab.containerEl.lang).toBe(tag);
+      expect(tab.containerEl.dir).toBe(direction);
+      expect(tab.containerEl.querySelector('[role="tab"][aria-selected="true"]')?.textContent)
+        .toBe(createTranslator(language)("settings.tab.general"));
+      expect(owner.lang).toBe("en");
+    }
+    tab.hide();
+    expect(tab.containerEl.hasAttribute("lang")).toBe(false);
+    expect(tab.containerEl.hasAttribute("dir")).toBe(false);
+  });
+
   it("retains the Outline settings page while the host uses custom global tabs", () => {
     const host = createHost();
     const tab = new NumberSuiteSettingTab(new App(), host as never);

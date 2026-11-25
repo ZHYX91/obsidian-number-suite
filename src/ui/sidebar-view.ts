@@ -6,7 +6,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 
-import { uiTextDirection, type Translate } from "../config/i18n";
+import { uiLocaleAttributes, type Translate } from "../config/i18n";
 import type { NumberSuiteSettings } from "../config/settings";
 import type { TransformOperation } from "../core/types";
 import { NoteControlPane } from "./note-control-modal";
@@ -62,7 +62,7 @@ export class NumberSuiteSidebarView extends ItemView {
   override async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-sidebar");
-    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    Object.assign(this.contentEl, uiLocaleAttributes(this.actions.getSettings().language));
     const panel = this.contentEl.createDiv({ cls: "number-suite-sidebar-panel" });
     this.notePane = new NoteControlPane(
       this.app,
@@ -103,10 +103,11 @@ export class NumberSuiteSidebarView extends ItemView {
     this.sourceLeaf = null;
     this.contentEl.empty();
     this.contentEl.removeAttribute("dir");
+    this.contentEl.removeAttribute("lang");
   }
 
   refresh(): void {
-    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    Object.assign(this.contentEl, uiLocaleAttributes(this.actions.getSettings().language));
     this.notePane?.refresh();
   }
 

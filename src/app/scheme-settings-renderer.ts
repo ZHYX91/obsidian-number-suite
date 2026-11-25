@@ -1,4 +1,5 @@
-import { Setting, setIcon } from "obsidian";
+import { AccessibleSetting as Setting } from "../ui/accessible-setting";
+import { setIcon } from "obsidian";
 
 import { type Translate } from "../config/i18n";
 import { SCHEME_TEMPLATE_LIMIT, type NumberSuiteSettings } from "../config/settings";
@@ -381,7 +382,7 @@ export class SchemeSettingsRenderer {
     const renderExclusions = (): void => {
       exclusionList.empty();
       draft.exclusions.forEach((rule, index) => {
-        new Setting(exclusionList)
+        const row = new Setting(exclusionList)
           .addText((text) => text
             .setPlaceholder(t("settings.scheme.exclusions.placeholder"))
             .setValue(rule.title)
@@ -413,6 +414,8 @@ export class SchemeSettingsRenderer {
               updateValidation();
               updateExclusionPreview();
             }));
+        row.settingEl.querySelector("input")?.setAttribute("aria-label", `${t("settings.scheme.exclusions")} ${index + 1}`);
+        row.settingEl.querySelector("select")?.setAttribute("aria-label", `${t("settings.scheme.exclusions")} ${index + 1} · ${t("batch.scope.label")}`);
       });
     };
     new Setting(details).addButton((button) => button

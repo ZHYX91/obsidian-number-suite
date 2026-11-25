@@ -98,6 +98,7 @@ describe("heading map live localization", () => {
       expect(h.search.placeholder).toBe(label("headingMap.search"));
       expect(h.search.getAttribute("aria-label")).toBe(label("headingMap.search"));
       expect(h.viewport.getAttribute("aria-label")).toBe(label("headingMap.canvas"));
+      expect(h.view.contentEl.lang).toBe(language === "zh" ? "zh-CN" : language);
       expect(h.view.contentEl.dir).toBe(language === "ar" ? "rtl" : "ltr");
       expect(document.documentElement.getAttribute("dir")).toBe(hostDirection);
       expect([...h.view.contentEl.querySelectorAll("button, input, select, option")]).toEqual(controls);

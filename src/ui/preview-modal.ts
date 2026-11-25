@@ -1,4 +1,5 @@
-import { App, Modal, Setting } from "obsidian";
+import { AccessibleSetting as Setting } from "./accessible-setting";
+import { App, Modal } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { WORD_JOINER } from "../core/markers";

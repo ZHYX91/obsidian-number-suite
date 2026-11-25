@@ -33,7 +33,7 @@ import {
 } from "../application/heading-map-layout";
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import { resolveNoteSettings } from "../config/frontmatter";
-import { uiTextDirection, type Translate } from "../config/i18n";
+import { uiLocaleAttributes, type Translate } from "../config/i18n";
 import {
   displayTemplateSources,
   outlineHeadingFormat,
@@ -156,7 +156,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   override async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("number-suite-heading-map-view");
-    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    Object.assign(this.contentEl, uiLocaleAttributes(this.actions.getSettings().language));
     this.buildToolbar();
     const touch = this.contentEl.ownerDocument.defaultView?.matchMedia?.(TOUCH_INPUT_QUERY);
     if (touch != null) {
@@ -223,6 +223,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.lastSource = null;
     this.contentEl.empty();
     this.contentEl.removeAttribute("dir");
+    this.contentEl.removeAttribute("lang");
     this.viewport = null;
     this.sceneHost = null;
     this.canvas = null;
@@ -264,7 +265,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   refresh(): void {
-    this.contentEl.dir = uiTextDirection(this.actions.getSettings().language);
+    Object.assign(this.contentEl, uiLocaleAttributes(this.actions.getSettings().language));
     // Relabel existing controls before any asynchronous source read. Do not rebuild
     // the toolbar: that would discard focus, input selection, and pending input.
     this.updateToolbarLabels();

@@ -1,4 +1,5 @@
-import { App, Modal, Setting, type ButtonComponent } from "obsidian";
+import { AccessibleSetting as Setting } from "./accessible-setting";
+import { App, Modal, type ButtonComponent } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { applyModalDirection } from "./modal-direction";
