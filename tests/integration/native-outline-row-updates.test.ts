@@ -32,13 +32,13 @@ describe("native Outline row updates", () => {
     } });
     let source = scenario === "disabled" ? "---\nnumber-suite: [disabled=true]\n---\n## Chapter\n" : "## Chapter\nA paragraph\n";
     if (scenario === "prose-before-caption") source += "\nFigure: Following";
-    const heading = (line: number, offset: number): HeadingCache => ({
-      heading: "Chapter", level: 2,
-      position: { start: { line, col: 0, offset }, end: { line, col: 10, offset: offset + 10 } },
+    const heading = (line: number, offset: number, title = "Chapter"): HeadingCache => ({
+      heading: title, level: 2,
+      position: { start: { line, col: 0, offset }, end: { line, col: 3 + title.length, offset: offset + 3 + title.length } },
     });
     let cached = [heading(scenario === "disabled" ? 3 : 0, source.indexOf("##"))];
     if (scenario === "shifted-heading" || scenario === "changed-heading" || scenario === "prose-before-heading") {
-      cached.push({ ...heading(2, source.length), heading: "Other" });
+      cached.push(heading(2, source.length, "Other"));
       source += "## Other";
     }
     let updateCount = 0;
@@ -94,7 +94,7 @@ describe("native Outline row updates", () => {
         source = scenario === "prose" ? source + "x" : source.replace("paragraph", "paragraphx");
         (listeners.get("editor-change") as (...args: unknown[]) => void)(editor, { file });
         if (scenario === "prose-before-heading") {
-          cached[1] = { ...heading(2, source.indexOf("## Other")), heading: "Other" };
+          cached[1] = heading(2, source.indexOf("## Other"), "Other");
           (listeners.get("changed") as (...args: unknown[]) => void)(file);
         }
         expect(innerEl.querySelector(".is-virtual")).toBe([...badgeInstances][0]);
@@ -134,7 +134,7 @@ describe("native Outline row updates", () => {
       secondRow.click();
       expect(nativeClick).not.toHaveBeenCalled();
       expect(sourceLeaf.setEphemeralState).not.toHaveBeenCalled();
-      cached[1] = { ...heading(3, source.indexOf("## New")), heading: "New" };
+      cached[1] = heading(3, source.indexOf("## New"), "New");
       (listeners.get("changed") as (...args: unknown[]) => void)(file);
       await vi.advanceTimersByTimeAsync(0);
       secondRow.click();
@@ -150,7 +150,7 @@ describe("native Outline row updates", () => {
       const hostHeadings = (view as unknown as { getHeadings(): HeadingCache[] }).getHeadings();
       expect(hostHeadings[1]?.position.start.line).toBe(3);
       expect(cached[1]?.position.start.line).toBe(2);
-      cached[1] = { ...heading(3, source.indexOf("## Other")), heading: "Other" };
+      cached[1] = heading(3, source.indexOf("## Other"), "Other");
       (listeners.get("changed") as (...args: unknown[]) => void)(file);
       await vi.advanceTimersByTimeAsync(80);
       expect(innerEl.querySelector(".is-virtual")?.textContent).toBe("1");

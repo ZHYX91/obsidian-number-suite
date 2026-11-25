@@ -1682,6 +1682,7 @@
 }
 .number-suite-note-header-actions { display: flex; flex: none; gap: var(--size-4-1); }
 /* Explicit structure editing for the heading map: browsing remains drag-free. */
+.number-suite-heading-map-rearrange[hidden] { display: none; }
 .number-suite-heading-map-rearrange[aria-pressed="true"] {
   background: var(--interactive-accent);
   color: var(--text-on-accent);

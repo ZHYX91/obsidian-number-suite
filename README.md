@@ -99,7 +99,8 @@ text and can invalidate `[[Note#Heading]]` links, heading embeds, or external an
 does not guess and rewrite those links.
 
 Use **Open heading mind map** from the command palette or the source-bound map buttons in native Outline or Current note to open
-the current Markdown note as an ordered heading tree. A file card connects all top-level headings
+the current Markdown note as an ordered heading tree. For an external Markdown file, the map reads
+the open editor and heading navigation returns to that pane. Structure editing is available for vault notes. A file card connects all top-level headings
 and remains visible even when the note has none. It shows the file name, a file icon and the number
 of top-level headings; it never replaces a same-name H1. The initial overview shows the first two levels of the heading tree at a readable size. Click the file name above the map to return from a subtree, or the
 zoom percentage to restore 100%. The left heading-card handle shows the virtual number that is

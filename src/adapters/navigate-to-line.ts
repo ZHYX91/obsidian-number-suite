@@ -5,6 +5,7 @@ const latestNavigation = new WeakMap<App, object>();
 /** Prefer the originating pane while it still belongs to this workspace and file. */
 export async function navigateToLine(
   app: App, file: TFile, line: number, preferred: WorkspaceLeaf | null = null,
+  { existingOnly = false }: { existingOnly?: boolean } = {},
 ): Promise<void> {
   const request = {};
   latestNavigation.set(app, request);
@@ -15,7 +16,8 @@ export async function navigateToLine(
   const active = app.workspace.getActiveViewOfType?.(MarkdownView)?.leaf;
   const recent = app.workspace.getMostRecentLeaf?.();
   const target = [preferred, active, recent].find((leaf) => leaf != null && matching.includes(leaf))
-    ?? matching[0] ?? app.workspace.getLeaf("tab");
+    ?? matching[0] ?? (existingOnly ? null : app.workspace.getLeaf("tab"));
+  if (target == null) return;
   if (!(target.view instanceof MarkdownView) || target.view.file !== file) {
     await target.openFile(file, { active: false });
   }

@@ -1,3 +1,4 @@
+import { externalMarkdownView, isExternalMarkdownPath } from "../adapters/markdown-source-binding";
 import {
   MarkdownView,
   Notice,
@@ -357,20 +358,22 @@ export default class NumberSuitePlugin extends Plugin {
     sourceLeaf: WorkspaceLeaf | null = null,
     pinToEntry = false,
   ): Promise<void> {
-    const matchingLeaf = path == null ? null
-      : this.app.workspace.getLeavesOfType("markdown").find((leaf) => (
-        leaf.view instanceof MarkdownView && leaf.view.file?.path === path
-      )) ?? null;
-    const origin = sourceLeaf ?? matchingLeaf ?? (path == null
-      ? this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null
-      : null);
+    let origin = sourceLeaf;
     let file: TFile | null = null;
-    if (path != null) {
+    if (path != null && isExternalMarkdownPath(path)) {
+      const view = externalMarkdownView(this.app, path, sourceLeaf);
+      file = view?.file ?? null;
+      origin = view?.leaf ?? null;
+    } else if (path != null) {
       const candidate = this.app.vault.getAbstractFileByPath(path);
       if (candidate instanceof TFile && candidate.extension.toLowerCase() === "md") file = candidate;
+      origin ??= this.app.workspace.getLeavesOfType("markdown").find((leaf) => (
+        leaf.view instanceof MarkdownView && leaf.view.file === file
+      )) ?? null;
     } else {
       const active = this.app.workspace.getActiveFile();
       if (active?.extension.toLowerCase() === "md") file = active;
+      origin ??= this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null;
     }
     const existing = this.app.workspace.getLeavesOfType(NUMBER_SUITE_HEADING_MAP_VIEW)[0] ?? null;
     const leaf = existing ?? this.app.workspace.getLeaf("tab");
