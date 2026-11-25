@@ -26,6 +26,13 @@ function options(overrides: Partial<TransformOptions> = {}): TransformOptions {
 }
 
 describe("heading transforms", () => {
+  it.each(["\u2028", "\u2029"])("preserves Unicode separators inside headings, fences and HTML (%j)", separator => {
+    const source = [`# First${separator}part ###`, `\`\`\`lang${separator}format`, "# Example", "```",
+      `<div title="A${separator}B">`, "# In HTML", "", "## Next"].join("\r\n");
+    const plan = planHeadingTransform(source, "write", options());
+    expect(plan.result).toBe(source.replace("# First", "# 1 First").replace("## Next", "## 1.1 Next"));
+  });
+
   it("assembles unsorted edits with stable same-position behavior and checks original ranges", () => {
     expect(applyTextChanges("abcdef", [
       { from: 2, to: 3, insert: "X" }, { from: 2, to: 2, insert: "Y" },

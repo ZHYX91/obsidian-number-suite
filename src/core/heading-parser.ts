@@ -44,14 +44,14 @@ function projectVisibleContent(
 function parseAtxLine(
   line: ReturnType<typeof scanMarkdownProtectedLines>[number],
 ): ParsedHeading | null {
-  const match = /^( {0,3})(#{1,9})(?:([ \t]+)(.*)|[ \t]*)$/.exec(line.text);
+  const match = /^( {0,3})(#{1,9})(?:([ \t]+)(.*)|[ \t]*)$/su.exec(line.text);
   if (match == null) return null;
   const indent = match[1] ?? "";
   const hashes = match[2] ?? "";
   const spacing = match[3] ?? "";
   if (hashes.length >= 7 && spacing.length === 0) return null;
   const rawContent = match[4] ?? "";
-  const closing = /^(.*?)(?:[ \t]+#+[ \t]*)$/.exec(rawContent);
+  const closing = /^(.*?)(?:[ \t]+#+[ \t]*)$/su.exec(rawContent);
   const sourceContent = closing?.[1] ?? (/^#+[ \t]*$/u.test(rawContent) ? "" : rawContent);
   const rawContentFrom = line.from + indent.length + hashes.length + spacing.length;
   return {

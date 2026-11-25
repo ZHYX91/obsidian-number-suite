@@ -69,7 +69,9 @@ export interface SemanticSourceLine {
   readonly captionAvailable?: boolean;
 }
 
-const CAPTION = /^( {0,3})(Figure|Table|Equation|Code):(?:[ \t]+)(.*\S|\S)[ \t]*$/u;
+// Input has already been split on Markdown's CR/LF boundaries. The capture
+// includes Unicode line and paragraph separators pasted into the title.
+export const CAPTION_LINE = /^( {0,3})(Figure|Table|Equation|Code):[ \t]+(.*\S)[ \t]*$/isu;
 export const TRAILING_BLOCK_ID = /(?:^|[ \t])\^([A-Za-z0-9-]+)[ \t]*$/u;
 const STANDALONE_BLOCK_ID = /^ {0,3}\^([A-Za-z0-9-]+)[ \t]*$/u;
 
@@ -160,7 +162,7 @@ export function parseDocumentSemantics(source: string, lines: readonly SemanticS
 
     const captionMatch = line.topLevel && line.captionAvailable !== false
       && /^ {0,3}(?:Figure|Table|Equation|Code):[ \t]+/u.test(masked)
-      ? CAPTION.exec(line.commentMaskedText) : null;
+      ? CAPTION_LINE.exec(line.commentMaskedText) : null;
     if (captionMatch?.[2] != null) {
       const kind = captionMatch[2] as CaptionKind;
       const blockId = TRAILING_BLOCK_ID.exec(masked)?.[1] ?? null;

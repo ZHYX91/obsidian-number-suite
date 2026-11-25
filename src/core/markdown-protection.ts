@@ -93,7 +93,7 @@ export function scanMarkdownProtectedLines(
       inlineComment = comments.state;
       headingAvailable = false;
     } else {
-      const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(line.text);
+      const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/su.exec(line.text);
       const fence = fenceMatch?.[1]?.startsWith("`") && fenceMatch[2]?.includes("`")
         ? null : fenceMatch?.[1];
       if (fence != null) {

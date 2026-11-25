@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseDocumentSemantics } from "../../src/core/document-semantics";
 import { parser, GFM } from "@lezer/markdown";
 
 import {
@@ -14,6 +15,17 @@ function offsetOf(source: string, needle: string): number {
 }
 
 describe("caption insertion", () => {
+  it.each(["\u2028", "\u2029"])("indexes an existing caption containing %j and refuses a duplicate", separator => {
+    const title = `Diagram${separator}detail`;
+    const source = `Figure: ${title}\n\n![[image.png]]`;
+    expect(parseDocumentSemantics(source).captions.map(caption => caption.title)).toEqual([title]);
+    expect(findCaptionInsertionTarget(source, offsetOf(source, "image"))).toBeNull();
+    const misplaced = `![[image.png]]\n\nFigure: ${title}`;
+    expect(findCaptionInsertionTarget(misplaced, offsetOf(misplaced, "image"))).toMatchObject({
+      action: "relocate", suggestedTitle: title,
+    });
+  });
+
   it("offers a Figure caption for standalone wiki and Markdown images", () => {
     const wiki = "Before\n\n![[images/Miao.jpg|500]]\n\nAfter";
     expect(findCaptionInsertionTarget(wiki, offsetOf(wiki, "Miao"))).toMatchObject({

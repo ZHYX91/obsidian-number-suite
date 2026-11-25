@@ -5,6 +5,7 @@ import {
 } from "./caption-objects";
 import {
   CAPTION_KINDS,
+  CAPTION_LINE,
   scanSemanticSourceLines,
   type CaptionKind,
   type SemanticSourceLine,
@@ -85,7 +86,7 @@ function adjacentCaptionLine(
       continue;
     }
     if (STANDALONE_BLOCK_ID.test(line.text)) continue;
-    const match = /^( {0,3})(Figure|Table|Equation|Code):[ \t]+(.*\S|\S)[ \t]*$/iu.exec(line.text);
+    const match = CAPTION_LINE.exec(line.text);
     const matchedKeyword = match?.[2] ?? "";
     const kind = CAPTION_KINDS.find((candidate) => (
       candidate.toLowerCase() === matchedKeyword.toLowerCase()

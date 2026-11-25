@@ -172,7 +172,7 @@ function commentProjection(input: string, inlineSpans: readonly SourceRange[], a
         inlineFlow = false;
       }
       const text = line.text.slice(line.pos);
-      const fence = /^(`{3,}|~{3,})(.*)$/u.exec(text);
+      const fence = /^(`{3,}|~{3,})(.*)$/su.exec(text);
       const validFence = line.indent < line.baseIndent + 4 && fence != null
         && !(fence[1]!.startsWith("`") && fence[2]!.includes("`"));
       // Obsidian's native nested code blocks retain their comment delimiters.
