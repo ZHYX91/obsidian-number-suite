@@ -148,6 +148,8 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Xóa dấu Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Các phần cài đặt Number Suite",
+  "settings.tabs.earlier": "Hiện các thẻ phía trước",
+  "settings.tabs.later": "Hiện các thẻ phía sau",
   "settings.tab.general": "Chung",
   "settings.tab.headings": "Đánh số tiêu đề",
   "settings.tab.outline": "Cải tiến dàn ý",

@@ -148,6 +148,8 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Quitar marcas de Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Secciones de ajustes de Number Suite",
+  "settings.tabs.earlier": "Mostrar las pestañas anteriores",
+  "settings.tabs.later": "Mostrar las pestañas siguientes",
   "settings.tab.general": "General",
   "settings.tab.headings": "Numeración de títulos",
   "settings.tab.outline": "Mejoras del esquema",

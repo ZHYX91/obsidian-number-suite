@@ -148,6 +148,8 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Number Suite 표시 제거",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Number Suite 설정 탭",
+  "settings.tabs.earlier": "앞쪽 탭 표시",
+  "settings.tabs.later": "뒤쪽 탭 표시",
   "settings.tab.general": "일반",
   "settings.tab.headings": "제목 번호",
   "settings.tab.outline": "개요 기능 개선",

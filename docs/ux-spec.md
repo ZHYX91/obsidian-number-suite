@@ -10,6 +10,8 @@ last_synced: 2026-11-17
 
 # Number Suite — UX specification
 
+See the [shared plugin interface](https://github.com/ZHYX91/obsidian-property-order/blob/main/docs/shared-ui.md) for cross-plugin interaction and visual conventions.
+
 [中文规范源](ux-spec.zh-CN.md)
 
 <!-- section: authority -->
@@ -97,6 +99,8 @@ failure blocks blind writes and offers retry. Single-note Markdown actions, incl
 ## Global settings experience
 
 The Links & references tab keeps a short explanation beside the ordinary Wiki link toggle. Its reference guide covers eligible targets, native link behavior and exclusions.
+
+When tabs extend beyond either edge, a theme-accented arrow on that side reveals the next clipped tab. Scrolling leaves the current settings page selected. Both gutters disappear when all tabs fit.
 
 Settings use seven consistent tabs: General, Heading numbering, Captions, Links & references,
 Footnotes & endnotes, Write and cleanup, and Display & appearance. Batch options appear under Write and cleanup. The active tab combines an accent

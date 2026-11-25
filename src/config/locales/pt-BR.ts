@@ -148,6 +148,8 @@ export const LOCALE_PT_BR: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Remover marcadores do Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Seções de configurações do Number Suite",
+  "settings.tabs.earlier": "Mostrar abas anteriores",
+  "settings.tabs.later": "Mostrar abas seguintes",
   "settings.tab.general": "Geral",
   "settings.tab.headings": "Numeração de títulos",
   "settings.tab.outline": "Aprimoramentos do esquema",

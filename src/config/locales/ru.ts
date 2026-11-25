@@ -148,6 +148,8 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Удалить метки Number Suite",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Разделы настроек Number Suite",
+  "settings.tabs.earlier": "Показать предыдущие вкладки",
+  "settings.tabs.later": "Показать следующие вкладки",
   "settings.tab.general": "Общие",
   "settings.tab.headings": "Нумерация заголовков",
   "settings.tab.outline": "Улучшения структуры",

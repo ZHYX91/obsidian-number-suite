@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 const styles = readFileSync(new URL("../../styles.css", import.meta.url), "utf8");
 
 describe("settings tab layout CSS", () => {
+  it("uses compact tab padding when the settings strip is at most 600px wide", () => {
+    expect(styles).toMatch(
+      /@container \(max-width:\s*600px\)\s*\{\s*\.number-suite-settings-tab-strip > \.number-suite-settings-tabs > button\.number-suite-settings-tab\s*\{[^}]*padding-inline:\s*8px/s,
+    );
+  });
+
   it("keeps the tab list on one horizontally scrollable baseline", () => {
     expect(styles).toMatch(
       /\.number-suite-settings-tabs\s*\{[^}]*flex-wrap:\s*nowrap;[^}]*border-block-end:[^;}]+;[^}]*overflow-x:\s*auto;[^}]*overflow-y:\s*hidden;/s,

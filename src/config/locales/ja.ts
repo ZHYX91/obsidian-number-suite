@@ -148,6 +148,8 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "batch.operation.strip": "Number Suite のマーカーを削除",
   "settings.title": "Number Suite",
   "settings.tabs.label": "Number Suite の設定タブ",
+  "settings.tabs.earlier": "前のタブを表示",
+  "settings.tabs.later": "後のタブを表示",
   "settings.tab.general": "一般",
   "settings.tab.headings": "見出し番号",
   "settings.tab.outline": "アウトラインの拡張",
