@@ -327,12 +327,17 @@ describe("settings", () => {
       .toBe(false);
   });
 
-  it("never hides the selected built-in scheme during sanitization", () => {
+  it("migrates the old hidden list and keeps the selected scheme available", () => {
     const configured = sanitizeSettings({
       selectedSchemeId: "legal",
       hiddenBuiltInSchemeIds: ["legal", "legal", "hierarchical"],
     });
-    expect(configured.hiddenBuiltInSchemeIds).toEqual(["hierarchical"]);
+    expect(configured.disabledBuiltInSchemeIds).toEqual(["hierarchical"]);
+    expect(sanitizeSettings(configured)).toEqual(configured);
+    expect(sanitizeSettings({ ...configured, disabledBuiltInSchemeIds: [], hiddenBuiltInSchemeIds: ["legal"] })
+      .disabledBuiltInSchemeIds).toEqual([]);
+    expect(resolveNoteSettings(configured, parseNoteOverrides({ "number-suite": ["heading.scheme=hierarchical"] })))
+      .toMatchObject({ valid: true, schemeId: "hierarchical" });
   });
 
   it("validates persisted caption scope and heading levels independently", () => {

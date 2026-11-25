@@ -29,7 +29,7 @@ import {
   captionLevelForDisplay,
   centeredCaptionKinds,
   captionPlacements,
-  cleanupTemplateSources,
+  displayTemplateSources,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
@@ -567,7 +567,7 @@ function buildAnchoredCaptionDecorations(
     showNoteNumbers: false,
     noteSelections: selections,
     numbering: toNumberingOptions(settings, effective),
-    templateSources: cleanupTemplateSources(settings),
+    templateSources: displayTemplateSources(settings),
     headingDisplayPlan: [],
     composing: false,
   }, snapshot);
@@ -803,7 +803,7 @@ export class HeadingDisplayController {
           from: range.from,
           to: range.to,
         }));
-        const templateSources = cleanupTemplateSources(settings);
+        const templateSources = displayTemplateSources(settings);
         const composing = this.displayComposing;
         const numbering = toNumberingOptions(settings, effective);
         const plan = createDisplayPlan(headings, {

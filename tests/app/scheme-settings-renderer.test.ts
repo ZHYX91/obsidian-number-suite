@@ -30,10 +30,10 @@ describe("scheme settings renderer", () => {
         templates: ["{1.arabic}", "", "", "", "", ""],
         exclusions: [],
       }],
-      hiddenBuiltInSchemeIds: [...BUILT_IN_SCHEME_IDS],
+      disabledBuiltInSchemeIds: [...BUILT_IN_SCHEME_IDS],
     });
 
     expect(firstAvailableScheme(settings, "custom-only")).toBe("hierarchical-h2");
-    expect(settings.hiddenBuiltInSchemeIds).not.toContain("hierarchical-h2");
+    expect(settings.disabledBuiltInSchemeIds).not.toContain("hierarchical-h2");
   });
 });

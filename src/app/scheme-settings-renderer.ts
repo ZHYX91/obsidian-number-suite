@@ -94,10 +94,10 @@ export function firstAvailableScheme(settings: NumberSuiteSettings, excluding?: 
   const custom = settings.customSchemes.find((scheme) => scheme.id !== excluding);
   if (custom != null) return custom.id;
   const builtIn = BUILT_IN_SCHEME_IDS.find((id) => (
-    id !== excluding && !settings.hiddenBuiltInSchemeIds.includes(id)
+    id !== excluding && !settings.disabledBuiltInSchemeIds.includes(id)
   ));
   if (builtIn != null) return builtIn;
-  settings.hiddenBuiltInSchemeIds = settings.hiddenBuiltInSchemeIds
+  settings.disabledBuiltInSchemeIds = settings.disabledBuiltInSchemeIds
     .filter((id) => id !== "hierarchical-h2");
   return "hierarchical-h2";
 }
@@ -137,12 +137,12 @@ export class SchemeSettingsRenderer {
     const t = this.t;
     new Setting(container).setName(t("settings.scheme")).setHeading();
     const settings = this.getSettings();
-    const visibleBuiltIns = BUILT_IN_SCHEME_IDS.filter((id) => !settings.hiddenBuiltInSchemeIds.includes(id));
+    const enabledBuiltIns = BUILT_IN_SCHEME_IDS.filter((id) => !settings.disabledBuiltInSchemeIds.includes(id));
     new Setting(container)
       .setName(t("settings.scheme"))
       .setDesc(t("settings.scheme.desc"))
       .addDropdown((dropdown) => {
-        for (const id of visibleBuiltIns) dropdown.addOption(id, builtInName(id, t));
+        for (const id of enabledBuiltIns) dropdown.addOption(id, builtInName(id, t));
         for (const scheme of settings.customSchemes) dropdown.addOption(scheme.id, scheme.name);
         return dropdown.setValue(settings.selectedSchemeId).onChange((value) => this.commit((next) => {
           next.selectedSchemeId = value;
@@ -164,7 +164,7 @@ export class SchemeSettingsRenderer {
       }));
     const suggestion = recommendedSchemeForLocale(resolvedUiLocale(settings.language));
     if (suggestion !== settings.selectedSchemeId
-        && !settings.hiddenBuiltInSchemeIds.includes(suggestion)) {
+        && !settings.disabledBuiltInSchemeIds.includes(suggestion)) {
       new Setting(container)
         .setName(t("settings.scheme.suggestion", { scheme: builtInName(suggestion, t) }))
         .setDesc(t("settings.scheme.suggestion.desc"))
@@ -175,18 +175,20 @@ export class SchemeSettingsRenderer {
           }, "display", true, true)));
     }
     this.renderPlaceholderHelp(container);
-    for (const id of visibleBuiltIns) this.renderBuiltInScheme(container, id);
+    const canDisable = enabledBuiltIns.length + settings.customSchemes.length > 1;
+    for (const id of enabledBuiltIns) this.renderBuiltInScheme(container, id, canDisable);
     for (const scheme of settings.customSchemes) this.renderCustomScheme(container, scheme);
-    new Setting(container).setName(t("settings.scheme.hidden")).setHeading();
-    if (settings.hiddenBuiltInSchemeIds.length === 0) {
-      container.createEl("p", { cls: "setting-item-description", text: t("settings.scheme.noneHidden") });
+    new Setting(container).setName(t("settings.scheme.disabledList"))
+      .setDesc(t("settings.scheme.disabledList.desc")).setHeading();
+    if (settings.disabledBuiltInSchemeIds.length === 0) {
+      container.createEl("p", { cls: "setting-item-description", text: t("settings.scheme.noneDisabled") });
     }
-    for (const id of settings.hiddenBuiltInSchemeIds) {
+    for (const id of settings.disabledBuiltInSchemeIds) {
       new Setting(container).setName(builtInName(id, t)).addButton((button) => button
-        .setButtonText(t("settings.scheme.restore"))
+        .setButtonText(t("settings.scheme.enable"))
         .onClick(() => this.commit((next) => {
-          next.hiddenBuiltInSchemeIds = next.hiddenBuiltInSchemeIds.filter((hidden) => hidden !== id);
-        }, "none", true, true)));
+          next.disabledBuiltInSchemeIds = next.disabledBuiltInSchemeIds.filter((disabled) => disabled !== id);
+        }, "display", true, true)));
     }
   }
 
@@ -240,7 +242,7 @@ export class SchemeSettingsRenderer {
     }
   }
 
-  private renderBuiltInScheme(container: HTMLElement, id: typeof BUILT_IN_SCHEME_IDS[number]): void {
+  private renderBuiltInScheme(container: HTMLElement, id: typeof BUILT_IN_SCHEME_IDS[number], canDisable: boolean): void {
     const t = this.t;
     const scheme = BUILT_IN_SCHEMES[id];
     const details = container.createEl("details", { cls: "number-suite-scheme-card" });
@@ -265,9 +267,9 @@ export class SchemeSettingsRenderer {
       }))
       .addButton((button) => {
         button.buttonEl.addClass("number-suite-scheme-remove");
-        return button.setButtonText(t("settings.scheme.hide")).onClick(() => {
+        return button.setButtonText(t("settings.scheme.disable")).setDisabled(!canDisable).onClick(() => {
           this.commit((settings) => {
-            if (!settings.hiddenBuiltInSchemeIds.includes(id)) settings.hiddenBuiltInSchemeIds.push(id);
+            if (!settings.disabledBuiltInSchemeIds.includes(id)) settings.disabledBuiltInSchemeIds.push(id);
             if (settings.selectedSchemeId === id) settings.selectedSchemeId = firstAvailableScheme(settings, id);
           }, "display", true, true);
         });

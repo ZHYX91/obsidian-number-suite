@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseAtxHeadings } from "../../src/core/heading-parser";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
+import { cleanupTemplateSources, displayTemplateSources, sanitizeSettings } from "../../src/config/settings";
 import { WORD_JOINER } from "../../src/core/markers";
 import type { NumberingOptions } from "../../src/core/types";
 import { createDisplayPlan, type DisplayPlanOptions } from "../../src/application/display-plan";
@@ -32,6 +33,43 @@ function options(overrides: Partial<DisplayPlanOptions>): DisplayPlanOptions {
 }
 
 describe("display plan", () => {
+  it("disables only the scheme's automatic matches, including historical revisions", () => {
+    const settings = sanitizeSettings({
+      hiddenBuiltInSchemeIds: ["chinese-official"],
+      cleanupHistory: [{
+        schemeId: "chinese-official", revision: 2, templates: ["{1.chinese_lower}、"],
+      }],
+    });
+    const headings = parseAtxHeadings(`# 一、 Title
+# ${WORD_JOINER}二、${WORD_JOINER} Marked`);
+    const visible = options({
+      showVirtualNumbers: false,
+      storedHeadingNumberStyleScope: "templates",
+      templateSources: displayTemplateSources(settings),
+    });
+    expect(visible.templateSources.filter(s => s.schemeId === "chinese-official")).toHaveLength(0);
+    expect(cleanupTemplateSources(settings).filter(s => s.schemeId === "chinese-official")
+      .map(s => s.revision)).toEqual([1, 2]);
+    expect(createDisplayPlan(headings, visible)).toMatchObject([{ line: 1, pillKind: "stored" }]);
+    expect(createDisplayPlan(headings, { ...visible, concealStoredNumbers: true }))
+      .toMatchObject([{ line: 1, kind: "conceal" }]);
+    expect(createDisplayPlan(headings, { ...visible, storedHeadingNumberStyleScope: "common" }))
+      .toMatchObject([{ line: 0, pillKind: "manual" }, { line: 1, pillKind: "stored" }]);
+    expect(createDisplayPlan(headings, { ...visible, cleanupScope: "common", concealStoredNumbers: true }))
+      .toMatchObject([{ line: 0, kind: "conceal" }, { line: 1, kind: "conceal" }]);
+
+    settings.customSchemes.push({
+      id: "custom-copy", name: "Copy", revision: 1, baseLevel: 1,
+      templates: [...BUILT_IN_SCHEMES["chinese-official"].templates], exclusions: [],
+    });
+    expect(createDisplayPlan(headings, { ...visible, templateSources: displayTemplateSources(settings) }))
+      .toMatchObject([{ line: 0, pillKind: "stored" }, { line: 1, pillKind: "stored" }]);
+    settings.customSchemes = [];
+    settings.disabledBuiltInSchemeIds = [];
+    expect(createDisplayPlan(headings, { ...visible, templateSources: displayTemplateSources(settings) }))
+      .toMatchObject([{ line: 0, pillKind: "stored" }, { line: 1, pillKind: "stored" }]);
+  });
+
   it("does not display overflowed numbers or conceal their authored prefixes", () => {
     const source = `# First\n# ${WORD_JOINER}2${WORD_JOINER} Overflow\n## Child`;
     const plan = createDisplayPlan(parseAtxHeadings(source), options({

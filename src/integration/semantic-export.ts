@@ -1,6 +1,6 @@
 import { createDisplayPlan } from "../application/display-plan";
 import {
-  cleanupTemplateSources,
+  displayTemplateSources,
   toNumberingOptions,
   type NumberSuiteSettings,
 } from "../config/settings";
@@ -143,7 +143,7 @@ function headingTargets(
     concealStoredNumbers: effective.concealStoredNumbers,
     numbering,
     cleanupScope: effective.concealScope,
-    templateSources: cleanupTemplateSources(settings),
+    templateSources: displayTemplateSources(settings),
     revealOnActiveLine: false,
     selections: [],
     composing: false,

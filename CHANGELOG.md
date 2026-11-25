@@ -2,6 +2,10 @@
 
 All notable changes to Number Suite are documented here.
 
+## Unreleased
+
+- Disabling a built-in scheme now excludes it from automatic outlining and concealment. Previously hidden built-in schemes start disabled. Enable a scheme again to restore recognition without changing note text.
+
 ## 0.8.0
 
 - Choose the full scheme or just the current level for virtual heading numbers in the note, Outline, and references. Outline can follow the note's setting. Written numbers and authored aliases keep their original text.

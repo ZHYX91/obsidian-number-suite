@@ -8,7 +8,10 @@ export function schemeDisplayName(
   settings: NumberSuiteSettings,
   t: Translate,
 ): string {
-  if (isBuiltInSchemeId(id)) return t(`scheme.${id}`);
+  if (isBuiltInSchemeId(id)) {
+    const name = t(`scheme.${id}`);
+    return settings.disabledBuiltInSchemeIds.includes(id) ? t("panel.scheme.disabled", { name }) : name;
+  }
   const custom = settings.customSchemes.find((scheme) => scheme.id === id);
   if (custom == null) return id;
   return custom.name;
@@ -20,7 +23,7 @@ export function noteSchemeOptions(
   t: Translate,
 ): ReadonlyArray<readonly [string, string]> {
   const visibleBuiltIns = BUILT_IN_SCHEME_IDS.filter((id) => (
-    !settings.hiddenBuiltInSchemeIds.includes(id) || id === currentId
+    !settings.disabledBuiltInSchemeIds.includes(id) || id === currentId
   ));
   const options: Array<readonly [string, string]> = visibleBuiltIns.map((id) => [
     id,

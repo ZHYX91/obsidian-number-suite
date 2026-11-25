@@ -6,7 +6,7 @@ import { invalidNoteOverrides, resolveNoteSettings } from "../config/frontmatter
 import { parseNoteOverridesFromSource } from "../config/frontmatter-source";
 import {
   captionLevelForDisplay,
-  cleanupTemplateSources,
+  displayTemplateSources,
   outlineHeadingFormat,
   toNumberingOptions,
   type NumberSuiteSettings,
@@ -109,7 +109,7 @@ export function createNativeOutlineProjection(
       usedLines.add(caption.line);
     }
   }
-  const templateSources = cleanupTemplateSources(settings);
+  const templateSources = displayTemplateSources(settings);
   const plan = createDisplayPlan(headings, {
     showVirtualNumbers: effective.showVirtualNumbers,
     virtualNumberFormat: outlineHeadingFormat(settings),
