@@ -2,10 +2,19 @@
 
 All notable changes to Number Suite are documented here.
 
-## Unreleased
+## 0.9.0 - 2026-11-25
 
 - Recognize stored heading numbers across levels for display. The first four Chinese official levels write compact prefixes and still read existing spaced headings. A trailing space in a custom template requires a separator in the note.
 - Disabling a built-in scheme now excludes it from automatic outlining and concealment. Previously hidden built-in schemes start disabled. Enable a scheme again to restore recognition without changing note text.
+- Keep external Markdown outlines and heading maps attached to the original open pane, including notes with mixed line endings.
+- Improve heading map touch targets, search, keyboard navigation, and focus after reordering sections.
+- Keep numbering previews open after a refused batch write. Preserve the review when changing cleanup scope and keep actions reachable in short sidebars.
+- Preserve Unicode separators in headings and captions, and keep HTML declarations and code examples out of numbering changes.
+- Keep custom numbering scheme drafts independent and validate them inline before saving.
+- Keep selected settings tabs visible, let translated controls wrap, and expose names and state for native settings controls.
+- Align captions in right-to-left Reading View, make long image descriptions scrollable, and describe the exact caption operation in all twelve languages.
+
+[Compare 0.8.0 and 0.9.0](https://github.com/ZHYX91/obsidian-number-suite/compare/0.8.0...0.9.0)
 
 ## 0.8.0
 
