@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { App } from "obsidian";
+import { App, Setting, type DropdownComponent } from "obsidian";
 
 import { NumberSuiteSettingTab } from "../../src/app/settings-tab";
 import { createTranslator } from "../../src/config/i18n";
@@ -32,6 +32,38 @@ function createHost(
 }
 
 describe("Obsidian 1.13 settings definitions", () => {
+  it("returns focus to the language dropdown after switching direction", async () => {
+    installDomFixture();
+    const dropdowns = vi.spyOn(Setting.prototype, "addDropdown").mockImplementation(function (this: Setting, configure) {
+      const selectEl = this.controlEl.appendChild(document.createElement("select"));
+      configure({
+        selectEl,
+        addOptions() { return this; },
+        setValue() { return this; },
+        onChange() { return this; },
+      } as unknown as DropdownComponent);
+      return this;
+    });
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    document.body.append(tab.containerEl);
+    try {
+      tab.display();
+      const original = tab.containerEl.querySelector("select")!;
+      original.focus();
+      tab.containerEl.scrollTop = 120;
+      await tab.setControlValue("general.language", "ar");
+      expect(original.isConnected).toBe(false);
+      expect(tab.containerEl.dir).toBe("rtl");
+      expect(document.activeElement).toBe(tab.containerEl.querySelector("select"));
+      expect(tab.containerEl.scrollTop).toBe(120);
+    } finally {
+      tab.hide();
+      tab.containerEl.remove();
+      dropdowns.mockRestore();
+    }
+  });
+
   it("marks the settings language independently of the host and removes it on close", () => {
     installDomFixture();
     const host = createHost();

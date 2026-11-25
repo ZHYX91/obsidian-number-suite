@@ -154,8 +154,12 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
 
   override display(): void {
     this.imperativeVisible = true;
-    this.cleanup?.();
     const { containerEl } = this;
+    const active = containerEl.ownerDocument.activeElement;
+    const focusKey = active && containerEl.contains(active)
+      ? active.getAttribute("data-number-suite-setting-key") : null;
+    const scrollTop = containerEl.scrollTop;
+    this.cleanup?.();
     const settings = this.plugin.settings;
     const t = createTranslator(settings.language);
     containerEl.empty();
@@ -186,6 +190,12 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     else this.renderViews(layout.panel, t);
     const rememberGuides = collapseSettingsGuides(layout.panel, this.openedGuides);
     this.applyReadOnlyState(layout.panel);
+    if (focusKey !== null) {
+      const fields = layout.panel.querySelectorAll<HTMLSelectElement>("select[data-number-suite-setting-key]:not(:disabled)");
+      Array.from(fields).find((field) => field.dataset.numberSuiteSettingKey === focusKey)
+        ?.focus({ preventScroll: true });
+      containerEl.scrollTop = scrollTop;
+    }
     this.cleanup = () => {
       rememberGuides();
       layout.cleanup();
@@ -286,10 +296,12 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     new Setting(container)
       .setName(t("settings.language"))
       .setDesc(t("settings.language.desc"))
-      .addDropdown((dropdown) => dropdown
-        .addOptions(languageOptions(t("language.auto")))
-        .setValue(this.plugin.settings.language)
-        .onChange((value) => this.updateControl("general.language", value)));
+      .addDropdown((dropdown) => {
+        dropdown.selectEl.dataset.numberSuiteSettingKey = "general.language";
+        dropdown.addOptions(languageOptions(t("language.auto")))
+          .setValue(this.plugin.settings.language)
+          .onChange((value) => this.updateControl("general.language", value));
+      });
     const help = new Setting(container).setName(t("settings.help"));
     const locale = resolvedUiLocale(this.plugin.settings.language);
     const guidePath = locale === "en" ? "README.md"
@@ -362,11 +374,13 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     renderCaptionNumberingGuide(container, t);
     new Setting(container).setName(t("settings.captions.countScope"))
       .setDesc(t("settings.captions.countScope.desc"))
-      .addDropdown((dropdown) => dropdown
-        .addOption("note", t("settings.captions.countScope.note"))
-        .addOption("section", t("settings.captions.countScope.section"))
-        .setValue(this.plugin.settings.captionCountScope)
-        .onChange((value) => this.updateControl("captions.countScope", value)));
+      .addDropdown((dropdown) => {
+        dropdown.selectEl.dataset.numberSuiteSettingKey = "captions.countScope";
+        dropdown.addOption("note", t("settings.captions.countScope.note"))
+          .addOption("section", t("settings.captions.countScope.section"))
+          .setValue(this.plugin.settings.captionCountScope)
+          .onChange((value) => this.updateControl("captions.countScope", value));
+      });
     if (this.plugin.settings.captionCountScope === "section") {
       new Setting(container).setName(t("settings.captions.sectionLevel")).addDropdown((dropdown) => {
         for (const level of HEADING_LEVELS) dropdown.addOption(String(level), `H${level}`);
