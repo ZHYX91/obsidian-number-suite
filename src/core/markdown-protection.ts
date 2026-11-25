@@ -1,4 +1,4 @@
-import { blockHtmlStart, completeCustomHtmlTag, endsRawHtmlBlock, leadingMarkup, startsRawHtmlBlock } from "./markdown-html-blocks";
+import { blockHtmlStart, completeCustomHtmlTag, endsRawHtmlBlock, HTML_DECLARATION, leadingMarkup, startsRawHtmlBlock } from "./markdown-html-blocks";
 import { blankRange, codeSpanEnd, scanInlineComments, type CommentKind } from "./markdown-comments";
 import { scanPhysicalLines, type PhysicalSourceLine } from "./source-lines";
 import { scanMarkdownContainerLines } from "./markdown-containers";
@@ -68,7 +68,7 @@ export function scanMarkdownProtectedLines(
       } else {
         available = false;
       }
-    } else if (container?.literalKind === "CodeBlock" || container?.literalKind === "NumberSuiteEquation"
+    } else if (container?.literalKind === HTML_DECLARATION || container?.literalKind === "CodeBlock" || container?.literalKind === "NumberSuiteEquation"
       || container?.literalKind === "NumberSuiteUnclosedEquation" || (container?.nested === true && container.literal)) {
       available = false;
       // Indented code follows the parser's actual block boundary: indentation
@@ -115,9 +115,6 @@ export function scanMarkdownProtectedLines(
         } else if (markup != null && markup.startsWith("<![CDATA[")) {
           available = false;
           if (!markup.includes("]]>", 9)) state = { kind: "until", ending: "]]>" };
-        } else if (markup != null && /^<![A-Z]/u.test(markup)) {
-          available = false;
-          if (!markup.includes(">", 2)) state = { kind: "until", ending: ">" };
         } else if (markup != null) {
           if (startsRawHtmlBlock(markup)) {
             available = false;
@@ -181,38 +178,30 @@ function maskCodeSpans(text: string, characters: string[]): void {
   }
 }
 
-function workingText(characters: readonly string[]): string {
-  return characters.join("");
-}
-
-
-function maskInlineHtml(text: string, characters: string[]): void {
-  let scan = workingText(characters);
-  for (let index = 0; index < text.length;) {
-    const next = scan[index + 1] ?? "";
-    if (scan[index] !== "<" || !/[A-Za-z/!?]/u.test(next)) {
-      index += 1;
-      continue;
-    }
-    let quote: "\"" | "'" | null = null;
-    let closed = false;
-    for (let cursor = index + 1; cursor < text.length; cursor += 1) {
-      const character = scan[cursor] ?? "";
-      if (quote !== null) {
-        if (character === quote) quote = null;
-        continue;
-      }
-      if (character === "\"" || character === "'") {
-        quote = character;
-      } else if (character === ">") {
-        blankRange(characters, index, cursor + 1);
-        scan = workingText(characters);
-        index = cursor + 1;
-        closed = true;
+function maskInlineHtml(characters: string[]): void {
+  if (!characters.includes("<")) return;
+  // At each position, remember where a scan starting outside quotes, inside
+  // single quotes, or inside double quotes would encounter its first unquoted
+  // ">". A quote exchanges its two corresponding states. This also handles
+  // unfinished markup without rescanning the tail for each possible opener.
+  let end = -1, singleQuotedEnd = -1, doubleQuotedEnd = -1;
+  const spans: Array<{ from: number; end: number }> = [];
+  for (let index = characters.length - 1; index >= 0; index -= 1) {
+    switch (characters[index]) {
+      case ">": end = index + 1; break;
+      case "'": [end, singleQuotedEnd] = [singleQuotedEnd, end]; break;
+      case '"': [end, doubleQuotedEnd] = [doubleQuotedEnd, end]; break;
+      case "<":
+        if (end !== -1 && /[A-Za-z/!?]/u.test(characters[index + 1] ?? "")) spans.push({ from: index, end });
         break;
-      }
     }
-    if (!closed) index += 1;
+  }
+  let maskedTo = 0;
+  for (let index = spans.length - 1; index >= 0; index -= 1) {
+    const span = spans[index]!;
+    if (span.from < maskedTo) continue;
+    blankRange(characters, span.from, span.end);
+    maskedTo = span.end;
   }
 }
 
@@ -229,6 +218,6 @@ export function isMarkdownSourceEscaped(text: string, offset: number): boolean {
 export function maskInlineProtectedSyntax(text: string): string {
   const characters = scanInlineComments(text).masked.split("");
   maskCodeSpans(characters.join(""), characters);
-  maskInlineHtml(text, characters);
+  maskInlineHtml(characters);
   return characters.join("");
 }

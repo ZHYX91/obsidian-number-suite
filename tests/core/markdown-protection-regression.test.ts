@@ -2,20 +2,61 @@ import { describe, expect, it } from "vitest";
 
 import { parseDocumentSemantics } from "../../src/core/document-semantics";
 import { parseAtxHeadings } from "../../src/core/heading-parser";
+import { maskInlineProtectedSyntax } from "../../src/core/markdown-protection";
 import { parseDocumentNotes } from "../../src/core/note-semantics";
 import { planHeadingTransform } from "../../src/core/transform";
 import { BUILT_IN_SCHEMES } from "../../src/core/schemes";
 
+function writeHeadingNumbers(source: string): string {
+  return planHeadingTransform(source, "write", {
+    numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
+    writeMarkers: false, cleanupScope: "templates", templateSources: [],
+    removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
+  }).result;
+}
+
 describe("shared Markdown protection", () => {
+  it("keeps marker offsets outside quoted tags, overlapping openers and unfinished tags", () => {
+    const tag = `<i title='x > <a "none"'>`;
+    const line = ["literal", tag, "@[[#First]]", "</i>", '<a "unfinished', "<b>", "@[[#Last]]"].join(" ");
+    const masked = maskInlineProtectedSyntax(line);
+    expect(masked).toBe(line.replace(tag, " ".repeat(tag.length)).replace("</i>", "    ").replace("<b>", "   "));
+    expect(masked.indexOf("@[[#Last]]")).toBe(line.indexOf("@[[#Last]]"));
+  });
+
+  it.each(["<!doctype html", "<!mixed", "<!DoCtYpE"])("protects a multiline HTML declaration beginning %s", opening => {
+    const source = ["Paragraph", opening, "# Inside", "Figure: Inside", "example >", "# Outside"].join("\n");
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Outside", "# 1 Outside"));
+    expect(parseDocumentSemantics(source).captions).toEqual([]);
+  });
+
+  it.each(["<!3example", "<!ä", "\\<!doctype"])("preserves a heading after ordinary text beginning %s", opening => {
+    const source = [opening, "# Outside", ">"].join("\n");
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Outside", "# 1 Outside"));
+  });
+
+  it.each([["- ", "  "], ["> ", "> "]])("keeps literal references inside a nested %s declaration", (opening, prefix) => {
+    const source = [opening + "<!doctype", prefix + "@[[#Inside]] [^inside]", prefix + "end>",
+      "", "@[[#Outside]] [^outside]"].join("\n");
+    expect(parseDocumentSemantics(source).references.map(row => row.target)).toEqual(["Outside"]);
+    expect(parseDocumentNotes(source).references.map(row => row.id)).toEqual(["outside"]);
+  });
+
+  it("returns an unclosed declaration to the surrounding container and ignores commented lookalikes", () => {
+    const source = ["> <!doctype", "> @[[#Inside]]", "# Outside", "%%", "<!doctype", "%%", "# Also outside"].join("\n");
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Outside", "# 1 Outside").replace("# Also outside", "# 2 Also outside"));
+    expect(parseDocumentSemantics(source).references).toEqual([]);
+  });
+
+  it("keeps comment and fence examples inside a declaration from hiding later headings", () => {
+    const source = ["<!doctype", "%% example", "```", ">", "<custom-tag>", "# HTML", "", "# Outside"].join("\n");
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Outside", "# 1 Outside"));
+  });
+
   it.each(["pre", "script", "style", "textarea"])(
     "protects a raw %s tag whose attributes start on the following line", (tag) => {
       const source = [`<${tag.toUpperCase()}`, 'class="example">', "", "# literal", `</${tag}>`, "# Real"].join("\n");
-      const plan = planHeadingTransform(source, "write", {
-        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-        writeMarkers: false, cleanupScope: "templates", templateSources: [],
-        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-      });
-      expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+      expect(writeHeadingNumbers(source)).toBe(source.replace("# Real", "# 1 Real"));
     },
   );
 
@@ -26,12 +67,7 @@ describe("shared Markdown protection", () => {
     ["<style> body::after { content: '</PRE>' }", "", "# Real"],
   ])("honors CommonMark raw HTML end conditions after %s", (...lines) => {
     const source = lines.join("\n");
-    const plan = planHeadingTransform(source, "write", {
-      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-      writeMarkers: false, cleanupScope: "templates", templateSources: [],
-      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-    });
-    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Real", "# 1 Real"));
   });
 
   it.each([
@@ -41,12 +77,7 @@ describe("shared Markdown protection", () => {
     ["<ſtyle>", "# Real"],
   ])("keeps actual HTML boundaries for Unicode text after %s", (...lines) => {
     const source = lines.join("\n");
-    const plan = planHeadingTransform(source, "write", {
-      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-      writeMarkers: false, cleanupScope: "templates", templateSources: [],
-      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-    });
-    expect(plan.result).toBe(source.replace("# Real", "# 1 Real"));
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Real", "# 1 Real"));
   });
 
   it("keeps similar tag-name prefixes from starting raw HTML blocks", () => {
@@ -56,12 +87,7 @@ describe("shared Markdown protection", () => {
   it.each(["pre", "script", "style", "textarea"])(
     "resumes numbering after a standalone self-closing <%s/> block", (tag) => {
       const source = [`<${tag}/>`, "# Inside HTML", "", "# First", "## Second"].join("\n");
-      const plan = planHeadingTransform(source, "write", {
-        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-        writeMarkers: false, cleanupScope: "templates", templateSources: [],
-        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-      });
-      expect(plan.result).toBe(source.replace("# First", "# 1 First").replace("## Second", "## 1.1 Second"));
+      expect(writeHeadingNumbers(source)).toBe(source.replace("# First", "# 1 First").replace("## Second", "## 1.1 Second"));
     },
   );
 
@@ -76,12 +102,7 @@ describe("shared Markdown protection", () => {
   it.each(["# Heading", "```\ncode\n```", "***", "[label]: /url", "[label]:\n  /url"]) (
     "protects type-7 HTML after a completed block: %s", (prefix) => {
       const source = `${prefix}\n<custom-tag>\n## Protected\n\n## Visible`;
-      const plan = planHeadingTransform(source, "write", {
-        numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-        writeMarkers: false, cleanupScope: "templates", templateSources: [],
-        removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-      });
-      expect(plan.result).toContain("<custom-tag>\n## Protected\n");
+      expect(writeHeadingNumbers(source)).toContain("<custom-tag>\n## Protected\n");
     },
   );
 
@@ -103,12 +124,7 @@ describe("shared Markdown protection", () => {
 
   it("keeps a complete custom tag inline after a non-interrupting ordered list marker", () => {
     const source = "Body\n2. continuation\n<custom-tag>\n# Candidate\n\n# Tail";
-    const plan = planHeadingTransform(source, "write", {
-      numbering: { scheme: BUILT_IN_SCHEMES.hierarchical, missingLevelStrategy: "fill-one", starts: {} },
-      writeMarkers: false, cleanupScope: "templates", templateSources: [],
-      removeMultiplePrefixes: true, normalizeManualOnRenumber: true,
-    });
-    expect(plan.result).toBe(source.replace("# Candidate", "# 1 Candidate").replace("# Tail", "# 2 Tail"));
+    expect(writeHeadingNumbers(source)).toBe(source.replace("# Candidate", "# 1 Candidate").replace("# Tail", "# 2 Tail"));
   });
 
   it("keeps comment delimiters inert inside another comment and recognizes successive comments", () => {
