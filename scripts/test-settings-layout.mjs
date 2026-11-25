@@ -12,6 +12,7 @@ try {
     main { container-type:inline-size; font:20px system-ui }
     .setting-item { position:relative; display:flex; gap:8px }
     .setting-item-control { display:flex; justify-content:flex-end; width:100% }
+    .setting-item:not(.mod-toggle) .setting-item-control { justify-content:flex-start }
     .dropdown.is-measuring { position:absolute; visibility:hidden; width:max-content!important; max-width:none!important }
     button { white-space:nowrap }
   </style><main><section class="number-suite-settings-panel"><div class="setting-item">
@@ -20,18 +21,28 @@ try {
       <option>Nummern nach bekannten Schematiteln und benutzerdefinierten Nummerierungen erkennen</option>
     </select></div></div><p class="number-suite-settings-guide-exterior">Schreibweise (Überschriftenebene.Zahlenformat)</p></section></main>`);
   await page.addStyleTag({ path: "styles.css" });
+  await page.locator("main").evaluate((main) => {
+    const preview = main.querySelector("section").cloneNode(true);
+    preview.className = "number-suite-sidebar-preview";
+    main.append(preview);
+  });
   for (const direction of ["ltr", "rtl"]) {
     for (const width of [260, 320, 760]) {
-      const result = await page.evaluate(({ direction, width }) => {
+      const panels = await page.evaluate(({ direction, width }) => {
         const main = document.querySelector("main");
         main.dir = direction;
         main.style.width = width + "px";
-        const panel = main.querySelector("section");
-        const probe = main.querySelector(".is-measuring");
-        return { actual: panel.scrollWidth, expected: panel.clientWidth, measured: probe.offsetWidth };
+        return Array.from(main.querySelectorAll("section"), (panel) => ({
+          name: panel.className,
+          actual: panel.scrollWidth,
+          expected: panel.clientWidth,
+          measured: panel.querySelector(".is-measuring").offsetWidth,
+        }));
       }, { direction, width });
-      assert.ok(result.actual <= result.expected + 1, `${direction} ${width}px overflow: ${result.actual}`);
-      assert.ok(result.measured > 320, "Host dropdown must still measure natural width");
+      for (const panel of panels) {
+        assert.ok(panel.actual <= panel.expected + 1, `${panel.name} ${direction} ${width}px overflow: ${panel.actual}`);
+        assert.ok(panel.measured > 320, "Host dropdown must still measure natural width");
+      }
     }
   }
   // A long action can have a narrow column even in the desktop settings window.

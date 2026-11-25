@@ -8,7 +8,7 @@ All notable changes to Number Suite are documented here.
 - Disabling a built-in scheme now excludes it from automatic outlining and concealment. Previously hidden built-in schemes start disabled. Enable a scheme again to restore recognition without changing note text.
 - Keep external Markdown outlines and heading maps attached to the original open pane, including notes with mixed line endings.
 - Improve heading map touch targets, search, keyboard navigation, and focus after reordering sections.
-- Keep numbering previews open after a refused batch write. Preserve the review when changing cleanup scope and keep actions reachable in short sidebars.
+- Keep numbering previews open after a refused batch write. Preserve the review when changing cleanup scope and keep actions reachable in short sidebars, with no extra horizontal scrolling from the cleanup menu.
 - Preserve Unicode separators in headings and captions, and keep HTML declarations and code examples out of numbering changes.
 - Keep custom numbering scheme drafts independent and validate them inline before saving.
 - Keep selected settings tabs visible, let translated controls wrap, and expose names and state for native settings controls.

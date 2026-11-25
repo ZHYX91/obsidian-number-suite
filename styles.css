@@ -2282,6 +2282,7 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
 }
 
 /* Keep the host's intrinsic-width probe outside the scrollable inline end. */
+.number-suite-sidebar-preview select.dropdown.is-measuring,
 .number-suite-settings-panel select.dropdown.is-measuring {
   inset-inline-start: auto;
   inset-inline-end: 100%;
