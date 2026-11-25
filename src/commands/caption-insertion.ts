@@ -19,6 +19,7 @@ import {
   type StructuralTableSourceSnapshot,
 } from "../integration/structural-table-source";
 import { captureSourceBinding } from "./source-binding";
+import { captionActionTitle } from "../config/caption-action-label";
 import { CaptionInsertionModal } from "../ui/caption-insertion-modal";
 
 const contributedCaptionMenus = new WeakSet<Menu>();
@@ -28,12 +29,6 @@ function sameTarget(left: CaptionInsertionTarget, right: CaptionInsertionTarget)
     && left.action === right.action
     && left.from === right.from
     && left.to === right.to;
-}
-
-function menuTitle(target: CaptionInsertionTarget, t: Translate): string {
-  const action = target.action === "insert" ? "insert"
-    : target.action === "relocate" ? "relocate" : "normalize";
-  return t(`caption.menu.${target.kind.toLowerCase()}.${action}` as Parameters<Translate>[0]);
 }
 
 function applyChanges(
@@ -110,7 +105,7 @@ function addResolvedCaptionContextMenuItem(
 
 
   menu.addItem((item) => item
-    .setTitle(menuTitle(target, translate))
+    .setTitle(captionActionTitle(target, translate))
     .setIcon({
       Figure: "image-plus",
       Table: "table-properties",

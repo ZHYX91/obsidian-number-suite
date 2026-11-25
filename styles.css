@@ -1713,8 +1713,42 @@
 
 
 
+.number-suite-caption-form { overflow-wrap: anywhere; }
+
+.number-suite-caption-form .setting-item:has(input) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12em), 1fr));
+  gap: var(--size-4-2);
+}
+
+.number-suite-caption-form .setting-item-info {
+  margin-inline-end: 0;
+  min-inline-size: 0;
+}
+
+.number-suite-caption-form .setting-item-control {
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+.number-suite-caption-form input[type="text"] {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.number-suite-caption-form .setting-item:has(button) .setting-item-info { display: none; }
+
+.number-suite-caption-form button {
+  height: auto;
+  min-height: var(--input-height);
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .number-suite-caption-preview code {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* Native Wiki link stays under Obsidian's own click/context-menu handling. */
