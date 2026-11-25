@@ -116,10 +116,15 @@
   color: var(--text-normal);
   font-size: var(--font-ui-small);
   line-height: 1.45;
+  box-sizing: border-box;
+  max-block-size: calc(100vh - 16px);
+  max-block-size: calc(100dvh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   max-inline-size: min(32rem, calc(100vw - 16px));
   overflow-wrap: anywhere;
   padding: 8px 10px;
-  pointer-events: none;
+  pointer-events: auto;
   position: fixed;
   z-index: var(--layer-popover, 1000);
 }

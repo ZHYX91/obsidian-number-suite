@@ -1,3 +1,4 @@
+import { workspaceDocuments } from "../adapters/obsidian/workspace-documents";
 import { Component, type App } from "obsidian";
 
 import {
@@ -84,6 +85,7 @@ export class SemanticTooltipController {
   private tooltip: HTMLElement | null = null;
   private describedBy: { readonly id: string; readonly target: HTMLElement } | null = null;
   private tooltipSequence = 0;
+  private cancelPointerExit: (() => void) | null = null;
 
   constructor(
     private readonly app: App,
@@ -91,7 +93,9 @@ export class SemanticTooltipController {
   ) {}
 
   register(component: Component): void {
-    this.registerDocument(component, document);
+    for (const ownerDocument of workspaceDocuments(this.app.workspace)) {
+      this.registerDocument(component, ownerDocument);
+    }
     component.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, window) => {
       this.registerDocument(component, window.document);
     }));
@@ -120,27 +124,68 @@ export class SemanticTooltipController {
     owner.registerDomEvent(ownerDocument, "pointerout", (event) => this.hideFromEvent(event));
     owner.registerDomEvent(ownerDocument, "focusout", (event) => this.hideFromEvent(event));
     owner.registerDomEvent(ownerDocument, "contextmenu", () => this.hide());
-    owner.registerDomEvent(ownerDocument, "keydown", () => this.hide());
-    owner.registerDomEvent(ownerDocument, "scroll", () => this.hide(), { capture: true });
+    owner.registerDomEvent(ownerDocument, "keydown", (event) => this.handleKey(event));
+    owner.registerDomEvent(ownerDocument, "scroll", (event) => {
+      if (this.active?.ownerDocument === ownerDocument && !this.tooltip?.contains(eventElement(event))) this.hide();
+    }, { capture: true });
+    if (ownerDocument.defaultView != null) {
+      owner.registerDomEvent(ownerDocument.defaultView, "resize", () => {
+        if (this.active?.ownerDocument === ownerDocument) this.hide();
+      });
+    }
   }
 
   private showFromEvent(event: Event): void {
-    const target = eventElement(event)?.closest<HTMLElement>(TOOLTIP_TARGET_SELECTOR) ?? null;
+    const element = eventElement(event);
+    if (this.tooltip?.contains(element)) {
+      this.cancelPointerExit?.();
+      return;
+    }
+    const target = element?.closest<HTMLElement>(TOOLTIP_TARGET_SELECTOR) ?? null;
     if (target == null || !this.allowed(target)) return;
+    this.cancelPointerExit?.();
     if (this.active === target && this.tooltip?.isConnected === true) return;
     this.show(target);
   }
 
   private hideFromEvent(event: Event): void {
-    if (this.active == null) return;
+    const element = eventElement(event);
+    if (!this.active?.contains(element) && !this.tooltip?.contains(element)) return;
     const related = "relatedTarget" in event ? event.relatedTarget : null;
-    if (
-      related != null
-      && typeof related === "object"
-      && "nodeType" in related
-      && this.active.contains(related as Node)
-    ) return;
-    this.hide();
+    if (related != null && typeof related === "object" && "nodeType" in related
+      && (this.active?.contains(related as Node) || this.tooltip?.contains(related as Node))) return;
+    const view = this.active?.ownerDocument.defaultView;
+    if (event.type === "pointerout" && view != null) {
+      if (this.active === view.document.activeElement) return;
+      this.cancelPointerExit?.();
+      // Give the pointer time to cross the gap between the object and its tooltip.
+      const timer = view.setTimeout(() => this.hide(), 180);
+      this.cancelPointerExit = () => {
+        view.clearTimeout(timer);
+        this.cancelPointerExit = null;
+      };
+    } else this.hide();
+  }
+
+  private handleKey(event: KeyboardEvent): void {
+    const tooltip = this.tooltip;
+    if (tooltip == null || this.active?.ownerDocument !== event.currentTarget) return;
+    if (event.key === "Escape") {
+      this.hide();
+      return;
+    }
+    if (event.target !== this.active || tooltip.scrollHeight <= tooltip.clientHeight
+      || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    switch (event.key) {
+      case "ArrowDown": tooltip.scrollTop += 32; break;
+      case "ArrowUp": tooltip.scrollTop -= 32; break;
+      case "PageDown": tooltip.scrollTop += tooltip.clientHeight; break;
+      case "PageUp": tooltip.scrollTop -= tooltip.clientHeight; break;
+      case "Home": tooltip.scrollTop = 0; break;
+      case "End": tooltip.scrollTop = tooltip.scrollHeight; break;
+      default: return;
+    }
+    event.preventDefault();
   }
 
   private allowed(target: HTMLElement): boolean {
@@ -195,6 +240,7 @@ export class SemanticTooltipController {
   }
 
   private hide(): void {
+    this.cancelPointerExit?.();
     if (this.describedBy != null) {
       const { id, target } = this.describedBy;
       const remaining = (target.getAttribute("aria-describedby") ?? "")

@@ -10,6 +10,7 @@ import {
 
 import { openObsidianPluginSettings } from "../adapters/obsidian/plugin-settings";
 import { RecoveryStore } from "../adapters/obsidian/recovery-store";
+import { workspaceDocuments } from "../adapters/obsidian/workspace-documents";
 import { RecoverySession } from "../application/recovery-session";
 import {
   updateDisplayPreferences,
@@ -446,17 +447,6 @@ export default class NumberSuitePlugin extends Plugin {
     }
   }
 
-  private ownerDocuments(): Document[] {
-    const documents = new Set<Document>();
-    if (typeof document !== "undefined") {
-      documents.add(document);
-    }
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      documents.add(leaf.view.containerEl.ownerDocument);
-    });
-    return [...documents];
-  }
-
   private applyAppearanceToDocument(ownerDocument: Document): void {
     ownerDocument.body.style.setProperty(
       "--number-suite-virtual-opacity",
@@ -469,18 +459,18 @@ export default class NumberSuitePlugin extends Plugin {
   }
 
   private applyAppearance(): void {
-    for (const ownerDocument of this.ownerDocuments()) this.applyAppearanceToDocument(ownerDocument);
+    for (const ownerDocument of workspaceDocuments(this.app.workspace)) this.applyAppearanceToDocument(ownerDocument);
   }
 
   private clearAppearance(): void {
-    for (const ownerDocument of this.ownerDocuments()) {
+    for (const ownerDocument of workspaceDocuments(this.app.workspace)) {
       ownerDocument.body.style.removeProperty("--number-suite-virtual-opacity");
       ownerDocument.body.style.removeProperty("--number-suite-virtual-gap");
     }
   }
 
   private cleanupReadingDom(): void {
-    for (const ownerDocument of this.ownerDocuments()) {
+    for (const ownerDocument of workspaceDocuments(this.app.workspace)) {
       for (const readingView of ownerDocument.querySelectorAll<HTMLElement>(".markdown-reading-view")) {
         cleanupNumberSuiteReadingDom(readingView);
       }

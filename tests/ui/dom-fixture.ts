@@ -2,6 +2,10 @@ interface ElementOptions { text?: string; cls?: string; attr?: Record<string, st
 
 /** The small Obsidian DOM extension surface used by the pane and preview. */
 export function installDomFixture(): void {
+  installDomFixtureIn(HTMLElement);
+}
+
+export function installDomFixtureIn(elementType: typeof HTMLElement): void {
   const create = function(this: HTMLElement, tag: string, options: ElementOptions = {}) {
     const element = this.ownerDocument.createElement(tag);
     if (options.text != null) element.textContent = options.text;
@@ -10,7 +14,7 @@ export function installDomFixture(): void {
     this.appendChild(element);
     return element;
   };
-  Object.assign(HTMLElement.prototype, {
+  Object.assign(elementType.prototype, {
     empty(this: HTMLElement) { this.replaceChildren(); },
     createEl: create,
     createDiv(this: HTMLElement, options: ElementOptions) { return create.call(this, "div", options); },

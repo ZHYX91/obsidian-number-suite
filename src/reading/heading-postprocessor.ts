@@ -366,11 +366,16 @@ function alignRenderedCaption(
     const targetRect = target.getBoundingClientRect();
     const captionRect = caption.getBoundingClientRect();
     if (targetRect.width <= 0 || captionRect.width <= 0) return;
-    const targetOffset = Math.max(0, targetRect.left - parentRect.left);
+    const rtl = view.getComputedStyle(caption).direction === "rtl";
+    const parentStyle = view.getComputedStyle(caption.parentElement);
+    const inset = (edge: "Left" | "Right"): number =>
+      (Number.parseFloat(parentStyle[`padding${edge}`]) || 0) + (Number.parseFloat(parentStyle[`border${edge}Width`]) || 0);
+    const left = parentRect.left + inset("Left");
+    const right = parentRect.right - inset("Right");
+    const targetOffset = rtl ? right - targetRect.right : targetRect.left - left;
     const centered = caption.classList.contains("number-suite-caption-centered");
-    const offset = centered
-      ? targetOffset + Math.max(0, (targetRect.width - captionRect.width) / 2)
-      : targetOffset;
+    const requestedOffset = targetOffset + (centered ? (targetRect.width - captionRect.width) / 2 : 0);
+    const offset = Math.max(0, Math.min(requestedOffset, right - left - captionRect.width));
     caption.classList.add("number-suite-caption-object-aligned");
     caption.style.setProperty("--number-suite-caption-inline-offset", `${offset}px`);
     if (sectionPlacement != null && captionTranslate.length === 0 && targetTranslate.length === 0) {
@@ -394,6 +399,7 @@ function alignRenderedCaption(
   observer?.observe(target);
   if (placementTarget !== target) observer?.observe(placementTarget);
   observer?.observe(caption);
+  if (caption.parentElement != null) observer?.observe(caption.parentElement);
   const cleanup = (): void => {
     if (!active) return;
     active = false;

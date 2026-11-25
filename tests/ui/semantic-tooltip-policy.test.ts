@@ -52,6 +52,36 @@ describe("semantic tooltip policy", () => {
     target.remove();
   });
 
+  it("keeps a long tooltip readable while scrolling by pointer or keyboard and dismisses on Escape", () => {
+    const app = { workspace: { iterateAllLeaves: () => undefined, on: () => ({}) } } as unknown as App;
+    const component = new Component();
+    component.load();
+    const controller = new SemanticTooltipController(app);
+    controller.register(component);
+    const target = document.body.appendChild(document.createElement("img"));
+    target.dataset.numberSuiteTooltip = "true";
+    target.dataset.numberSuiteTooltipBody = "A long image description";
+    target.tabIndex = 0;
+    try {
+      target.focus();
+      const popup = document.querySelector<HTMLElement>("[role=tooltip]")!;
+      Object.defineProperties(popup, { scrollHeight: { value: 800 }, clientHeight: { value: 280 } });
+      const key = new KeyboardEvent("keydown", { key: "PageDown", bubbles: true, cancelable: true });
+      target.dispatchEvent(key);
+      expect(key.defaultPrevented).toBe(true);
+      expect(popup.scrollTop).toBe(280);
+      target.dispatchEvent(new MouseEvent("pointerout", { relatedTarget: popup, bubbles: true }));
+      popup.dispatchEvent(new Event("scroll"));
+      expect(popup.isConnected).toBe(true);
+      target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      expect(popup.isConnected).toBe(false);
+      expect(document.activeElement).toBe(target);
+    } finally {
+      component.unload();
+      target.remove();
+    }
+  });
+
   it("honors the global tooltip toggle even when stale metadata remains on an image", () => {
     const app = { workspace: { iterateAllLeaves: () => undefined } } as unknown as App;
     const controller = new SemanticTooltipController(app, () => ({
@@ -84,7 +114,7 @@ describe("semantic tooltip policy", () => {
 describe("semantic tooltip document lifetime", () => {
   it("releases each closed popout while retaining the main document and permitting reopen", () => {
     const handlers = new Map<string, (...args: unknown[]) => void>();
-    const app = { workspace: { on: (name: string, callback: (...args: unknown[]) => void) => {
+    const app = { workspace: { iterateAllLeaves: () => undefined, on: (name: string, callback: (...args: unknown[]) => void) => {
       handlers.set(name, callback); return {};
     } } } as unknown as App;
     const component = new Component(); component.load();
