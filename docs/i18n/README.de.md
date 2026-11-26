@@ -20,6 +20,8 @@ Benötigt wird Obsidian 1.12.7 oder neuer auf Desktop oder Android. Das Verhalte
 <!-- section: quick-start -->
 ## Schnellstart
 
+Öffne eine Markdown-Notiz und wähle in der Befehlspalette **Einstellungen der aktuellen Notiz öffnen**. Damit öffnest du die Seitenleiste für die aktuelle Notiz auch bei ausgeblendeter seitlicher Symbolleiste.
+
 1. Aktiviere unter **Einstellungen → Number Suite → Überschriftennummerierung** die Option **„Virtuelle Nummern anzeigen“**.
 2. Öffne die Live-Vorschau oder Leseansicht. Die Nummern erscheinen neben den Überschriften, der gespeicherte Text bleibt unverändert.
 3. Um Nummern in Markdown zu speichern, öffne **Aktuelle Notiz → Notiztext bearbeiten**. Wähle Schreiben oder Neunummerieren, prüfe die Vorschau und bestätige die Änderungen.

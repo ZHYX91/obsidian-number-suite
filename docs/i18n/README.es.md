@@ -20,6 +20,8 @@ Requiere Obsidian 1.12.7 o posterior en escritorio o Android. El comportamiento 
 <!-- section: quick-start -->
 ## Primeros pasos
 
+Abre una nota Markdown y ejecuta **Abrir los controles de la nota actual** desde la paleta de comandos. Así puedes abrir el panel lateral de la nota actual aunque la barra lateral de iconos esté oculta.
+
 1. En **Ajustes → Number Suite → Numeración de títulos**, activa **« Mostrar números virtuales »**.
 2. Abre la vista previa en directo o la vista de lectura. Los números aparecen junto a los títulos, pero el archivo sigue igual.
 3. Para guardar los números en Markdown, abre **Nota actual → Editar el texto**. Elige escribir o volver a numerar, revisa la vista previa y confirma los cambios.

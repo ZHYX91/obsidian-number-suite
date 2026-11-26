@@ -31,6 +31,7 @@ Run `npm run test:reading-layout` to check caption alignment in both directions 
 
 ## Highest-value loop
 
+- [ ] In a fresh desktop Vault with the ribbon hidden, open a disposable Markdown note and run **Open current note controls** from the command palette. Confirm the Current note sidebar opens at **Display & numbering** and neither the note bytes nor global settings change. With no Markdown note active, confirm the command is not offered.
 - [ ] Click the ribbon icon and confirm it directly opens Current note with Display & numbering selected on first open and the note and global settings unchanged. Reopen saved legacy sidebar state and run old command shortcuts to verify migration.
 - [ ] Dock Current note at 285 × 540 CSS pixels and preview Remove with several changes. Reach every recognition setting, diff, Back, Cancel and Apply using the keyboard and pointer. Repeat Write at 285 × 430, then use a long localized target path and long property diagnostics. Keep the tabs and global settings reachable.
 - [ ] Preview 501 changes or 201 warnings, reveal the next page, and read the first newly focused item in place. Modify the source and Apply. The explanation receives focus and stale Apply is disabled.
