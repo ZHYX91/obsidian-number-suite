@@ -328,6 +328,8 @@ export const LOCALE_FR: Readonly<Record<string, string>> = {
   "settings.reading": "Activer le traitement en mode Lecture",
   "settings.source": "Activer les décorations en mode Source",
   "settings.source.desc": "Désactivé par défaut pour que le mode Source affiche toujours le Markdown enregistré.",
+  "settings.allowHeadingLevelDragReparenting": "Autoriser le changement de niveau des titres par glisser-déposer",
+  "settings.allowHeadingLevelDragReparenting.desc": "Une fois activé, les titres peuvent être déplacés sous un autre titre en mode réorganisation, en modifiant le niveau de toute la section. Désactivé par défaut ; le réordonnancement au même niveau reste disponible.",
   "settings.reveal": "Afficher les numéros écrits sur la ligne du titre actif",
   "settings.virtualFormat.title": "Format des numéros de titres virtuels",
   "settings.virtualFormat.body": "Titres dans la note",
