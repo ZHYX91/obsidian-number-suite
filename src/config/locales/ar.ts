@@ -328,6 +328,8 @@ export const LOCALE_AR: Readonly<Record<string, string>> = {
   "settings.reading": "تفعيل المعالجة في وضع القراءة",
   "settings.source": "تفعيل مظهر إضافي في وضع المصدر",
   "settings.source.desc": "معطّل افتراضيًا حتى يظهر النص الأصلي دائمًا في وضع المصدر.",
+  "settings.allowHeadingLevelDragReparenting": "السماح بتغيير مستويات العناوين بالسحب والإفلات",
+  "settings.allowHeadingLevelDragReparenting.desc": "عند التفعيل، يمكن سحب العناوين أسفل عنوان آخر في وضع إعادة التنظيم، مع تغيير مستوى القسم بالكامل. الإعداد متوقف افتراضيًا؛ وتظل إعادة الترتيب ضمن المستوى نفسه متاحة.",
   "settings.reveal": "إظهار الأرقام المكتوبة على سطر العنوان النشط",
   "settings.virtualFormat.title": "تنسيق أرقام العناوين الافتراضية",
   "settings.virtualFormat.body": "العناوين في الملاحظة",
