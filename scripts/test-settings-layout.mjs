@@ -71,6 +71,18 @@ try {
     }, fontSize);
     assert.ok(fits, `German reset label exceeds its desktop button at ${fontSize}px`);
   }
+  // Obsidian gives buttons an explicit display value, overriding the browser's hidden default.
+  await page.setContent(`<style>button { display: inline-flex }</style>
+    <div class="number-suite-heading-map-toolbar"><button hidden>Move section</button></div>
+    <div class="modal-button-container number-suite-heading-reparent-actions"><button hidden>Move under target</button></div>`);
+  await page.addStyleTag({ path: "styles.css" });
+  const moveActions = page.locator("button");
+  assert.equal(await moveActions.count(), 2);
+  for (const button of await moveActions.all()) {
+    assert.equal(await button.isVisible(), false, "Inapplicable heading move actions must stay hidden");
+    await button.evaluate((element) => { element.hidden = false; });
+    assert.equal(await button.isVisible(), true, "An available heading move action must become visible");
+  }
   // The paging arrows are separate controls from the horizontally scrollable tablist.
   // On a touch device they must meet the shared 44 × 44 CSS-pixel target in both axes.
   const touchPage = await browser.newPage({

@@ -5,7 +5,7 @@ All notable changes to Number Suite are documented here.
 ## 0.10.0 - 2026-11-27
 
 - In the heading map, enable **Views → Allow drag-and-drop to change a heading’s parent**, then use **Adjust structure** to move a whole section under another heading or beside it. The setting defaults to off and same-parent reordering remains available.
-- In **Adjust structure**, use **Move section** with a keyboard or touch to select a destination and preview the available positions before applying. Moving a section keeps its internal hierarchy, adjusts heading levels as needed, and preserves stored numbers and link text. Obsidian’s Undo and Redo cover the move.
+- With the setting enabled, **Adjust structure** shows **Move section**. Use a keyboard or touch to select a destination and see the available positions before applying. Moving a section keeps its internal hierarchy, adjusts heading levels as needed, and preserves stored numbers and link text. Obsidian’s Undo and Redo cover the move.
 - Settings tab-scroll arrows have 44 × 44 CSS pixel touch targets.
 - The guides in all 12 languages explain how **Open current note controls** opens the sidebar from an active Markdown note when the ribbon is hidden.
 

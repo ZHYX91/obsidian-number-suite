@@ -1510,7 +1510,7 @@ class HeadingReparentModal extends Modal {
       const location = t("preview.line", { line: target.line + 1, level: target.level });
       select.createEl("option", { text: `${this.headingTitle(target)} · ${location}`, attr: { value: String(target.line) } });
     }
-    const actions = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const actions = this.contentEl.createDiv({ cls: "modal-button-container number-suite-heading-reparent-actions" });
     const cancel = actions.createEl("button", { type: "button", text: t("preview.cancel") });
     cancel.addEventListener("click", () => this.close());
     const selectedTarget = () => this.targets.find((target) => String(target.line) === select.value);
