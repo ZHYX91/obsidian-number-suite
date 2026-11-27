@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, Modal, TFolder } from "obsidian";
+import { App, FuzzySuggestModal, Modal, type TFolder } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import { applyModalDirection } from "./modal-direction";
@@ -27,9 +27,7 @@ export class FolderScopeModal extends FuzzySuggestModal<BatchScope> {
   }
 
   override getItems(): BatchScope[] {
-    return this.app.vault.getAllLoadedFiles()
-      .filter((file): file is TFolder => file instanceof TFolder)
-      .filter((folder) => folder.path.length > 0 && folder.path !== "/")
+    return this.app.vault.getAllFolders(false)
       .sort((left, right) => left.path.localeCompare(right.path))
       .map((folder) => ({ folder, label: folder.path }));
   }

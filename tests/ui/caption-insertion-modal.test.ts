@@ -22,10 +22,11 @@ vi.mock("obsidian", async (importOriginal) => ({
     close(): void { (this as unknown as { onClose(): void }).onClose(); }
   },
   Setting: class {
-    constructor(readonly container: HTMLElement) {}
+    readonly settingEl: HTMLElement;
+    constructor(readonly container: HTMLElement) { this.settingEl = container.createDiv({ cls: "setting-item" }); }
     setName(): this { return this; }
     addText(configure: (text: unknown) => void): this {
-      const inputEl = this.container.createEl("input");
+      const inputEl = this.settingEl.createEl("input");
       const text = {
         inputEl,
         setPlaceholder(value: string) { inputEl.placeholder = value; return text; },
@@ -39,7 +40,7 @@ vi.mock("obsidian", async (importOriginal) => ({
       return this;
     }
     addButton(configure: (button: unknown) => void): this {
-      const buttonEl = this.container.createEl("button");
+      const buttonEl = this.settingEl.createEl("button");
       const button = {
         setButtonText(value: string) { buttonEl.textContent = value; return button; },
         setDisabled(value: boolean) { buttonEl.disabled = value; return button; },
@@ -103,6 +104,8 @@ it("previews the retained caption IDs exactly while editing only the visible tit
     app: new App(), target, translate: createTranslator("en"), onConfirm: vi.fn(async () => undefined),
   });
   modal.onOpen();
+  expect(modal.contentEl.querySelector(".number-suite-caption-field input")).not.toBeNull();
+  expect(modal.contentEl.querySelectorAll(".number-suite-caption-actions button")).toHaveLength(2);
   const input = modal.contentEl.querySelector<HTMLInputElement>("input");
   if (input === null) throw new Error("Expected the title control");
   expect(input.value).toBe("Cat");

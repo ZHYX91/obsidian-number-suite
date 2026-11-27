@@ -54,7 +54,7 @@ function harness(
   const cachedSources = new Map<string, string>();
   const vault = {
     getAbstractFileByPath: (path: string) => files.get(path) ?? folders.get(path) ?? null,
-    getMarkdownFiles: () => [...files.values()],
+    getMarkdownFiles: vi.fn(() => [...files.values()]),
     cachedRead: async (file: TFile) => {
       const source = contents.get(file.path) ?? "";
       await readHook?.(file);
@@ -97,8 +97,9 @@ function harness(
     contents,
     cachedSources,
     controller: new BatchController(app, () => ({ ...DEFAULT_SETTINGS, excludedFolders, selectedSchemeId: "hierarchical" }), persistence),
-    addFolder: (path: string) => {
-      const folder = Object.assign(Object.create(TFolder.prototype) as TFolder, { path });
+    getMarkdownFiles: vault.getMarkdownFiles,
+    addFolder: (path: string, children: Array<TFile | TFolder> = []) => {
+      const folder = Object.assign(Object.create(TFolder.prototype) as TFolder, { path, children });
       folders.set(path, folder);
       return { folder, label: path };
     },
@@ -264,11 +265,16 @@ describe("BatchController preview", () => {
 
   it("counts only Markdown sources inside the selected folder after exclusions", async () => {
     const test = harness({ "work/a.md": "# A", "work/nested/b.md": "Plain text",
-      "work/private/c.md": "# Private", "workspace/d.md": "# Different folder" }, null, ["work/private"]);
-    const selected = test.addFolder("work");
+      "work/image.png": "image", "work/private/c.md": "# Private", "workspace/d.md": "# Different folder" }, null, ["work/private"]);
+    const nested = test.addFolder("work/nested", [test.getFile("work/nested/b.md")!]);
+    const excluded = test.addFolder("work/private");
+    Object.defineProperty(excluded.folder, "children", { get() { throw new Error("traversed an excluded folder"); } });
+    const selected = test.addFolder("work", [nested.folder, excluded.folder, test.getFile("work/a.md")!,
+      test.getFile("work/image.png")!, test.getFile("workspace/d.md")!]);
     const read = vi.fn<(file: TFile) => void>();
     test.setReadHook(read);
     await preview(test.controller, "write", new AbortController().signal, selected);
+    expect(test.getMarkdownFiles).not.toHaveBeenCalled();
     expect(modal.options?.checkedCount).toBe(2);
     expect(read.mock.calls.map(([file]) => file.path)).toEqual(["work/a.md", "work/nested/b.md"]);
     test.addFolder("work");

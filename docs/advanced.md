@@ -10,6 +10,8 @@ These choices apply to virtual heading numbers. Stored numbers keep their origin
 
 ## Roman numeral limits and batch recovery
 
+For a folder batch, the preview scans Markdown files in the selected folder and its descendants. Excluded folders and their contents are skipped. Choose the vault scope to review every eligible Markdown file.
+
 Roman numeral templates support values from 1 to 3999. Preview checks every generated heading, including later increments and parent counters referenced by a template. If any Roman counter is outside that range, Write and Renumber leave the entire file unchanged and explain how to adjust the start or format. Cleanup remains available. Display-only numbering omits an unavailable label instead of showing a decimal fallback.
 
 A failed batch or Undo can also fail while restoring earlier writes. The result reports how many files were restored, failed to restore, or have an unconfirmed outcome, and identifies the files to inspect. Existing recovery data is retained where storage permits; a separate message reports an unconfirmed recovery save. Keep copies and review affected files before retrying Undo last batch. Concurrent edits are preserved, so a partial recovery must not be treated as a successful full restore.
