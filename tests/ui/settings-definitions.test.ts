@@ -156,6 +156,20 @@ describe("Obsidian 1.13 settings definitions", () => {
     await expect(tab.setControlValue("views.bodyHeadingNumberFormat", "follow-body")).rejects.toThrow();
   });
 
+  it("round-trips the independent heading reparenting switch", async () => {
+    const host = createHost();
+    const tab = new NumberSuiteSettingTab(new App(), host as never);
+    const control = "views.allowHeadingLevelDragReparenting";
+    expect(tab.getControlValue(control)).toBe(false);
+    await tab.setControlValue(control, true);
+    expect(host.saveSettings).toHaveBeenCalled();
+    expect(sanitizeSettings(host.settings).allowHeadingLevelDragReparenting).toBe(true);
+    expect(tab.getControlValue(control)).toBe(true);
+    await expect(tab.setControlValue(control, "true")).rejects.toThrow();
+    await tab.setControlValue(control, false);
+    expect(sanitizeSettings(host.settings).allowHeadingLevelDragReparenting).toBe(false);
+  });
+
   it("retains the selected section level when switching back to note-wide caption counts", async () => {
     const host = createHost();
     const tab = new NumberSuiteSettingTab(new App(), host as never);
