@@ -328,6 +328,8 @@ export const LOCALE_KO: Readonly<Record<string, string>> = {
   "settings.reading": "읽기 화면 처리 사용",
   "settings.source": "소스 모드에서도 꾸미기 사용",
   "settings.source.desc": "기본적으로 꺼져 있으므로 소스 모드에서는 저장된 Markdown을 그대로 볼 수 있습니다.",
+  "settings.allowHeadingLevelDragReparenting": "드래그로 제목 수준 변경 허용",
+  "settings.allowHeadingLevelDragReparenting.desc": "켜면 재구성 모드에서 제목을 다른 제목 아래로 드래그하여 섹션 전체의 수준을 변경할 수 있습니다. 기본값은 꺼짐이며 같은 수준의 재정렬은 계속 사용할 수 있습니다.",
   "settings.reveal": "현재 커서가 있는 제목 줄에 작성된 번호 표시",
   "settings.virtualFormat.title": "가상 제목 번호 형식",
   "settings.virtualFormat.body": "노트 본문의 제목",
