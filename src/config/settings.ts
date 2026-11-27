@@ -68,6 +68,7 @@ export interface NumberSuiteSettings {
   enableLivePreview: boolean;
   enableReadingView: boolean;
   enableSourceMode: boolean;
+  allowHeadingLevelDragReparenting: boolean;
   bodyHeadingNumberFormat: VirtualHeadingNumberFormat;
   outlineHeadingNumberFormat: VirtualHeadingNumberFormat | "follow-body";
   referenceHeadingNumberFormat: VirtualHeadingNumberFormat;
@@ -161,6 +162,7 @@ export const DEFAULT_SETTINGS: NumberSuiteSettings = {
   enableLivePreview: true,
   enableReadingView: true,
   enableSourceMode: false,
+  allowHeadingLevelDragReparenting: false,
   bodyHeadingNumberFormat: "scheme",
   outlineHeadingNumberFormat: "follow-body",
   referenceHeadingNumberFormat: "scheme",
@@ -390,6 +392,7 @@ export function sanitizeSettings(value: unknown): NumberSuiteSettings {
     enableLivePreview: booleanOr(raw.enableLivePreview, DEFAULT_SETTINGS.enableLivePreview),
     enableReadingView: booleanOr(raw.enableReadingView, DEFAULT_SETTINGS.enableReadingView),
     enableSourceMode: booleanOr(raw.enableSourceMode, DEFAULT_SETTINGS.enableSourceMode),
+    allowHeadingLevelDragReparenting: booleanOr(raw.allowHeadingLevelDragReparenting, DEFAULT_SETTINGS.allowHeadingLevelDragReparenting),
     bodyHeadingNumberFormat: oneOf(raw.bodyHeadingNumberFormat,
       ["scheme", "current-only"] as const, DEFAULT_SETTINGS.bodyHeadingNumberFormat),
     outlineHeadingNumberFormat: oneOf(raw.outlineHeadingNumberFormat,
