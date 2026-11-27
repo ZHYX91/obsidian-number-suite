@@ -328,6 +328,8 @@ export const LOCALE_ES: Readonly<Record<string, string>> = {
   "settings.reading": "Activar el procesamiento de la vista de lectura",
   "settings.source": "Activar adornos en el modo Fuente",
   "settings.source.desc": "Desactivado por defecto para que el modo Fuente muestre siempre el Markdown guardado.",
+  "settings.allowHeadingLevelDragReparenting": "Permitir cambiar niveles de encabezado al arrastrar",
+  "settings.allowHeadingLevelDragReparenting.desc": "Al activarlo, se pueden arrastrar encabezados bajo otro encabezado en el modo de reorganización y cambiar el nivel de toda la sección. Desactivado de forma predeterminada; el reordenamiento al mismo nivel sigue disponible.",
   "settings.reveal": "Mostrar los números escritos en la línea del título activo",
   "settings.virtualFormat.title": "Formato de los números virtuales de los títulos",
   "settings.virtualFormat.body": "Títulos de la nota",
