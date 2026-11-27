@@ -328,6 +328,8 @@ export const LOCALE_ZH_TW: Readonly<Record<string, string>> = {
   "settings.reading": "啟用閱讀視圖處理",
   "settings.source": "在原始碼模式中啟用裝飾",
   "settings.source.desc": "預設為關閉，確保原始碼模式始終展示真實 Markdown。",
+  "settings.allowHeadingLevelDragReparenting": "允許拖曳變更標題層級",
+  "settings.allowHeadingLevelDragReparenting.desc": "開啟後，可在重組模式中將標題拖曳到另一個標題下，並調整整個區塊的層級。預設關閉；同級排序仍可使用。",
   "settings.reveal": "光標進入標題行時顯示已寫入序號",
   "settings.virtualFormat.title": "虛擬標題編號格式",
   "settings.virtualFormat.body": "內文標題",
