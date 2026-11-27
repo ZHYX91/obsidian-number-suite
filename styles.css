@@ -2316,3 +2316,6 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   outline: 2px solid var(--background-modifier-border-focus);
   outline-offset: 2px;
 }
+
+.number-suite-heading-reparent-target { display: grid; gap: var(--size-4-2); }
+.number-suite-heading-reparent-target select { min-width: 0; width: 100%; }

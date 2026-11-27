@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
-import { MarkdownView, TFile, type WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Modal, TFile, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
@@ -44,6 +44,8 @@ type Subject = {
   rearranging: boolean;
   moveStatusEl: HTMLElement;
   rearrangeButton: HTMLButtonElement;
+  reparentButton: HTMLButtonElement;
+  buildToolbar(): void;
   navigate(node: HeadingMapNode): Promise<void>;
   moveStatusError: boolean;
   dragSource: unknown;
@@ -317,6 +319,38 @@ describe("heading map write identity", () => {
       to: { line: 0, ch: source.length },
       text: "## B\n### A\nbody\n",
     }] }));
+  });
+
+  it("offers the same safe destinations through a focused native picker", async () => {
+    const settings = { ...DEFAULT_SETTINGS, allowHeadingLevelDragReparenting: true };
+    const h = writeHarness(settings);
+    h.view.buildToolbar();
+    await h.view.refreshMap(source);
+    h.view.collapsed.clear();
+    h.view.render();
+    const [sourceNode, targetNode] = h.view.roots[0]!.children;
+    h.view.sceneHost.querySelector<HTMLButtonElement>(`[data-node-id="${sourceNode!.id}"] [data-map-action=body]`)!.click();
+    const opened: Modal[] = [];
+    const open = vi.spyOn(Modal.prototype, "open").mockImplementation(function (this: Modal) {
+      Object.assign(this, { modalEl: this.contentEl });
+      document.body.append(this.contentEl);
+      opened.push(this);
+      this.onOpen();
+    });
+    onTestFinished(() => { open.mockRestore(); for (const modal of opened) modal.contentEl.remove(); });
+    expect(h.view.reparentButton.hidden).toBe(false);
+    expect(h.view.reparentButton.disabled).toBe(false);
+    h.view.reparentButton.click();
+    const picker = opened[0]!.contentEl;
+    const target = picker.querySelector("select")!;
+    expect(document.activeElement).toBe(target);
+    target.value = String(targetNode!.line);
+    target.dispatchEvent(new Event("change"));
+    expect(h.transaction).not.toHaveBeenCalled();
+    const confirm = [...picker.querySelectorAll("button")].find((button) => button.textContent === "headingMap.rearrange.inside")!;
+    expect(confirm.disabled).toBe(false);
+    confirm.click();
+    await vi.waitFor(() => expect(h.transaction).toHaveBeenCalledOnce());
   });
 
   it("respects a preference switched off while the opted-in drop resolves its editor", async () => {

@@ -2,11 +2,14 @@ import { headingNumberAccessibleLabel, headingNumberHint, identifyHeadingNumberP
 import {
   ItemView,
   MarkdownView,
+  Modal,
+  type App,
   TFile,
   setIcon,
   type WorkspaceLeaf,
 } from "obsidian";
 
+import { applyModalDirection } from "./modal-direction";
 import { navigateToLine } from "../adapters/navigate-to-line";
 import { externalMarkdownView, isExternalMarkdownPath, readBoundMarkdownSource } from "../adapters/markdown-source-binding";
 import { createDisplayPlan } from "../application/display-plan";
@@ -115,6 +118,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
   private moving = false;
   private dragSource: SectionDrag | null = null;
   private rearrangeButton: HTMLButtonElement | null = null;
+  private reparentButton: HTMLButtonElement | null = null;
+  private reparentModal: Modal | null = null;
   private moveStatusEl: HTMLElement | null = null;
   private moveStatusError = false;
   private viewport: HTMLElement | null = null;
@@ -241,6 +246,9 @@ export class NumberSuiteHeadingMapView extends ItemView {
     this.zoomInButton = null;
     this.fitButton = null;
     this.rearrangeButton = null;
+    this.reparentButton = null;
+    this.reparentModal?.close();
+    this.reparentModal = null;
     this.moveStatusEl = null;
   }
 
@@ -295,6 +303,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     }
     this.contentEl.classList.toggle("is-adjusting-structure", this.rearranging);
     if (!this.rearranging || (this.moveStatusEl != null && !this.moveStatusError && this.dragSource == null)) this.setMoveStatus();
+    this.reparentButton?.setText(t("headingMap.rearrange.chooseParent"));
     if (this.rearrangeButton != null) {
       this.rearrangeButton.setText(t(this.rearranging
         ? "headingMap.rearrange.active" : "headingMap.rearrange.enable"));
@@ -365,6 +374,8 @@ export class NumberSuiteHeadingMapView extends ItemView {
       this.updateToolbarLabels();
       this.render();
     });
+    this.reparentButton = secondary.createEl("button", { attr: { type: "button", "aria-haspopup": "dialog" } });
+    this.reparentButton.addEventListener("click", () => this.openReparentPicker());
     this.moveStatusEl = toolbar.createDiv({ cls: "number-suite-heading-map-move-status", attr: { role: "status", "aria-live": "polite" } });
     this.setMoveStatus();
     const scope = primary.createDiv({ cls: "number-suite-heading-map-scope" });
@@ -434,7 +445,12 @@ export class NumberSuiteHeadingMapView extends ItemView {
   }
 
   private updateToolbarState(): void {
-    if (this.rearrangeButton != null) this.rearrangeButton.hidden = isExternalMarkdownPath(this.currentFile?.path);
+    const external = isExternalMarkdownPath(this.currentFile?.path);
+    if (this.rearrangeButton != null) this.rearrangeButton.hidden = external;
+    if (this.reparentButton != null) {
+      this.reparentButton.hidden = external || !this.rearranging || !this.actions.getSettings().allowHeadingLevelDragReparenting;
+      this.reparentButton.disabled = this.selectedId == null || this.selectedId === HEADING_MAP_DOCUMENT_ID || this.lastSource == null;
+    }
     if (this.fileLabelEl != null) {
       this.fileLabelEl.setText(this.currentFile?.basename ?? this.actions.getTranslate()("headingMap.title"));
       this.fileLabelEl.title = this.currentFile?.path ?? "";
@@ -933,6 +949,32 @@ export class NumberSuiteHeadingMapView extends ItemView {
     }
   }
 
+  private openReparentPicker(): void {
+    const file = this.currentFile;
+    const source = this.lastSource;
+    const selected = this.selectedId == null ? null : findHeadingMapNode(this.roots, this.selectedId);
+    if (!this.rearranging || !this.actions.getSettings().allowHeadingLevelDragReparenting
+      || this.moving || file == null || source == null || selected == null || isExternalMarkdownPath(file.path)) return;
+    const targets: HeadingMapNode[] = [];
+    const collect = (nodes: readonly HeadingMapNode[]): void => {
+      for (const node of nodes) {
+        if (node.id === selected.id) continue;
+        targets.push(node);
+        collect(node.children);
+      }
+    };
+    collect(this.roots);
+    const drag = { id: selected.id, line: selected.line, source, path: file.path, file };
+    const canMove = (target: HeadingMapNode, placement: HeadingMovePlacement): boolean => {
+      const preview = assessHeadingMove(source, selected.line, target.line, placement, true);
+      return preview !== null && preview !== "unchanged";
+    };
+    this.reparentModal?.close();
+    this.reparentModal = new HeadingReparentModal(this.app, this.actions.getTranslate(), selected, targets, canMove,
+      (target, placement) => { void this.applyMove(drag, target.line, placement, true); });
+    this.reparentModal.open();
+  }
+
   private dropPlacement(event: MouseEvent, card: HTMLElement): HeadingMovePlacement {
     const bounds = card.getBoundingClientRect();
     const ratio = this.layoutDirection === "top-to-bottom"
@@ -1028,7 +1070,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
     drag: SectionDrag,
     targetLine: number,
     placement: HeadingMovePlacement,
-    fromDrag = false,
+    mayReparent = false,
   ): Promise<void> {
     if (this.moving || !this.rearranging || isExternalMarkdownPath(drag.path)) return;
     if (this.lastSource !== drag.source
@@ -1061,7 +1103,7 @@ export class NumberSuiteHeadingMapView extends ItemView {
         return;
       }
       if (!this.rearranging) return;
-      const allowReparenting = fromDrag && this.actions.getSettings().allowHeadingLevelDragReparenting;
+      const allowReparenting = mayReparent && this.actions.getSettings().allowHeadingLevelDragReparenting;
       if (placement === "inside" && !allowReparenting) return;
       const plan = assessHeadingMove(current, drag.line, targetLine, placement, allowReparenting);
       if (plan == null || plan === "unchanged" || plan.expectedSource !== current
@@ -1441,4 +1483,60 @@ function touchGesture(points: Iterable<TouchPoint>): {
     centerY: (first.y + second.y) / 2,
     distance: Math.hypot(second.x - first.x, second.y - first.y),
   };
+}
+
+
+class HeadingReparentModal extends Modal {
+  constructor(
+    app: App,
+    private readonly t: Translate,
+    private readonly source: HeadingMapNode,
+    private readonly targets: readonly HeadingMapNode[],
+    private readonly canMove: (target: HeadingMapNode, placement: HeadingMovePlacement) => boolean,
+    private readonly move: (target: HeadingMapNode, placement: HeadingMovePlacement) => void,
+  ) {
+    super(app);
+  }
+
+  override onOpen(): void {
+    const t = this.t;
+    applyModalDirection(this.modalEl, t);
+    this.setTitle(t("headingMap.rearrange.chooseParent"));
+    this.contentEl.createEl("p", { text: t("headingMap.rearrange.movingSection", { title: this.headingTitle(this.source) }) });
+    const label = this.contentEl.createEl("label", { cls: "number-suite-heading-reparent-target", text: t("headingMap.rearrange.targetHeading") });
+    const select = label.createEl("select");
+    select.createEl("option", { text: "—", attr: { value: "" } });
+    for (const target of this.targets) {
+      const location = t("preview.line", { line: target.line + 1, level: target.level });
+      select.createEl("option", { text: `${this.headingTitle(target)} · ${location}`, attr: { value: String(target.line) } });
+    }
+    const actions = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const cancel = actions.createEl("button", { type: "button", text: t("preview.cancel") });
+    cancel.addEventListener("click", () => this.close());
+    const selectedTarget = () => this.targets.find((target) => String(target.line) === select.value);
+    for (const placement of ["before", "inside", "after"] as const) {
+      const button = actions.createEl("button", { type: "button" });
+      const update = () => {
+        const target = selectedTarget();
+        button.hidden = target == null;
+        button.disabled = target == null || !this.canMove(target, placement);
+        if (target != null) button.setText(t(`headingMap.rearrange.${placement}`, { title: this.headingTitle(target) }));
+      };
+      select.addEventListener("change", update);
+      update();
+      button.addEventListener("click", () => {
+        const target = selectedTarget();
+        if (target == null || button.disabled) return;
+        this.close();
+        this.move(target, placement);
+      });
+    }
+    select.focus();
+  }
+
+  override onClose(): void { this.contentEl.empty(); }
+
+  private headingTitle(node: HeadingMapNode): string {
+    return node.title || this.t("headingMap.untitled");
+  }
 }
