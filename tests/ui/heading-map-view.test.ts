@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
-import { MarkdownView, TFile, type WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Modal, TFile, type WorkspaceLeaf } from "obsidian";
 
 vi.mock("obsidian", async (original) => ({
   ...await original<Record<string, unknown>>(),
@@ -44,6 +44,8 @@ type Subject = {
   rearranging: boolean;
   moveStatusEl: HTMLElement;
   rearrangeButton: HTMLButtonElement;
+  reparentButton: HTMLButtonElement;
+  buildToolbar(): void;
   navigate(node: HeadingMapNode): Promise<void>;
   moveStatusError: boolean;
   dragSource: unknown;
@@ -203,7 +205,7 @@ describe("heading map touch targets", () => {
     touch("pointerup", view.viewport, 30);
     expect(write).toHaveBeenCalledExactlyOnceWith(
       { id: a.id, line: a.line, source: "# Root\n## A\n### Child\n## B", path: "Map.md", file: view.currentFile },
-      b.line, "after",
+      b.line, "after", true,
     );
     expect(target.classList.contains("is-drop-after")).toBe(false);
     expect(captured.size).toBe(0);
@@ -236,8 +238,8 @@ describe("heading map touch targets", () => {
 
 describe("heading map write identity", () => {
   const source = "# Root\n## A\nbody\n## B\n";
-  function writeHarness() {
-    const view = makeView();
+  function writeHarness(settings = DEFAULT_SETTINGS) {
+    const view = makeView(settings);
     const file = Object.assign(Object.create(TFile.prototype) as TFile, {
       path: "Same.md", basename: "Same", extension: "md",
     });
@@ -296,6 +298,70 @@ describe("heading map write identity", () => {
     expect(h.transaction).toHaveBeenCalledTimes(1);
     expect(h.transaction.mock.calls[0]?.[0].changes).toHaveLength(1);
   });
+  it("commits the opted-in center drop as a single editor transaction", async () => {
+    const settings = { ...DEFAULT_SETTINGS, allowHeadingLevelDragReparenting: true };
+    const h = writeHarness(settings);
+    vi.spyOn(h.view, "scheduleRefresh").mockImplementation(() => undefined);
+    await h.view.refreshMap(source);
+    h.view.collapsed.clear();
+    h.view.render();
+    const [sourceNode, targetNode] = h.view.roots[0]!.children;
+    const card = (id: string) => h.view.sceneHost.querySelector<HTMLElement>(`[data-node-id="${id}"]`)!;
+    const target = card(targetNode!.id);
+    target.getBoundingClientRect = () => ({ top: 0, height: 100 } as DOMRect);
+    card(sourceNode!.id).dispatchEvent(new Event("dragstart"));
+    target.dispatchEvent(new MouseEvent("dragover", { clientY: 50, cancelable: true }));
+    expect(target.classList.contains("is-drop-inside")).toBe(true);
+    expect(h.transaction).not.toHaveBeenCalled();
+    target.dispatchEvent(new MouseEvent("drop", { clientY: 50, cancelable: true }));
+    await vi.waitFor(() => expect(h.transaction).toHaveBeenCalledExactlyOnceWith({ changes: [{
+      from: { line: 0, ch: source.indexOf("## A") },
+      to: { line: 0, ch: source.length },
+      text: "## B\n### A\nbody\n",
+    }] }));
+  });
+
+  it("offers the same safe destinations through a focused native picker", async () => {
+    const settings = { ...DEFAULT_SETTINGS, allowHeadingLevelDragReparenting: true };
+    const h = writeHarness(settings);
+    h.view.buildToolbar();
+    await h.view.refreshMap(source);
+    h.view.collapsed.clear();
+    h.view.render();
+    const [sourceNode, targetNode] = h.view.roots[0]!.children;
+    h.view.sceneHost.querySelector<HTMLButtonElement>(`[data-node-id="${sourceNode!.id}"] [data-map-action=body]`)!.click();
+    const opened: Modal[] = [];
+    const open = vi.spyOn(Modal.prototype, "open").mockImplementation(function (this: Modal) {
+      Object.assign(this, { modalEl: this.contentEl });
+      document.body.append(this.contentEl);
+      opened.push(this);
+      this.onOpen();
+    });
+    onTestFinished(() => { open.mockRestore(); for (const modal of opened) modal.contentEl.remove(); });
+    expect(h.view.reparentButton.hidden).toBe(false);
+    expect(h.view.reparentButton.disabled).toBe(false);
+    h.view.reparentButton.click();
+    const picker = opened[0]!.contentEl;
+    const target = picker.querySelector("select")!;
+    expect(document.activeElement).toBe(target);
+    target.value = String(targetNode!.line);
+    target.dispatchEvent(new Event("change"));
+    expect(h.transaction).not.toHaveBeenCalled();
+    const confirm = [...picker.querySelectorAll("button")].find((button) => button.textContent === "headingMap.rearrange.inside")!;
+    expect(confirm.disabled).toBe(false);
+    confirm.click();
+    await vi.waitFor(() => expect(h.transaction).toHaveBeenCalledOnce());
+  });
+
+  it("respects a preference switched off while the opted-in drop resolves its editor", async () => {
+    const settings = { ...DEFAULT_SETTINGS, allowHeadingLevelDragReparenting: true };
+    const h = writeHarness(settings);
+    const pending = h.view.applyMove(h.drag, 3, "inside", true);
+    settings.allowHeadingLevelDragReparenting = false;
+    await pending;
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
   it("rejects a same-content editor that changed to another file during source resolution", async () => {
     const h = writeHarness();
     const pending = h.view.applyMove(h.drag, 3, "after");

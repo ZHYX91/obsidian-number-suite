@@ -41,6 +41,7 @@ export type SettingsControlKey =
   | "views.revealOnActiveLine"
   | "views.bodyHeadingNumberFormat"
   | "views.outlineHeadingNumberFormat"
+  | "views.allowHeadingLevelDragReparenting"
   | "views.referenceHeadingNumberFormat"
   | "views.virtualOpacity"
   | "views.virtualGapEm"
@@ -92,6 +93,7 @@ const SETTINGS_CONTROL_KEYS = new Set<SettingsControlKey>([
   "views.revealOnActiveLine",
   "views.bodyHeadingNumberFormat",
   "views.outlineHeadingNumberFormat",
+  "views.allowHeadingLevelDragReparenting",
   "views.referenceHeadingNumberFormat",
   "views.virtualOpacity",
   "views.virtualGapEm",
@@ -145,6 +147,7 @@ export function getSettingsControlValue(
     case "views.revealOnActiveLine": return settings.revealOnActiveLine;
     case "views.bodyHeadingNumberFormat": return settings.bodyHeadingNumberFormat;
     case "views.outlineHeadingNumberFormat": return settings.outlineHeadingNumberFormat;
+    case "views.allowHeadingLevelDragReparenting": return settings.allowHeadingLevelDragReparenting;
     case "views.referenceHeadingNumberFormat": return settings.referenceHeadingNumberFormat;
     case "views.virtualOpacity": return settings.virtualOpacity;
     case "views.virtualGapEm": return settings.virtualGapEm;
@@ -318,6 +321,9 @@ export function applySettingsControlValue(
       if (value !== "follow-body" && value !== "scheme" && value !== "current-only") throw invalidControlValue(key);
       next.outlineHeadingNumberFormat = value;
       impact = "display";
+      break;
+    case "views.allowHeadingLevelDragReparenting":
+      next.allowHeadingLevelDragReparenting = controlBoolean(key, value);
       break;
     case "views.virtualOpacity":
       next.virtualOpacity = boundedControlNumber(key, value, 0.15, 1);

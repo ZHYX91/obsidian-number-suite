@@ -1827,6 +1827,7 @@
 }
 .number-suite-heading-map-card.is-drop-before[data-drop-axis="horizontal"]::after { left: -12px; right: auto; }
 .number-suite-heading-map-card.is-drop-after[data-drop-axis="horizontal"]::after { right: -12px; left: auto; }
+.number-suite-heading-map-card.is-drop-inside { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
 .number-suite-heading-map-card.is-drop-invalid { outline: 2px dashed var(--text-error); outline-offset: 3px; }
 .number-suite-heading-map-move-status {
   color: var(--text-accent);
@@ -2319,3 +2320,6 @@ details.number-suite-settings-guide.is-collapsible[open] > .number-suite-setting
   outline: 2px solid var(--background-modifier-border-focus);
   outline-offset: 2px;
 }
+
+.number-suite-heading-reparent-target { display: grid; gap: var(--size-4-2); }
+.number-suite-heading-reparent-target select { min-width: 0; width: 100%; }

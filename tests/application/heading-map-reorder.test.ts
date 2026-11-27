@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planSameParentHeadingMove } from "../../src/application/heading-map-reorder";
+import { assessHeadingMove, planSameParentHeadingMove } from "../../src/application/heading-map-reorder";
 
 function moved(source: string, fromLine: number, toLine: number, side: "before" | "after"): string | null {
   const plan = planSameParentHeadingMove(source, fromLine, toLine, side);
@@ -101,5 +101,35 @@ describe("heading mind-map same-parent section rearrangement", () => {
       "######## Deep B\nB\n######## Deep A\nA\n```\n######## Not heading\n```\n",
     );
     expect(moved(source, 3, 0, "before")).toBeNull();
+  });
+});
+
+describe("opt-in heading reparenting", () => {
+  it("blocks same-level cross-parent moves unless opted in", () => {
+    const source = "# A\n## Source\nsource body\n# B\n## Destination\nbody\n";
+    expect(assessHeadingMove(source, 1, 4, "before", false)).toBeNull();
+    expect(assessHeadingMove(source, 1, 4, "before", true)).toMatchObject({
+      resultSource: "# A\n# B\n## Source\nsource body\n## Destination\nbody\n",
+    });
+  });
+
+  it("moves a whole subtree into another heading and changes only its heading markers", () => {
+    const source = "## A\r\nA body\r\n### Child\r\nCaption\r\n## B\r\nB body";
+    expect(assessHeadingMove(source, 0, 4, "inside", false)).toBeNull();
+    expect(assessHeadingMove(source, 0, 4, "inside", true)).toMatchObject({
+      resultSource: "## B\r\nB body\r\n### A\r\nA body\r\n#### Child\r\nCaption",
+    });
+  });
+
+  it("supports an adjacent drop that changes levels without relocating the section", () => {
+    const source = "# A\n# B\n## Child\n";
+    expect(assessHeadingMove(source, 1, 0, "inside", true)).toMatchObject({
+      resultSource: "# A\n## B\n### Child\n",
+    });
+  });
+
+  it("rejects descendant destinations and level overflow", () => {
+    expect(assessHeadingMove("# A\n## Child\n", 0, 1, "inside", true)).toBeNull();
+    expect(assessHeadingMove("## A\n### Child\n######### B\n# C\n", 3, 2, "inside", true)).toBeNull();
   });
 });

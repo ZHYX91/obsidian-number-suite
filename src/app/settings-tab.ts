@@ -505,6 +505,10 @@ export class NumberSuiteSettingTab extends PluginSettingTab {
     toggle("settings.reading", "enableReadingView");
     toggle("settings.source", "enableSourceMode", "settings.source.desc");
     toggle("settings.reveal", "revealOnActiveLine");
+    new Setting(container).setName(t("settings.allowHeadingLevelDragReparenting"))
+      .setDesc(t("settings.allowHeadingLevelDragReparenting.desc"))
+      .addToggle((component) => component.setValue(this.plugin.settings.allowHeadingLevelDragReparenting)
+        .onChange((value) => this.updateControl("views.allowHeadingLevelDragReparenting", value)));
     const formats = new Setting(container).setName(t("settings.virtualFormat.title")).setHeading();
     const help = t("settings.virtualFormat.help");
     formats.setDesc(help);
