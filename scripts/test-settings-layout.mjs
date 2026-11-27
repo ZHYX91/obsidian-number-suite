@@ -106,7 +106,7 @@ try {
     await touchPage.close();
   }
 
-  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");
+  console.log("Settings preserve dropdown measurements, fit the German reset label, and provide 44px touch targets for tab paging.");
 } finally {
   await browser.close();
 }
