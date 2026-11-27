@@ -328,6 +328,8 @@ export const LOCALE_JA: Readonly<Record<string, string>> = {
   "settings.reading": "閲覧ビューの処理を有効にする",
   "settings.source": "ソースモードでも装飾を表示する",
   "settings.source.desc": "初期状態ではオフなので、ソースモードでは保存された Markdown をそのまま確認できます。",
+  "settings.allowHeadingLevelDragReparenting": "ドラッグによる見出しレベルの変更を許可",
+  "settings.allowHeadingLevelDragReparenting.desc": "有効にすると、再編成モードで見出しを別の見出しの下にドラッグし、セクション全体のレベルを変更できます。既定ではオフです。同じ階層の並べ替えは引き続き使用できます。",
   "settings.reveal": "カーソルがある見出し行の書き込み済み番号を表示",
   "settings.virtualFormat.title": "見出しの仮想番号の形式",
   "settings.virtualFormat.body": "ノート本文の見出し",
