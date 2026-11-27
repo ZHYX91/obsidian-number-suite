@@ -20,6 +20,8 @@ Obsidian 1.12.7 ou plus récent est requis, sur ordinateur ou Android. Le foncti
 <!-- section: quick-start -->
 ## Démarrage rapide
 
+Ouvrez une note Markdown, puis lancez **Ouvrir les réglages de la note actuelle** depuis la palette de commandes. Le panneau de la note actuelle s’ouvre même si le ruban est masqué.
+
 1. Dans **Paramètres → Number Suite → Numérotation des titres**, activez **« Afficher les numéros virtuels »**.
 2. Ouvrez l’aperçu en direct ou le mode Lecture. Les numéros apparaissent près des titres, sans modifier le texte enregistré.
 3. Pour enregistrer les numéros dans Markdown, ouvrez **Note actuelle → Modifier le texte**. Choisissez l’écriture ou la renumérotation, vérifiez l’aperçu et confirmez.

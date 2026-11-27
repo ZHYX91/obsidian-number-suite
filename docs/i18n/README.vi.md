@@ -20,6 +20,8 @@ Cần Obsidian 1.12.7 trở lên trên máy tính hoặc Android. Chưa xác min
 <!-- section: quick-start -->
 ## Bắt đầu
 
+Mở một ghi chú Markdown, rồi chạy lệnh **Mở điều khiển của ghi chú hiện tại** trong bảng lệnh. Bảng bên của ghi chú hiện tại vẫn mở được khi thanh biểu tượng đang ẩn.
+
 1. Trong **Cài đặt → Number Suite → Đánh số tiêu đề**, bật **“Hiện số ảo”**.
 2. Mở Live Preview hoặc chế độ đọc. Số xuất hiện cạnh tiêu đề nhưng nội dung tệp không thay đổi.
 3. Để lưu số vào Markdown, mở **Ghi chú hiện tại → Sửa nội dung**, chọn ghi số hoặc đánh số lại, xem trước rồi xác nhận.

@@ -76,6 +76,8 @@ Download the versioned ZIP from [GitHub Releases](https://github.com/ZHYX91/obsi
 <!-- section: usage -->
 ## Usage
 
+Open a Markdown note, then run **Open current note controls** from the command palette. This opens the **Current note** sidebar even if the ribbon is hidden.
+
 To see heading numbers without rewriting the headings, enable **Show virtual numbers** under **Heading numbering**. To save numbers into Markdown for other tools, use **Write numbers** from the sidebar's **Current note** panel and review the preview before applying.
 
 | Source state | Desired result | Action | Rewrites heading text |
