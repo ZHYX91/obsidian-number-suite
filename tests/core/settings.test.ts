@@ -12,6 +12,11 @@ import {
 } from "../../src/config/settings";
 
 describe("settings", () => {
+  it("keeps heading-level drag reparenting opt-in and normalizes malformed values", () => {
+    expect(DEFAULT_SETTINGS.allowHeadingLevelDragReparenting).toBe(false);
+    expect(sanitizeSettings({ allowHeadingLevelDragReparenting: true }).allowHeadingLevelDragReparenting).toBe(true);
+    expect(sanitizeSettings({ allowHeadingLevelDragReparenting: "yes" }).allowHeadingLevelDragReparenting).toBe(false);
+  });
   it("falls back safely from malformed persisted data", () => {
     const settings = sanitizeSettings({
       showVirtualNumbers: "yes",
