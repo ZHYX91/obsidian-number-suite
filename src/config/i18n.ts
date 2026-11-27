@@ -331,6 +331,8 @@ const EN = {
   "settings.reading": "Enable Reading View processing",
   "settings.source": "Enable decorations in Source Mode",
   "settings.source.desc": "Off by default so Source Mode always exposes the stored Markdown.",
+  "settings.allowHeadingLevelDragReparenting": "Allow drag-and-drop to change heading levels",
+  "settings.allowHeadingLevelDragReparenting.desc": "When enabled, headings can be dragged into another heading in rearrange mode, changing the level of the entire section. Off by default; same-level reordering remains available.",
   "settings.reveal": "Reveal stored numbers on the active heading line",
   "settings.virtualFormat.title": "Virtual heading number format",
   "settings.virtualFormat.body": "Headings in the note",
