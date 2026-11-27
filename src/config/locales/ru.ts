@@ -328,6 +328,8 @@ export const LOCALE_RU: Readonly<Record<string, string>> = {
   "settings.reading": "Включить обработку в режиме чтения",
   "settings.source": "Включить оформление в режиме исходного текста",
   "settings.source.desc": "По умолчанию отключено, чтобы режим исходного текста всегда показывал сохранённый Markdown.",
+  "settings.allowHeadingLevelDragReparenting": "Разрешить изменение уровня заголовков перетаскиванием",
+  "settings.allowHeadingLevelDragReparenting.desc": "Если включено, заголовки можно перетаскивать под другой заголовок в режиме реорганизации, изменяя уровень всего раздела. По умолчанию выключено; сортировка на одном уровне остаётся доступной.",
   "settings.reveal": "Показывать записанные номера на строке активного заголовка",
   "settings.virtualFormat.title": "Формат виртуальных номеров заголовков",
   "settings.virtualFormat.body": "Заголовки в заметке",
