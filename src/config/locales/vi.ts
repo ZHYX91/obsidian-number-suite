@@ -328,6 +328,8 @@ export const LOCALE_VI: Readonly<Record<string, string>> = {
   "settings.reading": "Bật xử lý ở chế độ đọc",
   "settings.source": "Bật hiệu ứng trong chế độ nguồn",
   "settings.source.desc": "Mặc định tắt để chế độ nguồn luôn hiện Markdown đã lưu.",
+  "settings.allowHeadingLevelDragReparenting": "Cho phép kéo để thay đổi cấp tiêu đề",
+  "settings.allowHeadingLevelDragReparenting.desc": "Khi bật, có thể kéo tiêu đề vào dưới tiêu đề khác trong chế độ sắp xếp lại, thay đổi cấp của toàn bộ phần. Mặc định tắt; vẫn có thể sắp xếp lại ở cùng cấp.",
   "settings.reveal": "Hiện số đã ghi trên dòng tiêu đề đang có con trỏ",
   "settings.virtualFormat.title": "Định dạng số tiêu đề ảo",
   "settings.virtualFormat.body": "Tiêu đề trong ghi chú",
