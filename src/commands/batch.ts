@@ -1,4 +1,4 @@
-import { App, MarkdownView, Notice, TFile, type TFolder } from "obsidian";
+import { App, MarkdownView, Notice, TFile, TFolder } from "obsidian";
 
 import type { Translate } from "../config/i18n";
 import type {
@@ -19,10 +19,6 @@ export interface BatchPersistence {
   ensureLoaded(): Promise<void>;
   getLastBatch(): LastBatchSnapshot | null;
   setLastBatch(snapshot: LastBatchSnapshot | null): Promise<void>;
-}
-
-function pathInFolder(path: string, folder: TFolder | null): boolean {
-  return folder == null || path.startsWith(`${folder.path}/`);
 }
 
 function isExcluded(path: string, excludedFolders: readonly string[]): boolean {
@@ -230,11 +226,27 @@ export class BatchController {
   }
 
   private filesForScope(scope: BatchScope): TFile[] {
-    const settings = this.getSettings();
-    return this.app.vault.getMarkdownFiles()
-      .filter((file) => pathInFolder(file.path, scope.folder))
-      .filter((file) => !isExcluded(file.path, settings.excludedFolders))
-      .sort((left, right) => left.path.localeCompare(right.path));
+    const { excludedFolders } = this.getSettings();
+    let files: TFile[];
+    if (scope.folder === null) {
+      files = this.app.vault.getMarkdownFiles().filter((file) => !isExcluded(file.path, excludedFolders));
+    } else {
+      files = [];
+      const prefix = `${scope.folder.path}/`;
+      const folders = [scope.folder];
+      for (const folder of folders) {
+        if (isExcluded(folder.path, excludedFolders)) continue;
+        for (const child of folder.children) {
+          if (!child.path.startsWith(prefix)) continue;
+          if (child instanceof TFolder) {
+            folders.push(child);
+          } else if (child instanceof TFile && child.extension === "md" && !isExcluded(child.path, excludedFolders)) {
+            files.push(child);
+          }
+        }
+      }
+    }
+    return files.sort((left, right) => left.path.localeCompare(right.path));
   }
 
   private openMarkdownViews(): MarkdownView[] {

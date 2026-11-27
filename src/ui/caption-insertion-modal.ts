@@ -55,7 +55,9 @@ export class CaptionInsertionModal extends Modal {
       confirmButton?.setDisabled(this.applying || caption === null);
     };
 
-    new Setting(contentEl)
+    const titleField = new Setting(contentEl);
+    titleField.settingEl.classList.add("number-suite-caption-field");
+    titleField
       .setName(t("caption.modal.field"))
       .addText((text) => {
         text.setPlaceholder(t("caption.modal.placeholder"))
@@ -70,6 +72,7 @@ export class CaptionInsertionModal extends Modal {
       });
 
     const actions = new Setting(contentEl);
+    actions.settingEl.classList.add("number-suite-caption-actions");
     actions.addButton((button) => button
       .setButtonText(t("preview.cancel"))
       .onClick(() => this.close()));

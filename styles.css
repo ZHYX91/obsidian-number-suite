@@ -1719,7 +1719,7 @@
 
 .number-suite-caption-form { overflow-wrap: anywhere; }
 
-.number-suite-caption-form .setting-item:has(input) {
+.number-suite-caption-form .number-suite-caption-field {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 12em), 1fr));
   gap: var(--size-4-2);
@@ -1740,7 +1740,7 @@
   min-inline-size: 0;
 }
 
-.number-suite-caption-form .setting-item:has(button) .setting-item-info { display: none; }
+.number-suite-caption-form .number-suite-caption-actions .setting-item-info { display: none; }
 
 .number-suite-caption-form button {
   height: auto;
