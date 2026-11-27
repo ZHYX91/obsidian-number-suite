@@ -71,7 +71,42 @@ try {
     }, fontSize);
     assert.ok(fits, `German reset label exceeds its desktop button at ${fontSize}px`);
   }
-  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");
+  // The paging arrows are separate controls from the horizontally scrollable tablist.
+  // On a touch device they must meet the shared 44 × 44 CSS-pixel target in both axes.
+  const touchPage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    isMobile: true,
+    hasTouch: true,
+  });
+  try {
+    await touchPage.setContent(`<div class="number-suite-settings-tab-strip">
+      <button class="number-suite-settings-tab-scroll" data-direction="earlier" aria-label="Previous tabs"></button>
+      <div class="number-suite-settings-tabs">
+        <button class="number-suite-settings-tab is-active">General</button>
+        <button class="number-suite-settings-tab">Headings</button>
+      </div>
+      <button class="number-suite-settings-tab-scroll" data-direction="later" aria-label="Next tabs"></button>
+    </div>`);
+    await touchPage.addStyleTag({ path: "styles.css" });
+    const geometry = await touchPage.locator(".number-suite-settings-tab-scroll").evaluateAll((buttons) => ({
+      coarse: window.matchMedia("(pointer: coarse)").matches,
+      bounds: buttons.map((button) => {
+        const rect = button.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+    }));
+    assert.equal(geometry.coarse, true, "touch fixture must expose a coarse primary pointer");
+    assert.equal(geometry.bounds.length, 2);
+    for (const [index, rect] of geometry.bounds.entries()) {
+      assert.ok(rect.width >= 44, `settings tab arrow ${index} is only ${rect.width}px wide`);
+      assert.ok(rect.height >= 44, `settings tab arrow ${index} is only ${rect.height}px high`);
+    }
+  } finally {
+    await touchPage.close();
+  }
+
+  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");  console.log("Settings preserve dropdown measurements and keep the German desktop reset label inside its button.");
 } finally {
   await browser.close();
 }
