@@ -328,6 +328,8 @@ export const LOCALE_DE: Readonly<Record<string, string>> = {
   "settings.reading": "Verarbeitung in der Leseansicht aktivieren",
   "settings.source": "Darstellung auch im Quellmodus aktivieren",
   "settings.source.desc": "Standardmäßig aus, damit der Quellmodus immer das gespeicherte Markdown zeigt.",
+  "settings.allowHeadingLevelDragReparenting": "Überschriftenebenen per Drag-and-drop ändern erlauben",
+  "settings.allowHeadingLevelDragReparenting.desc": "Wenn aktiviert, können Überschriften im Neuordnungsmodus unter eine andere Überschrift gezogen werden; die Ebene des gesamten Abschnitts wird angepasst. Standardmäßig deaktiviert; Sortierung auf gleicher Ebene bleibt verfügbar.",
   "settings.reveal": "Gespeicherte Nummern in der aktiven Überschriftenzeile einblenden",
   "settings.virtualFormat.title": "Format virtueller Überschriftennummern",
   "settings.virtualFormat.body": "Überschriften in der Notiz",
