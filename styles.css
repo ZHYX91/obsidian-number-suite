@@ -337,6 +337,10 @@
   .number-suite-settings-tab-strip {
     --tab-scroll-size: 44px;
   }
+
+  .number-suite-settings-tab-strip > button.number-suite-settings-tab-scroll {
+    min-block-size: 44px;
+  }
 }
 
 .number-suite-settings-tabs {
