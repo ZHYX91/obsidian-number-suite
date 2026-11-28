@@ -1374,12 +1374,15 @@
 }
 
 
+.workspace-leaf-content[data-type="number-suite-heading-map"] > .view-content.number-suite-heading-map-view {
+  padding: 0;
+}
+
 .number-suite-heading-map-view {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 0 !important;
 }
 
 .number-suite-heading-map-view.is-loading .number-suite-heading-map-viewport {
