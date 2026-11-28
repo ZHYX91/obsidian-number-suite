@@ -327,12 +327,6 @@
   outline-offset: -2px;
 }
 
-@container (max-width: 600px) {
-  .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab {
-    padding-inline: 8px !important;
-  }
-}
-
 @media (pointer: coarse) {
   .number-suite-settings-tab-strip {
     --tab-scroll-size: 44px;
@@ -358,26 +352,32 @@
   scrollbar-width: thin;
 }
 
-.number-suite-settings-tabs > button.number-suite-settings-tab {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  border-block-end: 2px solid transparent !important;
-  border-radius: 0 !important;
+.number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
   box-sizing: border-box;
-  box-shadow: none !important;
-  color: var(--text-muted) !important;
+  box-shadow: none;
+  color: var(--text-muted);
   cursor: var(--cursor, default);
   flex: 0 0 auto;
-  font-family: inherit !important;
-  font-size: var(--font-ui-small) !important;
+  font-family: inherit;
+  font-size: var(--font-ui-small);
   font-weight: inherit;
-  margin: 0 !important;
+  margin: 0;
   block-size: auto;
   min-block-size: 34px;
-  padding: 7px 12px !important;
+  padding: 7px 12px;
   white-space: nowrap;
+}
+
+@container (max-width: 600px) {
+  .number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab {
+    padding-inline: 8px;
+  }
 }
 
 @media (forced-colors: active) {
@@ -385,27 +385,27 @@
     --interactive-accent: Highlight;
   }
 
-  .number-suite-settings-tabs > button.number-suite-settings-tab[aria-selected="false"] {
-    border-block-end-color: Canvas !important;
+  .number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab[aria-selected="false"] {
+    border-block-end-color: Canvas;
   }
 }
 
-.number-suite-settings-tabs > button.number-suite-settings-tab:focus-visible {
+.number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
 }
 
-.number-suite-settings-tabs > button.number-suite-settings-tab:hover {
-  background: transparent !important;
-  color: var(--text-normal) !important;
+.number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab:hover {
+  background: transparent;
+  color: var(--text-normal);
 }
 
-.number-suite-settings-tabs > button.number-suite-settings-tab.is-active,
-.number-suite-settings-tabs > button.number-suite-settings-tab.is-active:hover {
-  background: transparent !important;
-  border-block-end-color: var(--interactive-accent) !important;
-  color: var(--text-normal) !important;
-  font-weight: var(--font-semibold) !important;
+.number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab.is-active,
+.number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab.is-active:hover {
+  background: transparent;
+  border-block-end-color: var(--interactive-accent);
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
 }
 
 .number-suite-settings-custom-row {
@@ -491,7 +491,7 @@
 }
 
 @media (pointer: coarse) {
-  .number-suite-settings-tabs > button.number-suite-settings-tab {
+  .number-suite-settings .number-suite-settings-tab-strip > .number-suite-settings-tabs > button.number-suite-settings-tab {
     min-inline-size: 44px;
     min-block-size: 44px;
   }
