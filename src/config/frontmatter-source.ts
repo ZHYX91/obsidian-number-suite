@@ -15,24 +15,24 @@ function escapePattern(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
+const knownKeyPattern = KNOWN_KEYS.map(escapePattern).join("|");
+const plainKey = new RegExp(`^(${knownKeyPattern})[ \\t]*:(?=[ \\t]|$)`, "u");
+const quotedKey = new RegExp(`^(["'])(${knownKeyPattern})\\1[ \\t]*:(?=[ \\t]|$)`, "u");
+
 export function notePropertySourceIssues(frontmatter: string): NotePropertyIssue[] {
   const counts = new Map<string, number>();
   const issues: NotePropertyIssue[] = [];
   for (const line of frontmatter.split(/\r\n|\r|\n/u)) {
-    if (/^\s/u.test(line)) continue;
-    for (const key of KNOWN_KEYS) {
-      const pattern = escapePattern(key);
-      if (new RegExp(`^${pattern}\\s*:`, "u").test(line)) {
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-      if (new RegExp(`^["']${pattern}["']\\s*:`, "u").test(line)) {
-        issues.push({
-          code: "source-ambiguous",
-          field: "all",
-          message: `Quoted Number Suite property key requires manual review: ${key}`,
-          details: { kind: "source-quoted-key", key },
-        });
-      }
+    const key = plainKey.exec(line)?.[1];
+    if (key !== undefined) counts.set(key, (counts.get(key) ?? 0) + 1);
+    const quoted = quotedKey.exec(line)?.[2];
+    if (quoted !== undefined) {
+      issues.push({
+        code: "source-ambiguous",
+        field: "all",
+        message: `Quoted Number Suite property key requires manual review: ${quoted}`,
+        details: { kind: "source-quoted-key", key: quoted },
+      });
     }
   }
   for (const [key, count] of counts) {
