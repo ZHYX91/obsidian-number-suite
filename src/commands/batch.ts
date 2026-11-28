@@ -193,7 +193,7 @@ export class BatchController {
         ) throw new BatchChangedError();
         if (item.before !== item.after) {
           try {
-            await this.replaceBoundExactly(item, item.before, item.after);
+            await this.replaceBoundExactly(item, item.before, item.after, "undo");
             restored.push(item);
           } catch (error) {
             if (error instanceof BatchWriteUncertainError) restored.push(item);
@@ -335,9 +335,15 @@ export class BatchController {
     item: BoundBatchFile,
     expected: string,
     replacement: string,
-    compensating = false,
+    mode: "apply" | "undo" | "rollback",
   ): Promise<void> {
-    if (!compensating) this.assertActive();
+    const checkWrite = (): void => {
+      if (mode !== "rollback") this.assertActive();
+      if (mode === "apply" && isExcluded(item.path, this.getSettings().excludedFolders)) {
+        throw new BatchChangedError();
+      }
+    };
+    checkWrite();
     if (
       !this.fileBindingIsCurrent(item.file, item.path)
       || !this.openMarkdownViewsCompatible(item, expected, replacement)
@@ -347,7 +353,7 @@ export class BatchController {
     let replacementAccepted = false;
     try {
       await this.app.vault.process(item.file, (current) => {
-        if (!compensating) this.assertActive();
+        checkWrite();
         if (
           !this.fileBindingIsCurrent(item.file, item.path)
           || !this.openMarkdownViewsCompatible(item, expected, replacement)
@@ -357,7 +363,7 @@ export class BatchController {
         // A rejected forward process may never have committed its replacement.
         // Compensation can confirm that the original text is already present,
         // under the same file/editor guards, without accepting unrelated edits.
-        if (current !== expected && !(compensating && current === replacement)) {
+        if (current !== expected && !(mode === "rollback" && current === replacement)) {
           throw new ContentConflictError(item.path);
         }
         replacementAccepted = true;
@@ -381,7 +387,7 @@ export class BatchController {
     const results: BatchRollbackResult[] = [];
     for (const item of [...replacements].reverse()) {
       try {
-        await this.replaceBoundExactly(item, item.after, item.before, true);
+        await this.replaceBoundExactly(item, item.after, item.before, "rollback");
         results.push({ path: item.path, status: "restored" });
       } catch (error) {
         results.push({
@@ -521,8 +527,9 @@ export class BatchController {
     )));
     const files: BoundBatchFile[] = [];
     const seen = new Set<string>();
+    const { excludedFolders } = this.getSettings();
     for (const document of documents) {
-      if (seen.has(document.path)) {
+      if (seen.has(document.path) || isExcluded(document.path, excludedFolders)) {
         this.notify(translate("notice.batchChanged"));
         return false;
       }
@@ -575,7 +582,7 @@ export class BatchController {
           || !this.openMarkdownViewsMatch(remainingSources, bindings)
         ) throw new BatchChangedError();
         try {
-          await this.replaceBoundExactly(item, item.before, item.after);
+          await this.replaceBoundExactly(item, item.before, item.after, "apply");
           modified.push(item);
         } catch (error) {
           if (error instanceof BatchWriteUncertainError) modified.push(item);

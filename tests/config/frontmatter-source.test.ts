@@ -24,6 +24,16 @@ describe("Number Suite frontmatter source checks", () => {
     });
   });
 
+  it("treats colons inside plain keys and Unicode edge spaces as part of their names", () => {
+    expect(notePropertySourceIssues([
+      "number-suite:owner: Ana",
+      "number-suite:stage: review",
+      "number-suite\u00a0: retained",
+      "number-suite:\u3000suffix: retained",
+      "number-suite: [heading.virtual=true]",
+    ].join("\n"))).toEqual([]);
+  });
+
   it("does not mistake indented list items for top-level properties", () => {
     expect(notePropertySourceIssues("number-suite:\n  - heading.scheme=legal")).toEqual([]);
   });

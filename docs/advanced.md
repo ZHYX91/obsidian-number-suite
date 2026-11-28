@@ -10,7 +10,7 @@ These choices apply to virtual heading numbers. Stored numbers keep their origin
 
 ## Roman numeral limits and batch recovery
 
-For a folder batch, the preview scans Markdown files in the selected folder and its descendants. Excluded folders and their contents are skipped. Choose the vault scope to review every eligible Markdown file.
+For a folder batch, the preview scans Markdown files in the selected folder and its descendants. Excluded folders and their contents are skipped. Choose the vault scope to review every eligible Markdown file. If a target folder is added to the exclusions after preview, applying stops before writing the excluded note. Any earlier writes in that batch go through the same guarded recovery.
 
 Roman numeral templates support values from 1 to 3999. Preview checks every generated heading, including later increments and parent counters referenced by a template. If any Roman counter is outside that range, Write and Renumber leave the entire file unchanged and explain how to adjust the start or format. Cleanup remains available. Display-only numbering omits an unavailable label instead of showing a decimal fallback.
 

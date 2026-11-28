@@ -283,6 +283,34 @@ describe("BatchController preview", () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
+  it("refuses a folder preview after its target folder is excluded", async () => {
+    const excluded: string[] = [];
+    const test = harness({ "work/a.md": "# A" }, null, excluded);
+    const scope = test.addFolder("work", [test.getFile("work/a.md")!]);
+    await preview(test.controller, "write", new AbortController().signal, scope);
+    const shown = currentPreview();
+    expect(shown.documents.map(({ path }) => path)).toEqual(["work/a.md"]);
+    excluded.push("work");
+    expect(await shown.onConfirm(shown.documents)).toBe(false);
+    expect(test.processCalls()).toBe(0);
+    expect(test.persistedSnapshots).toEqual([]);
+    expect(test.contents.get("work/a.md")).toBe("# A");
+  });
+
+  it("rolls back earlier writes if a target becomes excluded while waiting for Vault.process", async () => {
+    const excluded: string[] = [];
+    const original = { "a.md": "# A", "work/b.md": "# B" };
+    const test = harness(original, null, excluded);
+    await preview(test.controller);
+    test.setProcessHook((path) => {
+      if (path === "work/b.md") excluded.push("work");
+    });
+    const shown = currentPreview();
+    expect(await shown.onConfirm(shown.documents)).toEqual({ message: "notice.batchChanged", stale: true });
+    expect(Object.fromEntries(test.contents)).toEqual(original);
+    expect(test.getStored()).toBeNull();
+  });
+
   it("reports a stale disk revision to the open preview without applying", async () => {
     const test = harness({ "a.md": "# Alpha" });
     await preview(test.controller);
